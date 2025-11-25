@@ -1,0 +1,140 @@
+
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RentiaRoom - Gestión Integral y Oportunidades</title>
+    <meta name="description" content="Gestionamos tus habitaciones, tú disfrutas de la rentabilidad. Transformamos propiedades en inversiones seguras.">
+    
+    <!-- Google Fonts: Poppins and Space Grotesk based on your website -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Tailwind Configuration matches RentiaRoom brand identity -->
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              rentia: {
+                black: '#1c1c1c',
+                gold: '#edcd20', // Extracted from your SVG icons
+                goldLight: '#f5e68c',
+                gray: '#f5f5f5',
+                text: '#333333',
+                blue: '#0072CE', // From your privacy links & footer
+                darkBlue: '#002849' // Footer copyright band
+              }
+            },
+            fontFamily: {
+              sans: ['Poppins', 'sans-serif'],
+              display: ['Space Grotesk', 'sans-serif'],
+            },
+            boxShadow: {
+              'idealista': '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)',
+              'idealista-hover': '0 14px 28px rgba(0,0,0,0.25), 0 10px 10px rgba(0,0,0,0.22)',
+            },
+            animation: {
+              marquee: 'marquee 40s linear infinite',
+            },
+            keyframes: {
+              marquee: {
+                '0%': { transform: 'translateX(0)' },
+                '100%': { transform: 'translateX(-50%)' },
+              }
+            },
+            screens: {
+              'print': {'raw': 'print'},
+            }
+          }
+        }
+      }
+    </script>
+    
+    <style>
+      /* Hide scrollbar for clean look in some containers */
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .no-scrollbar {
+        -ms-overflow-style: none;  /* IE and Edge */
+        scrollbar-width: none;  /* Firefox */
+      }
+
+      .cursor-zoom-in { cursor: zoom-in; }
+
+      /* PRINT STYLES - Corporate Dossier Look */
+      
+      /* Hide print elements on screen */
+      .print-only {
+        display: none;
+      }
+
+      @media print {
+        @page {
+          margin: 10mm;
+          size: A4;
+        }
+
+        .print-only {
+          display: block !important;
+        }
+        
+        /* Hide interactive elements and site navigation */
+        header, footer, .no-print, button, .whatsapp-button, .nav-controls, .sidebar-gallery, .fixed, nav {
+          display: none !important;
+        }
+        
+        /* Ensure colors print accurately */
+        body {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+          background-color: white !important;
+          margin: 0;
+          padding: 0;
+        }
+        
+        /* Prevent bad breaks */
+        .break-inside-avoid {
+          page-break-inside: avoid !important;
+          break-inside: avoid !important;
+        }
+        
+        .break-before-page {
+          page-break-before: always !important;
+          break-before: page !important;
+        }
+
+        /* Typography adjustments for print */
+        body {
+          font-size: 10pt;
+          color: #000;
+        }
+        
+        h1 { font-size: 20pt !important; }
+        h2 { font-size: 16pt !important; }
+        p { font-size: 10pt !important; }
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.554.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-gray-100 text-rentia-text font-sans antialiased">
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>

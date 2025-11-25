@@ -29,7 +29,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
           <div className="flex-shrink-0 flex items-center cursor-pointer" onClick={() => onNavigate('home')}>
             <img 
               className="h-auto w-32 md:w-40" 
-              src="https://rentiaroom.com/wp-content/uploads/2024/12/Logo-Negativo-1.png" 
+              src="https://i.ibb.co/QvzK6db3/Logo-Negativo.png" 
               alt="RentiaRoom" 
             />
           </div>

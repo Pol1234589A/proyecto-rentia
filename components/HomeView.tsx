@@ -49,22 +49,6 @@ interface HomeViewProps {
 export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
   const [selectedProcess, setSelectedProcess] = useState<ProcessStep | null>(null);
 
-  // Images from the marquee
-  const marqueeImages = [
-    "https://rentiaroom.com/wp-content/uploads/2025/01/RentiaRoom-Habitacion-1.jpg",
-    "https://rentiaroom.com/wp-content/uploads/2025/01/RentiaRoom-Habitacion-2.jpg",
-    "https://rentiaroom.com/wp-content/uploads/2025/01/RentiaRoom-Habitacion-3.jpg",
-    "https://rentiaroom.com/wp-content/uploads/2025/01/RentiaRoom-Habitacion-4.jpg",
-    "https://rentiaroom.com/wp-content/uploads/2025/01/RentiaRoom-Habitacion-5.jpg",
-    "https://rentiaroom.com/wp-content/uploads/2025/01/RentiaRoom-Habitacion-6.jpg",
-    "https://rentiaroom.com/wp-content/uploads/2025/01/RentiaRoom-Habitacion-7.jpg",
-    "https://rentiaroom.com/wp-content/uploads/2025/01/RentiaRoom-Habitacion-8.jpg",
-    "https://rentiaroom.com/wp-content/uploads/2025/01/RentiaRoom-Habitacion-10.jpg",
-    "https://rentiaroom.com/wp-content/uploads/2025/01/RentiaRoom-Habitacion-11.jpg",
-    "https://rentiaroom.com/wp-content/uploads/2025/01/RentiaRoom-Habitacion-12.jpg",
-    "https://rentiaroom.com/wp-content/uploads/2025/01/RentiaRoom-Habitacion-13.jpg",
-  ];
-
   const testimonials = [
     {
       name: "Charo Cabello",
@@ -173,9 +157,10 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
             loop 
             muted 
             playsInline
+            poster="https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1600&q=80"
             className="absolute inset-0 w-full h-full object-cover"
           >
-            <source src="https://www.rentiaroom.com/videos/portada.mp4" type="video/mp4" />
+            <source src="https://cdn.coverr.co/videos/coverr-living-room-interior-2624/1080p.mp4" type="video/mp4" />
             Tu navegador no soporta videos HTML5.
           </video>
           {/* Dark Overlay with Blur for better text readability */}
@@ -449,42 +434,12 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
                         </div>
                     </div>
                     <div className="md:w-1/2 relative min-h-[300px]">
-                        <img src="https://rentiaroom.com/wp-content/uploads/2024/12/Rentia-Room-Gestionamos-tu-propiedad.webp" alt="Gestión Propiedad" className="absolute inset-0 w-full h-full object-cover" />
+                        <img src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=800&q=80" alt="Gestión Propiedad" className="absolute inset-0 w-full h-full object-cover" />
                         <div className="absolute inset-0 bg-gradient-to-l from-transparent to-black/10"></div>
                     </div>
                 </div>
            </div>
        </section>
-
-      {/* --- MARQUEE SECTION --- */}
-      <section className="py-16 bg-white overflow-hidden border-t border-gray-100">
-          <div className="container mx-auto px-4 text-center mb-12">
-              <div className="inline-block px-3 py-1 rounded-full bg-gray-100 text-gray-500 text-xs font-bold uppercase tracking-wider mb-4">Portfolio</div>
-              <h2 className="text-2xl md:text-3xl font-bold text-rentia-black font-display">Nuestras habitaciones</h2>
-              <p className="text-gray-600 max-w-2xl mx-auto mt-2">Calidad y diseño en cada propiedad que gestionamos.</p>
-          </div>
-          
-          <div className="relative w-full overflow-hidden group">
-             <div className="flex w-[200%] animate-marquee group-hover:[animation-play-state:paused]">
-                {/* Original set */}
-                <div className="flex w-1/2 justify-around">
-                    {marqueeImages.map((img, index) => (
-                        <div key={`orig-${index}`} className="w-64 h-48 flex-shrink-0 mx-4 rounded-xl overflow-hidden shadow-idealista hover:scale-105 transition-transform duration-500 cursor-pointer">
-                            <img src={img} alt="Propiedad" className="w-full h-full object-cover" />
-                        </div>
-                    ))}
-                </div>
-                {/* Duplicate set for infinite loop */}
-                 <div className="flex w-1/2 justify-around">
-                    {marqueeImages.map((img, index) => (
-                        <div key={`dup-${index}`} className="w-64 h-48 flex-shrink-0 mx-4 rounded-xl overflow-hidden shadow-idealista hover:scale-105 transition-transform duration-500 cursor-pointer">
-                            <img src={img} alt="Propiedad" className="w-full h-full object-cover" />
-                        </div>
-                    ))}
-                </div>
-             </div>
-          </div>
-      </section>
 
       {/* --- TESTIMONIALS SECTION (PREMIUM MASONRY) --- */}
       <section className="py-24 bg-gray-50">

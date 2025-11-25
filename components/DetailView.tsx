@@ -94,7 +94,7 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
           {/* PRINT HEADER (Visible only when printing) */}
           <div className="hidden print:block px-8 pt-8 pb-4 mb-4 border-b-2 border-[#edcd20]">
               <div className="flex justify-between items-center">
-                  <img src="https://rentiaroom.com/wp-content/uploads/2024/12/Logo-Negativo-1.png" className="h-12 object-contain filter invert brightness-0" alt="RentiaRoom" />
+                  <img src="https://i.ibb.co/QvzK6db3/Logo-Negativo.png" className="h-12 object-contain filter invert" alt="RentiaRoom" />
                   <div className="text-right text-[10px] text-gray-600 leading-relaxed">
                       <strong>RENTIA INVESTMENTS S.L.</strong><br/>
                       Gestión Integral de Inversiones<br/>

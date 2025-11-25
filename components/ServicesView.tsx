@@ -17,7 +17,7 @@ export const ServicesView: React.FC = () => {
       id: 1,
       title: "Gestión Integral de Alquileres",
       description: "Nos encargamos de gestionar tus propiedades de principio a fin, facilitando cada etapa del proceso.",
-      image: "https://rentiaroom.com/wp-content/uploads/2025/01/RentaRoom-Gestion-Integral-de-Alquileres.webp",
+      image: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=800&q=80", // Imagen profesional inmobiliaria
       points: [
         "Captación de inquilinos: Filtrado de perfiles.",
         "Contratos personalizados y legales.",
@@ -30,7 +30,7 @@ export const ServicesView: React.FC = () => {
       id: 2,
       title: "Rent to Rent",
       description: "Ofrecemos un esquema en el que acordamos un ingreso fijo mensual mientras subarrendamos y gestionamos tus propiedades.",
-      image: "https://rentiaroom.com/wp-content/uploads/elementor/thumbs/Rentia-Room-Gestion-de-habitaciones-qzio7okv9waipqg1grno7any8yes2izgfotjxxkis0.jpeg", 
+      image: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=800&q=80", // Imagen de acuerdo/contrato
       points: [
         "Ingresos estables acordados.",
         "Gestión operativa delegada.",
@@ -43,7 +43,7 @@ export const ServicesView: React.FC = () => {
       id: 3,
       title: "Optimización de Ingresos",
       description: "Buscamos mejorar la rentabilidad de tus propiedades mediante análisis de mercado y estrategias de precios.",
-      image: "https://rentiaroom.com/wp-content/uploads/elementor/thumbs/Servicios-Rentia-Room-qyw1o8d4lip674e5tjmymyt0hhyqxqx3i32k97qpzk.jpeg",
+      image: "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?auto=format&fit=crop&w=800&q=80", // Imagen financiera/crecimiento
       points: [
         "Análisis de mercado.",
         "Asesoría en precios competitivos.",

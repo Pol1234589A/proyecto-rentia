@@ -1,98 +1,323 @@
 
-import React from 'react';
-import { ExternalLink, Info, Home, CheckCircle } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Home, MapPin, CheckCircle, Clock, User, MessageCircle, Filter, AlertCircle, Receipt, Sparkles, Hammer, ChevronDown, ChevronUp, HelpCircle, Building } from 'lucide-react';
+import { properties, Property, Room } from '../data/rooms';
 
 export const RoomsView: React.FC = () => {
+  const [showOnlyAvailable, setShowOnlyAvailable] = useState(false);
+  // State to track expanded properties. Default to all closed or maybe open ones with available rooms?
+  // Let's keep them closed by default for compactness, or open if they have available rooms.
+  const [expandedProperties, setExpandedProperties] = useState<Record<string, boolean>>({});
+
+  const toggleProperty = (id: string) => {
+    setExpandedProperties(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
+
+  // Calculate total rooms under management
+  const totalRoomsManaged = useMemo(() => {
+    return properties.reduce((acc, property) => acc + property.rooms.length, 0);
+  }, []);
+
+  // Filtrado de propiedades: Mostrar solo si tienen habitaciones libres si el filtro está activo
+  const filteredProperties = useMemo(() => {
+    if (!showOnlyAvailable) return properties;
+    return properties.filter(p => p.rooms.some(r => r.status === 'available'));
+  }, [showOnlyAvailable]);
+
+  // Función para determinar el color/estado inteligente del CONTENEDOR
+  const getRoomStatusContainerStyle = (room: Room) => {
+    // Special Status: Renovation
+    if (room.specialStatus === 'renovation') {
+        return 'bg-yellow-50 border-yellow-200 border-dashed';
+    }
+
+    if (room.status === 'available') return 'bg-white border-green-200 shadow-sm';
+    
+    // Lógica para "Próximamente" (Naranja)
+    if (room.availableFrom && room.availableFrom !== 'Consultar' && room.availableFrom !== 'Inmediata') {
+        const [day, month, year] = room.availableFrom.split('/').map(Number);
+        const exitDate = new Date(year, month - 1, day);
+        const today = new Date();
+        const diffTime = exitDate.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays > 0 && diffDays < 45) {
+            return 'bg-orange-50 border-orange-200';
+        }
+    }
+    
+    // Por defecto Azul (Alquilada)
+    return 'bg-gray-50 border-gray-100 opacity-80';
+  };
+
+  const getStatusLabel = (room: Room) => {
+    // Special Status overrides
+    if (room.specialStatus === 'renovation') {
+        return { icon: <Hammer className="w-3.5 h-3.5"/>, text: 'En Reformas', color: 'text-yellow-700' };
+    }
+
+    if (room.status === 'available') return { icon: <CheckCircle className="w-3.5 h-3.5"/>, text: 'Libre', color: 'text-green-700' };
+    
+    if (room.availableFrom && room.availableFrom !== 'Consultar') {
+        const [day, month, year] = room.availableFrom.split('/').map(Number);
+        const exitDate = new Date(year, month - 1, day);
+        const today = new Date();
+        const diffTime = exitDate.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        // MODIFICACIÓN SOLICITADA: Si falta poco, poner "Consultar"
+        if (diffDays > 0 && diffDays < 45) {
+             return { icon: <HelpCircle className="w-3.5 h-3.5"/>, text: 'Consultar disponibilidad', color: 'text-orange-700' };
+        }
+    }
+    
+    return { icon: <User className="w-3.5 h-3.5"/>, text: 'Alquilada', color: 'text-gray-500' };
+  };
+
   return (
-    <div className="font-sans bg-white min-h-screen flex flex-col animate-in fade-in duration-500">
+    <div className="font-sans bg-gray-50 min-h-screen flex flex-col animate-in fade-in duration-500">
+      
       {/* Hero Section */}
-      <section className="relative py-24 md:py-36 bg-rentia-black text-white overflow-hidden">
-        {/* Background Image - Increased visibility */}
+      <section className="relative py-12 md:py-16 bg-rentia-black text-white overflow-hidden">
         <div className="absolute inset-0">
            <img
-             src="https://rentiaroom.com/wp-content/uploads/2025/06/WhatsApp-Image-2025-05-12-at-09.55.44-1-1024x682.jpeg"
+             src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1600&q=80"
              alt="Habitaciones Disponibles"
-             className="w-full h-full object-cover opacity-70"
+             className="w-full h-full object-cover opacity-40"
            />
+           <div className="absolute inset-0 bg-gradient-to-b from-rentia-black/90 to-transparent"></div>
         </div>
-        {/* Lighter Gradient for better image visibility while keeping text readable */}
-        <div className="absolute inset-0 bg-gradient-to-b from-rentia-black/30 via-rentia-black/50 to-white"></div>
         
-        <div className="relative z-10 container mx-auto px-4 text-center mt-10">
+        <div className="relative z-10 container mx-auto px-4 text-center">
             <div className="inline-flex items-center gap-2 bg-rentia-gold text-rentia-black px-4 py-1 rounded-full mb-6 font-bold text-sm shadow-lg uppercase tracking-wider">
                 <Home className="w-4 h-4" />
-                Gestión Integral
+                Catálogo en tiempo real
             </div>
-          <h1 className="text-4xl md:text-6xl font-bold font-display mb-6 tracking-tight drop-shadow-lg text-white">
-            HABITACIONES DISPONIBLES
+          <h1 className="text-3xl md:text-5xl font-bold font-display mb-4 tracking-tight drop-shadow-lg text-white">
+            Habitaciones Disponibles
           </h1>
-          <p className="text-xl md:text-2xl text-white font-medium max-w-2xl mx-auto drop-shadow-md">
-            Encuentra tu próximo hogar con la garantía de calidad RentiaRoom.
+          <p className="text-lg text-gray-200 font-light max-w-2xl mx-auto mb-6">
+            Consulta el estado de todas nuestras viviendas gestionadas.
           </p>
+          
+          {/* Total Rooms Counter */}
+          <div className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-md border border-white/20 px-6 py-3 rounded-xl">
+              <Building className="w-6 h-6 text-rentia-blue" />
+              <div className="flex flex-col items-start">
+                  <span className="text-2xl font-bold leading-none">{totalRoomsManaged}</span>
+                  <span className="text-[10px] uppercase tracking-wider opacity-80">Habitaciones en gestión</span>
+              </div>
+          </div>
         </div>
       </section>
 
-      {/* Content Section */}
-      <section className="py-16 container mx-auto px-4 max-w-4xl text-center relative z-20 -mt-10">
+      {/* Main Content */}
+      <section className="container mx-auto px-4 py-8 md:py-12 -mt-8 relative z-20">
          
-         {/* Stats Card */}
-         <div className="bg-white rounded-xl shadow-xl p-8 mb-12 border border-gray-100">
-            <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8 mb-6 text-gray-600">
-                <div className="flex items-center gap-2">
-                    <div className="p-2 bg-green-100 text-green-600 rounded-full">
-                        <CheckCircle className="w-5 h-5" />
-                    </div>
-                    <span className="font-medium">Disponibilidad Real</span>
-                </div>
-                <div className="hidden md:block w-px h-8 bg-gray-200"></div>
-                <div className="flex items-center gap-2">
-                    <div className="p-2 bg-blue-100 text-rentia-blue rounded-full">
-                        <Home className="w-5 h-5" />
-                    </div>
-                    <span className="font-bold text-rentia-black">+50 Habitaciones en Cartera</span>
-                </div>
-            </div>
+         {/* Filters */}
+         <div className="bg-white p-4 rounded-xl shadow-md border border-gray-100 mb-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+             <div className="flex items-center gap-2 text-rentia-black font-bold">
+                 <Filter className="w-5 h-5 text-rentia-blue" />
+                 <span>Filtrar Viviendas</span>
+             </div>
+             
+             <label className="flex items-center cursor-pointer relative select-none">
+                <input 
+                    type="checkbox" 
+                    className="sr-only peer"
+                    checked={showOnlyAvailable}
+                    onChange={() => setShowOnlyAvailable(!showOnlyAvailable)}
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rentia-blue"></div>
+                <span className="ml-3 text-sm font-medium text-gray-700">Ver solo con habitaciones libres</span>
+             </label>
+         </div>
 
-            <p className="text-gray-500 text-sm leading-relaxed max-w-2xl mx-auto mb-8">
-                Gestionamos un total de <strong>más de 50 habitaciones</strong>. En el siguiente enlace verás <strong>únicamente las que están libres ahora mismo</strong>. Si no ves opciones, es que el resto están actualmente ocupadas o reservadas.
-            </p>
+         {/* Property Grid (Compact Mode) */}
+         <div className="flex flex-col gap-4 max-w-4xl mx-auto">
+             {filteredProperties.map(property => {
+                 const availableCount = property.rooms.filter(r => r.status === 'available').length;
+                 const totalRooms = property.rooms.length;
+                 const isExpanded = expandedProperties[property.id] || false;
+                 const hasNew = property.rooms.some(r => r.specialStatus === 'new');
+                 
+                 return (
+                     <div key={property.id} className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-200 transition-all duration-300">
+                         {/* Header Compacto - Sin Fotos */}
+                         <div 
+                            className="p-4 cursor-pointer hover:bg-gray-50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                            onClick={() => toggleProperty(property.id)}
+                         >
+                             <div className="flex items-start gap-4">
+                                 {/* Icono Casa / Edificio */}
+                                 <div className={`p-3 rounded-lg flex-shrink-0 ${availableCount > 0 ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'}`}>
+                                     <Home className="w-6 h-6" />
+                                 </div>
 
-            <a
-            href="https://www.idealista.com/pro/rentiaroom/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center bg-rentia-blue hover:bg-blue-700 text-white font-bold py-5 px-10 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-1 text-lg group w-full md:w-auto"
-            >
-            <span>VER HABITACIONES LIBRES</span>
-            <ExternalLink className="ml-3 w-6 h-6 group-hover:rotate-45 transition-transform" />
-            </a>
-            
-            <p className="text-xs text-gray-400 mt-4">
-                * Serás redirigido a nuestro perfil oficial en Idealista
-            </p>
+                                 <div>
+                                     <div className="flex items-center gap-2">
+                                        <h3 className="font-bold text-lg text-rentia-black leading-tight">{property.address}</h3>
+                                        {hasNew && (
+                                            <span className="hidden sm:inline-flex text-[9px] bg-gradient-to-r from-purple-600 to-blue-600 text-white px-1.5 py-0.5 rounded font-bold uppercase tracking-wide items-center gap-0.5">
+                                                <Sparkles className="w-2 h-2" /> Nuevo
+                                            </span>
+                                        )}
+                                     </div>
+                                     <p className="text-sm text-gray-500">{property.city}</p>
+                                     <div className="mt-1 flex items-center gap-3 text-xs font-medium">
+                                         <span className="text-gray-400">{totalRooms} Habitaciones</span>
+                                         {availableCount > 0 ? (
+                                             <span className="text-green-600 bg-green-50 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                                 <CheckCircle className="w-3 h-3" /> {availableCount} Disponible{availableCount > 1 ? 's' : ''}
+                                             </span>
+                                         ) : (
+                                             <span className="text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full">Completo</span>
+                                         )}
+                                     </div>
+                                 </div>
+                             </div>
+
+                             <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto mt-2 sm:mt-0 border-t sm:border-t-0 pt-3 sm:pt-0 border-gray-100">
+                                <a 
+                                    href={property.googleMapsLink}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="flex items-center gap-2 bg-white border border-gray-200 hover:border-rentia-blue text-gray-600 hover:text-rentia-blue px-4 py-2 rounded-lg transition-all text-xs font-bold uppercase tracking-wide shadow-sm hover:shadow-md"
+                                    title="Ver ubicación en Google Maps"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    <MapPin className="w-4 h-4" />
+                                    Ver en Mapa
+                                </a>
+                                <button 
+                                    className={`text-gray-400 hover:text-rentia-black transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
+                                >
+                                    <ChevronDown className="w-6 h-6" />
+                                </button>
+                             </div>
+                         </div>
+
+                         {/* Room List (Accordion) */}
+                         <div className={`transition-all duration-300 ease-in-out overflow-hidden bg-gray-50/50 ${isExpanded ? 'max-h-[1000px] opacity-100 border-t border-gray-100' : 'max-h-0 opacity-0'}`}>
+                             <div className="p-4 space-y-3">
+                                 {property.rooms.map(room => {
+                                     const containerStyle = getRoomStatusContainerStyle(room);
+                                     const statusInfo = getStatusLabel(room);
+                                     const isConsult = statusInfo.text === 'Consultar disponibilidad';
+                                     const isRenovation = room.specialStatus === 'renovation';
+                                     
+                                     return (
+                                         <div key={room.id} className={`flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl border transition-colors relative overflow-hidden gap-3 ${containerStyle}`}>
+                                             
+                                             {/* "NEW" Badge Effect */}
+                                             {room.specialStatus === 'new' && (
+                                                 <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-rentia-gold to-yellow-300"></div>
+                                             )}
+
+                                             {/* Room Info */}
+                                             <div className="flex flex-col pl-2">
+                                                 <div className="flex items-center gap-2">
+                                                     <span className="font-bold text-sm text-gray-800">{room.name}</span>
+                                                     {room.specialStatus === 'new' && (
+                                                         <span className="text-[9px] bg-gradient-to-r from-purple-600 to-blue-600 text-white px-1.5 py-0.5 rounded font-bold uppercase tracking-wide flex items-center gap-0.5">
+                                                             <Sparkles className="w-2 h-2" /> Nuevo
+                                                         </span>
+                                                     )}
+                                                 </div>
+                                                 <div className="flex items-baseline gap-1">
+                                                    <span className="text-sm font-semibold text-rentia-blue">
+                                                        {room.price > 0 ? `${room.price}€` : 'Consultar'}
+                                                    </span>
+                                                 </div>
+                                                 {/* Expenses Info */}
+                                                 <div className="flex items-center gap-1 mt-0.5 text-[10px] text-gray-500 font-medium">
+                                                     <Receipt className="w-3 h-3 text-gray-400" />
+                                                     <span>{room.expenses}</span>
+                                                 </div>
+                                             </div>
+
+                                             {/* Status & Date & Action */}
+                                             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-6 w-full sm:w-auto">
+                                                 <div className="flex flex-col items-start sm:items-end">
+                                                     <div className={`flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide ${statusInfo.color}`}>
+                                                         {statusInfo.icon}
+                                                         {statusInfo.text}
+                                                     </div>
+                                                     
+                                                     {room.status !== 'available' && !isConsult && !isRenovation && (
+                                                         <span className="text-[10px] font-medium text-gray-400">
+                                                             Hasta: {room.availableFrom}
+                                                         </span>
+                                                     )}
+                                                     {isRenovation && (
+                                                         <span className="text-[10px] font-medium text-yellow-600">
+                                                             Previsión: {room.availableFrom}
+                                                         </span>
+                                                     )}
+                                                 </div>
+
+                                                 {/* Action Button */}
+                                                 {(room.status === 'available' || isConsult) && !isRenovation && (
+                                                     <a 
+                                                        href={isConsult 
+                                                            ? `https://api.whatsapp.com/send?phone=34672886369&text=Hola,%20quería%20saber%20si%20la%20habitaci%C3%B3n%20${room.name}%20en%20${property.address}%20se%20va%20a%20quedar%20libre%20pronto.`
+                                                            : `https://api.whatsapp.com/send?phone=34672886369&text=Hola,%20me%20interesa%20la%20habitaci%C3%B3n%20${room.name}%20en%20${property.address}`
+                                                        }
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className={`w-full sm:w-auto px-4 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm hover:shadow active:scale-95 ${
+                                                            room.status === 'available' 
+                                                            ? 'bg-[#25D366] hover:bg-[#20ba5c] text-white' 
+                                                            : 'bg-orange-100 hover:bg-orange-200 text-orange-700'
+                                                        }`}
+                                                     >
+                                                         <MessageCircle className="w-3.5 h-3.5" />
+                                                         {room.status === 'available' ? 'Contactar' : 'Consultar'}
+                                                     </a>
+                                                 )}
+                                             </div>
+                                         </div>
+                                     );
+                                 })}
+                             </div>
+                         </div>
+                     </div>
+                 );
+             })}
          </div>
       </section>
 
-      {/* Legal Text */}
-      <section className="pb-16 container mx-auto px-4 max-w-4xl">
-        <div className="bg-gray-50 p-8 md:p-10 rounded-xl border border-gray-100 text-left shadow-sm">
-          <div className="flex items-center gap-3 mb-6 border-b border-gray-200 pb-4">
-             <Info className="w-6 h-6 text-rentia-blue flex-shrink-0" />
-             <h3 className="font-bold text-rentia-black text-lg uppercase tracking-wide">Aviso Legal</h3>
-          </div>
-          <div className="text-gray-600 text-sm space-y-4 leading-relaxed text-justify">
-            <p>
-              <strong className="text-rentia-black">La información contenida en este sitio web y en los anuncios publicados tiene carácter meramente informativo</strong> y no constituye oferta contractual conforme al artículo 1261 del Código Civil. 
-            </p>
-            <p>
-              Las condiciones finales de cada operación (incluyendo precios, disponibilidad, duración del contrato u honorarios de gestión, si los hubiera) se comunicarán de forma expresa y previa al interesado durante la fase de contacto directo, y podrán variar en función de factores como acuerdos con la propiedad, intervención de colaboradores externos o circunstancias específicas del arrendamiento.
-            </p>
-            <p className="font-medium text-gray-700">
-              Se recomienda consultar cada anuncio individual para verificar los detalles específicos. Nos reservamos el derecho de modificar o actualizar la información sin previo aviso hasta la formalización del contrato.
-            </p>
-          </div>
+      {/* Footer Info */}
+      <section className="pb-16 container mx-auto px-4">
+        <div className="bg-white p-6 rounded-xl border border-gray-100 max-w-2xl mx-auto text-center shadow-sm">
+             <h4 className="font-bold text-rentia-black mb-3 flex items-center justify-center gap-2 text-sm uppercase tracking-wide">
+                 <AlertCircle className="w-4 h-4 text-rentia-blue" />
+                 Guía de estados
+             </h4>
+             <div className="flex justify-center gap-4 text-xs text-gray-600 flex-wrap">
+                 <div className="flex items-center gap-2 bg-green-50 px-3 py-1 rounded-full border border-green-100">
+                     <span className="w-2 h-2 rounded-full bg-green-500"></span> 
+                     <span className="font-medium text-green-700">Libre</span>
+                 </div>
+                 <div className="flex items-center gap-2 bg-gradient-to-r from-purple-50 to-blue-50 px-3 py-1 rounded-full border border-blue-100">
+                     <Sparkles className="w-3 h-3 text-purple-600" />
+                     <span className="font-medium text-purple-700">Nuevo</span>
+                 </div>
+                 <div className="flex items-center gap-2 bg-orange-50 px-3 py-1 rounded-full border border-orange-100">
+                     <HelpCircle className="w-3 h-3 text-orange-600" /> 
+                     <span className="font-medium text-orange-700">Consultar</span>
+                 </div>
+                 <div className="flex items-center gap-2 bg-yellow-50 px-3 py-1 rounded-full border border-yellow-200">
+                     <Hammer className="w-3 h-3 text-yellow-600" /> 
+                     <span className="font-medium text-yellow-700">Reformas</span>
+                 </div>
+             </div>
         </div>
       </section>
+
     </div>
   );
 };

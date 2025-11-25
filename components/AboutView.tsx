@@ -53,7 +53,7 @@ export const AboutView: React.FC = () => {
                       {/* IMAGEN DE GRUPO (POL Y VÍCTOR) */}
                       <div className="rounded-2xl overflow-hidden shadow-2xl aspect-[4/3] bg-gray-100 relative group rotate-1 hover:rotate-0 transition-transform duration-500">
                           <img 
-                              src="https://rentiaroom.com/fotosweb/quienessomos.jpg" 
+                              src="https://i.ibb.co/zT3d68yG/Whats-App-Image-2025-11-21-at-00-46-35-1.jpg" 
                               alt="Pol y Víctor - Fundadores" 
                               className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
                           />

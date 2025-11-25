@@ -38,7 +38,7 @@ export const AboutView: React.FC = () => {
                       <h2 className="text-3xl font-bold text-rentia-black font-display mb-6">El Origen de RentiaRoom</h2>
                       <div className="space-y-5 text-gray-600 leading-relaxed text-lg text-justify">
                           <p>
-                              <strong>RentiaRoom</strong> surge de la colaboración entre <strong>Pol</strong> y <strong>Víctor Ondoño</strong>. Pol provenía del sector del Personal Shopper Inmobiliario (PSI) trabajando de forma individual, mientras que Víctor venía del ámbito de la gestión de alquileres vacacionales.
+                              <strong>RentiaRoom</strong> surge de la colaboración entre <strong>Pol</strong> y <strong>Víctor</strong>. Pol provenía del sector del Personal Shopper Inmobiliario (PSI) trabajando de forma individual, mientras que Víctor venía del ámbito de la gestión de alquileres vacacionales.
                           </p>
                           <p>
                               Ambos decidieron unir sus caminos y formas de trabajar para crear un proyecto conjunto enfocado en la gestión de alquileres.
@@ -109,7 +109,7 @@ export const AboutView: React.FC = () => {
                                 <Home className="w-10 h-10" />
                            </div>
                            <div className="absolute bottom-0 left-0 w-full bg-white p-4 border-t border-gray-100 z-10 text-center">
-                               <h3 className="text-rentia-black font-bold text-xl font-display">Víctor Ondoño</h3>
+                               <h3 className="text-rentia-black font-bold text-xl font-display">Víctor</h3>
                                <p className="text-rentia-gold text-xs font-bold uppercase tracking-wide mt-1">Co-fundador</p>
                            </div>
                       </div>

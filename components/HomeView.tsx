@@ -150,7 +150,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
     <div className="font-sans bg-white">
       
       {/* --- HERO SECTION WITH VIDEO BACKGROUND --- */}
-      <section className="relative h-[85vh] min-h-[600px] w-full overflow-hidden flex items-center text-white">
+      <section className="relative min-h-[75vh] md:min-h-[85vh] w-full overflow-hidden flex items-center text-white py-16 md:py-0">
         <div className="absolute inset-0 w-full h-full z-0">
           <video 
             autoPlay 
@@ -168,7 +168,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
           <div className="absolute inset-0 bg-rentia-blue/20 mix-blend-overlay"></div>
         </div>
 
-        <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="relative z-20 container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="max-w-4xl">
                 <div className="inline-flex items-center gap-2 mb-6 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-rentia-gold font-medium text-sm uppercase tracking-wide">
                     <Settings className="w-4 h-4" />
@@ -180,7 +180,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
                 <p className="text-lg md:text-xl mb-10 text-gray-100 leading-relaxed max-w-2xl drop-shadow-md">
                     Gestionamos tus habitaciones o piso completo. Invertimos en publicidad para buscar a los mejores inquilinos y coordinamos el día a día para que tú no tengas que hacerlo.
                 </p>
-                <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex flex-col sm:flex-row gap-4 relative z-30">
                     <button 
                         type="button"
                         onClick={() => onNavigate && onNavigate('contact')}
@@ -191,7 +191,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
                     <button 
                         type="button"
                         onClick={() => onNavigate && onNavigate('list')}
-                        className="inline-flex items-center justify-center bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/30 font-bold py-4 px-8 rounded-lg transition-all duration-300"
+                        className="inline-flex items-center justify-center bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/30 font-bold py-4 px-8 rounded-lg transition-all duration-300 pointer-events-auto"
                     >
                         Ver oportunidades
                     </button>
@@ -249,7 +249,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
 
       {/* --- SOLUTIONS CARDS --- */}
       <section className="py-24 bg-gray-50 relative">
-          <div className="absolute top-0 left-0 w-full h-64 bg-white"></div> {/* Top white spacing fix */}
+          <div className="absolute top-0 left-0 w-full h-96 md:h-64 bg-white"></div> {/* Top white spacing fix - adjusted for mobile text wrap */}
           
           <div className="container mx-auto px-4 relative z-10">
               <div className="text-center max-w-3xl mx-auto mb-16">

@@ -2,6 +2,8 @@
 import { Opportunity } from './types';
 
 export const opportunities: Opportunity[] = [
+  /* 
+  // PLANTILLA PARA FUTURAS OPORTUNIDADES (Descomentar y editar para añadir)
   {
     id: '1',
     title: 'Oportunidad Inversión "Ticket Bajo" - Sin Comunidad',
@@ -18,20 +20,10 @@ export const opportunities: Opportunity[] = [
     images: [
       'https://www.rentiaroom.com/oportunidades/1/1%20(1).jpeg',
       'https://www.rentiaroom.com/oportunidades/1/1%20(2).jpeg',
-      'https://www.rentiaroom.com/oportunidades/1/1%20(3).jpeg',
-      'https://www.rentiaroom.com/oportunidades/1/1%20(4).jpeg',
-      'https://www.rentiaroom.com/oportunidades/1/1%20(5).jpeg',
-      'https://www.rentiaroom.com/oportunidades/1/1%20(6).jpeg',
-      'https://www.rentiaroom.com/oportunidades/1/1%20(7).jpeg',
-      'https://www.rentiaroom.com/oportunidades/1/1%20(8).jpeg',
-      'https://www.rentiaroom.com/oportunidades/1/1%20(9).jpeg',
-      'https://www.rentiaroom.com/oportunidades/1/1%20(10).jpeg',
-      'https://www.rentiaroom.com/oportunidades/1/1%20(11).jpeg',
-      'https://www.rentiaroom.com/oportunidades/1/1%20(12).jpeg'
+      // ... más imágenes
     ],
     videos: [
-      'https://www.rentiaroom.com/oportunidades/1/video1.mp4',
-      'https://www.rentiaroom.com/oportunidades/1/video2.mp4'
+      'https://www.rentiaroom.com/oportunidades/1/video1.mp4'
     ],
     specs: {
       rooms: 4,
@@ -69,7 +61,6 @@ export const opportunities: Opportunity[] = [
       'A 10 min de Murcia Capital'
     ],
     images: [
-      // Added 'placeholder' text parameter to URL to trigger the "Video Only" UI in DetailView
       'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&w=1000&q=80&text=placeholder'
     ],
     videos: [
@@ -84,17 +75,18 @@ export const opportunities: Opportunity[] = [
     },
     financials: {
       purchasePrice: 110000,
-      reformCost: 1000, // "Como mucho 1000€"
-      furnitureCost: 0, // Se alquila vacío o con lo que hay
-      notaryAndTaxes: 10000, // Estimación ITP + Notaría
+      reformCost: 1000, 
+      furnitureCost: 0, 
+      notaryAndTaxes: 10000, 
       totalInvestment: 121000,
-      monthlyRentProjected: 0, // Not suitable for room rental strategy
-      monthlyRentTraditional: 700, // "650/700€"
-      yearlyExpenses: 540 + 300, // Comunidad (45*12) + IBI Estimado
+      monthlyRentProjected: 0, 
+      monthlyRentTraditional: 700, 
+      yearlyExpenses: 540 + 300, 
       marketValue: 125000,
       appreciationRate: 2.5
     },
     status: 'available',
     tags: ['Alquiler Tradicional', 'Garaje', 'Video Tour', 'Baja Reforma']
   }
+  */
 ];

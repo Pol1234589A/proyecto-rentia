@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Check, UserPlus, FileText, Clock, AlertTriangle, ShieldCheck, Hammer, Search, MessageCircle, X, ArrowRight } from 'lucide-react';
+import { Check, UserPlus, FileText, Clock, AlertTriangle, ShieldCheck, Hammer, Search, MessageCircle, X, ArrowRight, Eye, BarChart3, ClipboardCheck, Megaphone, Activity } from 'lucide-react';
 
 interface PainPoint {
   icon: React.ReactNode;
@@ -87,6 +87,39 @@ export const ServicesView: React.FC = () => {
         "Supervisión técnica de la reforma.",
         "Optimización de costes y espacios."
       ]
+    }
+  ];
+
+  const onboardingSteps = [
+    {
+      icon: <Eye className="w-5 h-5 md:w-6 md:h-6" />,
+      title: "1. Auditoría y Visita",
+      description: "Visita técnica para detectar mejoras clave que aumenten el valor.",
+      highlight: "Mejoras estratégicas"
+    },
+    {
+      icon: <BarChart3 className="w-5 h-5 md:w-6 md:h-6" />,
+      title: "2. Análisis y Pricing",
+      description: "Estudio de mercado para fijar precios competitivos y rentables.",
+      highlight: "Rentabilidad real"
+    },
+    {
+      icon: <ClipboardCheck className="w-5 h-5 md:w-6 md:h-6" />,
+      title: "3. Puesta a Punto",
+      description: "Organización de logística, armarios, normas y grupos de comunicación.",
+      highlight: "Organización total"
+    },
+    {
+      icon: <Megaphone className="w-5 h-5 md:w-6 md:h-6" />,
+      title: "4. Marketing Premium",
+      description: "Publicación en redes y portales. Promoción pagada en Idealista (según caso).",
+      highlight: "Máxima visibilidad"
+    },
+    {
+      icon: <Activity className="w-5 h-5 md:w-6 md:h-6" />,
+      title: "5. Gestión Activa",
+      description: "Seguimiento semanal del estado y convivencia en la vivienda.",
+      highlight: "Control constante"
     }
   ];
 
@@ -251,7 +284,46 @@ export const ServicesView: React.FC = () => {
         </div>
       </section>
 
-      {/* Pain Points Grid ("¿Qué resolvemos?") - REDESIGNED FOR PROFESSIONALISM */}
+      {/* --- NUEVA SECCIÓN: PROTOCOLO DE ACTIVACIÓN (Compacto en móvil) --- */}
+      <section className="py-12 md:py-24 bg-rentia-black text-white relative overflow-hidden">
+          {/* Decorative background */}
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-rentia-blue/10 rounded-full blur-[100px] pointer-events-none"></div>
+          <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-rentia-gold/5 rounded-full blur-[100px] pointer-events-none"></div>
+
+          <div className="container mx-auto px-4 relative z-10">
+              <div className="text-center max-w-3xl mx-auto mb-10 md:mb-16">
+                  <h2 className="text-3xl md:text-4xl font-bold mb-4 font-display">Protocolo de Activación</h2>
+                  <p className="text-gray-300 text-lg">
+                      Un proceso estructurado para garantizar el éxito desde el primer día.
+                  </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 md:gap-6">
+                  {onboardingSteps.map((step, index) => (
+                      <div key={index} className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 md:p-6 hover:bg-white/10 transition-all duration-300 group hover:-translate-y-1 flex flex-row md:flex-col items-start gap-4 md:gap-0">
+                          
+                          {/* Icon Container - Fixed width for mobile list alignment */}
+                          <div className="w-10 h-10 md:w-12 md:h-12 bg-rentia-blue rounded-lg flex items-center justify-center mb-0 md:mb-4 text-white shadow-lg group-hover:scale-110 transition-transform shrink-0 mt-1 md:mt-0">
+                              {step.icon}
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                              <h3 className="font-bold text-base md:text-lg mb-1 md:mb-3 text-rentia-gold leading-tight">{step.title}</h3>
+                              <p className="text-xs md:text-sm text-gray-300 mb-2 md:mb-4 leading-relaxed line-clamp-2 md:line-clamp-none">
+                                  {step.description}
+                              </p>
+                              <div className="mt-auto pt-2 md:pt-4 border-t border-white/10 text-[10px] md:text-xs font-bold uppercase tracking-wider text-rentia-blue flex items-center gap-1.5 md:gap-2">
+                                  <Check className="w-3 h-3 flex-shrink-0" />
+                                  <span className="truncate">{step.highlight}</span>
+                              </div>
+                          </div>
+                      </div>
+                  ))}
+              </div>
+          </div>
+      </section>
+
+      {/* Pain Points Grid ("¿Qué resolvemos?") */}
       <section className="py-24 bg-white relative overflow-hidden">
           {/* Subtle background elements */}
           <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">

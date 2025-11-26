@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { blogPosts, BlogPost } from '../data/blogData';
-import { Clock, User, Tag, ArrowLeft, Calendar, ChevronRight, Search, Share2, BookOpen, List, ChevronUp } from 'lucide-react';
+import { Clock, Calendar, ChevronRight, Search, List, ArrowLeft, Tag, TrendingUp, KeyRound, Users, Zap, FileText } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export const BlogView: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
@@ -9,6 +10,7 @@ export const BlogView: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [readingProgress, setReadingProgress] = useState(0);
   const [toc, setToc] = useState<{id: string, text: string, level: number}[]>([]);
+  const { language, t } = useLanguage();
 
   // Scroll handler for progress bar
   const handleScroll = () => {
@@ -24,6 +26,47 @@ export const BlogView: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [selectedPostId]);
 
+  const selectedPost = blogPosts.find(p => p.id === selectedPostId);
+
+  // --- SEO INJECTION: BlogPosting Schema ---
+  useEffect(() => {
+    if (selectedPost) {
+        const blogSchema = {
+            "@context": "https://schema.org",
+            "@type": "BlogPosting",
+            "headline": selectedPost.title[language],
+            // Image removed from schema visually, but kept in data if needed for SEO metadata
+            "image": [selectedPost.image],
+            "author": {
+                "@type": "Organization",
+                "name": "RentiaRoom",
+                "url": "https://www.rentiaroom.com"
+            },
+            "publisher": {
+                "@type": "Organization",
+                "name": "RentiaRoom",
+                "logo": {
+                    "@type": "ImageObject",
+                    "url": "https://i.ibb.co/QvzK6db3/Logo-Negativo.png"
+                }
+            },
+            "datePublished": "2025-05-22",
+            "description": selectedPost.excerpt[language],
+            "articleBody": selectedPost.content[language].replace(/<[^>]*>?/gm, ''), // Strip HTML for schema
+            "keywords": selectedPost.keywords.join(", ")
+        };
+
+        const script = document.createElement('script');
+        script.type = 'application/ld+json';
+        script.text = JSON.stringify(blogSchema);
+        document.head.appendChild(script);
+
+        return () => {
+            document.head.removeChild(script);
+        };
+    }
+  }, [selectedPost, language]);
+
   // Scroll to top & Generate TOC when entering a post
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -31,10 +74,11 @@ export const BlogView: React.FC = () => {
       const post = blogPosts.find(p => p.id === selectedPostId);
       if (post) {
         // Simple regex to find h2 and h3 tags for TOC
+        const content = post.content[language];
         const regex = /<(h[23])>(.*?)<\/\1>/g;
         const matches = [];
         let match;
-        while ((match = regex.exec(post.content)) !== null) {
+        while ((match = regex.exec(content)) !== null) {
             const level = parseInt(match[1].charAt(1));
             const text = match[2].replace(/<[^>]*>/g, ''); // Strip inner HTML if any
             const id = text.toLowerCase().replace(/[^\w]+/g, '-');
@@ -43,18 +87,33 @@ export const BlogView: React.FC = () => {
         setToc(matches);
       }
     }
-  }, [selectedPostId]);
+  }, [selectedPostId, language]);
 
-  const categories = ['Todos', 'Inversión', 'Propietarios', 'Inquilinos', 'Tendencias'];
+  const categories = language === 'es' 
+    ? ['Todos', 'Inversión', 'Propietarios', 'Inquilinos', 'Tendencias']
+    : ['All', 'Investment', 'Owners', 'Tenants', 'Trends'];
 
+  // Map Spanish categories to English for logic filtering if needed, 
+  // or simply rely on the post.category[language] matching the selected button.
+  
   const filteredPosts = blogPosts.filter(post => {
-      const matchesCategory = selectedCategory === 'Todos' || post.category === selectedCategory;
-      const matchesSearch = post.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                            post.excerpt.toLowerCase().includes(searchTerm.toLowerCase());
+      // Logic: Compare the localized category with the selected one
+      // If 'Todos' or 'All' is selected, show everything
+      const isAll = selectedCategory === 'Todos' || selectedCategory === 'All';
+      const matchesCategory = isAll || post.category[language] === selectedCategory;
+      
+      const title = post.title[language].toLowerCase();
+      const excerpt = post.excerpt[language].toLowerCase();
+      const search = searchTerm.toLowerCase();
+
+      const matchesSearch = title.includes(search) || excerpt.includes(search);
       return matchesCategory && matchesSearch;
   });
 
-  const selectedPost = blogPosts.find(p => p.id === selectedPostId);
+  // Reset category on language change to avoid filtering issues
+  useEffect(() => {
+    setSelectedCategory(language === 'es' ? 'Todos' : 'All');
+  }, [language]);
 
   const handlePostClick = (id: string) => {
     setSelectedPostId(id);
@@ -72,8 +131,31 @@ export const BlogView: React.FC = () => {
       }
   }, []);
 
+  // Helper to get icon by category (checking both languages)
+  const getCategoryIcon = (category: string) => {
+    if (category === 'Inversión' || category === 'Investment') return <TrendingUp className="w-5 h-5" />;
+    if (category === 'Propietarios' || category === 'Owners') return <KeyRound className="w-5 h-5" />;
+    if (category === 'Inquilinos' || category === 'Tenants') return <Users className="w-5 h-5" />;
+    if (category === 'Tendencias' || category === 'Trends') return <Zap className="w-5 h-5" />;
+    return <FileText className="w-5 h-5" />;
+  };
+
+  const getCategoryColor = (category: string) => {
+    if (category === 'Inversión' || category === 'Investment') return 'text-green-600 bg-green-50 border-green-100';
+    if (category === 'Propietarios' || category === 'Owners') return 'text-blue-600 bg-blue-50 border-blue-100';
+    if (category === 'Inquilinos' || category === 'Tenants') return 'text-purple-600 bg-purple-50 border-purple-100';
+    if (category === 'Tendencias' || category === 'Trends') return 'text-orange-600 bg-orange-50 border-orange-100';
+    return 'text-gray-600 bg-gray-50 border-gray-100';
+  };
+
   // VIEW: SINGLE POST
   if (selectedPost) {
+      const currentTitle = selectedPost.title[language];
+      const currentContent = selectedPost.content[language];
+      const currentCategory = selectedPost.category[language];
+      const currentDate = selectedPost.date[language];
+      const currentExcerpt = selectedPost.excerpt[language];
+
       return (
         <div className="bg-white min-h-screen font-sans animate-in fade-in slide-in-from-bottom-4 duration-500 relative">
             
@@ -86,67 +168,65 @@ export const BlogView: React.FC = () => {
             </div>
 
             {/* Header / Nav */}
-            <div className="sticky top-0 bg-white/90 backdrop-blur-md border-b border-gray-100 z-50 px-4 py-4">
+            <div className="sticky top-0 bg-white/95 backdrop-blur-md border-b border-gray-100 z-50 px-4 py-4">
                 <div className="max-w-7xl mx-auto flex justify-between items-center">
                     <button 
                         onClick={() => {
                             setSelectedPostId(null);
                             window.location.hash = '#/blog';
                         }}
-                        className="flex items-center text-gray-600 hover:text-rentia-blue transition-colors font-medium"
+                        className="flex items-center text-gray-600 hover:text-rentia-blue transition-colors font-medium text-sm"
                     >
-                        <ArrowLeft className="w-5 h-5 mr-2" />
-                        Volver al Blog
+                        <ArrowLeft className="w-4 h-4 mr-2" />
+                        {language === 'es' ? 'Volver al Blog' : 'Back to Blog'}
                     </button>
-                    <div className="text-sm text-gray-500 font-medium hidden sm:block">
-                        {selectedPost.category}
+                    <div className="flex items-center gap-2">
+                         <div className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded border ${getCategoryColor(currentCategory)}`}>
+                            {currentCategory}
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <article className="max-w-7xl mx-auto px-4 py-8 lg:py-12">
+            <article className="max-w-7xl mx-auto px-4 py-8 lg:py-16">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
                     
                     {/* Main Content */}
                     <div className="lg:col-span-8">
-                        {/* Title Section */}
-                        <div className="mb-8">
-                            <div className="flex flex-wrap gap-3 mb-4 text-sm text-gray-500">
-                                <span className="flex items-center"><Calendar className="w-4 h-4 mr-1.5"/> {selectedPost.date}</span>
-                                <span className="flex items-center"><Clock className="w-4 h-4 mr-1.5"/> {selectedPost.readTime} min lectura</span>
-                                <span className="flex items-center text-rentia-blue font-bold bg-blue-50 px-2 py-0.5 rounded"><Tag className="w-3 h-3 mr-1.5"/> {selectedPost.category}</span>
+                        {/* Title Section - NO IMAGE HERE */}
+                        <div className="mb-8 border-b border-gray-100 pb-8">
+                            <div className="flex flex-wrap gap-4 mb-6 text-sm text-gray-500">
+                                <span className="flex items-center"><Calendar className="w-4 h-4 mr-1.5"/> {currentDate}</span>
+                                <span className="flex items-center"><Clock className="w-4 h-4 mr-1.5"/> {selectedPost.readTime} min {language === 'es' ? 'lectura' : 'read'}</span>
                             </div>
-                            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-rentia-black font-display leading-tight mb-6">
-                                {selectedPost.title}
+                            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-rentia-black font-display leading-tight mb-8">
+                                {currentTitle}
                             </h1>
-                            <div className="flex items-center p-4 bg-gray-50 rounded-xl border border-gray-100">
-                                <div className="w-10 h-10 rounded-full bg-rentia-black text-white flex items-center justify-center font-bold text-lg mr-3">
+                            <div className="flex items-center">
+                                <div className="w-12 h-12 rounded-full bg-rentia-black text-white flex items-center justify-center font-bold text-xl mr-4 shadow-sm">
                                     {selectedPost.author.charAt(0)}
                                 </div>
                                 <div>
-                                    <p className="text-sm font-bold text-gray-900">Escrito por {selectedPost.author}</p>
-                                    <p className="text-xs text-gray-500">Equipo RentiaRoom</p>
+                                    <p className="text-sm font-bold text-gray-900">{selectedPost.author}</p>
+                                    <p className="text-xs text-gray-500 uppercase tracking-wide">RentiaRoom Team</p>
                                 </div>
                             </div>
-                        </div>
-
-                        {/* Featured Image */}
-                        <div className="rounded-2xl overflow-hidden shadow-lg mb-10 aspect-video">
-                            <img src={selectedPost.image} alt={selectedPost.title} className="w-full h-full object-cover" />
                         </div>
 
                         {/* HTML Content */}
                         <div 
-                            className="prose prose-lg max-w-none prose-headings:font-display prose-headings:font-bold prose-a:text-rentia-blue prose-img:rounded-xl text-gray-700 leading-relaxed"
-                            dangerouslySetInnerHTML={{ __html: selectedPost.content }}
+                            className="prose prose-lg max-w-none prose-headings:font-display prose-headings:font-bold prose-a:text-rentia-blue prose-blockquote:border-rentia-blue prose-blockquote:bg-gray-50 prose-blockquote:p-4 prose-blockquote:rounded-r-lg prose-img:hidden text-gray-700 leading-relaxed"
+                            dangerouslySetInnerHTML={{ __html: currentContent }}
                         />
 
                         {/* Footer of Post */}
                         <div className="mt-12 pt-8 border-t border-gray-200">
-                            <h3 className="font-bold text-gray-900 mb-4">Etiquetas relacionadas:</h3>
+                            <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                                <Tag className="w-4 h-4" /> {language === 'es' ? 'Temas relacionados:' : 'Related topics:'}
+                            </h3>
                             <div className="flex flex-wrap gap-2">
                                 {selectedPost.keywords.map(kw => (
-                                    <span key={kw} className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors cursor-default">
+                                    <span key={kw} className="px-3 py-1 bg-gray-50 text-gray-600 border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors cursor-default">
                                         #{kw}
                                     </span>
                                 ))}
@@ -158,22 +238,45 @@ export const BlogView: React.FC = () => {
                     <div className="lg:col-span-4 space-y-8">
                         {/* Table of Contents */}
                         {toc.length > 0 && (
-                            <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 sticky top-24">
-                                <h3 className="font-bold text-rentia-black mb-4 flex items-center">
+                            <div className="bg-gray-50 p-6 rounded-2xl border border-gray-200 sticky top-24">
+                                <h3 className="font-bold text-rentia-black mb-6 flex items-center border-b border-gray-200 pb-3">
                                     <List className="w-5 h-5 mr-2 text-rentia-blue" />
-                                    Contenido
+                                    {language === 'es' ? 'Tabla de Contenidos' : 'Table of Contents'}
                                 </h3>
-                                <ul className="space-y-3 text-sm">
+                                <ul className="space-y-4 text-sm relative border-l border-gray-200 ml-2">
                                     {toc.map((item, index) => (
-                                        <li key={index} className={`${item.level === 3 ? 'pl-4' : ''}`}>
-                                            <span className="text-gray-600 hover:text-rentia-blue cursor-pointer transition-colors block leading-snug">
+                                        <li key={index} className={`relative pl-4 ${item.level === 3 ? 'ml-4' : ''}`}>
+                                            <div className="absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full bg-white border-2 border-gray-300"></div>
+                                            <a 
+                                                href={`#${item.id}`}
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    const element = document.getElementById(item.id); 
+                                                    if(element) element.scrollIntoView({behavior: 'smooth'});
+                                                }}
+                                                className="text-gray-600 hover:text-rentia-blue cursor-pointer transition-colors block leading-snug hover:font-medium"
+                                            >
                                                 {item.text}
-                                            </span>
+                                            </a>
                                         </li>
                                     ))}
                                 </ul>
                             </div>
                         )}
+                        
+                        {/* Newsletter Mini Box */}
+                        <div className="bg-rentia-blue p-6 rounded-2xl text-white shadow-lg">
+                            <h4 className="font-bold text-lg mb-2">{language === 'es' ? '¿Te gusta lo que lees?' : 'Enjoying the read?'}</h4>
+                            <p className="text-blue-100 text-sm mb-4">{language === 'es' ? 'Únete a nuestro canal de WhatsApp para no perderte ningún análisis.' : 'Join our WhatsApp channel to never miss an analysis.'}</p>
+                            <a 
+                                href="https://whatsapp.com/channel/0029VbBsvhOIt5rpshbpYN1P" 
+                                target="_blank"
+                                rel="noreferrer"
+                                className="block w-full text-center bg-white text-rentia-blue font-bold py-2 rounded-lg hover:bg-blue-50 transition-colors"
+                            >
+                                {language === 'es' ? 'Unirme al Canal' : 'Join Channel'}
+                            </a>
+                        </div>
                     </div>
                 </div>
             </article>
@@ -183,110 +286,131 @@ export const BlogView: React.FC = () => {
 
   // VIEW: LIST OF POSTS
   return (
-    <div className="bg-gray-50 min-h-screen font-sans animate-in fade-in duration-500">
+    <div className="bg-white min-h-screen font-sans animate-in fade-in duration-500">
         
-        {/* Header Blog */}
-        <section className="bg-rentia-black text-white py-20 relative overflow-hidden">
-            <div className="absolute inset-0 w-full h-full z-0">
-                <img src="https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?auto=format&fit=crop&w=1600&q=80" alt="Blog RentiaRoom" className="w-full h-full object-cover opacity-30" />
-                <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-transparent"></div>
-            </div>
-            <div className="container mx-auto px-4 relative z-10 text-center">
-                 <span className="inline-block px-3 py-1 rounded-full bg-rentia-blue text-white font-bold uppercase tracking-wider text-xs mb-4">
-                    Actualidad & Consejos
+        {/* Header Blog - MAIN HEADER WITH IMAGE */}
+        <section className="relative py-24 bg-rentia-black overflow-hidden">
+             {/* Background Image */}
+             <div className="absolute inset-0 w-full h-full z-0">
+                 <img 
+                     src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1600&q=80" 
+                     alt="RentiaRoom Blog" 
+                     className="w-full h-full object-cover opacity-40"
+                 />
+                 <div className="absolute inset-0 bg-rentia-blue/80 mix-blend-multiply"></div>
+                 <div className="absolute inset-0 bg-gradient-to-t from-rentia-black/90 via-transparent to-transparent"></div>
+             </div>
+
+             <div className="relative z-10 container mx-auto px-4 text-center text-white">
+                 <span className="inline-block px-3 py-1 rounded-full bg-white/10 backdrop-blur border border-white/20 text-rentia-gold font-bold uppercase tracking-wider text-xs mb-6">
+                    {language === 'es' ? 'Actualidad & Consejos' : 'News & Advice'}
                  </span>
-                 <h1 className="text-4xl md:text-5xl font-bold font-display mb-4">RentiaRoom Blog</h1>
-                 <p className="text-xl text-gray-300 max-w-2xl mx-auto font-light">
-                     Guías de inversión, consejos para propietarios y tendencias del mercado inmobiliario en Murcia.
+                 <h1 className="text-4xl md:text-5xl font-bold font-display mb-4 tracking-tight drop-shadow-md">RentiaRoom Blog</h1>
+                 <p className="text-xl text-gray-200 max-w-2xl mx-auto font-light leading-relaxed drop-shadow-sm">
+                     {language === 'es' 
+                        ? 'Guías de inversión, consejos para propietarios y tendencias del mercado inmobiliario en Murcia.'
+                        : 'Investment guides, advice for owners, and real estate market trends in Murcia.'}
                  </p>
             </div>
         </section>
 
         {/* Filters */}
-        <div className="container mx-auto px-4 py-8">
-            <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-                
-                {/* Categories */}
-                <div className="flex overflow-x-auto pb-2 md:pb-0 gap-2 w-full md:w-auto no-scrollbar">
-                    {categories.map(cat => (
-                        <button
-                            key={cat}
-                            onClick={() => setSelectedCategory(cat)}
-                            className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all ${
-                                selectedCategory === cat 
-                                ? 'bg-rentia-black text-white shadow-md' 
-                                : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
-                            }`}
-                        >
-                            {cat}
-                        </button>
-                    ))}
-                </div>
+        <div className="sticky top-0 z-30 bg-white/90 backdrop-blur-sm border-b border-gray-100 py-4">
+            <div className="container mx-auto px-4">
+                <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                    
+                    {/* Categories */}
+                    <div className="flex overflow-x-auto pb-2 md:pb-0 gap-2 w-full md:w-auto no-scrollbar mask-linear-fade">
+                        {categories.map(cat => (
+                            <button
+                                key={cat}
+                                onClick={() => setSelectedCategory(cat)}
+                                className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all border ${
+                                    selectedCategory === cat 
+                                    ? 'bg-rentia-black text-white border-rentia-black' 
+                                    : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                                }`}
+                            >
+                                {cat}
+                            </button>
+                        ))}
+                    </div>
 
-                {/* Search */}
-                <div className="relative w-full md:w-72">
-                    <input 
-                        type="text" 
-                        placeholder="Buscar artículos..." 
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-rentia-blue focus:border-transparent"
-                    />
-                    <Search className="w-5 h-5 text-gray-400 absolute left-3 top-2.5" />
+                    {/* Search */}
+                    <div className="relative w-full md:w-72">
+                        <input 
+                            type="text" 
+                            placeholder={language === 'es' ? "Buscar artículos..." : "Search articles..."}
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-rentia-blue focus:border-transparent bg-gray-50 focus:bg-white transition-colors"
+                        />
+                        <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
+                    </div>
                 </div>
             </div>
         </div>
 
         {/* Blog Grid */}
-        <div className="container mx-auto px-4 pb-20">
+        <div className="container mx-auto px-4 py-12 pb-20 bg-gray-50 min-h-[60vh]">
             {filteredPosts.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {filteredPosts.map(post => (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filteredPosts.map(post => {
+                        const currentTitle = post.title[language];
+                        const currentExcerpt = post.excerpt[language];
+                        const currentCategory = post.category[language];
+                        const currentDate = post.date[language];
+
+                        return (
                         <div 
                             key={post.id}
                             onClick={() => handlePostClick(post.id)}
-                            className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 group cursor-pointer border border-gray-100 flex flex-col h-full hover:-translate-y-1"
+                            className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 group cursor-pointer border border-gray-100 flex flex-col h-full hover:-translate-y-1"
                         >
-                            <div className="relative h-52 overflow-hidden">
-                                <img 
-                                    src={post.image} 
-                                    alt={post.title} 
-                                    className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" 
-                                />
-                                <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-rentia-black">
-                                    {post.category}
-                                </div>
+                            {/* Card Header (NO PHOTO, ONLY ICON) */}
+                            <div className="p-6 border-b border-gray-50 flex items-center justify-between bg-white relative overflow-hidden">
+                                 {/* Decorative Background Icon */}
+                                 <div className="absolute -right-4 -bottom-6 text-gray-50 transform rotate-12 group-hover:text-gray-100 transition-colors duration-500">
+                                     {getCategoryIcon(currentCategory) && React.cloneElement(getCategoryIcon(currentCategory) as React.ReactElement, { className: "w-24 h-24 opacity-50" })}
+                                 </div>
+
+                                 <div className={`z-10 px-3 py-1.5 rounded-lg text-xs font-bold border flex items-center gap-2 ${getCategoryColor(currentCategory)}`}>
+                                    {getCategoryIcon(currentCategory)}
+                                    {currentCategory}
+                                 </div>
+                                 <div className="z-10 text-xs text-gray-400 font-mono">
+                                    {post.readTime} min
+                                 </div>
                             </div>
                             
-                            <div className="p-6 flex flex-col flex-grow">
-                                <div className="flex items-center text-xs text-gray-400 mb-3 space-x-3">
-                                    <span className="flex items-center"><Calendar className="w-3 h-3 mr-1" /> {post.date}</span>
-                                    <span className="flex items-center"><Clock className="w-3 h-3 mr-1" /> {post.readTime} min</span>
-                                </div>
-                                
-                                <h3 className="text-xl font-bold text-rentia-black font-display mb-3 group-hover:text-rentia-blue transition-colors line-clamp-2">
-                                    {post.title}
+                            <div className="p-6 flex flex-col flex-grow relative z-10">
+                                <h3 className="text-xl font-bold text-rentia-black font-display mb-3 group-hover:text-rentia-blue transition-colors line-clamp-3 leading-tight">
+                                    {currentTitle}
                                 </h3>
                                 
-                                <p className="text-gray-600 text-sm leading-relaxed line-clamp-3 mb-4 flex-grow">
-                                    {post.excerpt}
+                                <p className="text-gray-600 text-sm leading-relaxed line-clamp-4 mb-6 flex-grow">
+                                    {currentExcerpt}
                                 </p>
                                 
-                                <div className="pt-4 border-t border-gray-50 flex items-center justify-between text-sm font-bold text-rentia-blue">
-                                    <span>Leer artículo</span>
-                                    <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center group-hover:bg-rentia-blue group-hover:text-white transition-colors">
-                                        <ChevronRight className="w-5 h-5" />
+                                <div className="flex items-center justify-between pt-4 border-t border-gray-50">
+                                    <div className="flex items-center text-xs text-gray-400">
+                                        <Calendar className="w-3 h-3 mr-1.5" /> {currentDate}
                                     </div>
+                                    <span className="text-sm font-bold text-rentia-blue flex items-center group-hover:translate-x-1 transition-transform">
+                                        {language === 'es' ? 'Leer más' : 'Read more'} <ChevronRight className="w-4 h-4 ml-1" />
+                                    </span>
                                 </div>
                             </div>
                         </div>
-                    ))}
+                    )})}
                 </div>
             ) : (
-                <div className="text-center py-20">
-                    <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-xl font-bold text-gray-600">No se encontraron artículos</h3>
-                    <p className="text-gray-500">Prueba con otra categoría o término de búsqueda.</p>
+                <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-gray-300">
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400">
+                        <Search className="w-8 h-8" />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-600 mb-2">{language === 'es' ? 'No se encontraron artículos' : 'No articles found'}</h3>
+                    <p className="text-gray-500 max-w-sm mx-auto">{language === 'es' ? 'Prueba a buscar con otros términos o cambia la categoría.' : 'Try searching with different terms or change the category.'}</p>
                 </div>
             )}
         </div>

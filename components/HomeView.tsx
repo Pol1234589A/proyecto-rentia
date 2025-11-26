@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronDown, Check, KeyRound, TrendingUp, ClipboardList, Sparkles, Settings, FileBarChart, ArrowRight, ShieldCheck, UserCheck, Home, MessageCircle, X, Megaphone, Star, Quote, CheckCircle, Users, Smartphone, Clock, FileText } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
@@ -51,6 +51,32 @@ interface HomeViewProps {
 export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
   const [selectedProcess, setSelectedProcess] = useState<ProcessStep | null>(null);
   const { t } = useLanguage();
+
+  // --- SEO INJECTION: FAQPage Schema ---
+  // This tells Google specifically that this page contains FAQs, increasing the chance of appearing in rich snippets.
+  useEffect(() => {
+    const faqData = {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        { "@type": "Question", "name": t('home.faq.q1'), "acceptedAnswer": { "@type": "Answer", "text": t('home.faq.a1') } },
+        { "@type": "Question", "name": t('home.faq.q2'), "acceptedAnswer": { "@type": "Answer", "text": t('home.faq.a2') } },
+        { "@type": "Question", "name": t('home.faq.q3'), "acceptedAnswer": { "@type": "Answer", "text": t('home.faq.a3') } },
+        { "@type": "Question", "name": t('home.faq.q4'), "acceptedAnswer": { "@type": "Answer", "text": t('home.faq.a4') } },
+        { "@type": "Question", "name": t('home.faq.q5'), "acceptedAnswer": { "@type": "Answer", "text": t('home.faq.a5') } },
+        { "@type": "Question", "name": t('home.faq.q6'), "acceptedAnswer": { "@type": "Answer", "text": t('home.faq.a6') } }
+      ]
+    };
+
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.text = JSON.stringify(faqData);
+    document.head.appendChild(script);
+
+    return () => {
+      document.head.removeChild(script);
+    };
+  }, [t]);
 
   const testimonials = [
     {

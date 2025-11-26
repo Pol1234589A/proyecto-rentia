@@ -35,10 +35,31 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
   // Helper function to get nested translation keys (e.g., "home.hero.title")
   const t = (path: string) => {
     const keys = path.split('.');
-    let current: any = translations[language];
+    
+    // CRITICAL FIX: Fallback to 'es' if the current language (e.g. 'en') is missing in translations
+    const trans: any = translations;
+    let current = trans[language] || trans['es'];
     
     for (const key of keys) {
-      if (current[key] === undefined) {
+      // If path is broken in current language
+      if (current === undefined || current[key] === undefined) {
+        
+        // If we are on a different language than 'es', try to find the key in 'es'
+        if (language !== 'es') {
+            let fallbackCurrent = trans['es'];
+            let validFallback = true;
+            for (const fallbackKey of keys) {
+                if (fallbackCurrent && fallbackCurrent[fallbackKey] !== undefined) {
+                    fallbackCurrent = fallbackCurrent[fallbackKey];
+                } else {
+                    validFallback = false;
+                    break;
+                }
+            }
+            if (validFallback) return fallbackCurrent;
+        }
+        
+        // If even fallback fails, return the key itself
         console.warn(`Translation missing for key: ${path} in language: ${language}`);
         return path;
       }

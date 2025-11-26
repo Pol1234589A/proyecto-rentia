@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Check, UserPlus, FileText, Clock, AlertTriangle, ShieldCheck, Hammer, Search, MessageCircle, X, ArrowRight, Eye, BarChart3, ClipboardCheck, Megaphone, Activity } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
@@ -12,6 +12,65 @@ export const ServicesView: React.FC = () => {
   const [selectedFeature, setSelectedFeature] = useState<PainPoint | null>(null);
   const { t } = useLanguage();
   
+  // --- SEO INJECTION: Service Schema ---
+  useEffect(() => {
+    const serviceData = {
+      "@context": "https://schema.org",
+      "@type": "Service",
+      "serviceType": "Property Management",
+      "provider": {
+        "@type": "RealEstateAgent",
+        "name": "RentiaRoom"
+      },
+      "areaServed": {
+        "@type": "City",
+        "name": "Murcia"
+      },
+      "description": "Gestión integral de alquileres por habitaciones. Incluye búsqueda de inquilinos, gestión de contratos, cobro de rentas, mantenimiento y limpieza.",
+      "offers": {
+        "@type": "Offer",
+        "priceCurrency": "EUR",
+        "description": "Comisión de gestión mensual competitiva con descuentos por volumen."
+      },
+      "hasOfferCatalog": {
+        "@type": "OfferCatalog",
+        "name": "Servicios Inmobiliarios",
+        "itemListElement": [
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Gestión Integral de Habitaciones"
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Rent to Rent (Alquiler Garantizado)"
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Reformas y Home Staging"
+            }
+          }
+        ]
+      }
+    };
+
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.text = JSON.stringify(serviceData);
+    document.head.appendChild(script);
+
+    return () => {
+      document.head.removeChild(script);
+    };
+  }, []);
+
   // Static data moved inside to use 't'
   const services = [
     {

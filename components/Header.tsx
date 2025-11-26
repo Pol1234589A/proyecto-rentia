@@ -4,10 +4,10 @@ import { Menu, X, Globe } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
 interface HeaderProps {
-  onNavigate: (view: 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts') => void;
+  onNavigate: (view: 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts' | 'blog') => void;
 }
 
-type ViewType = 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts';
+type ViewType = 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts' | 'blog';
 
 interface NavLink {
   nameKey: string;
@@ -30,6 +30,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
     { nameKey: 'header.home', view: 'home', path: '#/' },
     { nameKey: 'header.services', view: 'services', path: '#/servicios' },
     { nameKey: 'header.rooms', view: 'rooms', path: '#/habitaciones' },
+    { nameKey: 'header.blog', view: 'blog', path: '#/blog' },
     { nameKey: 'header.discounts', view: 'discounts', path: '#/descuentos' },
     { nameKey: 'header.hub', url: 'https://www.rentiahub.rentiaroom.com', isExternal: true },
     { nameKey: 'header.about', view: 'about', path: '#/nosotros' },

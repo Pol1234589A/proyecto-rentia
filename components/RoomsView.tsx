@@ -96,6 +96,56 @@ export const RoomsView: React.FC = () => {
   
   const { t } = useLanguage();
 
+  // --- SEO INJECTION (JSON-LD Structured Data for AI/Google) ---
+  useEffect(() => {
+    const schemaData = {
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      "itemListElement": properties.map((prop, index) => ({
+        "@type": "ListItem",
+        "position": index + 1,
+        "item": {
+          "@type": "Apartment",
+          "name": `Habitaciones en alquiler en ${prop.address}`,
+          "description": `Alquiler de habitaciones en ${prop.city}. Piso compartido ideal para estudiantes y trabajadores. ${prop.rooms.length} habitaciones.`,
+          "address": {
+            "@type": "PostalAddress",
+            "streetAddress": prop.address,
+            "addressLocality": prop.city.split('(')[0].trim(),
+            "addressRegion": "Murcia",
+            "addressCountry": "ES"
+          },
+          "numberOfRooms": prop.rooms.length,
+          "image": prop.image,
+          "containsPlace": prop.rooms.map(room => ({
+             "@type": "Room",
+             "name": room.name,
+             "floorSize": {
+                "@type": "QuantitativeValue",
+                "value": 10, // Estimación si no hay dato
+                "unitCode": "MTK"
+             },
+             "offers": {
+                "@type": "Offer",
+                "price": room.price,
+                "priceCurrency": "EUR",
+                "availability": room.status === 'available' ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
+             }
+          }))
+        }
+      }))
+    };
+
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.text = JSON.stringify(schemaData);
+    document.head.appendChild(script);
+
+    return () => {
+      document.head.removeChild(script);
+    };
+  }, []);
+
   const toggleProperty = (id: string) => {
     setExpandedProperties(prev => ({
       ...prev,
@@ -201,7 +251,7 @@ export const RoomsView: React.FC = () => {
         <div className="absolute inset-0">
            <img
              src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1600&q=80"
-             alt="Habitaciones Disponibles"
+             alt="Alquiler de Habitaciones en Murcia"
              className="w-full h-full object-cover opacity-40"
            />
            <div className="absolute inset-0 bg-gradient-to-b from-rentia-black/90 to-transparent"></div>
@@ -340,7 +390,7 @@ export const RoomsView: React.FC = () => {
                                 {property.image ? (
                                     <img 
                                         src={property.image} 
-                                        alt={property.address} 
+                                        alt={`Habitación en alquiler ${property.address}`} 
                                         className="absolute inset-0 w-full h-full object-cover"
                                     />
                                 ) : (

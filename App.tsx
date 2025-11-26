@@ -11,13 +11,14 @@ import { RoomsView } from './components/RoomsView';
 import { ContactView } from './components/ContactView';
 import { AboutView } from './components/AboutView';
 import { DiscountsView } from './components/DiscountsView';
+import { BlogView } from './components/BlogView';
 import { LegalModals, ModalType } from './components/LegalModals';
 import { opportunities } from './data';
 import { TrendingUp, MessageCircle, Bell } from 'lucide-react';
 import { LanguageProvider } from './contexts/LanguageContext';
 
 // Type alias for easier usage
-type ViewType = 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts';
+type ViewType = 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts' | 'blog';
 
 // Mapping Hash paths to Views for Router
 const PATH_MAP: Record<string, ViewType> = {
@@ -27,7 +28,8 @@ const PATH_MAP: Record<string, ViewType> = {
   '#/oportunidades': 'list',
   '#/contacto': 'contact',
   '#/nosotros': 'about',
-  '#/descuentos': 'discounts'
+  '#/descuentos': 'discounts',
+  '#/blog': 'blog'
 };
 
 const VIEW_TO_HASH: Record<ViewType, string> = {
@@ -37,7 +39,8 @@ const VIEW_TO_HASH: Record<ViewType, string> = {
   'list': '#/oportunidades',
   'contact': '#/contacto',
   'about': '#/nosotros',
-  'discounts': '#/descuentos'
+  'discounts': '#/descuentos',
+  'blog': '#/blog'
 };
 
 function AppContent() {
@@ -84,47 +87,55 @@ function AppContent() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  // SEO Management System
+  // SEO Management System - Optimized for 3 Verticals
   useEffect(() => {
-    let title = "RentiaRoom | Expertos en Alquiler por Habitaciones e Inversión en Murcia";
+    let title = "RentiaRoom | Gestión, Inversión y Alquiler en Murcia";
     let description = "Expertos en gestión integral de alquiler por habitaciones y oportunidades de inversión inmobiliaria en Murcia. Rentabilidad garantizada y gestión 360.";
     
     switch (view) {
       case 'home':
-        title = "RentiaRoom | Líderes en Gestión de Habitaciones en Murcia";
-        description = "Empresa referente en gestión de habitaciones en Murcia. Transformamos tu propiedad en una inversión rentable. Expertos en alquiler por habitaciones.";
+        // TARGET: Owners & General Branding
+        title = "RentiaRoom Murcia | Gestión de Pisos y Alquiler por Habitaciones";
+        description = "Transformamos tu propiedad en Murcia en una inversión rentable. Nos encargamos de la gestión integral, alquiler por habitaciones y optimización de ingresos.";
         break;
       case 'services':
-        title = "Servicios de Gestión Integral de Habitaciones | RentiaRoom Murcia";
-        description = "Descubre nuestros servicios: Gestión integral de alquileres, Rent to Rent, optimización de ingresos y mantenimiento en Murcia. Tu tranquilidad es nuestro objetivo.";
+        // TARGET: Owners
+        title = "Servicios de Gestión Integral para Propietarios | RentiaRoom";
+        description = "¿Tienes un piso en Murcia? Descubre nuestros servicios de gestión integral, Rent to Rent, seguro de impagos y reformas para alquiler. Despreocúpate y cobra mes a mes.";
         break;
       case 'rooms':
-        title = "Habitaciones en Alquiler Murcia | Catálogo RentiaRoom";
-        description = "Consulta nuestro catálogo en tiempo real de habitaciones disponibles en Murcia. Alquiler para estudiantes y trabajadores con gestión profesional.";
+        // TARGET: Tenants
+        title = "Alquiler de Habitaciones en Murcia | Estudiantes y Trabajadores";
+        description = "Encuentra tu habitación ideal en Murcia. Pisos compartidos premium para estudiantes UCAM/UMU y trabajadores. Sin comisiones ocultas, totalmente equipadas.";
         break;
       case 'list':
         if (selectedId) {
           const opp = opportunities.find(o => o.id === selectedId);
           if (opp) {
-            title = `${opp.title} | Oportunidad Inversión RentiaRoom`;
-            description = `${opp.description.substring(0, 150)}... Inversión inmobiliaria en ${opp.city} con rentabilidad estimada.`;
+            title = `Inversión: ${opp.title} | Rentabilidad > 8% Murcia`;
+            description = `Oportunidad de inversión inmobiliaria en ${opp.city}. ${opp.specs.rooms} habitaciones. Rentabilidad neta estimada alta. Gestión integral incluida por RentiaRoom.`;
           }
         } else {
-          title = "Oportunidades para Inversores Inmobiliarios en Murcia | RentiaRoom";
-          description = "Accede a las mejores oportunidades para inversores en Murcia. Pisos rentables, análisis financiero y gestión integral para inversores.";
+          // TARGET: Investors
+          title = "Invertir en Murcia | Oportunidades Inmobiliarias Rentables";
+          description = "Cartera exclusiva de oportunidades de inversión en Murcia. Pisos analizados para alquiler por habitaciones con altas rentabilidades y gestión delegada.";
         }
         break;
       case 'contact':
-        title = "Contactar con RentiaRoom | Gestión Inmobiliaria Murcia";
-        description = "Contacta con el equipo de RentiaRoom. Atención directa por WhatsApp para propietarios e inversores. Estamos en Murcia.";
+        title = "Contactar RentiaRoom | Gestión Inmobiliaria en Murcia";
+        description = "Habla con nuestro equipo. Atención directa por WhatsApp para propietarios e inversores. Oficinas en Murcia.";
         break;
       case 'about':
-        title = "Sobre Nosotros | El Equipo RentiaRoom Murcia";
-        description = "Conoce a Pol y Víctor, fundadores de RentiaRoom. Unimos experiencia en Personal Shopper Inmobiliario y gestión de alquileres para maximizar tu rentabilidad.";
+        title = "Sobre RentiaRoom | Expertos en Coliving e Inversión";
+        description = "Conoce al equipo detrás de RentiaRoom. Unimos experiencia financiera y gestión operativa para revolucionar el alquiler en Murcia.";
         break;
       case 'discounts':
-        title = "Calculadora de Tarifas y Descuentos | RentiaRoom";
-        description = "Calcula tu comisión de gestión personalizada. Ofrecemos descuentos por volumen de propiedades y referidos en Murcia.";
+        title = "Calculadora de Tarifas de Gestión | RentiaRoom";
+        description = "Calcula tu comisión de gestión personalizada. Descuentos especiales para grandes tenedores e inversores con múltiples propiedades en Murcia.";
+        break;
+      case 'blog':
+        title = "Blog Inmobiliario Murcia | Rentabilidad, Inversión y Consejos";
+        description = "Artículos expertos sobre inversión inmobiliaria en Murcia, gestión de alquileres, normativa legal y tendencias del mercado. Aprende con RentiaRoom.";
         break;
       default:
         break;
@@ -199,6 +210,8 @@ function AppContent() {
         return <AboutView />;
       case 'discounts':
         return <DiscountsView />;
+      case 'blog':
+        return <BlogView />;
       case 'list':
         return (
           <>

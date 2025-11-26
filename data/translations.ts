@@ -37,6 +37,7 @@ export const translations = {
       services: 'Servicios',
       rooms: 'Habitaciones',
       discounts: 'Descuentos',
+      blog: 'Blog',
       about: 'Nosotros',
       contact: 'Contacto',
       hub: 'Rentia Hub',
@@ -417,6 +418,487 @@ export const translations = {
         photos: 'Fotos',
         see_all: 'Ver todas las fotos',
         appendix: 'Anexo: Galería Fotográfica',
+        confidential: 'Rentia Investments S.L. • Confidential document. Information contained may be subject to change.'
+      }
+    },
+    legal: {
+      titles: {
+        legal: 'Legal Notice and Terms of Use',
+        privacy: 'Privacy and Data Protection Policy',
+        social: 'Social Media Privacy',
+        cookies: 'Cookie Policy',
+        cookiesPanel: 'Cookie Settings'
+      },
+      legal_notice: {
+         text1: 'In compliance with the duty of information contained in article 10 of Law 34/2002, the following data is reflected below:',
+         header1: '1. Identification Data',
+         trade_name: 'Trade Name:',
+         activity: 'Activity:',
+         activity_desc: 'Real estate investment management, intermediation and rental.',
+         address: 'Address:',
+         header2: '2. Purpose and Scope',
+         text2: 'These conditions regulate the use of the website. Access implies unreserved acceptance.',
+         header3: '3. Intellectual Property',
+         text3: 'RentiaRoom owns all intellectual and industrial property rights of its website.',
+         header4: '4. Exclusion of Guarantees',
+         text4: 'RentiaRoom is not responsible for damages that may be caused by errors or omissions in the contents.',
+         header5: '5. Applicable Law',
+         text5: 'The relationship will be governed by current Spanish regulations and the courts of Murcia.'
+      },
+      privacy_policy: {
+         intro: 'RentiaRoom is committed to compliance with the GDPR and LOPDGDD.',
+         header1: '1. Data Controller',
+         text1: 'The controller is RentiaRoom.',
+         header2: '2. Purpose',
+         text2: 'Management of inquiries, contracts, and commercial communications with consent.',
+         header3: '3. Rights',
+         text3: 'You have the right to access, rectification, deletion, limitation, and opposition by sending an email to info@rentiaroom.com.'
+      },
+      cookies: {
+         intro: 'A cookie is a file that is downloaded to your computer when you access certain web pages.',
+         types: 'Types of cookies used: Technical (necessary), Analytical (statistics), and Marketing.',
+         manage: 'You can configure your browser to block them or use our configuration panel.'
+      },
+      panel: {
+         intro: 'This panel allows you to configure your consent preferences.',
+         technical: 'Technical Cookies',
+         technical_desc: 'Necessary for navigation. Cannot be disabled.',
+         mandatory: 'Mandatory',
+         analytics: 'Analytical Cookies',
+         analytics_desc: 'Measurement and statistical analysis of the use of the service.',
+         marketing: 'Marketing Cookies',
+         marketing_desc: 'Tracking for effective management of advertising spaces.',
+         save: 'Save Preferences'
+      }
+    },
+    whatsapp: {
+      online: 'Online',
+      closed: 'Closed',
+      opens_at: 'Opens at',
+      admin_label: 'Secretary (Sandra)',
+      admin_desc: 'Admin & Owners',
+      dir_label: 'Management (Pol)',
+      dir_desc: 'Strategy & Investment'
+    }
+  },
+  en: {
+    common: {
+      back: 'Back',
+      print: 'Print',
+      video_tour: 'Video Tour',
+      photos: 'Photos',
+      see_all_photos: 'See all photos',
+      contact: 'Contact',
+      consult: 'Consult',
+      available: 'Available',
+      occupied: 'Rented',
+      reserved: 'Reserved',
+      sold: 'Sold',
+      new: 'New',
+      renovation: 'Renovating',
+      loading: 'Loading...',
+      close: 'Close',
+      understood: 'Understood',
+      send_message: 'Send message',
+      call_now: 'Call now',
+      monday_friday: 'Monday to Friday',
+      whatsapp: 'WhatsApp',
+      email: 'Email',
+      open: 'Open',
+      closed: 'Closed',
+      online: 'Online',
+      available_now: 'Available now',
+      closed_now: 'Closed now',
+      closed_weekend: 'Closed (Weekend)',
+      month: 'month',
+      year: 'year'
+    },
+    header: {
+      home: 'Home',
+      services: 'Services',
+      rooms: 'Rooms',
+      discounts: 'Discounts',
+      blog: 'Blog',
+      about: 'About Us',
+      contact: 'Contact',
+      hub: 'Rentia Hub',
+      opportunities: 'Opportunities',
+      opportunities_mobile: 'Invest Opportunities'
+    },
+    footer: {
+      slogan: 'We manage your rooms, you enjoy the profitability. Management experts in Murcia.',
+      links_title: 'Links of Interest',
+      legal: 'Legal Notice',
+      privacy: 'Privacy Policy',
+      cookies: 'Configure Cookies',
+      contact_title: 'Get in touch',
+      admin_role: 'Secretary & Administration',
+      director_role: 'Management & Opportunities',
+      schedule_admin: 'Monday to Friday: 09:00h - 14:00h',
+      schedule_dir: 'Monday to Friday: 09:00h - 20:00h',
+      rights: '© 2025 All rights reserved'
+    },
+    home: {
+      hero: {
+        badge: 'Professional Rental Management',
+        title_prefix: 'Transform your property into a',
+        title_highlight: 'managed and profitable investment',
+        subtitle: 'We manage your rooms or entire apartment. We invest in advertising to find the best tenants and coordinate daily operations so you don\'t have to.',
+        cta_primary: 'I want to know more',
+        cta_secondary: 'See opportunities'
+      },
+      model: {
+        title: 'Our Management Model',
+        text1: 'If you don\'t have time or prefer not to deal with operational management, we take care of it.',
+        text2: 'Whether you prefer room rentals or traditional rentals, RentiaRoom offers a professional service ranging from social media promotion to incident coordination.'
+      },
+      community: {
+        badge: 'Exclusive Community',
+        title: 'RENTIA Investor Channel',
+        desc: 'Access a private network with real estate investment opportunities, analyzed and managed with transparency.',
+        cta: 'I want to receive opportunities'
+      },
+      solutions: {
+        title: 'The professional solution for owners',
+        subtitle: 'At RentiaRoom we adapt to your needs, whether it\'s room rental or traditional rental.',
+        card1_title: '360º Management',
+        card1_desc: 'We take care of the rental lifecycle. From publication and visits to tenant check-out.',
+        card2_title: 'Visibility Strategy',
+        card2_desc: 'We invest our own capital in advertising and social media to give maximum visibility to your rooms.'
+      },
+      process: {
+        title: 'Our Process',
+        subtitle: 'Click on each step to see details',
+        steps: {
+            s1: { title: 'Evaluation', short: 'We analyze your property.', long: 'We visit the property to understand its real potential. We look not only at the home but at the market context.', details: ['Technical visit', 'Area analysis', 'Yield estimation'] },
+            s2: { title: 'Optimization', short: 'Key recommendations.', long: 'We advise you on what changes are necessary to stand out. Sometimes a change of furniture makes the difference.', details: ['Deco tips', 'Pricing strategy', 'Professional photos'] },
+            s3: { title: 'Management', short: 'Acquisition and day-to-day.', long: 'We handle the daily operations. We invest in advertising and coordinate cleaning and maintenance.', details: ['Own advertising', 'Tenant filtering', 'Cleaning coordination'] },
+            s4: { title: 'Reports', short: 'Monthly reports.', long: 'Monthly we inform you about the situation of your property. Fluid communication without complex reports.', details: ['Occupancy status', 'Incident report', 'News'] }
+        },
+        modal_close: 'Understood'
+      },
+      steps: {
+          title: 'Your property working for you',
+          subtitle: 'We facilitate the management of your real estate asset.',
+          s1_title: 'Room Management',
+          s1_desc: 'We look for tenants with suitable profiles (students or workers) and manage independent contracts.',
+          s2_title: 'Cleaning and Rules',
+          s2_desc: 'We establish clear coexistence rules. We recommend and coordinate a professional cleaning service.',
+          s3_title: 'Flexibility',
+          s3_desc: 'We adapt to your type of rental, whether by rooms or traditional.',
+          s4_title: 'Added Value',
+          s4_desc: 'We apply visual improvement and marketing techniques to highlight your home.'
+      },
+      cta: {
+          title: 'Do you need help with your property?',
+          subtitle: 'RentiaRoom offers professional and close management. Leave the worries in our hands.',
+          whatsapp: 'Contact via WhatsApp',
+          call: 'Call now'
+      },
+      testimonials: {
+          title: 'Real Experiences',
+          subtitle: 'The satisfaction of our owners and clients is our best letter of introduction.',
+          quality: 'Quality Guaranteed',
+          verified: 'Verified'
+      },
+      faq: {
+          title: 'Frequently Asked Questions',
+          subtitle: 'We resolve your doubts clearly',
+          q1: 'What services does RentiaRoom offer exactly?',
+          a1: 'RentiaRoom provides professional rental management, either by rooms or traditional. We include tenant acquisition, legal contract management, and maintenance coordination.',
+          q2: 'How do you select tenants?',
+          a2: 'Our selection process is rigorous. We review financial solvency, references, and personal profiles to ensure good coexistence.',
+          q3: 'What is home staging?',
+          a3: 'It is the technique of preparing and decorating your home to make it visually more attractive. We use it to rent faster and stand out.',
+          q4: 'Who pays for cleaning?',
+          a4: 'We recommend professional cleaning. We coordinate the service, but the cost is borne by the owner, unless specifically agreed otherwise.',
+          q5: 'How do you set the price?',
+          a5: 'We perform a comparative market study in the area, evaluate the condition of the home, and apply our experience.',
+          q6: 'Is there a permanence clause?',
+          a6: 'Our contracts seek a long-term relationship based on mutual satisfaction, without abusive small print.'
+      },
+      contact_dual: {
+          title: 'Contact the team',
+          subtitle: 'We have simplified our channels to serve you better. Choose who you need to talk to.',
+          admin_card: {
+              badge: 'Secretary & Administration',
+              desc: 'For current owners and management.',
+              btn: 'Contact Sandra',
+              label_phone: 'Owner support'
+          },
+          dir_card: {
+              badge: 'Management & Strategy',
+              desc: 'Investment, expansion, and new projects.',
+              btn: 'Contact Pol',
+              label_phone: 'Opportunities & General'
+          }
+      }
+    },
+    services: {
+      hero: {
+        title: 'Our Services',
+        subtitle: 'Discover how RentiaRoom manages your real estate assets professionally.'
+      },
+      channel: {
+        badge: 'Exclusive Service',
+        title: 'Opportunities Channel',
+        desc: 'Looking for profitability? We offer a real estate investment search service',
+        free: 'completely free',
+        desc_2: 'through our private channel.',
+        cta: 'Join Channel',
+        sub: 'Direct access via WhatsApp'
+      },
+      intro: {
+        title: 'We manage for you!',
+        subtitle: 'From comprehensive management to technical supervision of renovations, we offer complete solutions for owners and investors.'
+      },
+      list: {
+        s1: { title: 'Comprehensive Rental Management', desc: 'We handle managing your properties from start to finish, facilitating every stage of the process.', pts: ['Tenant acquisition.', 'Legal contracts.', 'Check-ins and check-outs.', 'Incidents.'] },
+        s2: { title: 'Rent to Rent', desc: 'We offer a scheme where we agree on a fixed monthly income while sub-leasing and managing your properties.', pts: ['Stable income.', 'Delegated management.', 'Optimization.', 'Active occupancy.'] },
+        s3: { title: 'Revenue Optimization', desc: 'We seek to improve the profitability of your properties through market analysis and pricing strategies.', pts: ['Market analysis.', 'Competitive prices.', 'Custom strategies.', 'Improved cash flow.'] },
+        s4: { title: 'Maintenance and Repairs', desc: 'We handle incident reception and coordination with insurance or specialized technicians.', pts: ['Insurance procedures.', 'Technician coordination.', 'Work supervision.', 'Daily incidents.'] },
+        s5: { title: 'Default Insurance (Optional)', desc: 'We do not cover defaults directly, but we put you in touch with trusted collaborators.', pts: ['Access to collaborators.', 'External management.', 'Advisory.', 'Optional protection.'] },
+        s6: { title: 'Renovation Supervision', badge: 'New', desc: 'We supervise the renovation with external collaborators. We adapt homes to be rented.', pts: ['Rental adaptation.', 'Verified collaborators.', 'Technical supervision.', 'Cost optimization.'] }
+      },
+      onboarding: {
+        title: 'Activation Protocol',
+        subtitle: 'A structured process to ensure success from day one.',
+        steps: [
+           { title: '1. Audit & Visit', desc: 'Technical visit to detect key improvements that increase value.', hl: 'Strategic improvements' },
+           { title: '2. Analysis & Pricing', desc: 'Market study to set competitive and profitable prices.', hl: 'Real profitability' },
+           { title: '3. Setup', desc: 'Logistics organization, wardrobes, rules, and groups.', hl: 'Total organization' },
+           { title: '4. Marketing Premium', desc: 'Publication on networks and portals. Paid promotion.', hl: 'Maximum visibility' },
+           { title: '5. Gestión Activa', desc: 'Seguimiento semanal del estado y convivencia en la vivienda.', hl: 'Control constante' }
+        ]
+      },
+      pain_points: {
+        title: 'Professional Solutions',
+        subtitle: 'At RentiaRoom we apply management protocols to minimize common rental problems.',
+        hint: 'Click on each service to learn more',
+        modal_title: 'What does this service consist of?',
+        modal_disclaimer: '* At RentiaRoom we work to minimize incidents, but we act as management intermediaries. Times and results may depend on third parties or external factors.',
+        items: {
+          p1: { title: 'Tenant selection', short: 'Filters to minimize risks.', long: 'We perform a filtering process requesting financial documentation and references. Our goal is to find the profile that best suits the home.' },
+          p2: { title: 'Custom contracts', short: 'We draft legal contracts.', long: 'We draft specific contracts for each room, ensuring compliance with the LAU or the Civil Code as appropriate.' },
+          p3: { title: 'Time management', short: 'We coordinate visits and keys.', long: 'We act as your representative. We coordinate commercial visits, key handover, and inventories, freeing you from the face-to-face burden.' },
+          p4: { title: 'Incident management', short: 'We handle notices and solutions.', long: 'We are the first point of contact. We evaluate the situation and coordinate with your insurance or professional technicians.' },
+          p5: { title: 'Payment control', short: 'Payment tracking.', long: 'We keep monthly control of income. Our system allows us to detect delays early and activate protocols.' },
+          p6: { title: 'Maintenance', short: 'We supervise general condition.', long: 'We make periodic visits to common areas and maintain communication to detect repair needs.' }
+        }
+      },
+      cta: {
+        title: 'Do you have questions about our services?',
+        subtitle: 'Contact us to learn in detail how we can help you manage your property.',
+        btn: 'Contact via WhatsApp'
+      }
+    },
+    rooms: {
+      hero: {
+        badge: 'Real-time Catalog',
+        title: 'Available Rooms',
+        subtitle: 'Check the status of all our managed homes.',
+        count_label: 'Rooms under management'
+      },
+      friend_plan: {
+        badge: 'NEW',
+        title: 'Friend Plan:',
+        highlight: 'Discount on Supplies',
+        desc: 'Already a tenant? If you bring us a friend who passes the filter and rents with us, we discount',
+        desc_amount: '30€',
+        desc_end: 'on your next supplies bill.',
+        tag_1: 'Cumulative',
+        tag_2: '2 friends = 60€ off',
+        btn: 'Refer a Friend'
+      },
+      filter: {
+        label: 'Filter Homes',
+        check: 'Show only with free rooms'
+      },
+      status: {
+        guide: 'Status Guide',
+        free: 'Free',
+        new: 'New',
+        consult: 'Consult',
+        free_in: 'Room becoming free',
+        photos_pending: 'Photos available soon',
+        renovation: 'Renovating',
+        renovation_soon: 'In renovation: Coming soon!',
+        until: 'Until',
+        forecast: 'Forecast',
+        contact: 'Contact',
+        available: 'Available',
+        occupied: 'Full',
+        fixed_expenses: 'Fixed expenses separate',
+        shared_expenses: 'Expenses shared'
+      },
+      profile: {
+        students: 'Students Only',
+        workers: 'Workers Only',
+        both: 'Students & Workers'
+      },
+      card: {
+        map: 'View on Map',
+        rooms: 'Rooms'
+      }
+    },
+    about: {
+      hero: {
+        badge: 'Our History',
+        title: 'The union of two paths',
+        subtitle: 'Real estate asset management with a practical and direct approach.'
+      },
+      story: {
+        title: 'The Origin of RentiaRoom',
+        p1: 'RentiaRoom arises from the collaboration between Pol and Víctor. Pol came from the Personal Real Estate Shopper (PSI) sector, while Víctor came from the field of vacation rental management.',
+        p2: 'Both decided to join their paths and ways of working to create a joint project focused on rental management.',
+        highlight: '"We thank all the people who have worked with us and the owners who have trusted our management from the beginning."',
+        quote: '"We unite financial vision and daily operational management."'
+      },
+      team: {
+        title: 'Who We Are',
+        subtitle: 'The human team behind the management.',
+        pol: { role: 'Co-founder & Manager', desc: 'Co-founder and manager. In charge of acquisition, investor relations, processes, and property management.' },
+        victor: { role: 'Co-founder', desc: 'Co-founder, strategy, process support, acquisition, and support in other tasks.' },
+        sandra: { role: 'Administration', desc: 'Administration, secretary, owner relations, active property management.' }
+      },
+      values: {
+        title: 'Thanks for the trust',
+        collab_title: 'To our collaborators',
+        collab_desc: '"We thank all the people who have worked and collaborated with us."',
+        owners_title: 'To the owners',
+        owners_desc: '"Thanks to the owners who have trusted our management."'
+      },
+      cta: {
+        title: 'Shall we talk?',
+        btn_dir: 'Contact Management',
+        btn_admin: 'Contact Administration'
+      }
+    },
+    contact: {
+      hero: {
+        title: 'Contact RentiaRoom',
+        subtitle: 'We are 100% digital and close management. No physical offices, no waiting. We talk directly to you via WhatsApp.'
+      },
+      choose: {
+        title: 'Choose who you need to talk to',
+        subtitle: 'Click on the WhatsApp button of the appropriate person for your query.'
+      },
+      sandra: {
+        name: 'Sandra',
+        role: 'Secretary & Administration',
+        hours: 'Monday to Friday: 09:00 - 14:00',
+        for_title: 'Contact for:',
+        for_desc: 'General inquiries, billing, tenant incidents, administrative management, and current owners.',
+        btn: 'Chat with Sandra',
+        btn_msg: 'Leave message for Sandra',
+        offline: 'She will answer you in the next business hours.'
+      },
+      pol: {
+        name: 'Pol',
+        role: 'Management & Opportunities',
+        hours: 'Monday to Friday: 09:00 - 20:00',
+        for_title: 'Contact for:',
+        for_desc: 'General inquiries, new investors, strategy, commercial collaborations, and opportunities.',
+        btn: 'Chat with Pol',
+        btn_msg: 'Leave message for Pol',
+        offline: 'He will answer you in the next business hours.'
+      },
+      email: {
+        title: 'Prefer email?',
+        desc: 'For sending formal documentation or non-urgent inquiries.'
+      }
+    },
+    discounts: {
+      hero: {
+        badge: 'Fee Calculator',
+        title: 'Calculate your custom fee',
+        subtitle: 'At RentiaRoom we reward your trust. Answer a few simple questions to discover your reduced management fee.'
+      },
+      calc: {
+        header: 'Configure your investor profile',
+        q1: 'How many properties do you want us to manage?',
+        h1: 'Starting with one home.',
+        h2: 'Portfolio growing.',
+        h3: 'Large holder (+10 homes).',
+        q2: 'Have you referred other investors to RentiaRoom?',
+        h_ref: 'We bonus you with an extra 0.5% for every investor who comes from you.',
+        btn: 'Calculate my fee'
+      },
+      result: {
+        title: 'Your Custom Fee',
+        std_rate: 'Standard Fee',
+        your_rate: 'Your Management Fee',
+        savings: 'Estimated annual savings',
+        savings_note: '*Estimation based on average billing',
+        btn_start: 'Start now',
+        btn_recalc: 'Recalculate'
+      },
+      conditions: {
+        title: 'Discount conditions',
+        text: 'The calculated fee is on the monthly management commission. Volume and referral discounts are cumulative up to a minimum limit of 10% + VAT. This simulation is not contractually binding until the management mandate is signed.'
+      }
+    },
+    opportunities: {
+      hero: {
+        badge: 'Exclusive Portfolio',
+        title: 'Investment Opportunities',
+        subtitle: 'Properties selected and analyzed to offer maximum profitability through our comprehensive management model.'
+      },
+      empty: {
+        title: 'More coming soon',
+        text: 'We have currently sold our entire available portfolio. We are analyzing new assets that will hit the market in the coming days.',
+        cta: 'Want to be the first to know?',
+        btn: 'Join Investor Channel',
+        note: 'Free and exclusive access via WhatsApp'
+      },
+      card: {
+        profitability: 'Profitability',
+        reserved: 'Reserved',
+        sold: 'Sold',
+        purchase_price: 'Purchase Price',
+        total_investment: 'Total Investment',
+        rooms: 'rms',
+        floor: 'floor',
+        btn: 'View Complete Analysis'
+      },
+      detail: {
+        back: 'Back to Opportunities',
+        print: 'Print Sheet',
+        net_yield: 'Net Yield',
+        net_monthly: 'Net Monthly Income',
+        gross_yield: 'Gross Yield',
+        financial_study: 'Profitability Study',
+        includes_fees: 'Includes Fees (3% or 3k)',
+        investment_breakdown: 'Investment Breakdown',
+        reform_furniture: 'Renovation + Furniture',
+        notary_taxes: 'Notary & Taxes',
+        agency_fees: 'Agency Fees (+VAT)',
+        strategy: 'Rental Strategy',
+        rooms_strategy: 'Rooms',
+        traditional_strategy: 'Traditional',
+        management: 'Full Management',
+        active: 'Activated',
+        disabled: 'Disabled',
+        with_management: 'With Management',
+        self_management: 'Self-management',
+        monthly_estimation: 'Monthly Estimation',
+        gross_income: 'Gross Income',
+        expenses_ibi: 'Community & IBI Expenses (approx)',
+        management_fee: 'Management Fee',
+        management_vat: 'Management VAT',
+        without_management_note: '*Without deducting management',
+        description: 'Description',
+        key_points: 'Key Points',
+        area_benefits: 'Area Benefits',
+        property_summary: 'Property Summary',
+        bathrooms: 'bathrooms',
+        elevator: 'With elevator',
+        no_elevator: 'No elevator',
+        video_available: 'Available (See on web)',
+        multimedia: 'Multimedia',
+        photos: 'Photos',
+        see_all: 'See all photos',
+        appendix: 'Annex: Photo Gallery',
         confidential: 'Rentia Investments S.L. • Confidential document. Information contained may be subject to change.'
       }
     },

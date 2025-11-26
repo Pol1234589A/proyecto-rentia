@@ -307,11 +307,14 @@ export const RoomsView: React.FC = () => {
                  const totalRooms = property.rooms.length;
                  const isExpanded = expandedProperties[property.id] || false;
                  const hasNew = property.rooms.some(r => r.specialStatus === 'new');
+                 const hasRenovation = property.rooms.some(r => r.specialStatus === 'renovation');
                  const propertyProfile = getPropertyProfile(property.rooms);
                  const profileBadge = getProfileBadge(propertyProfile);
                  
                  // Check if any room is 'upcoming' (active countdown < 45 days)
+                 // IMPORTANT: We skip renovation rooms from this calculation to show the specific Renovation badge instead
                  const hasUpcoming = property.rooms.some(room => {
+                    if (room.specialStatus === 'renovation') return false; // Don't show "free in..." if it's in renovation
                     if (!room.availableFrom || room.availableFrom === 'Consultar' || room.availableFrom === 'Inmediata') return false;
                     try {
                         const [day, month, year] = room.availableFrom.split('/').map(Number);
@@ -341,7 +344,12 @@ export const RoomsView: React.FC = () => {
                                         className="absolute inset-0 w-full h-full object-cover"
                                     />
                                 ) : (
-                                    <Home className="w-8 h-8 text-gray-300" />
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-2 bg-gray-50">
+                                        <Camera className="w-8 h-8 text-gray-300 mb-2" />
+                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide leading-tight">
+                                            {t('rooms.status.photos_pending')}
+                                        </span>
+                                    </div>
                                 )}
                                 {/* Overlay Gradiente para texto encima si fuera necesario, o simple protección */}
                                 <div className="absolute inset-0 bg-gradient-to-r from-black/10 to-transparent"></div>
@@ -354,7 +362,15 @@ export const RoomsView: React.FC = () => {
                                             {availableCount} Libres
                                         </div>
                                     )}
-                                    {hasUpcoming && (
+                                    {/* Prioritize Renovation Badge over Upcoming Badge */}
+                                    {hasRenovation && (
+                                        <div className="bg-yellow-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm flex items-center gap-1 animate-pulse">
+                                            <Hammer className="w-3 h-3" />
+                                            <span className="hidden sm:inline">{t('rooms.status.renovation_soon')}</span>
+                                            <span className="sm:hidden">Reformas</span>
+                                        </div>
+                                    )}
+                                    {!hasRenovation && hasUpcoming && (
                                         <div className="bg-orange-500/90 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm flex items-center gap-1 animate-pulse">
                                             <Timer className="w-3 h-3" />
                                             <span className="hidden sm:inline">{t('rooms.status.free_in')}</span>

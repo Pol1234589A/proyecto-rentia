@@ -106,8 +106,8 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
           {/* WEB HEADER (Hidden when printing) */}
           <div className="p-4 sm:p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 no-print">
             <div className="w-full md:w-auto">
-              <button onClick={onBack} className="flex items-center text-rentia-blue hover:underline text-sm font-semibold mb-2">
-                <ArrowLeft className="w-4 h-4 mr-1" />
+              <button onClick={onBack} className="flex items-center text-rentia-blue hover:underline text-sm font-semibold mb-3 p-2 -ml-2 rounded-lg hover:bg-gray-50 touch-manipulation">
+                <ArrowLeft className="w-5 h-5 mr-1" />
                 Volver a Oportunidades
               </button>
               {/* Improved title wrapping for mobile/notebooks */}
@@ -120,7 +120,7 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
               {/* Print Button */}
               <button 
                   onClick={handlePrint}
-                  className="flex items-center gap-2 px-4 py-2 bg-rentia-black text-white rounded-lg hover:bg-gray-800 transition-colors font-bold text-sm shadow-md flex-shrink-0 touch-manipulation"
+                  className="flex items-center gap-2 px-4 py-2 bg-rentia-black text-white rounded-lg hover:bg-gray-800 transition-colors font-bold text-sm shadow-md flex-shrink-0 touch-manipulation min-h-[40px]"
               >
                   <Printer className="w-4 h-4" />
                   <span className="hidden sm:inline">Imprimir Ficha</span>
@@ -130,8 +130,8 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
               <div className="h-8 w-px bg-gray-200 mx-1 hidden md:block"></div>
 
               <div className="flex gap-2">
-                <button onClick={onPrev} disabled={!hasPrev} className="nav-controls p-3 rounded-full bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-gray-200 touch-manipulation" aria-label="Anterior"><ChevronLeft className="w-5 h-5 text-gray-600" /></button>
-                <button onClick={onNext} disabled={!hasNext} className="nav-controls p-3 rounded-full bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-gray-200 touch-manipulation" aria-label="Siguiente"><ChevronRight className="w-5 h-5 text-gray-600" /></button>
+                <button onClick={onPrev} disabled={!hasPrev} className="nav-controls p-3 rounded-full bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-gray-200 touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center" aria-label="Anterior"><ChevronLeft className="w-5 h-5 text-gray-600" /></button>
+                <button onClick={onNext} disabled={!hasNext} className="nav-controls p-3 rounded-full bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-gray-200 touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center" aria-label="Siguiente"><ChevronRight className="w-5 h-5 text-gray-600" /></button>
               </div>
             </div>
           </div>
@@ -380,7 +380,7 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
                                         </div>
                                     ))}
                                     </div>
-                                    <button onClick={() => openLightbox(0)} className="w-full mt-3 text-xs text-rentia-blue font-bold hover:underline p-2 border border-transparent hover:border-gray-100 rounded touch-manipulation">
+                                    <button onClick={() => openLightbox(0)} className="w-full mt-3 text-xs text-rentia-blue font-bold hover:underline p-3 border border-transparent hover:border-gray-100 rounded touch-manipulation">
                                         Ver todas las fotos ({images.length})
                                     </button>
                                 </div>

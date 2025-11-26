@@ -13,14 +13,15 @@ const FAQItem: React.FC<FAQItemProps> = ({ question, answer }) => {
   return (
     <div className="border-b border-gray-100 last:border-0">
       <button
-        className="w-full py-5 flex justify-between items-center text-left focus:outline-none group"
+        className="w-full py-5 flex justify-between items-center text-left focus:outline-none group min-h-[60px]"
         onClick={() => setIsOpen(!isOpen)}
+        aria-expanded={isOpen}
       >
         <span className={`text-lg font-medium transition-colors ${isOpen ? 'text-rentia-blue' : 'text-rentia-black group-hover:text-rentia-blue'}`}>
             {question}
         </span>
         <span className={`ml-6 flex-shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180 text-rentia-blue' : 'text-gray-400'}`}>
-          <ChevronDown />
+          <ChevronDown className="w-6 h-6" />
         </span>
       </button>
       <div
@@ -28,7 +29,7 @@ const FAQItem: React.FC<FAQItemProps> = ({ question, answer }) => {
           isOpen ? 'max-h-96 opacity-100 pb-6' : 'max-h-0 opacity-0'
         }`}
       >
-        <p className="text-gray-600 leading-relaxed">{answer}</p>
+        <p className="text-gray-600 leading-relaxed text-base">{answer}</p>
       </div>
     </div>
   );
@@ -164,34 +165,34 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
             Tu navegador no soporta videos HTML5.
           </video>
           {/* Dark Overlay with Blur for better text readability */}
-          <div className="absolute inset-0 bg-rentia-black/50 backdrop-blur-[2px]"></div>
+          <div className="absolute inset-0 bg-rentia-black/60 backdrop-blur-[2px]"></div>
           <div className="absolute inset-0 bg-rentia-blue/20 mix-blend-overlay"></div>
         </div>
 
         <div className="relative z-20 container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="max-w-4xl">
-                <div className="inline-flex items-center gap-2 mb-6 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-rentia-gold font-medium text-sm uppercase tracking-wide">
+                <div className="inline-flex items-center gap-2 mb-6 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-rentia-gold font-medium text-xs md:text-sm uppercase tracking-wide">
                     <Settings className="w-4 h-4" />
                     Gestión Profesional de Alquileres
                 </div>
-                <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight font-display drop-shadow-lg">
+                <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold mb-6 leading-tight font-display drop-shadow-lg">
                     Transforma tu propiedad en una inversión <span className="text-transparent bg-clip-text bg-gradient-to-r from-rentia-gold to-yellow-200">gestionada y rentable</span>
                 </h1>
-                <p className="text-lg md:text-xl mb-10 text-gray-100 leading-relaxed max-w-2xl drop-shadow-md">
+                <p className="text-base sm:text-lg md:text-xl mb-10 text-gray-100 leading-relaxed max-w-2xl drop-shadow-md">
                     Gestionamos tus habitaciones o piso completo. Invertimos en publicidad para buscar a los mejores inquilinos y coordinamos el día a día para que tú no tengas que hacerlo.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 relative z-30">
                     <button 
                         type="button"
                         onClick={() => onNavigate && onNavigate('contact')}
-                        className="inline-flex items-center justify-center bg-rentia-blue hover:bg-blue-600 text-white font-bold py-4 px-8 rounded-lg transition-all duration-300 shadow-lg hover:shadow-blue-500/30 transform hover:-translate-y-1">
+                        className="inline-flex items-center justify-center bg-rentia-blue hover:bg-blue-600 text-white font-bold py-4 px-8 rounded-lg transition-all duration-300 shadow-lg hover:shadow-blue-500/30 transform hover:-translate-y-1 w-full sm:w-auto">
                         Quiero saber más
                         <ArrowRight className="ml-2 w-5 h-5" />
                     </button>
                     <button 
                         type="button"
                         onClick={() => onNavigate && onNavigate('list')}
-                        className="inline-flex items-center justify-center bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/30 font-bold py-4 px-8 rounded-lg transition-all duration-300 pointer-events-auto"
+                        className="inline-flex items-center justify-center bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/30 font-bold py-4 px-8 rounded-lg transition-all duration-300 pointer-events-auto w-full sm:w-auto"
                     >
                         Ver oportunidades
                     </button>
@@ -201,11 +202,11 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
       </section>
 
       {/* --- MODELO DE GESTIÓN --- */}
-      <section className="py-20 bg-white">
+      <section className="py-16 md:py-20 bg-white">
         <div className="container mx-auto px-4 max-w-4xl text-center">
-            <h2 className="text-3xl md:text-4xl font-bold mb-6 text-rentia-black font-display">Nuestro modelo de gestión</h2>
+            <h2 className="text-2xl md:text-4xl font-bold mb-6 text-rentia-black font-display">Nuestro modelo de gestión</h2>
             <div className="w-24 h-1 bg-rentia-blue mx-auto mb-8 rounded-full"></div>
-            <div className="text-lg text-gray-600 space-y-4 leading-relaxed">
+            <div className="text-base md:text-lg text-gray-600 space-y-4 leading-relaxed">
                 <p>
                     Si no tienes tiempo o prefieres no ocuparte de la gestión operativa, nosotros nos encargamos.
                 </p>
@@ -217,7 +218,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
       </section>
 
       {/* --- COMUNIDAD PRIVADA (Clean Blue/White Style) --- */}
-      <section className="relative py-20 overflow-hidden">
+      <section className="relative py-16 md:py-20 overflow-hidden">
           {/* Background */}
           <div className="absolute inset-0 bg-rentia-black z-0">
               <div className="absolute inset-0 bg-rentia-blue/10 mix-blend-overlay"></div>
@@ -237,7 +238,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
                      <p className="text-blue-100 text-lg leading-relaxed mb-8">
                         Accede a una red privada con oportunidades reales de inversión inmobiliaria, analizadas y gestionadas con transparencia.
                      </p>
-                     <a href="https://whatsapp.com/channel/0029VbBsvhOIt5rpshbpYN1P" target="_blank" rel="noreferrer" className="inline-flex items-center bg-white text-rentia-blue hover:bg-gray-50 font-bold py-3 px-8 rounded-lg transition-colors duration-300 shadow-md">
+                     <a href="https://whatsapp.com/channel/0029VbBsvhOIt5rpshbpYN1P" target="_blank" rel="noreferrer" className="inline-flex w-full md:w-auto justify-center items-center bg-white text-rentia-blue hover:bg-gray-50 font-bold py-3 px-8 rounded-lg transition-colors duration-300 shadow-md">
                         <MessageCircle className="w-5 h-5 mr-2" />
                         Quiero recibir oportunidades
                      </a>
@@ -248,61 +249,61 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
       </section>
 
       {/* --- SOLUTIONS CARDS --- */}
-      <section className="py-24 bg-gray-50 relative">
+      <section className="py-20 md:py-24 bg-gray-50 relative">
           <div className="absolute top-0 left-0 w-full h-96 md:h-64 bg-white"></div> {/* Top white spacing fix - adjusted for mobile text wrap */}
           
           <div className="container mx-auto px-4 relative z-10">
-              <div className="text-center max-w-3xl mx-auto mb-16">
-                  <h2 className="text-3xl md:text-4xl font-bold mb-4 text-rentia-black font-display">La solución profesional para propietarios</h2>
+              <div className="text-center max-w-3xl mx-auto mb-12 md:mb-16">
+                  <h2 className="text-2xl md:text-4xl font-bold mb-4 text-rentia-black font-display">La solución profesional para propietarios</h2>
                   <p className="text-gray-600">En RentiaRoom nos adaptamos a tus necesidades, ya sea alquiler por habitaciones o tradicional.</p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
                   {/* Card 1: Gestión Completa */}
-                  <div className="bg-white p-10 rounded-2xl shadow-idealista hover:shadow-idealista-hover transition-all duration-300 group border border-gray-100 flex flex-col items-center text-center hover:-translate-y-1">
-                      <div className="w-20 h-20 rounded-2xl bg-blue-50 text-rentia-blue flex items-center justify-center mb-6 group-hover:bg-rentia-blue group-hover:text-white transition-colors duration-300">
-                          <KeyRound className="w-10 h-10" />
+                  <div className="bg-white p-8 md:p-10 rounded-2xl shadow-idealista hover:shadow-idealista-hover transition-all duration-300 group border border-gray-100 flex flex-col items-center text-center hover:-translate-y-1">
+                      <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-blue-50 text-rentia-blue flex items-center justify-center mb-6 group-hover:bg-rentia-blue group-hover:text-white transition-colors duration-300">
+                          <KeyRound className="w-8 h-8 md:w-10 md:h-10" />
                       </div>
-                      <h3 className="text-2xl font-bold mb-3 text-rentia-black group-hover:text-rentia-blue transition-colors">Gestión 360º</h3>
-                      <p className="text-gray-600 leading-relaxed">Nos ocupamos del ciclo de vida del alquiler. Desde la publicación y visitas hasta la salida del inquilino.</p>
+                      <h3 className="text-xl md:text-2xl font-bold mb-3 text-rentia-black group-hover:text-rentia-blue transition-colors">Gestión 360º</h3>
+                      <p className="text-gray-600 leading-relaxed text-sm md:text-base">Nos ocupamos del ciclo de vida del alquiler. Desde la publicación y visitas hasta la salida del inquilino.</p>
                   </div>
                   
                    {/* Card 2: Estrategia de Ocupación */}
-                   <div className="bg-white p-10 rounded-2xl shadow-idealista hover:shadow-idealista-hover transition-all duration-300 group border border-gray-100 flex flex-col items-center text-center hover:-translate-y-1">
-                      <div className="w-20 h-20 rounded-2xl bg-yellow-50 text-rentia-gold flex items-center justify-center mb-6 group-hover:bg-rentia-gold group-hover:text-rentia-black transition-colors duration-300">
-                          <Megaphone className="w-10 h-10" />
+                   <div className="bg-white p-8 md:p-10 rounded-2xl shadow-idealista hover:shadow-idealista-hover transition-all duration-300 group border border-gray-100 flex flex-col items-center text-center hover:-translate-y-1">
+                      <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-yellow-50 text-rentia-gold flex items-center justify-center mb-6 group-hover:bg-rentia-gold group-hover:text-rentia-black transition-colors duration-300">
+                          <Megaphone className="w-8 h-8 md:w-10 md:h-10" />
                       </div>
-                      <h3 className="text-2xl font-bold mb-3 text-rentia-black group-hover:text-rentia-blue transition-colors">Estrategia de Visibilidad</h3>
-                      <p className="text-gray-600 leading-relaxed">Invertimos nuestro propio capital en publicidad y redes sociales para dar la máxima visibilidad a tus habitaciones.</p>
+                      <h3 className="text-xl md:text-2xl font-bold mb-3 text-rentia-black group-hover:text-rentia-blue transition-colors">Estrategia de Visibilidad</h3>
+                      <p className="text-gray-600 leading-relaxed text-sm md:text-base">Invertimos nuestro propio capital en publicidad y redes sociales para dar la máxima visibilidad a tus habitaciones.</p>
                   </div>
               </div>
           </div>
       </section>
 
       {/* --- PROCESS ICONS (INTERACTIVE) --- */}
-       <section className="py-20 bg-white border-b border-gray-100">
+       <section className="py-16 md:py-20 bg-white border-b border-gray-100">
           <div className="container mx-auto px-4">
-             <div className="text-center mb-12">
-                 <h2 className="text-3xl font-bold text-rentia-black font-display">Nuestro Proceso</h2>
+             <div className="text-center mb-10 md:mb-12">
+                 <h2 className="text-2xl md:text-3xl font-bold text-rentia-black font-display">Nuestro Proceso</h2>
                  <p className="text-gray-500 mt-2">Haz clic en cada paso para ver los detalles</p>
              </div>
              
-             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 text-center">
+             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 text-center">
                  {processSteps.map((step, index) => (
                     <div 
                         key={index}
                         onClick={() => setSelectedProcess(step)}
-                        className="p-8 bg-white border border-gray-100 rounded-xl shadow-idealista hover:shadow-idealista-hover transition-all duration-300 group hover:-translate-y-1 cursor-pointer relative"
+                        className="p-6 md:p-8 bg-white border border-gray-100 rounded-xl shadow-idealista hover:shadow-idealista-hover transition-all duration-300 group hover:-translate-y-1 cursor-pointer relative"
                     >
                         <div className="absolute top-4 right-4 text-gray-300 group-hover:text-rentia-gold transition-colors">
                             <ArrowRight className="w-5 h-5 transform -rotate-45 group-hover:rotate-0 transition-transform" />
                         </div>
-                        <div className="w-14 h-14 mx-auto bg-gray-50 rounded-full flex items-center justify-center text-gray-400 mb-4 group-hover:bg-rentia-blue group-hover:text-white transition-colors">
+                        <div className="w-12 h-12 md:w-14 md:h-14 mx-auto bg-gray-50 rounded-full flex items-center justify-center text-gray-400 mb-4 group-hover:bg-rentia-blue group-hover:text-white transition-colors">
                             {step.icon}
                         </div>
                         <h3 className="text-lg font-bold mb-2 text-rentia-black group-hover:text-rentia-blue transition-colors">{step.title}</h3>
                         <p className="text-sm text-gray-600 line-clamp-2">{step.shortDesc}</p>
-                        <p className="text-xs font-bold text-rentia-blue mt-4 opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-wide">Ver más detalles</p>
+                        <p className="text-xs font-bold text-rentia-blue mt-4 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-wide">Ver más detalles</p>
                     </div>
                  ))}
              </div>
@@ -322,7 +323,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
                             <X className="w-6 h-6" />
                         </button>
                     </div>
-                    <div className="p-8">
+                    <div className="p-6 md:p-8 max-h-[70vh] overflow-y-auto">
                         <h4 className="text-gray-900 font-bold mb-3 text-lg">¿En qué consiste?</h4>
                         <p className="text-gray-600 leading-relaxed text-base mb-6">
                             {selectedProcess.longDesc}
@@ -346,7 +347,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
                         
                         <button 
                             onClick={() => setSelectedProcess(null)}
-                            className="w-full mt-6 bg-rentia-black text-white hover:bg-gray-800 font-bold py-3 px-4 rounded-lg transition-colors"
+                            className="w-full mt-6 bg-rentia-black text-white hover:bg-gray-800 font-bold py-3 px-4 rounded-lg transition-colors min-h-[44px]"
                         >
                             Entendido
                         </button>
@@ -356,19 +357,19 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
         )}
 
       {/* --- STEPS SECTION (Updated Content) --- */}
-      <section className="py-24 bg-gray-50">
+      <section className="py-16 md:py-24 bg-gray-50">
           <div className="container mx-auto px-4">
-              <div className="text-center mb-16 max-w-3xl mx-auto">
-                  <h2 className="text-3xl md:text-4xl font-bold text-rentia-black font-display mb-4">Tu propiedad trabajando por ti</h2>
+              <div className="text-center mb-12 md:mb-16 max-w-3xl mx-auto">
+                  <h2 className="text-2xl md:text-4xl font-bold text-rentia-black font-display mb-4">Tu propiedad trabajando por ti</h2>
                   <p className="text-gray-600 text-lg">Facilitamos la gestión de tu activo inmobiliario.</p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 max-w-6xl mx-auto">
                   {/* Step 1 */}
-                  <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 flex gap-6 hover:shadow-md transition-all duration-300">
-                      <div className="text-5xl font-bold text-gray-100 font-display">01</div>
+                  <div className="bg-white p-6 md:p-8 rounded-xl shadow-sm border border-gray-100 flex gap-6 hover:shadow-md transition-all duration-300">
+                      <div className="text-4xl md:text-5xl font-bold text-gray-100 font-display">01</div>
                       <div>
-                          <h3 className="text-xl font-bold mb-3 text-rentia-black flex items-center gap-2">
+                          <h3 className="text-lg md:text-xl font-bold mb-3 text-rentia-black flex items-center gap-2">
                               <UserCheck className="w-5 h-5 text-rentia-blue" />
                               Gestión de Habitaciones
                           </h3>
@@ -376,10 +377,10 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
                       </div>
                   </div>
                   {/* Step 2 */}
-                   <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 flex gap-6 hover:shadow-md transition-all duration-300">
-                      <div className="text-5xl font-bold text-gray-100 font-display">02</div>
+                   <div className="bg-white p-6 md:p-8 rounded-xl shadow-sm border border-gray-100 flex gap-6 hover:shadow-md transition-all duration-300">
+                      <div className="text-4xl md:text-5xl font-bold text-gray-100 font-display">02</div>
                       <div>
-                          <h3 className="text-xl font-bold mb-3 text-rentia-black flex items-center gap-2">
+                          <h3 className="text-lg md:text-xl font-bold mb-3 text-rentia-black flex items-center gap-2">
                                 <Sparkles className="w-5 h-5 text-rentia-blue" />
                                 Limpieza y Normas
                           </h3>
@@ -387,10 +388,10 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
                       </div>
                   </div>
                    {/* Step 3 */}
-                   <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 flex gap-6 hover:shadow-md transition-all duration-300">
-                      <div className="text-5xl font-bold text-gray-100 font-display">03</div>
+                   <div className="bg-white p-6 md:p-8 rounded-xl shadow-sm border border-gray-100 flex gap-6 hover:shadow-md transition-all duration-300">
+                      <div className="text-4xl md:text-5xl font-bold text-gray-100 font-display">03</div>
                       <div>
-                          <h3 className="text-xl font-bold mb-3 text-rentia-black flex items-center gap-2">
+                          <h3 className="text-lg md:text-xl font-bold mb-3 text-rentia-black flex items-center gap-2">
                                 <TrendingUp className="w-5 h-5 text-rentia-blue" />
                                 Flexibilidad
                           </h3>
@@ -398,10 +399,10 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
                       </div>
                   </div>
                    {/* Step 4 */}
-                   <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 flex gap-6 hover:shadow-md transition-all duration-300">
-                      <div className="text-5xl font-bold text-gray-100 font-display">04</div>
+                   <div className="bg-white p-6 md:p-8 rounded-xl shadow-sm border border-gray-100 flex gap-6 hover:shadow-md transition-all duration-300">
+                      <div className="text-4xl md:text-5xl font-bold text-gray-100 font-display">04</div>
                       <div>
-                          <h3 className="text-xl font-bold mb-3 text-rentia-black flex items-center gap-2">
+                          <h3 className="text-lg md:text-xl font-bold mb-3 text-rentia-black flex items-center gap-2">
                                 <Home className="w-5 h-5 text-rentia-blue" />
                                 Valor Añadido
                           </h3>
@@ -413,11 +414,11 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
       </section>
 
        {/* --- CTA SECTION --- */}
-       <section className="py-24 bg-gray-50">
+       <section className="py-16 md:py-24 bg-gray-50">
            <div className="container mx-auto px-4">
                 <div className="bg-white rounded-2xl shadow-idealista overflow-hidden flex flex-col md:flex-row max-w-6xl mx-auto">
-                    <div className="p-10 md:p-16 flex-1 flex flex-col justify-center">
-                        <h2 className="text-3xl md:text-4xl font-bold mb-6 text-rentia-black font-display leading-tight">
+                    <div className="p-8 md:p-16 flex-1 flex flex-col justify-center">
+                        <h2 className="text-2xl md:text-4xl font-bold mb-6 text-rentia-black font-display leading-tight">
                             ¿Necesitas ayuda con tu propiedad?
                         </h2>
                         <p className="text-lg text-gray-600 mb-8">
@@ -433,7 +434,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
                             </a>
                         </div>
                     </div>
-                    <div className="md:w-1/2 relative min-h-[300px]">
+                    <div className="md:w-1/2 relative min-h-[250px] md:min-h-[300px]">
                         <img src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=800&q=80" alt="Gestión Propiedad" className="absolute inset-0 w-full h-full object-cover" />
                         <div className="absolute inset-0 bg-gradient-to-l from-transparent to-black/10"></div>
                     </div>
@@ -442,10 +443,10 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
        </section>
 
       {/* --- TESTIMONIALS SECTION (PREMIUM MASONRY) --- */}
-      <section className="py-24 bg-gray-50">
+      <section className="py-16 md:py-24 bg-gray-50">
           <div className="container mx-auto px-4">
-              <div className="text-center mb-16">
-                  <h2 className="text-3xl font-bold text-rentia-black font-display">Experiencias Reales</h2>
+              <div className="text-center mb-12 md:mb-16">
+                  <h2 className="text-2xl md:text-3xl font-bold text-rentia-black font-display">Experiencias Reales</h2>
                   <p className="text-gray-600 mt-2">La satisfacción de nuestros propietarios y clientes es nuestra mejor carta de presentación.</p>
                   <div className="flex items-center justify-center mt-4 gap-1 text-rentia-gold">
                      {[1,2,3,4,5].map(i => <Star key={i} className="w-5 h-5 fill-current" />)}
@@ -456,7 +457,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
               {/* Masonry Layout */}
               <div className="columns-1 md:columns-2 lg:columns-3 gap-6 max-w-7xl mx-auto space-y-6">
                   {testimonials.map((testi, index) => (
-                      <div key={index} className="break-inside-avoid bg-white p-8 rounded-xl shadow-idealista hover:shadow-idealista-hover border border-gray-100 transition-all duration-300 relative group hover:-translate-y-1 overflow-hidden">
+                      <div key={index} className="break-inside-avoid bg-white p-6 md:p-8 rounded-xl shadow-idealista hover:shadow-idealista-hover border border-gray-100 transition-all duration-300 relative group hover:-translate-y-1 overflow-hidden">
                           {/* Top Hover Accent */}
                           <div className="absolute top-0 left-0 w-full h-1 bg-transparent group-hover:bg-rentia-gold transition-colors duration-300"></div>
                           
@@ -497,10 +498,10 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
       </section>
 
       {/* --- FAQ SECTION --- */}
-      <section className="py-24 bg-white">
+      <section className="py-16 md:py-24 bg-white">
           <div className="container mx-auto px-4 max-w-3xl">
-              <div className="text-center mb-12">
-                  <h2 className="text-3xl font-bold text-rentia-black font-display">Preguntas frecuentes</h2>
+              <div className="text-center mb-10 md:mb-12">
+                  <h2 className="text-2xl md:text-3xl font-bold text-rentia-black font-display">Preguntas frecuentes</h2>
                   <p className="text-gray-600">Resolvemos tus dudas de forma clara</p>
               </div>
               
@@ -534,10 +535,10 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
       </section>
 
       {/* --- NEW DUAL CONTACT SECTION (WhatsApp Focused) --- */}
-      <section className="py-24 bg-gray-50">
+      <section className="py-16 md:py-24 bg-gray-50">
           <div className="container mx-auto px-4">
-              <div className="text-center mb-12 max-w-2xl mx-auto">
-                  <h2 className="text-3xl md:text-4xl font-bold font-display text-rentia-black mb-4">Contacta con el equipo</h2>
+              <div className="text-center mb-10 md:mb-12 max-w-2xl mx-auto">
+                  <h2 className="text-2xl md:text-4xl font-bold font-display text-rentia-black mb-4">Contacta con el equipo</h2>
                   <p className="text-gray-600 text-lg">
                       Hemos simplificado nuestros canales para atenderte mejor. Elige con quién necesitas hablar.
                   </p>
@@ -557,7 +558,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
                           </div>
                           <p className="text-gray-400 text-sm">Para propietarios actuales y gestión.</p>
                       </div>
-                      <div className="p-8">
+                      <div className="p-6 md:p-8">
                            <div className="flex items-start gap-4 mb-6">
                                <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-rentia-black font-bold text-xl">S</div>
                                <div>
@@ -601,7 +602,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
                           </div>
                           <p className="text-blue-100 text-sm">Inversión, expansión y nuevos proyectos.</p>
                       </div>
-                      <div className="p-8">
+                      <div className="p-6 md:p-8">
                            <div className="flex items-start gap-4 mb-6">
                                <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-rentia-blue font-bold text-xl">P</div>
                                <div>

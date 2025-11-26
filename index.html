@@ -1,17 +1,19 @@
-
 <!DOCTYPE html>
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0072CE" />
     
-    <!-- Primary SEO -->
-    <title>RentiaRoom | Gestión de Alquiler por Habitaciones e Inversión en Murcia</title>
-    <meta name="description" content="Líderes en gestión integral de alquiler por habitaciones y oportunidades de inversión inmobiliaria en Murcia. Rentabilidad garantizada, gestión 360 y Rent to Rent.">
-    <meta name="keywords" content="gestión alquiler habitaciones murcia, inversión inmobiliaria murcia, rent to rent murcia, administración de fincas murcia, alquiler estudiantes murcia, comprar piso para alquilar murcia, oportunidades inmobiliarias">
+    <!-- Primary SEO: Targeting "Gestión de habitaciones en Murcia" & "Oportunidades para inversores" -->
+    <title>RentiaRoom | Expertos en Gestión de Habitaciones en Murcia e Inversión Inmobiliaria</title>
+    <meta name="description" content="Líderes en gestión de alquiler por habitaciones en Murcia. Maximiza tu rentabilidad con nuestro servicio integral. Accede a las mejores oportunidades para inversores inmobiliarios.">
+    <meta name="keywords" content="gestión de habitaciones murcia, oportunidades para inversores inmobiliarios, gestión alquiler habitaciones murcia, rent to rent murcia, comprar piso rentable murcia, inversión inmobiliaria murcia, agencia alquiler habitaciones">
     <meta name="author" content="RentiaRoom Investments">
-    <meta name="robots" content="index, follow">
+    <meta name="robots" content="index, follow, max-image-preview:large">
     <link rel="canonical" href="https://www.rentiaroom.com/" />
+    <link rel="icon" type="image/png" href="https://i.ibb.co/QvzK6db3/Logo-Negativo.png" />
+    <link rel="apple-touch-icon" href="https://i.ibb.co/QvzK6db3/Logo-Negativo.png" />
 
     <!-- Local SEO (Murcia) -->
     <meta name="geo.region" content="ES-MC" />
@@ -22,8 +24,8 @@
     <!-- Open Graph / Facebook (Social Sharing) -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://www.rentiaroom.com/" />
-    <meta property="og:title" content="RentiaRoom | Gestión de Alquiler por Habitaciones en Murcia" />
-    <meta property="og:description" content="Transformamos tu propiedad en una inversión rentable. Expertos en gestión de alquiler por habitaciones y búsqueda de oportunidades en Murcia." />
+    <meta property="og:title" content="RentiaRoom | Líderes en Gestión de Habitaciones e Inversión en Murcia" />
+    <meta property="og:description" content="Especialistas en gestión de alquiler por habitaciones y oportunidades de alta rentabilidad para inversores en Murcia." />
     <meta property="og:image" content="https://i.ibb.co/QvzK6db3/Logo-Negativo.png" />
     <meta property="og:locale" content="es_ES" />
     <meta property="og:site_name" content="RentiaRoom" />
@@ -31,8 +33,8 @@
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />
     <meta property="twitter:url" content="https://www.rentiaroom.com/" />
-    <meta property="twitter:title" content="RentiaRoom | Inversión y Gestión Inmobiliaria Murcia" />
-    <meta property="twitter:description" content="Gestión profesional de alquiler por habitaciones. Maximizamos tu rentabilidad en Murcia." />
+    <meta property="twitter:title" content="RentiaRoom | Gestión Inmobiliaria y Oportunidades Murcia" />
+    <meta property="twitter:description" content="Gestión integral de habitaciones y activos inmobiliarios en Murcia. Rentabilidad asegurada con expertos del sector." />
     <meta property="twitter:image" content="https://i.ibb.co/QvzK6db3/Logo-Negativo.png" />
     
     <!-- Google Fonts: Poppins and Space Grotesk -->
@@ -78,6 +80,7 @@
             },
             screens: {
               'print': {'raw': 'print'},
+              'xs': '375px',
             }
           }
         }
@@ -106,7 +109,7 @@
         "latitude": 37.9838,
         "longitude": -1.1280
       },
-      "description": "Empresa líder en Murcia en gestión integral de alquiler por habitaciones y oportunidades de inversión inmobiliaria. Servicios de Rent to Rent y administración de propiedades.",
+      "description": "Empresa referente en Murcia en gestión de habitaciones y búsqueda de oportunidades para inversores. Rentabilidad superior y gestión 360.",
       "openingHoursSpecification": {
         "@type": "OpeningHoursSpecification",
         "dayOfWeek": [
@@ -119,7 +122,8 @@
         "opens": "09:00",
         "closes": "20:00"
       },
-      "priceRange": "$$"
+      "priceRange": "$$",
+      "areaServed": "Murcia"
     }
     </script>
 
@@ -135,9 +139,43 @@
 
       .cursor-zoom-in { cursor: zoom-in; }
 
-      /* PRINT STYLES - Corporate Dossier Look */
+      /* MOBILE TOUCH OPTIMIZATIONS - CRITICAL FOR UX */
+      html {
+        -webkit-tap-highlight-color: transparent; /* Remove grey tap box on iOS */
+        touch-action: manipulation; /* Improves touch response, removes 300ms delay */
+        scroll-behavior: smooth;
+        text-size-adjust: 100%; /* Prevent font scaling in landscape */
+      }
       
-      /* Hide print elements on screen */
+      body {
+        -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+        overflow-x: hidden; /* Prevent horizontal scroll glitches */
+        overscroll-behavior-y: none; /* Prevents bounce effect in some mobile browsers */
+      }
+
+      /* Fix sticky hover effects on mobile */
+      @media (hover: hover) {
+        a:hover, button:hover {
+          /* standard hover styles apply only on devices with hover capability */
+        }
+      }
+
+      /* Ensure clicks pass through empty areas */
+      .pointer-events-none { pointer-events: none; }
+      .pointer-events-auto { pointer-events: auto; }
+
+      /* Force Hardware Acceleration to prevent sticky lag */
+      .transform-gpu {
+        transform: translateZ(0);
+        will-change: transform;
+      }
+
+      /* Better typography for mobile reading */
+      p, li {
+        text-rendering: optimizeLegibility;
+      }
+
+      /* PRINT STYLES - Corporate Dossier Look */
       .print-only {
         display: none;
       }

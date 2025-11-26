@@ -34,12 +34,14 @@ export const WhatsAppButton: React.FC = () => {
   const polStatus = getStatus(9, 20);
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 print:hidden flex flex-col items-end">
+    // CRITICAL FIX: pointer-events-none on parent ensures the invisible wrapper 
+    // doesn't block underlying clicks (footer links, etc) on mobile/desktop.
+    <div className="fixed bottom-6 right-6 z-50 print:hidden flex flex-col items-end pointer-events-none">
       
       {/* Menu Popup */}
       <div 
         className={`mb-4 flex flex-col gap-3 transition-all duration-300 origin-bottom-right ${
-          isOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-90 translate-y-10 pointer-events-none'
+          isOpen ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-90 translate-y-10 pointer-events-none'
         }`}
       >
         {/* Sandra Button */}
@@ -47,7 +49,7 @@ export const WhatsAppButton: React.FC = () => {
           href="https://api.whatsapp.com/send?phone=34611948589&text=Hola%20Sandra,%20tengo%20una%20consulta%20administrativa/general..." 
           target="_blank" 
           rel="noopener noreferrer"
-          className={`flex items-center gap-3 p-4 rounded-xl shadow-xl border-2 transition-all w-72 group relative overflow-hidden ${
+          className={`flex items-center gap-3 p-4 rounded-xl shadow-xl border-2 transition-all w-72 group relative overflow-hidden touch-manipulation cursor-pointer ${
               sandraStatus.isOpen 
               ? 'bg-white border-green-500 hover:bg-green-50' 
               : 'bg-white border-gray-200 hover:bg-gray-50 grayscale-[0.5] hover:grayscale-0'
@@ -88,7 +90,7 @@ export const WhatsAppButton: React.FC = () => {
           href="https://api.whatsapp.com/send?phone=34672886369&text=Hola%20Pol,%20estoy%20interesado%20en%20vuestras%20oportunidades%20de%20inversi%C3%B3n..." 
           target="_blank" 
           rel="noopener noreferrer"
-          className={`flex items-center gap-3 p-4 rounded-xl shadow-xl border-2 transition-all w-72 group relative overflow-hidden ${
+          className={`flex items-center gap-3 p-4 rounded-xl shadow-xl border-2 transition-all w-72 group relative overflow-hidden touch-manipulation cursor-pointer ${
             polStatus.isOpen 
             ? 'bg-white border-green-500 hover:bg-green-50' 
             : 'bg-white border-gray-200 hover:bg-gray-50 grayscale-[0.5] hover:grayscale-0'
@@ -122,10 +124,10 @@ export const WhatsAppButton: React.FC = () => {
         </a>
       </div>
 
-      {/* Main Toggle Button */}
+      {/* Main Toggle Button - Re-enable pointer events for the button specifically */}
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center justify-center w-16 h-16 rounded-full shadow-2xl transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-green-200 ${
+        className={`flex items-center justify-center w-16 h-16 rounded-full shadow-2xl transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-green-200 pointer-events-auto touch-manipulation cursor-pointer ${
             isOpen ? 'bg-gray-800 rotate-90' : 'bg-[#25D366] hover:bg-[#20BA5C] hover:scale-105'
         }`}
         aria-label="Chat on WhatsApp"

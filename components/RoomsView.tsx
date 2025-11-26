@@ -1,12 +1,10 @@
 
 import React, { useState, useMemo } from 'react';
-import { Home, MapPin, CheckCircle, Clock, User, MessageCircle, Filter, AlertCircle, Receipt, Sparkles, Hammer, ChevronDown, ChevronUp, HelpCircle, Building } from 'lucide-react';
+import { Home, MapPin, CheckCircle, Clock, User, MessageCircle, Filter, AlertCircle, Receipt, Sparkles, Hammer, ChevronDown, ChevronUp, HelpCircle, Building, Gift, Users, Wallet } from 'lucide-react';
 import { properties, Property, Room } from '../data/rooms';
 
 export const RoomsView: React.FC = () => {
   const [showOnlyAvailable, setShowOnlyAvailable] = useState(false);
-  // State to track expanded properties. Default to all closed or maybe open ones with available rooms?
-  // Let's keep them closed by default for compactness, or open if they have available rooms.
   const [expandedProperties, setExpandedProperties] = useState<Record<string, boolean>>({});
 
   const toggleProperty = (id: string) => {
@@ -68,7 +66,6 @@ export const RoomsView: React.FC = () => {
         const diffTime = exitDate.getTime() - today.getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-        // MODIFICACIÓN SOLICITADA: Si falta poco, poner "Consultar"
         if (diffDays > 0 && diffDays < 45) {
              return { icon: <HelpCircle className="w-3.5 h-3.5"/>, text: 'Consultar disponibilidad', color: 'text-orange-700' };
         }
@@ -92,7 +89,7 @@ export const RoomsView: React.FC = () => {
         </div>
         
         <div className="relative z-10 container mx-auto px-4 text-center">
-            <div className="inline-flex items-center gap-2 bg-rentia-gold text-rentia-black px-4 py-1 rounded-full mb-6 font-bold text-sm shadow-lg uppercase tracking-wider">
+            <div className="inline-flex items-center gap-2 bg-rentia-gold text-rentia-black px-4 py-1 rounded-full mb-6 font-bold text-xs md:text-sm shadow-lg uppercase tracking-wider">
                 <Home className="w-4 h-4" />
                 Catálogo en tiempo real
             </div>
@@ -114,8 +111,56 @@ export const RoomsView: React.FC = () => {
         </div>
       </section>
 
+      {/* PLAN AMIGO BANNER */}
+      <section className="container mx-auto px-4 -mt-6 relative z-30 mb-8">
+        <div className="bg-gradient-to-br from-indigo-600 to-rentia-blue rounded-2xl shadow-xl p-6 text-white relative overflow-hidden border-2 border-white/20">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+          <div className="absolute bottom-0 left-0 w-32 h-32 bg-rentia-gold/20 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
+
+          <div className="relative z-10 flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
+            <div className="flex-shrink-0 relative mx-auto md:mx-0">
+              <div className="w-16 h-16 md:w-20 md:h-20 bg-white rounded-2xl flex items-center justify-center shadow-lg transform -rotate-3">
+                  <Gift className="w-8 h-8 md:w-10 md:h-10 text-rentia-blue" />
+              </div>
+              <div className="absolute -top-2 -right-2 bg-rentia-gold text-rentia-black text-xs font-bold px-2 py-1 rounded-full shadow-md animate-bounce">
+                  NUEVO
+              </div>
+            </div>
+
+            <div className="flex-1">
+              <h3 className="text-xl md:text-2xl font-bold font-display text-white mb-2">
+                Plan Amigo: <span className="text-rentia-gold">Descuento en Suministros</span>
+              </h3>
+              <p className="text-blue-100 text-sm md:text-base leading-relaxed mb-3 md:mb-1">
+                ¿Ya eres inquilino? Si nos traes a un amigo que pase el filtro y alquile con nosotros, te descontamos <span className="font-bold text-white bg-white/20 px-1 rounded">30€</span> en tu próxima factura de suministros.
+              </p>
+              <div className="flex flex-wrap gap-2 justify-center md:justify-start mt-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wide bg-green-500/20 text-green-100 border border-green-500/30 px-2 py-1 rounded flex items-center gap-1">
+                    <Users className="w-3 h-3" /> Acumulable
+                  </span>
+                  <span className="text-[10px] font-bold uppercase tracking-wide bg-blue-500/20 text-blue-100 border border-blue-500/30 px-2 py-1 rounded flex items-center gap-1">
+                    <Wallet className="w-3 h-3" /> 2 amigos = 60€ dto
+                  </span>
+              </div>
+            </div>
+
+            <div className="flex-shrink-0 w-full md:w-auto">
+              <a
+                href="https://api.whatsapp.com/send?phone=34611948589&text=Hola%20Sandra,%20soy%20inquilino%20y%20quiero%20recomendar%20a%20un%20amigo%20para%20el%20Plan%20Amigo."
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-center gap-2 bg-rentia-gold hover:bg-yellow-400 text-rentia-black font-bold py-3 px-6 rounded-xl transition-all shadow-lg transform hover:-translate-y-1 w-full md:w-auto min-h-[44px]"
+              >
+                  <MessageCircle className="w-5 h-5" />
+                  Recomendar Amigo
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Main Content */}
-      <section className="container mx-auto px-4 py-8 md:py-12 -mt-8 relative z-20">
+      <section className="container mx-auto px-4 pb-12 relative z-20">
          
          {/* Filters */}
          <div className="bg-white p-4 rounded-xl shadow-md border border-gray-100 mb-8 flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -124,14 +169,14 @@ export const RoomsView: React.FC = () => {
                  <span>Filtrar Viviendas</span>
              </div>
              
-             <label className="flex items-center cursor-pointer relative select-none">
+             <label className="flex items-center cursor-pointer relative select-none p-2 w-full sm:w-auto">
                 <input 
                     type="checkbox" 
                     className="sr-only peer"
                     checked={showOnlyAvailable}
                     onChange={() => setShowOnlyAvailable(!showOnlyAvailable)}
                 />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rentia-blue"></div>
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[12px] after:left-[10px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rentia-blue"></div>
                 <span className="ml-3 text-sm font-medium text-gray-700">Ver solo con habitaciones libres</span>
              </label>
          </div>
@@ -158,16 +203,16 @@ export const RoomsView: React.FC = () => {
                                  </div>
 
                                  <div>
-                                     <div className="flex items-center gap-2">
+                                     <div className="flex items-center gap-2 flex-wrap">
                                         <h3 className="font-bold text-lg text-rentia-black leading-tight">{property.address}</h3>
                                         {hasNew && (
-                                            <span className="hidden sm:inline-flex text-[9px] bg-gradient-to-r from-purple-600 to-blue-600 text-white px-1.5 py-0.5 rounded font-bold uppercase tracking-wide items-center gap-0.5">
+                                            <span className="inline-flex text-[9px] bg-gradient-to-r from-purple-600 to-blue-600 text-white px-1.5 py-0.5 rounded font-bold uppercase tracking-wide items-center gap-0.5">
                                                 <Sparkles className="w-2 h-2" /> Nuevo
                                             </span>
                                         )}
                                      </div>
                                      <p className="text-sm text-gray-500">{property.city}</p>
-                                     <div className="mt-1 flex items-center gap-3 text-xs font-medium">
+                                     <div className="mt-1 flex items-center gap-3 text-xs font-medium flex-wrap">
                                          <span className="text-gray-400">{totalRooms} Habitaciones</span>
                                          {availableCount > 0 ? (
                                              <span className="text-green-600 bg-green-50 px-2 py-0.5 rounded-full flex items-center gap-1">
@@ -185,7 +230,7 @@ export const RoomsView: React.FC = () => {
                                     href={property.googleMapsLink}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="flex items-center gap-2 bg-white border border-gray-200 hover:border-rentia-blue text-gray-600 hover:text-rentia-blue px-4 py-2 rounded-lg transition-all text-xs font-bold uppercase tracking-wide shadow-sm hover:shadow-md"
+                                    className="flex items-center gap-2 bg-white border border-gray-200 hover:border-rentia-blue text-gray-600 hover:text-rentia-blue px-4 py-3 rounded-lg transition-all text-xs font-bold uppercase tracking-wide shadow-sm hover:shadow-md min-h-[44px] flex-1 sm:flex-initial justify-center"
                                     title="Ver ubicación en Google Maps"
                                     onClick={(e) => e.stopPropagation()}
                                 >
@@ -193,7 +238,8 @@ export const RoomsView: React.FC = () => {
                                     Ver en Mapa
                                 </a>
                                 <button 
-                                    className={`text-gray-400 hover:text-rentia-black transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
+                                    className={`text-gray-400 hover:text-rentia-black transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''} p-2 ml-2`}
+                                    aria-label="Expandir detalles"
                                 >
                                     <ChevronDown className="w-6 h-6" />
                                 </button>
@@ -210,7 +256,7 @@ export const RoomsView: React.FC = () => {
                                      const isRenovation = room.specialStatus === 'renovation';
                                      
                                      return (
-                                         <div key={room.id} className={`flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl border transition-colors relative overflow-hidden gap-3 ${containerStyle}`}>
+                                         <div key={room.id} className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border transition-colors relative overflow-hidden gap-3 ${containerStyle}`}>
                                              
                                              {/* "NEW" Badge Effect */}
                                              {room.specialStatus === 'new' && (
@@ -220,27 +266,27 @@ export const RoomsView: React.FC = () => {
                                              {/* Room Info */}
                                              <div className="flex flex-col pl-2">
                                                  <div className="flex items-center gap-2">
-                                                     <span className="font-bold text-sm text-gray-800">{room.name}</span>
+                                                     <span className="font-bold text-base text-gray-800">{room.name}</span>
                                                      {room.specialStatus === 'new' && (
                                                          <span className="text-[9px] bg-gradient-to-r from-purple-600 to-blue-600 text-white px-1.5 py-0.5 rounded font-bold uppercase tracking-wide flex items-center gap-0.5">
                                                              <Sparkles className="w-2 h-2" /> Nuevo
                                                          </span>
                                                      )}
                                                  </div>
-                                                 <div className="flex items-baseline gap-1">
+                                                 <div className="flex items-baseline gap-1 mt-1">
                                                     <span className="text-sm font-semibold text-rentia-blue">
                                                         {room.price > 0 ? `${room.price}€` : 'Consultar'}
                                                     </span>
                                                  </div>
                                                  {/* Expenses Info */}
-                                                 <div className="flex items-center gap-1 mt-0.5 text-[10px] text-gray-500 font-medium">
+                                                 <div className="flex items-center gap-1 mt-1 text-[10px] text-gray-500 font-medium">
                                                      <Receipt className="w-3 h-3 text-gray-400" />
                                                      <span>{room.expenses}</span>
                                                  </div>
                                              </div>
 
                                              {/* Status & Date & Action */}
-                                             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-6 w-full sm:w-auto">
+                                             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-6 w-full sm:w-auto mt-2 sm:mt-0">
                                                  <div className="flex flex-col items-start sm:items-end">
                                                      <div className={`flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide ${statusInfo.color}`}>
                                                          {statusInfo.icon}
@@ -248,12 +294,12 @@ export const RoomsView: React.FC = () => {
                                                      </div>
                                                      
                                                      {room.status !== 'available' && !isConsult && !isRenovation && (
-                                                         <span className="text-[10px] font-medium text-gray-400">
+                                                         <span className="text-[10px] font-medium text-gray-400 mt-1">
                                                              Hasta: {room.availableFrom}
                                                          </span>
                                                      )}
                                                      {isRenovation && (
-                                                         <span className="text-[10px] font-medium text-yellow-600">
+                                                         <span className="text-[10px] font-medium text-yellow-600 mt-1">
                                                              Previsión: {room.availableFrom}
                                                          </span>
                                                      )}
@@ -268,13 +314,13 @@ export const RoomsView: React.FC = () => {
                                                         }
                                                         target="_blank"
                                                         rel="noreferrer"
-                                                        className={`w-full sm:w-auto px-4 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm hover:shadow active:scale-95 ${
+                                                        className={`w-full sm:w-auto px-6 py-3 rounded-lg text-sm font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm hover:shadow active:scale-95 min-h-[44px] ${
                                                             room.status === 'available' 
                                                             ? 'bg-[#25D366] hover:bg-[#20ba5c] text-white' 
                                                             : 'bg-orange-100 hover:bg-orange-200 text-orange-700'
                                                         }`}
                                                      >
-                                                         <MessageCircle className="w-3.5 h-3.5" />
+                                                         <MessageCircle className="w-4 h-4" />
                                                          {room.status === 'available' ? 'Contactar' : 'Consultar'}
                                                      </a>
                                                  )}

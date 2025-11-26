@@ -15,44 +15,93 @@ import { LegalModals, ModalType } from './components/LegalModals';
 import { opportunities } from './data';
 import { TrendingUp, MessageCircle, Bell } from 'lucide-react';
 
+// Type alias for easier usage
+type ViewType = 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts';
+
+// Mapping URL paths to Views for SEO
+const PATH_MAP: Record<string, ViewType> = {
+  '/': 'home',
+  '/servicios': 'services',
+  '/habitaciones': 'rooms',
+  '/oportunidades': 'list',
+  '/contacto': 'contact',
+  '/nosotros': 'about',
+  '/descuentos': 'discounts'
+};
+
+const VIEW_TO_PATH: Record<ViewType, string> = {
+  'home': '/',
+  'services': '/servicios',
+  'rooms': '/habitaciones',
+  'list': '/oportunidades',
+  'contact': '/contacto',
+  'about': '/nosotros',
+  'discounts': '/descuentos'
+};
+
 function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [view, setView] = useState<'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts'>('home');
+  const [view, setView] = useState<ViewType>('home');
   const [activeLegalModal, setActiveLegalModal] = useState<ModalType>(null);
 
-  // Handle URL Query Params for Deep Linking (Share functionality)
+  // Initialize view based on URL on first load
   useEffect(() => {
+    const path = window.location.pathname;
+    
+    // Check for deep link params first (legacy or sharing support)
     const params = new URLSearchParams(window.location.search);
     const sharedOppId = params.get('opp');
 
     if (sharedOppId) {
-      const exists = opportunities.find(o => o.id === sharedOppId);
-      if (exists) {
-        setSelectedId(sharedOppId);
-        setView('list');
-        // Clean URL without reload to look nicer, but keep history
-        window.history.replaceState({}, '', window.location.pathname);
-      }
+       const exists = opportunities.find(o => o.id === sharedOppId);
+       if (exists) {
+         setSelectedId(sharedOppId);
+         setView('list');
+         // Normalize URL
+         window.history.replaceState({}, '', '/oportunidades');
+         return;
+       }
     }
+
+    // Route matching
+    const matchedView = PATH_MAP[path] || 'home';
+    setView(matchedView);
+
+    // Handle browser back/forward buttons
+    const handlePopState = () => {
+       const newPath = window.location.pathname;
+       const newView = PATH_MAP[newPath] || 'home';
+       
+       // Handle back to list logic
+       if (newView === 'list' && selectedId) {
+          setSelectedId(null);
+       }
+       setView(newView);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
   }, []);
+
 
   // SEO Management System
   useEffect(() => {
-    let title = "RentiaRoom | Gestión de Alquiler por Habitaciones e Inversión en Murcia";
+    let title = "RentiaRoom | Expertos en Alquiler por Habitaciones e Inversión en Murcia";
     let description = "Expertos en gestión integral de alquiler por habitaciones y oportunidades de inversión inmobiliaria en Murcia. Rentabilidad garantizada y gestión 360.";
+    let path = VIEW_TO_PATH[view];
 
     // Logic to update meta tags based on view
     switch (view) {
       case 'home':
-        title = "RentiaRoom | Gestión de Alquiler por Habitaciones e Inversión en Murcia";
-        description = "Transformamos tu propiedad en una inversión rentable. Expertos en gestión integral de habitaciones en Murcia, gestión de inquilinos y oportunidades de inversión.";
+        title = "RentiaRoom | Líderes en Gestión de Habitaciones en Murcia";
+        description = "Empresa referente en gestión de habitaciones en Murcia. Transformamos tu propiedad en una inversión rentable. Expertos en alquiler por habitaciones.";
         break;
       case 'services':
-        title = "Servicios de Gestión Integral y Rent to Rent | RentiaRoom Murcia";
+        title = "Servicios de Gestión Integral de Habitaciones | RentiaRoom Murcia";
         description = "Descubre nuestros servicios: Gestión integral de alquileres, Rent to Rent, optimización de ingresos y mantenimiento en Murcia. Tu tranquilidad es nuestro objetivo.";
         break;
       case 'rooms':
-        title = "Habitaciones Disponibles en Murcia | Catálogo RentiaRoom";
+        title = "Habitaciones en Alquiler Murcia | Catálogo RentiaRoom";
         description = "Consulta nuestro catálogo en tiempo real de habitaciones disponibles en Murcia. Alquiler para estudiantes y trabajadores con gestión profesional.";
         break;
       case 'list':
@@ -63,8 +112,8 @@ function App() {
             description = `${opp.description.substring(0, 150)}... Inversión inmobiliaria en ${opp.city} con rentabilidad estimada.`;
           }
         } else {
-          title = "Oportunidades de Inversión Inmobiliaria en Murcia | RentiaRoom";
-          description = "Accede a las mejores oportunidades de inversión inmobiliaria en Murcia. Pisos rentables, análisis financiero y gestión integral para inversores.";
+          title = "Oportunidades para Inversores Inmobiliarios en Murcia | RentiaRoom";
+          description = "Accede a las mejores oportunidades para inversores en Murcia. Pisos rentables, análisis financiero y gestión integral para inversores.";
         }
         break;
       case 'contact':
@@ -98,37 +147,63 @@ function App() {
       document.head.appendChild(meta);
     }
 
+    // Apply Canonical Link
+    const canonicalLink = document.querySelector('link[rel="canonical"]');
+    const fullUrl = `https://www.rentiaroom.com${path === '/' ? '' : path}`;
+    
+    if (canonicalLink) {
+        canonicalLink.setAttribute('href', fullUrl);
+    } else {
+        const link = document.createElement('link');
+        link.rel = 'canonical';
+        link.href = fullUrl;
+        document.head.appendChild(link);
+    }
+
     // Scroll to top when navigating
     window.scrollTo(0, 0);
 
   }, [selectedId, view]);
 
-  const handleCardClick = (id: string) => {
-    setView('list'); // Ensure view is 'list' when clicking a card
-    setSelectedId(id);
-  };
-
-  const handleNavigate = (newView: 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts') => {
+  const handleNavigate = (newView: ViewType) => {
     setSelectedId(null);
     setView(newView);
+    // Update URL history
+    const path = VIEW_TO_PATH[newView];
+    window.history.pushState({}, '', path);
+  };
+
+  const openLegalModal = (type: ModalType) => {
+    setActiveLegalModal(type);
+  };
+
+  const handleCardClick = (id: string) => {
+    setSelectedId(id);
+    setView('list'); 
+    window.history.pushState({}, '', `/oportunidades?opp=${id}`);
+  };
+
+  const handleBackToOpportunities = () => {
+    setSelectedId(null);
+    window.history.pushState({}, '', '/oportunidades');
   };
 
   const handleNext = () => {
     const currentIndex = opportunities.findIndex(o => o.id === selectedId);
     if (currentIndex < opportunities.length - 1) {
-      setSelectedId(opportunities[currentIndex + 1].id);
+      const nextId = opportunities[currentIndex + 1].id;
+      setSelectedId(nextId);
+      window.history.replaceState({}, '', `/oportunidades?opp=${nextId}`);
     }
   };
 
   const handlePrev = () => {
     const currentIndex = opportunities.findIndex(o => o.id === selectedId);
     if (currentIndex > 0) {
-      setSelectedId(opportunities[currentIndex - 1].id);
+      const prevId = opportunities[currentIndex - 1].id;
+      setSelectedId(prevId);
+      window.history.replaceState({}, '', `/oportunidades?opp=${prevId}`);
     }
-  };
-
-  const openLegalModal = (type: ModalType) => {
-    setActiveLegalModal(type);
   };
 
   const selectedOpportunity = opportunities.find(o => o.id === selectedId);
@@ -138,7 +213,7 @@ function App() {
       return (
         <DetailView 
           opportunity={selectedOpportunity} 
-          onBack={() => setSelectedId(null)}
+          onBack={handleBackToOpportunities}
           onNext={handleNext}
           onPrev={handlePrev}
           hasNext={opportunities.findIndex(o => o.id === selectedId) < opportunities.length - 1}
@@ -165,12 +240,12 @@ function App() {
         return (
           <>
             {/* Hero Section for Opportunities */}
-            <section className="relative py-24 bg-rentia-black overflow-hidden">
+            <section className="relative py-20 md:py-24 bg-rentia-black overflow-hidden">
               {/* Background Image */}
               <div className="absolute inset-0 w-full h-full z-0">
                   <img 
                       src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1600&q=80" 
-                      alt="Inversión Inmobiliaria RentiaRoom" 
+                      alt="Oportunidades para Inversores RentiaRoom" 
                       className="w-full h-full object-cover grayscale opacity-60"
                   />
                   {/* Blue tint overlay for brand consistency */}
@@ -184,10 +259,10 @@ function App() {
                       <TrendingUp className="w-4 h-4" />
                       Cartera Exclusiva
                   </div>
-                  <h1 className="text-4xl md:text-5xl font-bold font-display mb-4 drop-shadow-md">
-                      Oportunidades de Inversión
+                  <h1 className="text-3xl md:text-5xl font-bold font-display mb-4 drop-shadow-md">
+                      Oportunidades para Inversores
                   </h1>
-                  <p className="text-xl text-gray-100 max-w-2xl mx-auto drop-shadow-sm font-light leading-relaxed">
+                  <p className="text-lg md:text-xl text-gray-100 max-w-2xl mx-auto drop-shadow-sm font-light leading-relaxed">
                       Propiedades seleccionadas y analizadas para ofrecer la máxima rentabilidad mediante nuestro modelo de gestión integral.
                   </p>
               </div>
@@ -210,8 +285,8 @@ function App() {
                    <div className="bg-blue-50 p-6 rounded-full mb-6">
                       <Bell className="w-12 h-12 text-rentia-blue" />
                    </div>
-                   <h2 className="text-3xl font-bold text-rentia-black font-display mb-4">Muy pronto tendremos más</h2>
-                   <p className="text-gray-600 text-lg max-w-2xl mb-8 leading-relaxed">
+                   <h2 className="text-2xl md:text-3xl font-bold text-rentia-black font-display mb-4">Muy pronto tendremos más</h2>
+                   <p className="text-gray-600 text-base md:text-lg max-w-2xl mb-8 leading-relaxed">
                      Actualmente hemos vendido toda nuestra cartera disponible. Estamos analizando nuevos activos que saldrán al mercado en los próximos días.
                      <br/><br/>
                      <span className="font-semibold text-rentia-black">¿Quieres ser el primero en enterarte?</span> Únete a nuestro canal privado donde publicamos las novedades antes que en la web.
@@ -221,10 +296,10 @@ function App() {
                       href="https://whatsapp.com/channel/0029VbBsvhOIt5rpshbpYN1P" 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-3 bg-[#25D366] hover:bg-[#20ba5c] text-white font-bold py-4 px-8 rounded-xl transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 transform"
+                      className="inline-flex items-center gap-3 bg-[#25D366] hover:bg-[#20ba5c] text-white font-bold py-4 px-8 rounded-xl transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 transform w-full md:w-auto justify-center"
                    >
                       <MessageCircle className="w-6 h-6" />
-                      Unirme al Canal de Oportunidades
+                      Unirme al Canal de Inversores
                    </a>
                    <p className="text-xs text-gray-400 mt-4">Acceso gratuito y exclusivo vía WhatsApp</p>
                 </div>
@@ -241,7 +316,8 @@ function App() {
     <div className="min-h-screen flex flex-col font-sans">
       <Header onNavigate={handleNavigate} />
 
-      <main className="flex-grow bg-[#f9f9f9]">
+      {/* Added relative z-0 to establish new stacking context below header */}
+      <main className="flex-grow bg-[#f9f9f9] relative z-0">
         {renderContent()}
       </main>
 

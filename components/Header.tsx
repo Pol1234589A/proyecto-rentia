@@ -29,8 +29,8 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
   };
 
   return (
-    // Added 'transform-gpu' to force hardware acceleration and prevent sticky lag on mobile
-    <header className="sticky top-0 z-[9999] bg-[#0072CE] shadow-md font-sans no-print transform-gpu translate-z-0">
+    // Removed 'transform-gpu' and 'translate-z-0' as they create a new stacking context that breaks position: fixed children
+    <header className="sticky top-0 z-[9999] bg-[#0072CE] shadow-md font-sans no-print">
       <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20 md:h-24">
           
@@ -97,7 +97,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
 
       {/* Mobile Menu */}
       {isMenuOpen && (
-        <div className="lg:hidden bg-[#0072CE] border-t border-[#005b9f] fixed inset-x-0 top-[80px] bottom-0 z-[9998] overflow-y-auto animate-in slide-in-from-top-2 duration-200">
+        <div className="lg:hidden bg-[#0072CE] border-t border-[#005b9f] fixed inset-x-0 top-20 md:top-24 bottom-0 z-[9998] overflow-y-auto animate-in slide-in-from-top-2 duration-200">
           <div className="px-4 pt-4 pb-20 space-y-2">
             {navLinks.map((link) => (
               link.isExternal ? (

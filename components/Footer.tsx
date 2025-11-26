@@ -1,14 +1,17 @@
 
 import React from 'react';
 import { ModalType } from './LegalModals';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface FooterProps {
-  onNavigate: (view: 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts' | 'blog') => void;
+  onNavigate: (view: 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts') => void;
   openLegalModal: (type: ModalType) => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({ onNavigate, openLegalModal }) => {
-  const handleNavClick = (e: React.MouseEvent, view: 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts' | 'blog') => {
+  const { t } = useLanguage();
+  
+  const handleNavClick = (e: React.MouseEvent, view: 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts') => {
     e.preventDefault();
     onNavigate(view);
   };
@@ -32,13 +35,13 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, openLegalModal }) =>
               />
             </a>
             <p className="text-white text-[15px] leading-relaxed">
-              Gestionamos tus habitaciones, tú disfrutas de la rentabilidad. Expertos en gestión en Murcia.
+              {t('footer.slogan')}
             </p>
           </div>
 
           {/* Column 2: Links */}
           <div>
-            <h6 className="text-xl font-bold mb-6 text-white">Enlaces de Interés</h6>
+            <h6 className="text-xl font-bold mb-6 text-white">{t('footer.links_title')}</h6>
             <ul className="space-y-3 text-[15px] text-white">
               <li>
                   <a 
@@ -46,7 +49,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, openLegalModal }) =>
                     className="hover:text-[#edcd20] transition-colors text-left cursor-pointer font-semibold block py-1"
                     onClick={(e) => handleNavClick(e, 'list')}
                   >
-                      Oportunidades para Inversores
+                      {t('header.opportunities_mobile')}
                   </a>
               </li>
                <li>
@@ -55,22 +58,22 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, openLegalModal }) =>
                     className="hover:text-[#edcd20] transition-colors text-left cursor-pointer block py-1"
                     onClick={(e) => handleNavClick(e, 'services')}
                   >
-                      Gestión de Habitaciones
+                      {t('header.services')}
                   </a>
               </li>
               <li>
                   <button onClick={() => openLegalModal('legal')} className="hover:text-[#edcd20] transition-colors text-left cursor-pointer block py-1">
-                      Aviso legal
+                      {t('footer.legal')}
                   </button>
               </li>
               <li>
                   <button onClick={() => openLegalModal('privacy')} className="hover:text-[#edcd20] transition-colors text-left cursor-pointer block py-1">
-                      Políticas de privacidad
+                      {t('footer.privacy')}
                   </button>
               </li>
               <li>
                   <button onClick={() => openLegalModal('cookiesPanel')} className="hover:text-[#edcd20] transition-colors text-left flex items-center gap-2 cursor-pointer block py-1">
-                      ⚙️ Configurar Cookies
+                      ⚙️ {t('footer.cookies')}
                   </button>
               </li>
             </ul>
@@ -78,14 +81,14 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, openLegalModal }) =>
 
           {/* Column 3: Contact */}
           <div>
-            <h6 className="text-xl font-bold mb-6 text-white">Ponte en contacto</h6>
+            <h6 className="text-xl font-bold mb-6 text-white">{t('footer.contact_title')}</h6>
             <div className="space-y-4 text-[14px] text-white">
               <p className="font-bold border-b border-white/20 pb-2 mb-3">Murcia (España)</p>
               
               {/* Sandra */}
               <div className="mb-4">
-                  <p className="font-bold text-[#edcd20]">Secretaría y Administración (Sandra)</p>
-                  <p className="text-white/80 text-xs mb-1">Lunes a Viernes: 09:00h - 14:00h</p>
+                  <p className="font-bold text-[#edcd20]">{t('footer.admin_role')} (Sandra)</p>
+                  <p className="text-white/80 text-xs mb-1">{t('footer.schedule_admin')}</p>
                   <a href="tel:+34611948589" className="hover:text-[#edcd20] transition-colors flex items-center gap-2 py-1">
                       📞 +34 611 94 85 89
                   </a>
@@ -93,8 +96,8 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, openLegalModal }) =>
 
               {/* Pol */}
               <div>
-                  <p className="font-bold text-[#edcd20]">Dirección y Oportunidades (Pol)</p>
-                  <p className="text-white/80 text-xs mb-1">Lunes a Viernes: 09:00h - 20:00h</p>
+                  <p className="font-bold text-[#edcd20]">{t('footer.director_role')} (Pol)</p>
+                  <p className="text-white/80 text-xs mb-1">{t('footer.schedule_dir')}</p>
                   <a href="tel:+34672886369" className="hover:text-[#edcd20] transition-colors flex items-center gap-2 py-1">
                       📞 +34 672 88 63 69
                   </a>
@@ -127,7 +130,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, openLegalModal }) =>
       </div>
       
       <div className="bg-[#002849] py-6 text-center">
-           <p className="text-white text-[15px] font-light">© 2025 Todos los derechos reservados</p>
+           <p className="text-white text-[15px] font-light">{t('footer.rights')}</p>
       </div>
     </footer>
   );

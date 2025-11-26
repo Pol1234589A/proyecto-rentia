@@ -1,89 +1,184 @@
-
 import { Opportunity } from './types';
 
 export const opportunities: Opportunity[] = [
   {
-    id: '1',
-    title: 'Oportunidad Inversión "Ticket Bajo" - Sin Comunidad',
-    address: 'Cruce de Nonduermas (La Raya)',
-    city: 'Murcia',
-    description: 'Excelente oportunidad de inversión de bajo coste con estrategia de maximización de rentabilidad. Se trata de un piso en segunda planta (sin ascensor) en un edificio tranquilo con solo 3 vecinos y 0€ de gastos de comunidad. La estrategia de inversión consiste en convertir el salón en una 4ª habitación, obteniendo así 4 unidades rentables independientes + cocina office/comedor. Ideal para modelo de alquiler por habitaciones económico.',
-    features: ['Sin gastos de comunidad', 'Solo 3 vecinos', 'Ticket de entrada bajo', 'Estrategia 4 Habitaciones', 'Alta rentabilidad >14%'],
+    id: 'velazquez-12',
+    title: 'Oportunidad Premium en Alcantarilla',
+    address: 'Calle Pintor Velázquez, 12',
+    city: 'Alcantarilla (Murcia)',
+    description: 'Activo de alto rendimiento con 7 habitaciones funcionando a pleno rendimiento. Ubicación estratégica en Alcantarilla, zona con alta demanda de alquiler por habitaciones debido a la cercanía con polígonos industriales y conexiones.',
+    features: [
+      '7 Habitaciones alquiladas',
+      'Reforma integral reciente',
+      'Alta rentabilidad demostrable',
+      'Gestión integral activa'
+    ],
     areaBenefits: [
-      'Zona tranquila en el Cruce de Nonduermas',
-      'Fácil aparcamiento en la zona',
-      'Conexión rápida con Alcantarilla y Polígonos',
-      'Servicios básicos a pie'
+      'Junto a calle Mayor',
+      'Conexión rápida con UCAM',
+      'Todos los servicios a pie',
+      'Zona tranquila y segura'
     ],
     images: [
-      'https://www.rentiaroom.com/oportunidades/1/1%20(1).jpeg',
-      'https://www.rentiaroom.com/oportunidades/1/1%20(2).jpeg',
-      // ... más imágenes
+      'https://i.ibb.co/bgfbkz88/1729857046896.jpg',
+      'https://i.ibb.co/TXw56F9/1729857046869.jpg',
+      'https://i.ibb.co/DgpkkCP4/1729857046983.jpg',
+      'https://i.ibb.co/fd16hxDg/1729857047031.jpg'
     ],
-    videos: [
-      'https://www.rentiaroom.com/oportunidades/1/video1.mp4'
-    ],
+    driveFolder: 'https://drive.google.com/drive/folders/EXAMPLE_VELAZQUEZ',
     specs: {
-      rooms: 4,
-      bathrooms: 1,
-      sqm: 75,
-      floor: '2º',
+      rooms: 7,
+      bathrooms: 2,
+      sqm: 140,
+      floor: '3º',
       hasElevator: false
     },
     financials: {
-      purchasePrice: 60000,
-      reformCost: 6500,
-      furnitureCost: 4000,
-      notaryAndTaxes: 5800,
-      totalInvestment: 76300,
-      monthlyRentProjected: 880,
-      monthlyRentTraditional: 450,
-      yearlyExpenses: 250,
-      marketValue: 85000,
-      appreciationRate: 3.0
+      purchasePrice: 135000,
+      reformCost: 35000,
+      furnitureCost: 8000,
+      notaryAndTaxes: 12000,
+      totalInvestment: 190000, // Approx base
+      monthlyRentProjected: 1960, // Sum of CSV rents approx
+      monthlyRentTraditional: 800,
+      yearlyExpenses: 1200,
+      marketValue: 210000,
+      appreciationRate: 3.5
     },
     status: 'available',
-    tags: ['Rentabilidad >14%', 'Sin Comunidad', 'Estrategia Reforma']
+    tags: ['Alta Rentabilidad', '7 Habs', 'Alcantarilla']
   },
   {
-    id: '2',
-    title: 'Oportunidad "Alquiler Tradicional" - Calle Mayor',
-    address: 'Calle Mayor',
-    city: 'Torreagüera (Murcia)',
-    description: 'Piso seminuevo situado en la Calle Mayor de Torreagüera. Vivienda lista para entrar a vivir con mínimos retoques estéticos ("lavado de cara"). Dispone de garaje y es totalmente exterior, lo que garantiza luz natural. Estrategia enfocada 100% al alquiler tradicional de larga estancia debido a la alta demanda de familias en la zona. Se aporta vídeo detallado de la visita para valoración remota.',
-    features: ['Alquiler Tradicional Seguro', 'Garaje Incluido', 'Todo Exterior', 'Reforma Mínima (<1.000€)', 'Comunidad Económica (45€)'],
+    id: 'rosario-71',
+    title: 'Coliving Universitario La Ñora',
+    address: 'Calle Rosario, 71',
+    city: 'La Ñora (Murcia)',
+    description: 'Máquina de generar cashflow junto a la UCAM. Vivienda de grandes dimensiones adaptada para 9 estudiantes. Ubicación prime para estudiantes de la Universidad Católica.',
+    features: [
+      '9 Habitaciones',
+      'A 5 min andando de UCAM',
+      'Demanda garantizada 10 meses',
+      'Contratos de temporada'
+    ],
     areaBenefits: [
-      'Ubicación en Calle Mayor',
-      'Todos los servicios a pie',
-      'Zona de alta demanda de alquiler familiar',
-      'A 10 min de Murcia Capital'
+      'Zona universitaria UCAM',
+      'Tranvía cercano',
+      'Ambiente estudiantil',
+      'Supermercados cercanos'
     ],
     images: [
-      'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&w=1000&q=80&text=placeholder'
+      'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80'
     ],
-    videos: [
-      'https://www.rentiaroom.com/oportunidades/2/1.mp4'
-    ],
+    driveFolder: 'https://drive.google.com/drive/folders/EXAMPLE_ROSARIO',
     specs: {
-      rooms: 3,
-      bathrooms: 2,
-      sqm: 95,
-      floor: '2º',
+      rooms: 9,
+      bathrooms: 3,
+      sqm: 180,
+      floor: 'Bajo + 1º',
       hasElevator: true
     },
     financials: {
-      purchasePrice: 110000,
-      reformCost: 1000, 
-      furnitureCost: 0, 
-      notaryAndTaxes: 10000, 
-      totalInvestment: 121000,
-      monthlyRentProjected: 0, 
-      monthlyRentTraditional: 700, 
-      yearlyExpenses: 540 + 300, 
-      marketValue: 125000,
-      appreciationRate: 2.5
+      purchasePrice: 220000,
+      reformCost: 45000,
+      furnitureCost: 12000,
+      notaryAndTaxes: 20000,
+      totalInvestment: 297000,
+      monthlyRentProjected: 2980, // Sum based on CSV
+      monthlyRentTraditional: 1100,
+      yearlyExpenses: 1500,
+      marketValue: 330000,
+      appreciationRate: 4
     },
     status: 'available',
-    tags: ['Alquiler Tradicional', 'Garaje', 'Video Tour', 'Baja Reforma']
+    tags: ['UCAM', '9 Habs', 'Premium']
+  },
+  {
+    id: 'sangines-14',
+    title: 'Oportunidad Inversión Murcia Sur',
+    address: 'Plaza San Ginés, 14',
+    city: 'Murcia',
+    description: 'Piso muy luminoso en zona estratégica con fácil acceso a autovía y polígonos industriales. Ideal para perfil trabajador. Rentabilidad estable.',
+    features: [
+      '6 Habitaciones',
+      'Zona tranquila',
+      'Fácil aparcamiento',
+      'Perfil trabajador'
+    ],
+    areaBenefits: [
+      'Acceso autovía',
+      'Polígono industrial oeste',
+      'Servicios básicos',
+      'Transporte público'
+    ],
+    images: [
+      'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?auto=format&fit=crop&w=800&q=80'
+    ],
+    driveFolder: 'https://drive.google.com/drive/folders/EXAMPLE_SANGINES',
+    specs: {
+      rooms: 6,
+      bathrooms: 2,
+      sqm: 110,
+      floor: '1º',
+      hasElevator: false
+    },
+    financials: {
+      purchasePrice: 95000,
+      reformCost: 25000,
+      furnitureCost: 6000,
+      notaryAndTaxes: 9000,
+      totalInvestment: 135000,
+      monthlyRentProjected: 1594,
+      monthlyRentTraditional: 650,
+      yearlyExpenses: 900,
+      marketValue: 150000,
+      appreciationRate: 3
+    },
+    status: 'reserved',
+    tags: ['Económico', 'Rentabilidad', 'Oportunidad']
+  },
+  {
+    id: 'sanjose-16',
+    title: 'Piso Céntrico Alta Demanda',
+    address: 'Calle San Jose 16',
+    city: 'Murcia Centro',
+    description: 'Ubicación inmejorable en el centro de Murcia. Habitaciones grandes y techos altos. Reforma de diseño para atraer al mejor perfil de inquilino.',
+    features: [
+      '5 Habitaciones grandes',
+      'Centro ciudad',
+      'Reforma diseño',
+      'Alta demanda'
+    ],
+    areaBenefits: [
+      'Centro histórico',
+      'Zona comercial',
+      'Vida nocturna',
+      'Universidad La Merced'
+    ],
+    images: [
+      'https://images.unsplash.com/photo-1484154218962-a1c002085d2f?auto=format&fit=crop&w=800&q=80'
+    ],
+    driveFolder: 'https://drive.google.com/drive/folders/EXAMPLE_SANJOSE',
+    specs: {
+      rooms: 5,
+      bathrooms: 2,
+      sqm: 125,
+      floor: '1º',
+      hasElevator: true
+    },
+    financials: {
+      purchasePrice: 160000,
+      reformCost: 30000,
+      furnitureCost: 7000,
+      notaryAndTaxes: 15000,
+      totalInvestment: 212000,
+      monthlyRentProjected: 1630,
+      monthlyRentTraditional: 900,
+      yearlyExpenses: 1300,
+      marketValue: 240000,
+      appreciationRate: 5
+    },
+    status: 'sold',
+    tags: ['Centro', 'Diseño', 'Lujo']
   }
 ];

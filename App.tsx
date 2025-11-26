@@ -11,13 +11,13 @@ import { RoomsView } from './components/RoomsView';
 import { ContactView } from './components/ContactView';
 import { AboutView } from './components/AboutView';
 import { DiscountsView } from './components/DiscountsView';
-import { BlogView } from './components/BlogView';
 import { LegalModals, ModalType } from './components/LegalModals';
 import { opportunities } from './data';
 import { TrendingUp, MessageCircle, Bell } from 'lucide-react';
+import { LanguageProvider } from './contexts/LanguageContext';
 
 // Type alias for easier usage
-type ViewType = 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts' | 'blog';
+type ViewType = 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts';
 
 // Mapping Hash paths to Views for Router
 const PATH_MAP: Record<string, ViewType> = {
@@ -27,8 +27,7 @@ const PATH_MAP: Record<string, ViewType> = {
   '#/oportunidades': 'list',
   '#/contacto': 'contact',
   '#/nosotros': 'about',
-  '#/descuentos': 'discounts',
-  '#/blog': 'blog'
+  '#/descuentos': 'discounts'
 };
 
 const VIEW_TO_HASH: Record<ViewType, string> = {
@@ -38,11 +37,10 @@ const VIEW_TO_HASH: Record<ViewType, string> = {
   'list': '#/oportunidades',
   'contact': '#/contacto',
   'about': '#/nosotros',
-  'discounts': '#/descuentos',
-  'blog': '#/blog'
+  'discounts': '#/descuentos'
 };
 
-function App() {
+function AppContent() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [view, setView] = useState<ViewType>('home');
   const [activeLegalModal, setActiveLegalModal] = useState<ModalType>(null);
@@ -52,7 +50,7 @@ function App() {
     const handleHashChange = () => {
         let hash = window.location.hash || '#/';
         
-        // Separa el hash de los parámetros (ej: #/blog?post=1)
+        // Separa el hash de los parámetros (ej: #/oportunidades?opp=1)
         const [baseHash, query] = hash.split('?');
 
         // Manejar query params para oportunidades (ej: #/oportunidades?opp=1)
@@ -103,10 +101,6 @@ function App() {
       case 'rooms':
         title = "Habitaciones en Alquiler Murcia | Catálogo RentiaRoom";
         description = "Consulta nuestro catálogo en tiempo real de habitaciones disponibles en Murcia. Alquiler para estudiantes y trabajadores con gestión profesional.";
-        break;
-      case 'blog':
-        title = "Blog Inmobiliario RentiaRoom | Consejos y Noticias Murcia";
-        description = "Artículos sobre inversión inmobiliaria, leyes de alquiler, tendencias en Murcia y consejos para propietarios e inquilinos.";
         break;
       case 'list':
         if (selectedId) {
@@ -205,8 +199,6 @@ function App() {
         return <AboutView />;
       case 'discounts':
         return <DiscountsView />;
-      case 'blog':
-        return <BlogView />;
       case 'list':
         return (
           <>
@@ -238,40 +230,28 @@ function App() {
 
             {/* Opportunities Grid or Empty State */}
             <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-16">
-              {opportunities.length > 0 ? (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  {opportunities.map(opp => (
-                    <OpportunityCard 
-                      key={opp.id} 
-                      opportunity={opp} 
-                      onClick={handleCardClick} 
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center text-center py-12 px-4">
-                   <div className="bg-blue-50 p-6 rounded-full mb-6">
-                      <Bell className="w-12 h-12 text-rentia-blue" />
-                   </div>
-                   <h2 className="text-2xl md:text-3xl font-bold text-rentia-black font-display mb-4">Muy pronto tendremos más</h2>
-                   <p className="text-gray-600 text-base md:text-lg max-w-2xl mb-8 leading-relaxed">
-                     Actualmente hemos vendido toda nuestra cartera disponible. Estamos analizando nuevos activos que saldrán al mercado en los próximos días.
-                     <br/><br/>
-                     <span className="font-semibold text-rentia-black">¿Quieres ser el primero en enterarte?</span> Únete a nuestro canal privado donde publicamos las novedades antes que en la web.
-                   </p>
-                   
-                   <a 
-                      href="https://whatsapp.com/channel/0029VbBsvhOIt5rpshbpYN1P" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-3 bg-[#25D366] hover:bg-[#20ba5c] text-white font-bold py-4 px-8 rounded-xl transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 transform w-full md:w-auto justify-center"
-                   >
-                      <MessageCircle className="w-6 h-6" />
-                      Unirme al Canal de Inversores
-                   </a>
-                   <p className="text-xs text-gray-400 mt-4">Acceso gratuito y exclusivo vía WhatsApp</p>
-                </div>
-              )}
+              <div className="flex flex-col items-center justify-center text-center py-12 px-4">
+                 <div className="bg-blue-50 p-6 rounded-full mb-6">
+                    <Bell className="w-12 h-12 text-rentia-blue" />
+                 </div>
+                 <h2 className="text-2xl md:text-3xl font-bold text-rentia-black font-display mb-4">Muy pronto tendremos más</h2>
+                 <p className="text-gray-600 text-base md:text-lg max-w-2xl mb-8 leading-relaxed">
+                   Actualmente hemos vendido toda nuestra cartera disponible. Estamos analizando nuevos activos que saldrán al mercado en los próximos días.
+                   <br/><br/>
+                   <span className="font-semibold text-rentia-black">¿Quieres ser el primero en enterarte?</span> Únete a nuestro canal privado donde publicamos las novedades antes que en la web.
+                 </p>
+                 
+                 <a 
+                    href="https://whatsapp.com/channel/0029VbBsvhOIt5rpshbpYN1P" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-3 bg-[#25D366] hover:bg-[#20ba5c] text-white font-bold py-4 px-8 rounded-xl transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 transform w-full md:w-auto justify-center"
+                 >
+                    <MessageCircle className="w-6 h-6" />
+                    Unirme al Canal de Inversores
+                 </a>
+                 <p className="text-xs text-gray-400 mt-4">Acceso gratuito y exclusivo vía WhatsApp</p>
+              </div>
             </div>
           </>
         );
@@ -294,6 +274,14 @@ function App() {
 
       <Footer onNavigate={handleNavigate} openLegalModal={openLegalModal} />
     </div>
+  );
+}
+
+function App() {
+  return (
+    <LanguageProvider>
+      <AppContent />
+    </LanguageProvider>
   );
 }
 

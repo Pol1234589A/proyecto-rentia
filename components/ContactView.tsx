@@ -1,9 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { Mail, Clock, MessageCircle, User, Briefcase, CheckCircle, XCircle } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export const ContactView: React.FC = () => {
   const [now, setNow] = useState(new Date());
+  const { t } = useLanguage();
 
   // Update time every minute to keep status accurate
   useEffect(() => {
@@ -20,15 +22,15 @@ export const ContactView: React.FC = () => {
 
     // Check if weekend
     if (day === 0 || day === 6) {
-      return { isOpen: false, label: 'Cerrado (Fin de semana)' };
+      return { isOpen: false, label: t('common.closed_weekend') };
     }
 
     // Check hours
     if (hour >= startHour && hour < endHour) {
-      return { isOpen: true, label: 'Disponible ahora' };
+      return { isOpen: true, label: t('common.available_now') };
     }
 
-    return { isOpen: false, label: 'Cerrado ahora' };
+    return { isOpen: false, label: t('common.closed_now') };
   };
 
   const sandraStatus = getStatus(9, 14);
@@ -52,10 +54,9 @@ export const ContactView: React.FC = () => {
          </div>
          
          <div className="container mx-auto px-4 relative z-10 text-center mt-8">
-            <h1 className="text-4xl md:text-5xl font-bold font-display mb-6 drop-shadow-xl text-white">Contacta con RentiaRoom</h1>
+            <h1 className="text-4xl md:text-5xl font-bold font-display mb-6 drop-shadow-xl text-white">{t('contact.hero.title')}</h1>
             <p className="text-xl text-white/90 max-w-2xl mx-auto font-light leading-relaxed drop-shadow-md">
-              Somos una gestión 100% digital y cercana. Sin oficinas físicas, sin esperas. 
-              Hablamos directamente contigo por WhatsApp.
+              {t('contact.hero.subtitle')}
             </p>
          </div>
       </section>
@@ -64,8 +65,8 @@ export const ContactView: React.FC = () => {
         
         <div className="bg-white rounded-2xl shadow-xl p-8 md:p-12 border border-gray-100">
             <div className="text-center mb-12">
-                <h2 className="text-2xl md:text-3xl font-bold text-rentia-black font-display mb-2">Elige con quién necesitas hablar</h2>
-                <p className="text-gray-500">Haz clic en el botón de WhatsApp de la persona adecuada para tu consulta.</p>
+                <h2 className="text-2xl md:text-3xl font-bold text-rentia-black font-display mb-2">{t('contact.choose.title')}</h2>
+                <p className="text-gray-500">{t('contact.choose.subtitle')}</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
@@ -82,19 +83,19 @@ export const ContactView: React.FC = () => {
                         <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center text-rentia-black font-bold text-3xl mb-4 shadow-sm group-hover:scale-110 transition-transform">
                             S
                         </div>
-                        <h3 className="font-bold text-2xl text-rentia-black mb-1">Sandra</h3>
-                        <p className="text-rentia-blue font-medium mb-4">Secretaría y Administración</p>
+                        <h3 className="font-bold text-2xl text-rentia-black mb-1">{t('contact.sandra.name')}</h3>
+                        <p className="text-rentia-blue font-medium mb-4">{t('contact.sandra.role')}</p>
                         
                         <div className="w-full border-t border-gray-100 my-4"></div>
 
                         <div className="space-y-3 text-sm text-gray-600 mb-8 w-full">
                             <div className="flex items-center justify-center gap-2">
                                 <Clock className="w-4 h-4 text-rentia-gold" /> 
-                                <span>Lunes a Viernes: <strong>09:00 - 14:00</strong></span>
+                                <span><strong>{t('contact.sandra.hours')}</strong></span>
                             </div>
                             <div className="bg-gray-50 p-3 rounded-lg text-center mx-auto w-full">
-                                <p className="font-bold text-gray-800 mb-1 text-xs uppercase tracking-wide">Contactar para:</p>
-                                <p>Consultas generales, facturación, incidencias de inquilinos, gestión administrativa y propietarios actuales.</p>
+                                <p className="font-bold text-gray-800 mb-1 text-xs uppercase tracking-wide">{t('contact.sandra.for_title')}</p>
+                                <p>{t('contact.sandra.for_desc')}</p>
                             </div>
                         </div>
 
@@ -109,10 +110,10 @@ export const ContactView: React.FC = () => {
                             }`}
                         >
                             <MessageCircle className="w-5 h-5 mr-2" /> 
-                            {sandraStatus.isOpen ? 'Hablar con Sandra' : 'Dejar mensaje a Sandra'}
+                            {sandraStatus.isOpen ? t('contact.sandra.btn') : t('contact.sandra.btn_msg')}
                         </a>
                         {!sandraStatus.isOpen && (
-                            <p className="text-xs text-gray-400 mt-2">Te responderá en el próximo horario laboral.</p>
+                            <p className="text-xs text-gray-400 mt-2">{t('contact.sandra.offline')}</p>
                         )}
                     </div>
                 </div>
@@ -129,19 +130,19 @@ export const ContactView: React.FC = () => {
                         <div className="w-20 h-20 rounded-full bg-blue-50 flex items-center justify-center text-rentia-blue font-bold text-3xl mb-4 shadow-sm group-hover:scale-110 transition-transform">
                             P
                         </div>
-                        <h3 className="font-bold text-2xl text-rentia-black mb-1">Pol</h3>
-                        <p className="text-rentia-blue font-medium mb-4">Dirección y Oportunidades</p>
+                        <h3 className="font-bold text-2xl text-rentia-black mb-1">{t('contact.pol.name')}</h3>
+                        <p className="text-rentia-blue font-medium mb-4">{t('contact.pol.role')}</p>
 
                         <div className="w-full border-t border-gray-100 my-4"></div>
 
                         <div className="space-y-3 text-sm text-gray-600 mb-8 w-full">
                             <div className="flex items-center justify-center gap-2">
                                 <Clock className="w-4 h-4 text-rentia-gold" /> 
-                                <span>Lunes a Viernes: <strong>09:00 - 20:00</strong></span>
+                                <span><strong>{t('contact.pol.hours')}</strong></span>
                             </div>
                             <div className="bg-blue-50 p-3 rounded-lg text-center mx-auto w-full">
-                                <p className="font-bold text-blue-800 mb-1 text-xs uppercase tracking-wide">Contactar para:</p>
-                                <p className="text-blue-900">Consultas generales, nuevos inversores, estrategia, colaboraciones comerciales y oportunidades.</p>
+                                <p className="font-bold text-blue-800 mb-1 text-xs uppercase tracking-wide">{t('contact.pol.for_title')}</p>
+                                <p className="text-blue-900">{t('contact.pol.for_desc')}</p>
                             </div>
                         </div>
 
@@ -156,10 +157,10 @@ export const ContactView: React.FC = () => {
                             }`}
                         >
                             <MessageCircle className="w-5 h-5 mr-2" /> 
-                            {polStatus.isOpen ? 'Hablar con Pol' : 'Dejar mensaje a Pol'}
+                            {polStatus.isOpen ? t('contact.pol.btn') : t('contact.pol.btn_msg')}
                         </a>
                         {!polStatus.isOpen && (
-                            <p className="text-xs text-gray-400 mt-2">Te responderá en el próximo horario laboral.</p>
+                            <p className="text-xs text-gray-400 mt-2">{t('contact.pol.offline')}</p>
                         )}
                     </div>
                 </div>
@@ -171,8 +172,8 @@ export const ContactView: React.FC = () => {
              <div className="inline-flex p-3 bg-white rounded-full text-rentia-blue shadow-sm mb-4">
                 <Mail className="w-6 h-6" />
              </div>
-             <h3 className="text-xl font-bold text-rentia-black mb-2">¿Prefieres el correo electrónico?</h3>
-             <p className="text-gray-500 mb-6">Para envío de documentación formal o consultas no urgentes.</p>
+             <h3 className="text-xl font-bold text-rentia-black mb-2">{t('contact.email.title')}</h3>
+             <p className="text-gray-500 mb-6">{t('contact.email.desc')}</p>
              <a 
                 href="mailto:info@rentiaroom.com" 
                 className="text-rentia-blue font-bold hover:underline text-lg"

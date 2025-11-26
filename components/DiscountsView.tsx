@@ -1,11 +1,13 @@
 
 import React, { useState } from 'react';
 import { Percent, Building, Users, Calculator, ArrowRight, RefreshCw, Wallet, Info } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export const DiscountsView: React.FC = () => {
   const [numProperties, setNumProperties] = useState<number>(1);
   const [numReferrals, setNumReferrals] = useState<number>(0);
   const [showResult, setShowResult] = useState(false);
+  const { t } = useLanguage();
 
   // Constantes de cálculo
   const BASE_RATE = 15; // 15% para 1 vivienda
@@ -74,13 +76,13 @@ export const DiscountsView: React.FC = () => {
         <div className="relative z-10 container mx-auto px-4 text-center text-white">
           <div className="inline-flex items-center gap-2 bg-rentia-gold text-rentia-black px-4 py-1 rounded-full mb-6 font-bold text-sm shadow-lg uppercase tracking-wider">
             <Calculator className="w-4 h-4" />
-            Calculadora de Tarifas
+            {t('discounts.hero.badge')}
           </div>
           <h1 className="text-3xl md:text-5xl font-bold font-display mb-4 drop-shadow-md">
-            Calcula tu comisión personalizada
+            {t('discounts.hero.title')}
           </h1>
           <p className="text-lg text-gray-100 max-w-2xl mx-auto drop-shadow-sm font-light leading-relaxed">
-            En RentiaRoom premiamos tu confianza. Responde a unas sencillas preguntas para descubrir tu tarifa de gestión reducida.
+            {t('discounts.hero.subtitle')}
           </p>
         </div>
       </section>
@@ -93,7 +95,7 @@ export const DiscountsView: React.FC = () => {
             
             {/* Header Calculadora */}
             <div className="bg-gray-50 border-b border-gray-200 p-6 text-center">
-               <h2 className="text-xl font-bold text-rentia-black">Configura tu perfil de inversor</h2>
+               <h2 className="text-xl font-bold text-rentia-black">{t('discounts.calc.header')}</h2>
             </div>
 
             <div className="p-8 md:p-12 space-y-10">
@@ -102,7 +104,7 @@ export const DiscountsView: React.FC = () => {
                 <div>
                     <label className="block text-lg font-medium text-gray-700 mb-4 flex items-center gap-2">
                         <Building className="w-6 h-6 text-rentia-blue" />
-                        ¿Cuántas propiedades quieres que gestionemos?
+                        {t('discounts.calc.q1')}
                     </label>
                     <div className="flex items-center gap-4">
                         <input 
@@ -118,7 +120,7 @@ export const DiscountsView: React.FC = () => {
                         </div>
                     </div>
                     <p className="text-sm text-gray-500 mt-2">
-                        {numProperties === 1 ? 'Empezando con una vivienda.' : numProperties > 10 ? 'Gran tenedor (+10 viviendas).' : 'Cartera en crecimiento.'}
+                        {numProperties === 1 ? t('discounts.calc.h1') : numProperties > 10 ? t('discounts.calc.h3') : t('discounts.calc.h2')}
                     </p>
                 </div>
 
@@ -126,7 +128,7 @@ export const DiscountsView: React.FC = () => {
                 <div>
                     <label className="block text-lg font-medium text-gray-700 mb-4 flex items-center gap-2">
                         <Users className="w-6 h-6 text-rentia-gold" />
-                        ¿Has referido a otros inversores a RentiaRoom?
+                        {t('discounts.calc.q2')}
                     </label>
                     <div className="flex items-center gap-4">
                         <button 
@@ -146,7 +148,7 @@ export const DiscountsView: React.FC = () => {
                         </button>
                     </div>
                     <p className="text-sm text-gray-500 mt-2">
-                        Te bonificamos con un 0,5% extra por cada inversor que venga de tu parte.
+                        {t('discounts.calc.h_ref')}
                     </p>
                 </div>
 
@@ -158,7 +160,7 @@ export const DiscountsView: React.FC = () => {
                             className="w-full bg-rentia-black text-white font-bold text-lg py-4 px-8 rounded-xl hover:bg-gray-800 transition-all shadow-lg transform hover:-translate-y-1 flex items-center justify-center gap-2"
                         >
                             <Calculator className="w-5 h-5" />
-                            Calcular mi tarifa
+                            {t('discounts.calc.btn')}
                         </button>
                     </div>
                 )}
@@ -171,17 +173,17 @@ export const DiscountsView: React.FC = () => {
                         
                         <div className="flex-1 space-y-6">
                             <div>
-                                <h3 className="text-2xl font-bold font-display mb-2">Tu Tarifa Personalizada</h3>
-                                <p className="text-blue-100 text-sm">Basado en {numProperties} propiedad{numProperties > 1 ? 'es' : ''} y {numReferrals} referido{numReferrals !== 1 ? 's' : ''}.</p>
+                                <h3 className="text-2xl font-bold font-display mb-2">{t('discounts.result.title')}</h3>
+                                <p className="text-blue-100 text-sm">Based on {numProperties} properties and {numReferrals} referrals.</p>
                             </div>
 
                             <div className="flex flex-col gap-3">
                                 <div className="flex items-center justify-between border-b border-white/20 pb-2">
-                                    <span className="text-blue-100">Tarifa Estándar</span>
+                                    <span className="text-blue-100">{t('discounts.result.std_rate')}</span>
                                     <span className="font-medium line-through text-white/60">{BASE_RATE}% + IVA</span>
                                 </div>
                                 <div className="flex items-center justify-between">
-                                    <span className="text-white font-bold text-lg">Tu Comisión de Gestión</span>
+                                    <span className="text-white font-bold text-lg">{t('discounts.result.your_rate')}</span>
                                     <div className="flex items-baseline gap-1">
                                         <span className="text-4xl md:text-5xl font-bold text-rentia-gold">{result.final}%</span>
                                         <span className="text-sm font-medium text-rentia-gold">+ IVA</span>
@@ -195,9 +197,9 @@ export const DiscountsView: React.FC = () => {
                                         <Wallet className="w-6 h-6" />
                                     </div>
                                     <div>
-                                        <p className="text-xs text-blue-100 uppercase tracking-wider font-bold">Ahorro estimado anual</p>
-                                        <p className="text-xl font-bold text-white">{yearlySavings.toLocaleString('es-ES')} € / año</p>
-                                        <p className="text-[10px] text-blue-200">*Estimación sobre facturación promedio</p>
+                                        <p className="text-xs text-blue-100 uppercase tracking-wider font-bold">{t('discounts.result.savings')}</p>
+                                        <p className="text-xl font-bold text-white">{yearlySavings.toLocaleString('es-ES')} € / {t('common.year')}</p>
+                                        <p className="text-[10px] text-blue-200">{t('discounts.result.savings_note')}</p>
                                     </div>
                                 </div>
                             )}
@@ -210,13 +212,13 @@ export const DiscountsView: React.FC = () => {
                                 rel="noreferrer"
                                 className="bg-rentia-gold hover:bg-yellow-400 text-rentia-black font-bold py-4 px-6 rounded-xl transition-all text-center shadow-lg flex items-center justify-center gap-2"
                             >
-                                Empezar ahora <ArrowRight className="w-5 h-5" />
+                                {t('discounts.result.btn_start')} <ArrowRight className="w-5 h-5" />
                             </a>
                             <button 
                                 onClick={resetCalculator}
                                 className="bg-transparent border border-white/30 hover:bg-white/10 text-white font-medium py-3 px-6 rounded-xl transition-all text-center flex items-center justify-center gap-2 text-sm"
                             >
-                                <RefreshCw className="w-4 h-4" /> Recalcular
+                                <RefreshCw className="w-4 h-4" /> {t('discounts.result.btn_recalc')}
                             </button>
                         </div>
 
@@ -231,9 +233,9 @@ export const DiscountsView: React.FC = () => {
             <div className="flex items-start gap-4">
               <Info className="w-8 h-8 text-rentia-blue flex-shrink-0 mt-1" />
               <div>
-                <h4 className="font-bold text-rentia-black mb-2">Condiciones de los descuentos</h4>
+                <h4 className="font-bold text-rentia-black mb-2">{t('discounts.conditions.title')}</h4>
                 <p className="leading-relaxed text-sm">
-                  La tarifa calculada es sobre la comisión de gestión mensual. Los descuentos por volumen y referidos son acumulables hasta un límite mínimo del {MIN_RATE}% + IVA. Esta simulación no tiene carácter contractual hasta la firma del mandato de gestión.
+                  {t('discounts.conditions.text')}
                 </p>
               </div>
             </div>

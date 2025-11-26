@@ -21,6 +21,7 @@ export interface Opportunity {
   areaBenefits: string[]; // New: Benefits of the area
   images: string[];
   videos?: string[]; // Added support for videos
+  driveFolder?: string; // New: Link to Google Drive folder
   specs: {
     rooms: number;
     bathrooms: number;

@@ -1,8 +1,11 @@
 
 import React from 'react';
 import { Users, Briefcase, Heart, Quote, TrendingUp, Home, User } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export const AboutView: React.FC = () => {
+  const { t } = useLanguage();
+
   return (
     <div className="bg-white min-h-screen font-sans animate-in fade-in duration-500">
       
@@ -19,13 +22,13 @@ export const AboutView: React.FC = () => {
         
         <div className="container mx-auto px-4 relative z-10 text-center mt-8">
            <span className="inline-block px-3 py-1 rounded-full bg-white/10 backdrop-blur border border-white/20 text-rentia-gold font-bold uppercase tracking-wider text-xs mb-4">
-              Nuestra Historia
+              {t('about.hero.badge')}
            </span>
            <h1 className="text-4xl md:text-5xl font-bold font-display mb-6 drop-shadow-xl text-white">
-             La unión de dos trayectorias
+             {t('about.hero.title')}
            </h1>
            <p className="text-xl text-white/90 max-w-2xl mx-auto font-light leading-relaxed drop-shadow-md">
-             Gestión de activos inmobiliarios con un enfoque práctico y directo.
+             {t('about.hero.subtitle')}
            </p>
         </div>
       </section>
@@ -35,16 +38,16 @@ export const AboutView: React.FC = () => {
           <div className="bg-white rounded-2xl shadow-xl p-8 md:p-12 border border-gray-100 max-w-6xl mx-auto">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                   <div className="order-2 lg:order-1">
-                      <h2 className="text-3xl font-bold text-rentia-black font-display mb-6">El Origen de RentiaRoom</h2>
+                      <h2 className="text-3xl font-bold text-rentia-black font-display mb-6">{t('about.story.title')}</h2>
                       <div className="space-y-5 text-gray-600 leading-relaxed text-lg text-justify">
                           <p>
-                              <strong>RentiaRoom</strong> surge de la colaboración entre <strong>Pol</strong> y <strong>Víctor</strong>. Pol provenía del sector del Personal Shopper Inmobiliario (PSI) trabajando de forma individual, mientras que Víctor venía del ámbito de la gestión de alquileres vacacionales.
+                              {t('about.story.p1')}
                           </p>
                           <p>
-                              Ambos decidieron unir sus caminos y formas de trabajar para crear un proyecto conjunto enfocado en la gestión de alquileres.
+                              {t('about.story.p2')}
                           </p>
                           <p className="bg-gray-50 p-4 rounded-lg border-l-4 border-rentia-gold italic text-gray-700">
-                              "Agradecemos a todas las personas que han trabajado con nosotros y a los propietarios que han confiado en nuestra gestión desde el inicio."
+                              {t('about.story.highlight')}
                           </p>
                       </div>
                   </div>
@@ -63,7 +66,7 @@ export const AboutView: React.FC = () => {
                       <div className="absolute -bottom-6 -left-6 bg-white p-6 rounded-xl shadow-xl border border-gray-100 max-w-xs hidden md:block z-10">
                           <Quote className="w-8 h-8 text-rentia-gold mb-2" />
                           <p className="text-rentia-black font-bold text-sm italic">
-                              "Unimos la visión financiera y la gestión operativa diaria."
+                              {t('about.story.quote')}
                           </p>
                       </div>
                       <div className="absolute -top-4 -right-4 w-24 h-24 bg-rentia-blue/10 rounded-full blur-xl -z-10"></div>
@@ -76,9 +79,9 @@ export const AboutView: React.FC = () => {
       <section className="py-24 bg-gray-50">
           <div className="container mx-auto px-4">
               <div className="text-center mb-16">
-                  <h2 className="text-3xl font-bold text-rentia-black font-display mb-4">Quiénes Somos</h2>
+                  <h2 className="text-3xl font-bold text-rentia-black font-display mb-4">{t('about.team.title')}</h2>
                   <p className="text-gray-600 max-w-2xl mx-auto">
-                      El equipo humano detrás de la gestión.
+                      {t('about.team.subtitle')}
                   </p>
               </div>
 
@@ -92,12 +95,12 @@ export const AboutView: React.FC = () => {
                            </div>
                            <div className="absolute bottom-0 left-0 w-full bg-white p-4 border-t border-gray-100 z-10 text-center">
                                <h3 className="text-rentia-black font-bold text-xl font-display">Pol</h3>
-                               <p className="text-rentia-gold text-xs font-bold uppercase tracking-wide mt-1">Co-fundador y Gerente</p>
+                               <p className="text-rentia-gold text-xs font-bold uppercase tracking-wide mt-1">{t('about.team.pol.role')}</p>
                            </div>
                       </div>
                       <div className="p-8 bg-white flex-grow">
                           <p className="text-gray-600 text-sm leading-relaxed">
-                             Co fundador y gerente de la empresa. Encargado de la captación de inmuebles, relación con inversores, mejoras en procesos, gestión de las propiedades y apoyo en otras tareas.
+                             {t('about.team.pol.desc')}
                           </p>
                       </div>
                   </div>
@@ -110,12 +113,12 @@ export const AboutView: React.FC = () => {
                            </div>
                            <div className="absolute bottom-0 left-0 w-full bg-white p-4 border-t border-gray-100 z-10 text-center">
                                <h3 className="text-rentia-black font-bold text-xl font-display">Víctor</h3>
-                               <p className="text-rentia-gold text-xs font-bold uppercase tracking-wide mt-1">Co-fundador</p>
+                               <p className="text-rentia-gold text-xs font-bold uppercase tracking-wide mt-1">{t('about.team.victor.role')}</p>
                            </div>
                       </div>
                       <div className="p-8 bg-white flex-grow">
                           <p className="text-gray-600 text-sm leading-relaxed">
-                              Co fundador, estrategia, apoyo en procesos, captación y apoyo en otras tareas.
+                              {t('about.team.victor.desc')}
                           </p>
                       </div>
                   </div>
@@ -128,12 +131,12 @@ export const AboutView: React.FC = () => {
                            </div>
                            <div className="absolute bottom-0 left-0 w-full bg-white p-4 border-t border-gray-100 z-10 text-center">
                                <h3 className="text-rentia-black font-bold text-xl font-display">Sandra</h3>
-                               <p className="text-rentia-blue text-xs font-bold uppercase tracking-wide mt-1">Administración</p>
+                               <p className="text-rentia-blue text-xs font-bold uppercase tracking-wide mt-1">{t('about.team.sandra.role')}</p>
                            </div>
                       </div>
                       <div className="p-8 bg-white flex-grow">
                           <p className="text-gray-600 text-sm leading-relaxed">
-                              Administración, secretaría, relación con el propietario, gestión activa de las propiedades.
+                              {t('about.team.sandra.desc')}
                           </p>
                       </div>
                   </div>
@@ -154,21 +157,21 @@ export const AboutView: React.FC = () => {
               </div>
               
               <h2 className="text-3xl md:text-5xl font-bold font-display mb-8 leading-tight">
-                  Gracias por la confianza
+                  {t('about.values.title')}
               </h2>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
                   <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/10 hover:bg-white/15 transition-colors">
-                      <h3 className="text-xl font-bold text-rentia-gold mb-4">A nuestros colaboradores</h3>
+                      <h3 className="text-xl font-bold text-rentia-gold mb-4">{t('about.values.collab_title')}</h3>
                       <p className="text-blue-50 leading-relaxed">
-                          "Agradecemos a todas las personas que han trabajado y colaborado con nosotros."
+                          {t('about.values.collab_desc')}
                       </p>
                   </div>
                   
                   <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/10 hover:bg-white/15 transition-colors">
-                      <h3 className="text-xl font-bold text-rentia-gold mb-4">A los propietarios</h3>
+                      <h3 className="text-xl font-bold text-rentia-gold mb-4">{t('about.values.owners_title')}</h3>
                       <p className="text-blue-50 leading-relaxed">
-                          "Gracias a los propietarios que han confiado en nuestra gestión."
+                          {t('about.values.owners_desc')}
                       </p>
                   </div>
               </div>
@@ -178,7 +181,7 @@ export const AboutView: React.FC = () => {
       {/* --- CTA --- */}
       <section className="py-20 bg-white text-center">
           <div className="container mx-auto px-4">
-              <h2 className="text-2xl md:text-3xl font-bold text-rentia-black mb-8 font-display">¿Hablamos?</h2>
+              <h2 className="text-2xl md:text-3xl font-bold text-rentia-black mb-8 font-display">{t('about.cta.title')}</h2>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <a 
                     href="https://api.whatsapp.com/send?phone=34672886369" 
@@ -187,7 +190,7 @@ export const AboutView: React.FC = () => {
                     className="inline-flex items-center justify-center bg-rentia-black text-white px-8 py-4 rounded-xl font-bold hover:bg-gray-800 transition-all shadow-lg hover:shadow-xl hover:-translate-y-1"
                   >
                       <Briefcase className="w-5 h-5 mr-2" />
-                      Contactar con Dirección
+                      {t('about.cta.btn_dir')}
                   </a>
                    <a 
                     href="https://api.whatsapp.com/send?phone=34611948589" 
@@ -195,7 +198,7 @@ export const AboutView: React.FC = () => {
                     rel="noreferrer"
                     className="inline-flex items-center justify-center bg-white text-rentia-black border-2 border-gray-200 px-8 py-4 rounded-xl font-bold hover:border-rentia-black transition-all"
                   >
-                      Contactar con Administración
+                      {t('about.cta.btn_admin')}
                   </a>
               </div>
           </div>

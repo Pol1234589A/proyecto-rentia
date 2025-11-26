@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { ChevronDown, Check, KeyRound, TrendingUp, ClipboardList, Sparkles, Settings, FileBarChart, ArrowRight, ShieldCheck, UserCheck, Home, MessageCircle, X, Megaphone, Star, Quote, CheckCircle, Users, Smartphone, Clock, FileText } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface FAQItemProps {
   question: string;
@@ -49,6 +50,7 @@ interface HomeViewProps {
 
 export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
   const [selectedProcess, setSelectedProcess] = useState<ProcessStep | null>(null);
+  const { t } = useLanguage();
 
   const testimonials = [
     {
@@ -100,50 +102,32 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
 
   const processSteps: ProcessStep[] = [
     {
-        title: "Evaluación Inicial",
+        title: t('home.process.steps.s1.title'),
         icon: <ClipboardList className="w-6 h-6" />,
-        shortDesc: "Analizamos tu propiedad y brindamos recomendaciones.",
-        longDesc: "Visitamos la propiedad para entender su potencial real. No solo miramos la vivienda, sino el contexto del mercado en esa zona específica.",
-        details: [
-            "Visita técnica a la vivienda.",
-            "Análisis de la zona y demanda actual.",
-            "Estimación de rendimiento realista."
-        ]
+        shortDesc: t('home.process.steps.s1.short'),
+        longDesc: t('home.process.steps.s1.long'),
+        details: t('home.process.steps.s1.details')
     },
     {
-        title: "Optimización",
+        title: t('home.process.steps.s2.title'),
         icon: <Sparkles className="w-6 h-6" />,
-        shortDesc: "Recomendaciones para alquilar más rápido y mejor.",
-        longDesc: "Te asesoramos sobre qué cambios son necesarios para destacar. A veces un cambio de mobiliario o una pequeña mejora marca la diferencia en la velocidad de alquiler.",
-        details: [
-            "Consejos sobre mobiliario y decoración.",
-            "Estrategia de precios según calidades.",
-            "Preparación para el reportaje fotográfico."
-        ]
+        shortDesc: t('home.process.steps.s2.short'),
+        longDesc: t('home.process.steps.s2.long'),
+        details: t('home.process.steps.s2.details')
     },
     {
-        title: "Gestión Integral",
+        title: t('home.process.steps.s3.title'),
         icon: <Settings className="w-6 h-6" />,
-        shortDesc: "Captación, publicidad, limpieza y mantenimiento.",
-        longDesc: "Nos encargamos del día a día. Invertimos nuestro propio dinero en publicidad y redes sociales para dar visibilidad. Coordinamos la limpieza y el mantenimiento.",
-        details: [
-            "Publicidad en redes y portales (inversión propia).",
-            "Filtrado de inquilinos.",
-            "Coordinación de limpieza (servicio recomendado).",
-            "Gestión de mantenimiento."
-        ]
+        shortDesc: t('home.process.steps.s3.short'),
+        longDesc: t('home.process.steps.s3.long'),
+        details: t('home.process.steps.s3.details')
     },
     {
-        title: "Informes",
+        title: t('home.process.steps.s4.title'),
         icon: <FileBarChart className="w-6 h-6" />,
-        shortDesc: "Reportes mensuales sobre el estado de tu vivienda.",
-        longDesc: "Mensualmente te informamos sobre la situación de tu inmueble. Mantenemos una comunicación fluida para que sepas qué está pasando sin tener que gestionarlo tú.",
-        details: [
-            "Estado de ocupación.",
-            "Reporte de incidencias resueltas.",
-            "Novedades sobre los inquilinos.",
-            "Sin reportes financieros complejos, solo claridad."
-        ]
+        shortDesc: t('home.process.steps.s4.short'),
+        longDesc: t('home.process.steps.s4.long'),
+        details: t('home.process.steps.s4.details')
     }
   ];
 
@@ -173,20 +157,20 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
             <div className="max-w-4xl">
                 <div className="inline-flex items-center gap-2 mb-6 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-rentia-gold font-medium text-xs md:text-sm uppercase tracking-wide">
                     <Settings className="w-4 h-4" />
-                    Gestión Profesional de Alquileres
+                    {t('home.hero.badge')}
                 </div>
                 <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold mb-6 leading-tight font-display drop-shadow-lg">
-                    Transforma tu propiedad en una inversión <span className="text-transparent bg-clip-text bg-gradient-to-r from-rentia-gold to-yellow-200">gestionada y rentable</span>
+                    {t('home.hero.title_prefix')} <span className="text-transparent bg-clip-text bg-gradient-to-r from-rentia-gold to-yellow-200">{t('home.hero.title_highlight')}</span>
                 </h1>
                 <p className="text-base sm:text-lg md:text-xl mb-10 text-gray-100 leading-relaxed max-w-2xl drop-shadow-md">
-                    Gestionamos tus habitaciones o piso completo. Invertimos en publicidad para buscar a los mejores inquilinos y coordinamos el día a día para que tú no tengas que hacerlo.
+                    {t('home.hero.subtitle')}
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 relative z-30">
                     <button 
                         type="button"
                         onClick={() => onNavigate && onNavigate('contact')}
                         className="inline-flex items-center justify-center bg-rentia-blue hover:bg-blue-600 text-white font-bold py-4 px-8 rounded-lg transition-all duration-300 shadow-lg hover:shadow-blue-500/30 transform hover:-translate-y-1 w-full sm:w-auto">
-                        Quiero saber más
+                        {t('home.hero.cta_primary')}
                         <ArrowRight className="ml-2 w-5 h-5" />
                     </button>
                     <button 
@@ -194,7 +178,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
                         onClick={() => onNavigate && onNavigate('list')}
                         className="inline-flex items-center justify-center bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/30 font-bold py-4 px-8 rounded-lg transition-all duration-300 pointer-events-auto w-full sm:w-auto"
                     >
-                        Ver oportunidades
+                        {t('home.hero.cta_secondary')}
                     </button>
                 </div>
             </div>
@@ -204,14 +188,14 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
       {/* --- MODELO DE GESTIÓN --- */}
       <section className="py-16 md:py-20 bg-white">
         <div className="container mx-auto px-4 max-w-4xl text-center">
-            <h2 className="text-2xl md:text-4xl font-bold mb-6 text-rentia-black font-display">Nuestro modelo de gestión</h2>
+            <h2 className="text-2xl md:text-4xl font-bold mb-6 text-rentia-black font-display">{t('home.model.title')}</h2>
             <div className="w-24 h-1 bg-rentia-blue mx-auto mb-8 rounded-full"></div>
             <div className="text-base md:text-lg text-gray-600 space-y-4 leading-relaxed">
                 <p>
-                    Si no tienes tiempo o prefieres no ocuparte de la gestión operativa, nosotros nos encargamos.
+                    {t('home.model.text1')}
                 </p>
                 <p>
-                    Tanto si prefieres alquiler por habitaciones como <strong>alquiler tradicional</strong>, en RentiaRoom ofrecemos un servicio profesional que abarca desde la promoción en redes sociales hasta la coordinación de incidencias.
+                    {t('home.model.text2')}
                 </p>
             </div>
         </div>
@@ -230,17 +214,17 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
                  <div className="p-8 md:p-12 flex-1 text-white">
                      <div className="flex items-center gap-2 mb-4 text-rentia-gold font-bold uppercase tracking-wider text-xs">
                         <ShieldCheck className="w-4 h-4" />
-                        Comunidad Exclusiva
+                        {t('home.community.badge')}
                      </div>
                      <h2 className="text-3xl md:text-4xl font-bold mb-4 leading-tight font-display">
-                         Canal de Inversores RENTIA
+                         {t('home.community.title')}
                      </h2>
                      <p className="text-blue-100 text-lg leading-relaxed mb-8">
-                        Accede a una red privada con oportunidades reales de inversión inmobiliaria, analizadas y gestionadas con transparencia.
+                        {t('home.community.desc')}
                      </p>
                      <a href="https://whatsapp.com/channel/0029VbBsvhOIt5rpshbpYN1P" target="_blank" rel="noreferrer" className="inline-flex w-full md:w-auto justify-center items-center bg-white text-rentia-blue hover:bg-gray-50 font-bold py-3 px-8 rounded-lg transition-colors duration-300 shadow-md">
                         <MessageCircle className="w-5 h-5 mr-2" />
-                        Quiero recibir oportunidades
+                        {t('home.community.cta')}
                      </a>
                  </div>
                  <div className="hidden md:block w-1/3 bg-[url('https://rentiaroom.com/wp-content/uploads/2024/12/RentiaRoom-300x300.png')] bg-cover bg-center opacity-30 mix-blend-luminosity"></div>
@@ -254,8 +238,8 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
           
           <div className="container mx-auto px-4 relative z-10">
               <div className="text-center max-w-3xl mx-auto mb-12 md:mb-16">
-                  <h2 className="text-2xl md:text-4xl font-bold mb-4 text-rentia-black font-display">La solución profesional para propietarios</h2>
-                  <p className="text-gray-600">En RentiaRoom nos adaptamos a tus necesidades, ya sea alquiler por habitaciones o tradicional.</p>
+                  <h2 className="text-2xl md:text-4xl font-bold mb-4 text-rentia-black font-display">{t('home.solutions.title')}</h2>
+                  <p className="text-gray-600">{t('home.solutions.subtitle')}</p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
@@ -264,8 +248,8 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
                       <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-blue-50 text-rentia-blue flex items-center justify-center mb-6 group-hover:bg-rentia-blue group-hover:text-white transition-colors duration-300">
                           <KeyRound className="w-8 h-8 md:w-10 md:h-10" />
                       </div>
-                      <h3 className="text-xl md:text-2xl font-bold mb-3 text-rentia-black group-hover:text-rentia-blue transition-colors">Gestión 360º</h3>
-                      <p className="text-gray-600 leading-relaxed text-sm md:text-base">Nos ocupamos del ciclo de vida del alquiler. Desde la publicación y visitas hasta la salida del inquilino.</p>
+                      <h3 className="text-xl md:text-2xl font-bold mb-3 text-rentia-black group-hover:text-rentia-blue transition-colors">{t('home.solutions.card1_title')}</h3>
+                      <p className="text-gray-600 leading-relaxed text-sm md:text-base">{t('home.solutions.card1_desc')}</p>
                   </div>
                   
                    {/* Card 2: Estrategia de Ocupación */}
@@ -273,8 +257,8 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
                       <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-yellow-50 text-rentia-gold flex items-center justify-center mb-6 group-hover:bg-rentia-gold group-hover:text-rentia-black transition-colors duration-300">
                           <Megaphone className="w-8 h-8 md:w-10 md:h-10" />
                       </div>
-                      <h3 className="text-xl md:text-2xl font-bold mb-3 text-rentia-black group-hover:text-rentia-blue transition-colors">Estrategia de Visibilidad</h3>
-                      <p className="text-gray-600 leading-relaxed text-sm md:text-base">Invertimos nuestro propio capital en publicidad y redes sociales para dar la máxima visibilidad a tus habitaciones.</p>
+                      <h3 className="text-xl md:text-2xl font-bold mb-3 text-rentia-black group-hover:text-rentia-blue transition-colors">{t('home.solutions.card2_title')}</h3>
+                      <p className="text-gray-600 leading-relaxed text-sm md:text-base">{t('home.solutions.card2_desc')}</p>
                   </div>
               </div>
           </div>
@@ -284,8 +268,8 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
        <section className="py-16 md:py-20 bg-white border-b border-gray-100">
           <div className="container mx-auto px-4">
              <div className="text-center mb-10 md:mb-12">
-                 <h2 className="text-2xl md:text-3xl font-bold text-rentia-black font-display">Nuestro Proceso</h2>
-                 <p className="text-gray-500 mt-2">Haz clic en cada paso para ver los detalles</p>
+                 <h2 className="text-2xl md:text-3xl font-bold text-rentia-black font-display">{t('home.process.title')}</h2>
+                 <p className="text-gray-500 mt-2">{t('home.process.subtitle')}</p>
              </div>
              
              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 text-center">
@@ -349,7 +333,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
                             onClick={() => setSelectedProcess(null)}
                             className="w-full mt-6 bg-rentia-black text-white hover:bg-gray-800 font-bold py-3 px-4 rounded-lg transition-colors min-h-[44px]"
                         >
-                            Entendido
+                            {t('home.process.modal_close')}
                         </button>
                     </div>
                 </div>
@@ -360,8 +344,8 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
       <section className="py-16 md:py-24 bg-gray-50">
           <div className="container mx-auto px-4">
               <div className="text-center mb-12 md:mb-16 max-w-3xl mx-auto">
-                  <h2 className="text-2xl md:text-4xl font-bold text-rentia-black font-display mb-4">Tu propiedad trabajando por ti</h2>
-                  <p className="text-gray-600 text-lg">Facilitamos la gestión de tu activo inmobiliario.</p>
+                  <h2 className="text-2xl md:text-4xl font-bold text-rentia-black font-display mb-4">{t('home.steps.title')}</h2>
+                  <p className="text-gray-600 text-lg">{t('home.steps.subtitle')}</p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 max-w-6xl mx-auto">
@@ -371,9 +355,9 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
                       <div>
                           <h3 className="text-lg md:text-xl font-bold mb-3 text-rentia-black flex items-center gap-2">
                               <UserCheck className="w-5 h-5 text-rentia-blue" />
-                              Gestión de Habitaciones
+                              {t('home.steps.s1_title')}
                           </h3>
-                          <p className="text-gray-600 text-sm mb-3 leading-relaxed">Buscamos inquilinos con perfiles adecuados (estudiantes o trabajadores) y gestionamos contratos independientes.</p>
+                          <p className="text-gray-600 text-sm mb-3 leading-relaxed">{t('home.steps.s1_desc')}</p>
                       </div>
                   </div>
                   {/* Step 2 */}
@@ -382,9 +366,9 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
                       <div>
                           <h3 className="text-lg md:text-xl font-bold mb-3 text-rentia-black flex items-center gap-2">
                                 <Sparkles className="w-5 h-5 text-rentia-blue" />
-                                Limpieza y Normas
+                                {t('home.steps.s2_title')}
                           </h3>
-                           <p className="text-gray-600 text-sm mb-3 leading-relaxed">Establecemos normas de convivencia claras. Recomendamos y coordinamos un servicio de limpieza profesional (coste a cargo del propietario) para mantener la vivienda impecable.</p>
+                           <p className="text-gray-600 text-sm mb-3 leading-relaxed">{t('home.steps.s2_desc')}</p>
                       </div>
                   </div>
                    {/* Step 3 */}
@@ -393,9 +377,9 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
                       <div>
                           <h3 className="text-lg md:text-xl font-bold mb-3 text-rentia-black flex items-center gap-2">
                                 <TrendingUp className="w-5 h-5 text-rentia-blue" />
-                                Flexibilidad
+                                {t('home.steps.s3_title')}
                           </h3>
-                           <p className="text-gray-600 text-sm mb-3 leading-relaxed">Nos adaptamos a tu tipo de alquiler, ya sea por habitaciones o tradicional. Nuestra prioridad es encontrar la mejor estrategia para tu inmueble.</p>
+                           <p className="text-gray-600 text-sm mb-3 leading-relaxed">{t('home.steps.s3_desc')}</p>
                       </div>
                   </div>
                    {/* Step 4 */}
@@ -404,9 +388,9 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
                       <div>
                           <h3 className="text-lg md:text-xl font-bold mb-3 text-rentia-black flex items-center gap-2">
                                 <Home className="w-5 h-5 text-rentia-blue" />
-                                Valor Añadido
+                                {t('home.steps.s4_title')}
                           </h3>
-                           <p className="text-gray-600 text-sm mb-3 leading-relaxed">Aplicamos técnicas de mejora visual y marketing para destacar tu vivienda en el mercado y atraer a mejores perfiles.</p>
+                           <p className="text-gray-600 text-sm mb-3 leading-relaxed">{t('home.steps.s4_desc')}</p>
                       </div>
                   </div>
               </div>
@@ -419,18 +403,18 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
                 <div className="bg-white rounded-2xl shadow-idealista overflow-hidden flex flex-col md:flex-row max-w-6xl mx-auto">
                     <div className="p-8 md:p-16 flex-1 flex flex-col justify-center">
                         <h2 className="text-2xl md:text-4xl font-bold mb-6 text-rentia-black font-display leading-tight">
-                            ¿Necesitas ayuda con tu propiedad?
+                            {t('home.cta.title')}
                         </h2>
                         <p className="text-lg text-gray-600 mb-8">
-                            RentiaRoom te ofrece una gestión profesional y cercana. Deja las preocupaciones en nuestras manos.
+                            {t('home.cta.subtitle')}
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4">
                             <a href="https://api.whatsapp.com/send?phone=34672886369&text=Hola,%20quiero%20m%C3%A1s%20informaci%C3%B3n%20sobre%20vuestros%20servicios" target="_blank" rel="noopener noreferrer" className="inline-flex justify-center items-center bg-rentia-blue hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg transition-all duration-300 shadow-md">
                                 <MessageCircle className="w-5 h-5 mr-2" />
-                                Contactar por WhatsApp
+                                {t('home.cta.whatsapp')}
                             </a>
                             <a href="tel:+34672886369" className="inline-flex justify-center items-center bg-white hover:bg-gray-50 text-rentia-black border border-gray-200 font-bold py-3 px-8 rounded-lg transition-all duration-300">
-                                Llamar ahora
+                                {t('home.cta.call')}
                             </a>
                         </div>
                     </div>
@@ -446,11 +430,11 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
       <section className="py-16 md:py-24 bg-gray-50">
           <div className="container mx-auto px-4">
               <div className="text-center mb-12 md:mb-16">
-                  <h2 className="text-2xl md:text-3xl font-bold text-rentia-black font-display">Experiencias Reales</h2>
-                  <p className="text-gray-600 mt-2">La satisfacción de nuestros propietarios y clientes es nuestra mejor carta de presentación.</p>
+                  <h2 className="text-2xl md:text-3xl font-bold text-rentia-black font-display">{t('home.testimonials.title')}</h2>
+                  <p className="text-gray-600 mt-2">{t('home.testimonials.subtitle')}</p>
                   <div className="flex items-center justify-center mt-4 gap-1 text-rentia-gold">
                      {[1,2,3,4,5].map(i => <Star key={i} className="w-5 h-5 fill-current" />)}
-                     <span className="ml-2 text-sm font-bold text-gray-600">Calidad Garantizada</span>
+                     <span className="ml-2 text-sm font-bold text-gray-600">{t('home.testimonials.quality')}</span>
                   </div>
               </div>
               
@@ -488,7 +472,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
                                </div>
                                <div className="flex items-center gap-1.5 text-green-700 bg-green-50 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border border-green-100">
                                    <CheckCircle className="w-3 h-3" />
-                                   Verificado
+                                   {t('home.testimonials.verified')}
                                </div>
                           </div>
                       </div>
@@ -501,35 +485,17 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
       <section className="py-16 md:py-24 bg-white">
           <div className="container mx-auto px-4 max-w-3xl">
               <div className="text-center mb-10 md:mb-12">
-                  <h2 className="text-2xl md:text-3xl font-bold text-rentia-black font-display">Preguntas frecuentes</h2>
-                  <p className="text-gray-600">Resolvemos tus dudas de forma clara</p>
+                  <h2 className="text-2xl md:text-3xl font-bold text-rentia-black font-display">{t('home.faq.title')}</h2>
+                  <p className="text-gray-600">{t('home.faq.subtitle')}</p>
               </div>
               
               <div className="bg-white p-2 md:p-4">
-                  <FAQItem 
-                    question="¿Qué servicios ofrece RentiaRoom exactamente?" 
-                    answer="RentiaRoom proporciona una gestión profesional del alquiler, ya sea por habitaciones o tradicional. Incluimos captación de inquilinos, gestión de contratos legales, coordinación de mantenimiento y asesoría para maximizar tu rentabilidad." 
-                  />
-                  <FAQItem 
-                    question="¿Cómo seleccionan a los inquilinos?" 
-                    answer="Nuestro proceso de selección es riguroso. Revisamos solvencia económica, referencias y perfiles personales para asegurar una buena convivencia y reducir riesgos." 
-                  />
-                  <FAQItem 
-                    question="¿Qué es el homestaging y por qué es importante?" 
-                    answer="El homestaging es la técnica de preparar y decorar tu vivienda para hacerla más atractiva visualmente. En RentiaRoom lo utilizamos para alquilar más rápido y destacar en el mercado." 
-                  />
-                  <FAQItem 
-                    question="¿Quién paga la limpieza?" 
-                    answer="Nosotros recomendamos encarecidamente un servicio de limpieza profesional para mantener la vivienda en estado óptimo. Nosotros coordinamos el servicio, pero el coste corre a cargo del propietario, salvo acuerdo específico." 
-                  />
-                  <FAQItem 
-                    question="¿Cómo fijáis el precio de las habitaciones?" 
-                    answer="Realizamos un estudio de mercado comparativo en la zona, evaluamos el estado de la vivienda y aplicamos nuestra experiencia para fijar un precio que maximice tus ingresos sin perder competitividad." 
-                  />
-                   <FAQItem 
-                    question="¿Tengo permanencia con vosotros?" 
-                    answer="Nuestros contratos son claros y buscan una relación a largo plazo basada en la satisfacción mutua y los resultados, sin letras pequeñas abusivas." 
-                  />
+                  <FAQItem question={t('home.faq.q1')} answer={t('home.faq.a1')} />
+                  <FAQItem question={t('home.faq.q2')} answer={t('home.faq.a2')} />
+                  <FAQItem question={t('home.faq.q3')} answer={t('home.faq.a3')} />
+                  <FAQItem question={t('home.faq.q4')} answer={t('home.faq.a4')} />
+                  <FAQItem question={t('home.faq.q5')} answer={t('home.faq.a5')} />
+                  <FAQItem question={t('home.faq.q6')} answer={t('home.faq.a6')} />
               </div>
           </div>
       </section>
@@ -538,9 +504,9 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
       <section className="py-16 md:py-24 bg-gray-50">
           <div className="container mx-auto px-4">
               <div className="text-center mb-10 md:mb-12 max-w-2xl mx-auto">
-                  <h2 className="text-2xl md:text-4xl font-bold font-display text-rentia-black mb-4">Contacta con el equipo</h2>
+                  <h2 className="text-2xl md:text-4xl font-bold font-display text-rentia-black mb-4">{t('home.contact_dual.title')}</h2>
                   <p className="text-gray-600 text-lg">
-                      Hemos simplificado nuestros canales para atenderte mejor. Elige con quién necesitas hablar.
+                      {t('home.contact_dual.subtitle')}
                   </p>
               </div>
 
@@ -554,9 +520,9 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
                               <div className="p-2 bg-white/10 rounded-lg backdrop-blur-sm">
                                   <FileText className="w-6 h-6 text-rentia-gold" />
                               </div>
-                              <h3 className="font-bold text-xl">Secretaría y Administración</h3>
+                              <h3 className="font-bold text-xl">{t('home.contact_dual.admin_card.badge')}</h3>
                           </div>
-                          <p className="text-gray-400 text-sm">Para propietarios actuales y gestión.</p>
+                          <p className="text-gray-400 text-sm">{t('home.contact_dual.admin_card.desc')}</p>
                       </div>
                       <div className="p-6 md:p-8">
                            <div className="flex items-start gap-4 mb-6">
@@ -574,7 +540,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
                                </div>
                                <div className="flex items-center gap-3 text-gray-600 text-sm">
                                    <Smartphone className="w-4 h-4 text-rentia-blue" />
-                                   <span>Atención a propietarios</span>
+                                   <span>{t('home.contact_dual.admin_card.label_phone')}</span>
                                </div>
                            </div>
 
@@ -585,7 +551,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
                             className="w-full flex items-center justify-center gap-2 bg-gray-50 hover:bg-[#25D366] text-gray-800 hover:text-white font-bold py-4 px-6 rounded-xl transition-all border border-gray-200 hover:border-[#25D366]"
                            >
                                <MessageCircle className="w-5 h-5" />
-                               Contactar con Sandra
+                               {t('home.contact_dual.admin_card.btn')}
                            </a>
                       </div>
                   </div>
@@ -598,9 +564,9 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
                               <div className="p-2 bg-white/10 rounded-lg backdrop-blur-sm">
                                   <TrendingUp className="w-6 h-6 text-rentia-gold" />
                               </div>
-                              <h3 className="font-bold text-xl">Dirección y Estrategia</h3>
+                              <h3 className="font-bold text-xl">{t('home.contact_dual.dir_card.badge')}</h3>
                           </div>
-                          <p className="text-blue-100 text-sm">Inversión, expansión y nuevos proyectos.</p>
+                          <p className="text-blue-100 text-sm">{t('home.contact_dual.dir_card.desc')}</p>
                       </div>
                       <div className="p-6 md:p-8">
                            <div className="flex items-start gap-4 mb-6">
@@ -618,7 +584,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
                                </div>
                                <div className="flex items-center gap-3 text-gray-600 text-sm">
                                    <Smartphone className="w-4 h-4 text-rentia-gold" />
-                                   <span>Oportunidades y General</span>
+                                   <span>{t('home.contact_dual.dir_card.label_phone')}</span>
                                </div>
                            </div>
 
@@ -629,7 +595,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
                             className="w-full flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20ba5c] text-white font-bold py-4 px-6 rounded-xl transition-all shadow-lg hover:shadow-green-200/50"
                            >
                                <MessageCircle className="w-5 h-5" />
-                               Contactar con Pol
+                               {t('home.contact_dual.dir_card.btn')}
                            </a>
                       </div>
                   </div>

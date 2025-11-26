@@ -1,165 +1,85 @@
 
 import React, { useState } from 'react';
 import { Check, UserPlus, FileText, Clock, AlertTriangle, ShieldCheck, Hammer, Search, MessageCircle, X, ArrowRight, Eye, BarChart3, ClipboardCheck, Megaphone, Activity } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface PainPoint {
   icon: React.ReactNode;
-  title: string;
-  shortDesc: string;
-  longDesc: string;
+  id: string; // Changed to ID for translation lookup
 }
 
 export const ServicesView: React.FC = () => {
   const [selectedFeature, setSelectedFeature] = useState<PainPoint | null>(null);
+  const { t } = useLanguage();
   
+  // Static data moved inside to use 't'
   const services = [
     {
       id: 1,
-      title: "Gestión Integral de Alquileres",
-      description: "Nos encargamos de gestionar tus propiedades de principio a fin, facilitando cada etapa del proceso.",
-      image: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=800&q=80", // Imagen profesional inmobiliaria
-      points: [
-        "Captación de inquilinos: Filtrado de perfiles.",
-        "Contratos personalizados y legales.",
-        "Coordinación de entradas y salidas.",
-        "Gestión de incidencias.",
-        "Supervisión del estado de la propiedad."
-      ]
+      title: t('services.list.s1.title'),
+      description: t('services.list.s1.desc'),
+      image: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=800&q=80",
+      points: t('services.list.s1.pts')
     },
     {
       id: 2,
-      title: "Rent to Rent",
-      description: "Ofrecemos un esquema en el que acordamos un ingreso fijo mensual mientras subarrendamos y gestionamos tus propiedades.",
-      image: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=800&q=80", // Imagen de acuerdo/contrato
-      points: [
-        "Ingresos estables acordados.",
-        "Gestión operativa delegada.",
-        "Optimización del espacio.",
-        "Estrategia de ocupación activa.",
-        "Incremento de ingresos vs modelo tradicional."
-      ]
+      title: t('services.list.s2.title'),
+      description: t('services.list.s2.desc'),
+      image: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=800&q=80",
+      points: t('services.list.s2.pts')
     },
     {
       id: 3,
-      title: "Optimización de Ingresos",
-      description: "Buscamos mejorar la rentabilidad de tus propiedades mediante análisis de mercado y estrategias de precios.",
-      image: "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?auto=format&fit=crop&w=800&q=80", // Imagen financiera/crecimiento
-      points: [
-        "Análisis de mercado.",
-        "Asesoría en precios competitivos.",
-        "Estrategias personalizadas por propiedad.",
-        "Enfoque en mejora del flujo de caja."
-      ]
+      title: t('services.list.s3.title'),
+      description: t('services.list.s3.desc'),
+      image: "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?auto=format&fit=crop&w=800&q=80",
+      points: t('services.list.s3.pts')
     },
     {
       id: 4,
-      title: "Mantenimiento y Reparaciones",
-      description: "Nos encargamos de la recepción de incidencias y la coordinación con seguros o técnicos especializados.",
+      title: t('services.list.s4.title'),
+      description: t('services.list.s4.desc'),
       image: "https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?auto=format&fit=crop&w=800&q=80",
-      points: [
-        "Gestión de trámites con el seguro del hogar.",
-        "Coordinación de técnicos (coste a cargo del propietario).",
-        "Supervisión de los trabajos realizados.",
-        "Atención a incidencias cotidianas."
-      ]
+      points: t('services.list.s4.pts')
     },
     {
       id: 5,
-      title: "Seguro de Impagos (Opcional)",
-      description: "No cubrimos impagos directamente, pero te ponemos en contacto con colaboradores de confianza que pueden gestionar este servicio para tu tranquilidad.",
+      title: t('services.list.s5.title'),
+      description: t('services.list.s5.desc'),
       image: "https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&w=800&q=80",
-      points: [
-        "Acceso a colaboradores especializados.",
-        "Gestión externa del seguro.",
-        "Asesoramiento en la contratación.",
-        "Protección opcional a través de terceros."
-      ]
+      points: t('services.list.s5.pts')
     },
     {
       id: 6,
-      title: "Supervisión de Reformas",
-      badge: "Nuevo Servicio",
-      description: "Servicio a nuestros clientes para supervisar la reforma con colaboradores externos. Hemos creado un grupo de trabajo donde adaptamos las viviendas para ser alquiladas.",
+      title: t('services.list.s6.title'),
+      badge: t('services.list.s6.badge'),
+      description: t('services.list.s6.desc'),
       image: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=800&q=80",
-      points: [
-        "Adaptación especializada para alquiler por habitaciones.",
-        "Grupo de trabajo con colaboradores externos verificados.",
-        "Supervisión técnica de la reforma.",
-        "Optimización de costes y espacios."
-      ]
+      points: t('services.list.s6.pts')
     }
   ];
 
-  const onboardingSteps = [
-    {
-      icon: <Eye className="w-5 h-5 md:w-6 md:h-6" />,
-      title: "1. Auditoría y Visita",
-      description: "Visita técnica para detectar mejoras clave que aumenten el valor.",
-      highlight: "Mejoras estratégicas"
-    },
-    {
-      icon: <BarChart3 className="w-5 h-5 md:w-6 md:h-6" />,
-      title: "2. Análisis y Pricing",
-      description: "Estudio de mercado para fijar precios competitivos y rentables.",
-      highlight: "Rentabilidad real"
-    },
-    {
-      icon: <ClipboardCheck className="w-5 h-5 md:w-6 md:h-6" />,
-      title: "3. Puesta a Punto",
-      description: "Organización de logística, armarios, normas y grupos de comunicación.",
-      highlight: "Organización total"
-    },
-    {
-      icon: <Megaphone className="w-5 h-5 md:w-6 md:h-6" />,
-      title: "4. Marketing Premium",
-      description: "Publicación en redes y portales. Promoción pagada en Idealista (según caso).",
-      highlight: "Máxima visibilidad"
-    },
-    {
-      icon: <Activity className="w-5 h-5 md:w-6 md:h-6" />,
-      title: "5. Gestión Activa",
-      description: "Seguimiento semanal del estado y convivencia en la vivienda.",
-      highlight: "Control constante"
-    }
+  const onboardingStepsRaw = t('services.onboarding.steps');
+  const onboardingIcons = [
+      <Eye className="w-5 h-5 md:w-6 md:h-6" />,
+      <BarChart3 className="w-5 h-5 md:w-6 md:h-6" />,
+      <ClipboardCheck className="w-5 h-5 md:w-6 md:h-6" />,
+      <Megaphone className="w-5 h-5 md:w-6 md:h-6" />,
+      <Activity className="w-5 h-5 md:w-6 md:h-6" />
   ];
+
+  const onboardingSteps = onboardingStepsRaw.map((step: any, index: number) => ({
+      ...step,
+      icon: onboardingIcons[index]
+  }));
 
   const painPoints: PainPoint[] = [
-    {
-      icon: <UserPlus className="w-8 h-8" />,
-      title: "Selección de inquilinos",
-      shortDesc: "Aplicamos filtros para minimizar riesgos, aunque el riesgo cero no existe.",
-      longDesc: "Realizamos un proceso de filtrado solicitando documentación económica y referencias cuando es posible. Nuestro objetivo es encontrar el perfil que mejor se adapte a la vivienda para minimizar riesgos, aunque no podemos garantizar el comportamiento futuro de las personas."
-    },
-    {
-      icon: <FileText className="w-8 h-8" />,
-      title: "Contratos personalizados",
-      shortDesc: "Redactamos contratos adaptados a la normativa vigente y al tipo de alquiler.",
-      longDesc: "Elaboramos contratos de arrendamiento específicos para cada habitación, asegurando que se cumpla la Ley de Arrendamientos Urbanos (LAU) o el Código Civil según corresponda, protegiendo los intereses de ambas partes dentro del marco legal."
-    },
-    {
-      icon: <Clock className="w-8 h-8" />,
-      title: "Gestión de tiempo",
-      shortDesc: "Nos ocupamos de coordinar visitas, entradas y salidas para ahorrarte tiempo.",
-      longDesc: "Actuamos como tu representante para las gestiones operativas diarias. Coordinamos las visitas comerciales, la entrega de llaves y la revisión de inventario a la salida, liberándote de la carga presencial que conlleva el alquiler."
-    },
-    {
-      icon: <AlertTriangle className="w-8 h-8" />,
-      title: "Gestión de incidencias",
-      shortDesc: "Atendemos los avisos de los inquilinos y coordinamos su solución.",
-      longDesc: "Somos el primer punto de contacto para los inquilinos. Cuando surge un problema, evaluamos la situación y coordinamos con tu seguro o con técnicos profesionales. Los tiempos de resolución dependen de la disponibilidad de los terceros y la naturaleza de la avería."
-    },
-    {
-      icon: <ShieldCheck className="w-8 h-8" />,
-      title: "Control de cobros",
-      shortDesc: "Realizamos seguimiento de los pagos para actuar ante retrasos.",
-      longDesc: "Llevamos un control mensual de los ingresos. Si bien no podemos garantizar la ausencia de impagos, nuestro sistema de gestión nos permite detectar retrasos tempranamente y activar los protocolos de reclamación amistosa de inmediato."
-    },
-    {
-      icon: <Hammer className="w-8 h-8" />,
-      title: "Mantenimiento del inmueble",
-      shortDesc: "Supervisamos el estado general para intentar prevenir deterioros mayores.",
-      longDesc: "Realizamos visitas periódicas a las zonas comunes y mantenemos comunicación con los inquilinos para detectar necesidades de reparación. Nuestro objetivo es mantener el inmueble en condiciones habitables y atractivas para el mercado."
-    },
+    { icon: <UserPlus className="w-8 h-8" />, id: 'p1' },
+    { icon: <FileText className="w-8 h-8" />, id: 'p2' },
+    { icon: <Clock className="w-8 h-8" />, id: 'p3' },
+    { icon: <AlertTriangle className="w-8 h-8" />, id: 'p4' },
+    { icon: <ShieldCheck className="w-8 h-8" />, id: 'p5' },
+    { icon: <Hammer className="w-8 h-8" />, id: 'p6' },
   ];
 
   return (
@@ -181,9 +101,9 @@ export const ServicesView: React.FC = () => {
         </div>
 
         <div className="relative z-10 container mx-auto px-4 text-center text-white">
-            <h1 className="text-4xl md:text-5xl font-bold font-display mb-4 drop-shadow-md">Nuestros Servicios</h1>
+            <h1 className="text-4xl md:text-5xl font-bold font-display mb-4 drop-shadow-md">{t('services.hero.title')}</h1>
             <p className="text-xl text-gray-100 max-w-2xl mx-auto drop-shadow-sm">
-                Descubre cómo RentiaRoom gestiona tus activos inmobiliarios de forma profesional.
+                {t('services.hero.subtitle')}
             </p>
         </div>
       </section>
@@ -199,13 +119,13 @@ export const ServicesView: React.FC = () => {
                 <div className="p-8 md:p-12 flex-1">
                     <div className="inline-flex items-center gap-2 mb-4 bg-blue-50 text-rentia-blue px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
                         <Search className="w-4 h-4" />
-                        Servicio Exclusivo
+                        {t('services.channel.badge')}
                     </div>
                     <h2 className="text-3xl font-bold text-rentia-black mb-4 font-display">
-                        Canal de Oportunidades
+                        {t('services.channel.title')}
                     </h2>
                     <p className="text-gray-600 text-lg leading-relaxed">
-                        ¿Buscas rentabilidad? Ofrecemos un servicio de búsqueda de inversiones inmobiliarias <span className="font-bold text-rentia-blue">totalmente gratuito</span> a través de nuestro canal privado.
+                        {t('services.channel.desc')} <span className="font-bold text-rentia-blue">{t('services.channel.free')}</span> {t('services.channel.desc_2')}
                     </p>
                 </div>
 
@@ -217,9 +137,9 @@ export const ServicesView: React.FC = () => {
                         className="flex items-center gap-3 bg-rentia-blue hover:bg-blue-700 text-white transition-all px-8 py-4 rounded-lg shadow-lg hover:shadow-blue-200/50 font-bold text-lg group transform hover:-translate-y-1"
                     >
                         <MessageCircle className="w-6 h-6 text-white" />
-                        Unirme al Canal
+                        {t('services.channel.cta')}
                     </a>
-                    <p className="text-xs text-gray-400 mt-3 font-medium">Acceso directo vía WhatsApp</p>
+                    <p className="text-xs text-gray-400 mt-3 font-medium">{t('services.channel.sub')}</p>
                 </div>
             </div>
         </div>
@@ -228,9 +148,9 @@ export const ServicesView: React.FC = () => {
       {/* Intro Text */}
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4 text-center max-w-3xl">
-            <h2 className="text-3xl md:text-4xl font-bold text-rentia-black mb-4 font-display">¡Nosotros gestionamos por ti!</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-rentia-black mb-4 font-display">{t('services.intro.title')}</h2>
             <p className="text-gray-600 text-lg leading-relaxed">
-                Desde la gestión integral hasta la supervisión técnica de reformas, ofrecemos soluciones completas para propietarios e inversores.
+                {t('services.intro.subtitle')}
             </p>
         </div>
       </section>
@@ -269,7 +189,7 @@ export const ServicesView: React.FC = () => {
                             {service.description}
                         </p>
                         <ul className="space-y-3">
-                            {service.points.map((point, i) => (
+                            {service.points.map((point: string, i: number) => (
                                 <li key={i} className="flex items-start text-gray-700">
                                     <div className="mt-1 mr-3 flex-shrink-0 w-5 h-5 rounded-full bg-rentia-gold/20 flex items-center justify-center">
                                         <Check className="w-3 h-3 text-rentia-black" />
@@ -292,14 +212,14 @@ export const ServicesView: React.FC = () => {
 
           <div className="container mx-auto px-4 relative z-10">
               <div className="text-center max-w-3xl mx-auto mb-10 md:mb-16">
-                  <h2 className="text-3xl md:text-4xl font-bold mb-4 font-display">Protocolo de Activación</h2>
+                  <h2 className="text-3xl md:text-4xl font-bold mb-4 font-display">{t('services.onboarding.title')}</h2>
                   <p className="text-gray-300 text-lg">
-                      Un proceso estructurado para garantizar el éxito desde el primer día.
+                      {t('services.onboarding.subtitle')}
                   </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 md:gap-6">
-                  {onboardingSteps.map((step, index) => (
+                  {onboardingSteps.map((step: any, index: number) => (
                       <div key={index} className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 md:p-6 hover:bg-white/10 transition-all duration-300 group hover:-translate-y-1 flex flex-row md:flex-col items-start gap-4 md:gap-0">
                           
                           {/* Icon Container - Fixed width for mobile list alignment */}
@@ -310,11 +230,11 @@ export const ServicesView: React.FC = () => {
                           <div className="flex-1 min-w-0">
                               <h3 className="font-bold text-base md:text-lg mb-1 md:mb-3 text-rentia-gold leading-tight">{step.title}</h3>
                               <p className="text-xs md:text-sm text-gray-300 mb-2 md:mb-4 leading-relaxed line-clamp-2 md:line-clamp-none">
-                                  {step.description}
+                                  {step.desc}
                               </p>
                               <div className="mt-auto pt-2 md:pt-4 border-t border-white/10 text-[10px] md:text-xs font-bold uppercase tracking-wider text-rentia-blue flex items-center gap-1.5 md:gap-2">
                                   <Check className="w-3 h-3 flex-shrink-0" />
-                                  <span className="truncate">{step.highlight}</span>
+                                  <span className="truncate">{step.hl}</span>
                               </div>
                           </div>
                       </div>
@@ -334,11 +254,11 @@ export const ServicesView: React.FC = () => {
           <div className="container mx-auto px-4 relative z-10">
               <div className="text-center max-w-3xl mx-auto mb-16">
                   <h2 className="text-3xl md:text-4xl font-bold mb-4 font-display text-rentia-black">
-                      Soluciones Profesionales
+                      {t('services.pain_points.title')}
                   </h2>
                   <p className="text-gray-500 text-lg">
-                    En RentiaRoom aplicamos protocolos de gestión para minimizar los problemas habituales del alquiler.
-                    <span className="block mt-1 font-medium text-rentia-blue text-sm uppercase tracking-wide mt-3">Haz clic en cada servicio para saber más</span>
+                    {t('services.pain_points.subtitle')}
+                    <span className="block mt-1 font-medium text-rentia-blue text-sm uppercase tracking-wide mt-3">{t('services.pain_points.hint')}</span>
                   </p>
               </div>
 
@@ -361,9 +281,9 @@ export const ServicesView: React.FC = () => {
                              </div>
                           </div>
                           
-                          <h3 className="text-xl font-bold mb-3 text-rentia-black group-hover:text-rentia-blue transition-colors">{item.title}</h3>
+                          <h3 className="text-xl font-bold mb-3 text-rentia-black group-hover:text-rentia-blue transition-colors">{t(`services.pain_points.items.${item.id}.title`)}</h3>
                           <p className="text-gray-600 text-sm leading-relaxed flex-grow">
-                              {item.shortDesc}
+                              {t(`services.pain_points.items.${item.id}.short`)}
                           </p>
                           <p className="text-rentia-blue text-xs font-bold mt-4 uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity">
                               Leer explicación detallada &rarr;
@@ -381,27 +301,27 @@ export const ServicesView: React.FC = () => {
                 <div className="bg-rentia-blue p-6 flex justify-between items-center">
                     <div className="text-white flex items-center gap-3">
                         {selectedFeature.icon}
-                        <h3 className="text-xl font-bold font-display">{selectedFeature.title}</h3>
+                        <h3 className="text-xl font-bold font-display">{t(`services.pain_points.items.${selectedFeature.id}.title`)}</h3>
                     </div>
                     <button onClick={() => setSelectedFeature(null)} className="text-white/80 hover:text-white transition-colors p-1 rounded-full hover:bg-white/20">
                         <X className="w-6 h-6" />
                     </button>
                 </div>
                 <div className="p-8">
-                    <h4 className="text-gray-900 font-bold mb-4 text-lg">¿En qué consiste este servicio?</h4>
+                    <h4 className="text-gray-900 font-bold mb-4 text-lg">{t('services.pain_points.modal_title')}</h4>
                     <p className="text-gray-600 leading-relaxed text-base mb-6">
-                        {selectedFeature.longDesc}
+                        {t(`services.pain_points.items.${selectedFeature.id}.long`)}
                     </p>
                     <div className="bg-yellow-50 border-l-4 border-rentia-gold p-4 rounded">
                         <p className="text-xs text-gray-500 italic">
-                            * En RentiaRoom trabajamos para minimizar incidencias, pero actuamos como intermediarios de gestión. Los tiempos y resultados pueden depender de terceros o factores externos.
+                            {t('services.pain_points.modal_disclaimer')}
                         </p>
                     </div>
                     <button 
                         onClick={() => setSelectedFeature(null)}
                         className="w-full mt-8 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-3 px-4 rounded-lg transition-colors"
                     >
-                        Entendido
+                        {t('common.understood')}
                     </button>
                 </div>
             </div>
@@ -411,9 +331,9 @@ export const ServicesView: React.FC = () => {
       {/* Final CTA */}
       <section className="py-24 bg-gray-50">
           <div className="container mx-auto px-4 max-w-4xl text-center">
-              <h2 className="text-3xl font-bold text-rentia-black mb-6 font-display">¿Tienes dudas sobre nuestros servicios?</h2>
+              <h2 className="text-3xl font-bold text-rentia-black mb-6 font-display">{t('services.cta.title')}</h2>
               <p className="text-xl text-gray-600 mb-8">
-                  Contáctanos para conocer en detalle cómo podemos ayudarte a gestionar tu propiedad.
+                  {t('services.cta.subtitle')}
               </p>
               <a 
                 href="https://api.whatsapp.com/send?phone=34672886369&text=Hola,%20tengo%20dudas%20sobre%20los%20servicios%20de%20RentiaRoom" 
@@ -422,7 +342,7 @@ export const ServicesView: React.FC = () => {
                 className="inline-flex items-center bg-[#25D366] hover:bg-[#20ba5c] text-white font-bold py-4 px-8 rounded-full transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1"
               >
                   <MessageCircle className="w-6 h-6 mr-2" />
-                  Contáctanos por WhatsApp
+                  {t('services.cta.btn')}
               </a>
           </div>
       </section>

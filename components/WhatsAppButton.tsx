@@ -1,10 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { MessageCircle, X, User, Briefcase, Clock } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export const WhatsAppButton: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [now, setNow] = useState(new Date());
+  const { t } = useLanguage();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -19,15 +21,15 @@ export const WhatsAppButton: React.FC = () => {
 
     // Check if weekend
     if (day === 0 || day === 6) {
-      return { isOpen: false, label: 'Cerrado' };
+      return { isOpen: false, label: t('common.closed_weekend') };
     }
 
     // Check hours
     if (hour >= startHour && hour < endHour) {
-      return { isOpen: true, label: 'En línea' };
+      return { isOpen: true, label: t('common.online') };
     }
 
-    return { isOpen: false, label: 'Cerrado' };
+    return { isOpen: false, label: `${t('whatsapp.opens_at')} ${startHour}:00` };
   };
 
   const sandraStatus = getStatus(9, 14);
@@ -65,20 +67,20 @@ export const WhatsAppButton: React.FC = () => {
            </div>
            <div className="flex flex-col flex-grow">
               <div className="flex justify-between items-start">
-                  <span className="font-bold text-sm text-rentia-black">Secretaría (Sandra)</span>
+                  <span className="font-bold text-sm text-rentia-black">{t('whatsapp.admin_label')}</span>
               </div>
-              <span className="text-xs text-gray-500 mb-1">Admin y Propietarios</span>
+              <span className="text-xs text-gray-500 mb-1">{t('whatsapp.admin_desc')}</span>
               
               <div className={`flex items-center text-[10px] font-bold uppercase tracking-wide ${sandraStatus.isOpen ? 'text-green-600' : 'text-gray-400'}`}>
                  {sandraStatus.isOpen ? (
                     <>
                         <span className="w-2 h-2 bg-green-500 rounded-full mr-1 animate-pulse"></span>
-                        En línea (09:00 - 14:00)
+                        {t('whatsapp.online')} (09:00 - 14:00)
                     </>
                  ) : (
                     <>
                         <Clock className="w-3 h-3 mr-1" />
-                        Cerrado (Abre 09:00)
+                        {sandraStatus.label}
                     </>
                  )}
               </div>
@@ -105,18 +107,18 @@ export const WhatsAppButton: React.FC = () => {
               )}
            </div>
            <div className="flex flex-col flex-grow">
-              <span className="font-bold text-sm text-rentia-black">Dirección (Pol)</span>
-              <span className="text-xs text-gray-500 mb-1">Estrategia e Inversión</span>
+              <span className="font-bold text-sm text-rentia-black">{t('whatsapp.dir_label')}</span>
+              <span className="text-xs text-gray-500 mb-1">{t('whatsapp.dir_desc')}</span>
                <div className={`flex items-center text-[10px] font-bold uppercase tracking-wide ${polStatus.isOpen ? 'text-green-600' : 'text-gray-400'}`}>
                  {polStatus.isOpen ? (
                     <>
                         <span className="w-2 h-2 bg-green-500 rounded-full mr-1 animate-pulse"></span>
-                        En línea (09:00 - 20:00)
+                        {t('whatsapp.online')} (09:00 - 20:00)
                     </>
                  ) : (
                     <>
                          <Clock className="w-3 h-3 mr-1" />
-                        Cerrado (Abre 09:00)
+                        {polStatus.label}
                     </>
                  )}
               </div>

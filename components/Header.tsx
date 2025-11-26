@@ -1,15 +1,16 @@
 
 import React, { useState } from 'react';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Globe } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface HeaderProps {
-  onNavigate: (view: 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts' | 'blog') => void;
+  onNavigate: (view: 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts') => void;
 }
 
-type ViewType = 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts' | 'blog';
+type ViewType = 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts';
 
 interface NavLink {
-  name: string;
+  nameKey: string;
   view?: ViewType;
   path?: string;
   url?: string;
@@ -18,21 +19,24 @@ interface NavLink {
 
 export const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { language, setLanguage, t } = useLanguage();
+
+  const toggleLanguage = () => {
+    setLanguage(language === 'es' ? 'en' : 'es');
+  };
 
   // Hash paths for navigation
   const navLinks: NavLink[] = [
-    { name: 'Inicio', view: 'home', path: '#/' },
-    { name: 'Servicios', view: 'services', path: '#/servicios' },
-    { name: 'Habitaciones', view: 'rooms', path: '#/habitaciones' },
-    { name: 'Blog', view: 'blog', path: '#/blog' },
-    { name: 'Descuentos', view: 'discounts', path: '#/descuentos' },
-    { name: 'Rentia Hub', url: 'https://www.rentiahub.rentiaroom.com', isExternal: true },
-    { name: 'Nosotros', view: 'about', path: '#/nosotros' },
-    { name: 'Contacto', view: 'contact', path: '#/contacto' },
+    { nameKey: 'header.home', view: 'home', path: '#/' },
+    { nameKey: 'header.services', view: 'services', path: '#/servicios' },
+    { nameKey: 'header.rooms', view: 'rooms', path: '#/habitaciones' },
+    { nameKey: 'header.discounts', view: 'discounts', path: '#/descuentos' },
+    { nameKey: 'header.hub', url: 'https://www.rentiahub.rentiaroom.com', isExternal: true },
+    { nameKey: 'header.about', view: 'about', path: '#/nosotros' },
+    { nameKey: 'header.contact', view: 'contact', path: '#/contacto' },
   ];
 
   const handleLinkClick = (e: React.MouseEvent, view?: ViewType) => {
-    // Prevent default browser navigation which can cause "connection refused" in sandboxed environments
     if (!view) return;
     e.preventDefault();
     onNavigate(view);
@@ -63,22 +67,22 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
             {navLinks.map((link) => (
               link.isExternal ? (
                 <a 
-                  key={link.name}
+                  key={link.nameKey}
                   href={link.url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-white hover:text-[#edcd20] font-medium text-[15px] transition-colors"
                 >
-                  {link.name}
+                  {t(link.nameKey)}
                 </a>
               ) : (
                 <a
-                  key={link.name}
+                  key={link.nameKey}
                   href={link.path}
                   onClick={(e) => handleLinkClick(e, link.view)}
                   className="text-white hover:text-[#edcd20] font-medium text-[15px] transition-colors cursor-pointer"
                 >
-                  {link.name}
+                  {t(link.nameKey)}
                 </a>
               )
             ))}
@@ -87,12 +91,28 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
               onClick={(e) => handleLinkClick(e, 'list')}
               className="text-white hover:text-[#edcd20] font-bold border-b-2 border-[#edcd20] px-1 py-1 text-[15px] transition-colors cursor-pointer"
             >
-              Oportunidades
+              {t('header.opportunities')}
             </a>
+
+            {/* Language Switcher Desktop */}
+            <button 
+                onClick={toggleLanguage}
+                className="flex items-center gap-1 text-white hover:text-[#edcd20] font-medium text-xs border border-white/30 rounded px-2 py-1 transition-colors"
+            >
+                <Globe className="w-3 h-3" />
+                {language === 'es' ? 'EN' : 'ES'}
+            </button>
           </nav>
 
-          {/* Mobile Menu Button */}
-          <div className="flex items-center lg:hidden">
+          {/* Mobile Menu Button + Lang */}
+          <div className="flex items-center lg:hidden gap-4">
+             <button 
+                onClick={toggleLanguage}
+                className="flex items-center gap-1 text-white font-bold text-xs border border-white/30 rounded px-2 py-1"
+            >
+                {language === 'es' ? 'EN' : 'ES'}
+            </button>
+
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="inline-flex items-center justify-center p-3 rounded-md text-white hover:text-[#edcd20] hover:bg-[#005b9f] focus:outline-none transition-colors min-h-[44px] min-w-[44px] cursor-pointer"
@@ -112,22 +132,22 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
             {navLinks.map((link) => (
               link.isExternal ? (
                 <a 
-                  key={link.name}
+                  key={link.nameKey}
                   href={link.url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="block w-full text-left px-4 py-4 rounded-lg text-lg font-medium text-white hover:bg-[#005b9f] hover:text-[#edcd20] transition-colors border-b border-white/10"
                 >
-                  {link.name}
+                  {t(link.nameKey)}
                 </a>
               ) : (
                 <a
-                  key={link.name}
+                  key={link.nameKey}
                   href={link.path}
                   onClick={(e) => handleLinkClick(e, link.view)}
                   className="block w-full text-left px-4 py-4 rounded-lg text-lg font-medium text-white hover:bg-[#005b9f] hover:text-[#edcd20] transition-colors border-b border-white/10 cursor-pointer"
                 >
-                  {link.name}
+                  {t(link.nameKey)}
                 </a>
               )
             ))}
@@ -136,7 +156,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
               onClick={(e) => handleLinkClick(e, 'list')}
               className="block w-full text-left px-4 py-4 rounded-lg text-lg font-bold text-[#1c1c1c] bg-[#edcd20] border border-[#edcd20] cursor-pointer mt-4 text-center shadow-lg"
             >
-              Oportunidades Inversión
+              {t('header.opportunities_mobile')}
             </a>
           </div>
         </div>

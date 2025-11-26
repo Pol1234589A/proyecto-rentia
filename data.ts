@@ -2,8 +2,6 @@
 import { Opportunity } from './types';
 
 export const opportunities: Opportunity[] = [
-  /* 
-  // PLANTILLA PARA FUTURAS OPORTUNIDADES (Descomentar y editar para añadir)
   {
     id: '1',
     title: 'Oportunidad Inversión "Ticket Bajo" - Sin Comunidad',
@@ -88,5 +86,4 @@ export const opportunities: Opportunity[] = [
     status: 'available',
     tags: ['Alquiler Tradicional', 'Garaje', 'Video Tour', 'Baja Reforma']
   }
-  */
 ];

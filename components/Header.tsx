@@ -1,11 +1,12 @@
+
 import React, { useState } from 'react';
 import { Menu, X } from 'lucide-react';
 
 interface HeaderProps {
-  onNavigate: (view: 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts') => void;
+  onNavigate: (view: 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts' | 'blog') => void;
 }
 
-type ViewType = 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts';
+type ViewType = 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts' | 'blog';
 
 interface NavLink {
   name: string;
@@ -18,19 +19,20 @@ interface NavLink {
 export const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  // Define paths for SEO friendly links
+  // Hash paths for navigation
   const navLinks: NavLink[] = [
-    { name: 'Inicio', view: 'home', path: '/' },
-    { name: 'Servicios', view: 'services', path: '/servicios' },
-    { name: 'Descuentos', view: 'discounts', path: '/descuentos' },
-    { name: 'Habitaciones libres', view: 'rooms', path: '/habitaciones' },
+    { name: 'Inicio', view: 'home', path: '#/' },
+    { name: 'Servicios', view: 'services', path: '#/servicios' },
+    { name: 'Habitaciones', view: 'rooms', path: '#/habitaciones' },
+    { name: 'Blog', view: 'blog', path: '#/blog' },
+    { name: 'Descuentos', view: 'discounts', path: '#/descuentos' },
     { name: 'Rentia Hub', url: 'https://www.rentiahub.rentiaroom.com', isExternal: true },
-    { name: 'Nosotros', view: 'about', path: '/nosotros' },
-    { name: 'Contacto', view: 'contact', path: '/contacto' },
+    { name: 'Nosotros', view: 'about', path: '#/nosotros' },
+    { name: 'Contacto', view: 'contact', path: '#/contacto' },
   ];
 
   const handleLinkClick = (e: React.MouseEvent, view?: ViewType) => {
-    // Only prevent default for internal links handled by SPA
+    // Prevent default browser navigation which can cause "connection refused" in sandboxed environments
     if (!view) return;
     e.preventDefault();
     onNavigate(view);
@@ -38,14 +40,13 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
   };
 
   return (
-    // Removed 'transform-gpu' to ensure correct stacking context for fixed children
     <header className="sticky top-0 z-[9999] bg-[#0072CE] shadow-md font-sans no-print">
       <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20 md:h-24">
           
           {/* Logo Area */}
           <a 
-            href="/" 
+            href="#/" 
             className="flex-shrink-0 flex items-center cursor-pointer select-none" 
             onClick={(e) => handleLinkClick(e, 'home')}
             aria-label="Volver a inicio"
@@ -82,7 +83,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
               )
             ))}
              <a 
-              href="/oportunidades"
+              href="#/oportunidades"
               onClick={(e) => handleLinkClick(e, 'list')}
               className="text-white hover:text-[#edcd20] font-bold border-b-2 border-[#edcd20] px-1 py-1 text-[15px] transition-colors cursor-pointer"
             >
@@ -131,7 +132,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
               )
             ))}
             <a 
-              href="/oportunidades"
+              href="#/oportunidades"
               onClick={(e) => handleLinkClick(e, 'list')}
               className="block w-full text-left px-4 py-4 rounded-lg text-lg font-bold text-[#1c1c1c] bg-[#edcd20] border border-[#edcd20] cursor-pointer mt-4 text-center shadow-lg"
             >

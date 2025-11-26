@@ -3,12 +3,12 @@ import React from 'react';
 import { ModalType } from './LegalModals';
 
 interface FooterProps {
-  onNavigate: (view: 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts') => void;
+  onNavigate: (view: 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts' | 'blog') => void;
   openLegalModal: (type: ModalType) => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({ onNavigate, openLegalModal }) => {
-  const handleLinkClick = (e: React.MouseEvent, view: 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts') => {
+  const handleNavClick = (e: React.MouseEvent, view: 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts' | 'blog') => {
     e.preventDefault();
     onNavigate(view);
   };
@@ -20,7 +20,11 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, openLegalModal }) =>
           
           {/* Column 1: Logo & Slogan */}
           <div className="space-y-6">
-            <a href="/" onClick={(e) => handleLinkClick(e, 'home')} aria-label="Ir a inicio">
+            <a 
+              href="#/" 
+              aria-label="Ir a inicio"
+              onClick={(e) => handleNavClick(e, 'home')}
+            >
               <img 
                 src="https://i.ibb.co/QvzK6db3/Logo-Negativo.png" 
                 alt="RentiaRoom" 
@@ -37,12 +41,20 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, openLegalModal }) =>
             <h6 className="text-xl font-bold mb-6 text-white">Enlaces de Interés</h6>
             <ul className="space-y-3 text-[15px] text-white">
               <li>
-                  <a href="/oportunidades" onClick={(e) => handleLinkClick(e, 'list')} className="hover:text-[#edcd20] transition-colors text-left cursor-pointer font-semibold block py-1">
+                  <a 
+                    href="#/oportunidades" 
+                    className="hover:text-[#edcd20] transition-colors text-left cursor-pointer font-semibold block py-1"
+                    onClick={(e) => handleNavClick(e, 'list')}
+                  >
                       Oportunidades para Inversores
                   </a>
               </li>
                <li>
-                  <a href="/servicios" onClick={(e) => handleLinkClick(e, 'services')} className="hover:text-[#edcd20] transition-colors text-left cursor-pointer block py-1">
+                  <a 
+                    href="#/servicios" 
+                    className="hover:text-[#edcd20] transition-colors text-left cursor-pointer block py-1"
+                    onClick={(e) => handleNavClick(e, 'services')}
+                  >
                       Gestión de Habitaciones
                   </a>
               </li>

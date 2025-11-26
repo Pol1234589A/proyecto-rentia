@@ -11,32 +11,35 @@ import { RoomsView } from './components/RoomsView';
 import { ContactView } from './components/ContactView';
 import { AboutView } from './components/AboutView';
 import { DiscountsView } from './components/DiscountsView';
+import { BlogView } from './components/BlogView';
 import { LegalModals, ModalType } from './components/LegalModals';
 import { opportunities } from './data';
 import { TrendingUp, MessageCircle, Bell } from 'lucide-react';
 
 // Type alias for easier usage
-type ViewType = 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts';
+type ViewType = 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts' | 'blog';
 
-// Mapping URL paths to Views for SEO
+// Mapping Hash paths to Views for Router
 const PATH_MAP: Record<string, ViewType> = {
-  '/': 'home',
-  '/servicios': 'services',
-  '/habitaciones': 'rooms',
-  '/oportunidades': 'list',
-  '/contacto': 'contact',
-  '/nosotros': 'about',
-  '/descuentos': 'discounts'
+  '#/': 'home',
+  '#/servicios': 'services',
+  '#/habitaciones': 'rooms',
+  '#/oportunidades': 'list',
+  '#/contacto': 'contact',
+  '#/nosotros': 'about',
+  '#/descuentos': 'discounts',
+  '#/blog': 'blog'
 };
 
-const VIEW_TO_PATH: Record<ViewType, string> = {
-  'home': '/',
-  'services': '/servicios',
-  'rooms': '/habitaciones',
-  'list': '/oportunidades',
-  'contact': '/contacto',
-  'about': '/nosotros',
-  'discounts': '/descuentos'
+const VIEW_TO_HASH: Record<ViewType, string> = {
+  'home': '#/',
+  'services': '#/servicios',
+  'rooms': '#/habitaciones',
+  'list': '#/oportunidades',
+  'contact': '#/contacto',
+  'about': '#/nosotros',
+  'discounts': '#/descuentos',
+  'blog': '#/blog'
 };
 
 function App() {
@@ -44,53 +47,50 @@ function App() {
   const [view, setView] = useState<ViewType>('home');
   const [activeLegalModal, setActiveLegalModal] = useState<ModalType>(null);
 
-  // Initialize view based on URL on first load
+  // Initialize view based on Hash on first load and listen to changes
   useEffect(() => {
-    const path = window.location.pathname;
-    
-    // Check for deep link params first (legacy or sharing support)
-    const params = new URLSearchParams(window.location.search);
-    const sharedOppId = params.get('opp');
+    const handleHashChange = () => {
+        let hash = window.location.hash || '#/';
+        
+        // Separa el hash de los parámetros (ej: #/blog?post=1)
+        const [baseHash, query] = hash.split('?');
 
-    if (sharedOppId) {
-       const exists = opportunities.find(o => o.id === sharedOppId);
-       if (exists) {
-         setSelectedId(sharedOppId);
-         setView('list');
-         // Normalize URL
-         window.history.replaceState({}, '', '/oportunidades');
-         return;
-       }
-    }
+        // Manejar query params para oportunidades (ej: #/oportunidades?opp=1)
+        if (baseHash === '#/oportunidades' && query) {
+            const params = new URLSearchParams(query);
+            const oppId = params.get('opp');
+            if (oppId) {
+                 const exists = opportunities.find(o => o.id === oppId);
+                 if (exists) setSelectedId(oppId);
+            } else {
+                setSelectedId(null);
+            }
+        } else if (baseHash !== '#/oportunidades') {
+            // Si navegamos fuera de oportunidades, reseteamos la selección
+            setSelectedId(null);
+        }
 
-    // Route matching
-    const matchedView = PATH_MAP[path] || 'home';
-    setView(matchedView);
-
-    // Handle browser back/forward buttons
-    const handlePopState = () => {
-       const newPath = window.location.pathname;
-       const newView = PATH_MAP[newPath] || 'home';
-       
-       // Handle back to list logic
-       if (newView === 'list' && selectedId) {
-          setSelectedId(null);
-       }
-       setView(newView);
+        // Buscar la vista correspondiente usando solo la base del hash
+        const matchedView = PATH_MAP[baseHash] || 'home';
+        setView(matchedView);
+        
+        // Scroll to top
+        window.scrollTo(0, 0);
     };
 
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
+    // Run once on mount
+    handleHashChange();
 
+    // Listen for changes
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   // SEO Management System
   useEffect(() => {
     let title = "RentiaRoom | Expertos en Alquiler por Habitaciones e Inversión en Murcia";
     let description = "Expertos en gestión integral de alquiler por habitaciones y oportunidades de inversión inmobiliaria en Murcia. Rentabilidad garantizada y gestión 360.";
-    let path = VIEW_TO_PATH[view];
-
-    // Logic to update meta tags based on view
+    
     switch (view) {
       case 'home':
         title = "RentiaRoom | Líderes en Gestión de Habitaciones en Murcia";
@@ -103,6 +103,10 @@ function App() {
       case 'rooms':
         title = "Habitaciones en Alquiler Murcia | Catálogo RentiaRoom";
         description = "Consulta nuestro catálogo en tiempo real de habitaciones disponibles en Murcia. Alquiler para estudiantes y trabajadores con gestión profesional.";
+        break;
+      case 'blog':
+        title = "Blog Inmobiliario RentiaRoom | Consejos y Noticias Murcia";
+        description = "Artículos sobre inversión inmobiliaria, leyes de alquiler, tendencias en Murcia y consejos para propietarios e inquilinos.";
         break;
       case 'list':
         if (selectedId) {
@@ -129,48 +133,18 @@ function App() {
         description = "Calcula tu comisión de gestión personalizada. Ofrecemos descuentos por volumen de propiedades y referidos en Murcia.";
         break;
       default:
-        // Default values
         break;
     }
 
-    // Apply Title
     document.title = title;
-
-    // Apply Meta Description
     const metaDescription = document.querySelector('meta[name="description"]');
-    if (metaDescription) {
-      metaDescription.setAttribute('content', description);
-    } else {
-      const meta = document.createElement('meta');
-      meta.name = "description";
-      meta.content = description;
-      document.head.appendChild(meta);
-    }
-
-    // Apply Canonical Link
-    const canonicalLink = document.querySelector('link[rel="canonical"]');
-    const fullUrl = `https://www.rentiaroom.com${path === '/' ? '' : path}`;
-    
-    if (canonicalLink) {
-        canonicalLink.setAttribute('href', fullUrl);
-    } else {
-        const link = document.createElement('link');
-        link.rel = 'canonical';
-        link.href = fullUrl;
-        document.head.appendChild(link);
-    }
-
-    // Scroll to top when navigating
-    window.scrollTo(0, 0);
+    if (metaDescription) metaDescription.setAttribute('content', description);
 
   }, [selectedId, view]);
 
   const handleNavigate = (newView: ViewType) => {
-    setSelectedId(null);
-    setView(newView);
-    // Update URL history
-    const path = VIEW_TO_PATH[newView];
-    window.history.pushState({}, '', path);
+    // Updating hash triggers the useEffect defined above
+    window.location.hash = VIEW_TO_HASH[newView];
   };
 
   const openLegalModal = (type: ModalType) => {
@@ -178,22 +152,18 @@ function App() {
   };
 
   const handleCardClick = (id: string) => {
-    setSelectedId(id);
-    setView('list'); 
-    window.history.pushState({}, '', `/oportunidades?opp=${id}`);
+    window.location.hash = `#/oportunidades?opp=${id}`;
   };
 
   const handleBackToOpportunities = () => {
-    setSelectedId(null);
-    window.history.pushState({}, '', '/oportunidades');
+    window.location.hash = '#/oportunidades';
   };
 
   const handleNext = () => {
     const currentIndex = opportunities.findIndex(o => o.id === selectedId);
     if (currentIndex < opportunities.length - 1) {
       const nextId = opportunities[currentIndex + 1].id;
-      setSelectedId(nextId);
-      window.history.replaceState({}, '', `/oportunidades?opp=${nextId}`);
+      window.location.hash = `#/oportunidades?opp=${nextId}`;
     }
   };
 
@@ -201,8 +171,7 @@ function App() {
     const currentIndex = opportunities.findIndex(o => o.id === selectedId);
     if (currentIndex > 0) {
       const prevId = opportunities[currentIndex - 1].id;
-      setSelectedId(prevId);
-      window.history.replaceState({}, '', `/oportunidades?opp=${prevId}`);
+      window.location.hash = `#/oportunidades?opp=${prevId}`;
     }
   };
 
@@ -236,21 +205,20 @@ function App() {
         return <AboutView />;
       case 'discounts':
         return <DiscountsView />;
+      case 'blog':
+        return <BlogView />;
       case 'list':
         return (
           <>
             {/* Hero Section for Opportunities */}
             <section className="relative py-20 md:py-24 bg-rentia-black overflow-hidden">
-              {/* Background Image */}
               <div className="absolute inset-0 w-full h-full z-0">
                   <img 
                       src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1600&q=80" 
                       alt="Oportunidades para Inversores RentiaRoom" 
                       className="w-full h-full object-cover grayscale opacity-60"
                   />
-                  {/* Blue tint overlay for brand consistency */}
                   <div className="absolute inset-0 bg-rentia-blue/60 mix-blend-multiply"></div>
-                  {/* Dark overlay + blur for text readability */}
                   <div className="absolute inset-0 bg-black/30 backdrop-blur-[1px]"></div>
               </div>
 
@@ -316,15 +284,12 @@ function App() {
     <div className="min-h-screen flex flex-col font-sans">
       <Header onNavigate={handleNavigate} />
 
-      {/* Added relative z-0 to establish new stacking context below header */}
       <main className="flex-grow bg-[#f9f9f9] relative z-0">
         {renderContent()}
       </main>
 
-      {/* Persistent WhatsApp Button */}
       <WhatsAppButton />
 
-      {/* Legal Modals */}
       <LegalModals activeModal={activeLegalModal} onClose={() => setActiveLegalModal(null)} />
 
       <Footer onNavigate={handleNavigate} openLegalModal={openLegalModal} />

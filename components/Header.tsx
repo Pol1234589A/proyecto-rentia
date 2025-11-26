@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Menu, X } from 'lucide-react';
 
@@ -6,11 +5,21 @@ interface HeaderProps {
   onNavigate: (view: 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts') => void;
 }
 
+type ViewType = 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts';
+
+interface NavLink {
+  name: string;
+  view?: ViewType;
+  path?: string;
+  url?: string;
+  isExternal?: boolean;
+}
+
 export const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Define paths for SEO friendly links
-  const navLinks = [
+  const navLinks: NavLink[] = [
     { name: 'Inicio', view: 'home', path: '/' },
     { name: 'Servicios', view: 'services', path: '/servicios' },
     { name: 'Descuentos', view: 'discounts', path: '/descuentos' },
@@ -20,7 +29,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
     { name: 'Contacto', view: 'contact', path: '/contacto' },
   ];
 
-  const handleLinkClick = (e: React.MouseEvent, view: any) => {
+  const handleLinkClick = (e: React.MouseEvent, view?: ViewType) => {
     // Only prevent default for internal links handled by SPA
     if (!view) return;
     e.preventDefault();
@@ -29,7 +38,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
   };
 
   return (
-    // Removed 'transform-gpu' and 'translate-z-0' as they create a new stacking context that breaks position: fixed children
+    // Removed 'transform-gpu' to ensure correct stacking context for fixed children
     <header className="sticky top-0 z-[9999] bg-[#0072CE] shadow-md font-sans no-print">
       <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20 md:h-24">
@@ -37,7 +46,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
           {/* Logo Area */}
           <a 
             href="/" 
-            className="flex-shrink-0 flex items-center cursor-pointer touch-manipulation" 
+            className="flex-shrink-0 flex items-center cursor-pointer select-none" 
             onClick={(e) => handleLinkClick(e, 'home')}
             aria-label="Volver a inicio"
           >
@@ -85,7 +94,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
           <div className="flex items-center lg:hidden">
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="inline-flex items-center justify-center p-3 rounded-md text-white hover:text-[#edcd20] hover:bg-[#005b9f] focus:outline-none transition-colors touch-manipulation min-h-[44px] min-w-[44px]"
+              className="inline-flex items-center justify-center p-3 rounded-md text-white hover:text-[#edcd20] hover:bg-[#005b9f] focus:outline-none transition-colors min-h-[44px] min-w-[44px] cursor-pointer"
               aria-label="Menú principal"
               aria-expanded={isMenuOpen}
             >
@@ -97,7 +106,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
 
       {/* Mobile Menu */}
       {isMenuOpen && (
-        <div className="lg:hidden bg-[#0072CE] border-t border-[#005b9f] fixed inset-x-0 top-20 md:top-24 bottom-0 z-[9998] overflow-y-auto animate-in slide-in-from-top-2 duration-200">
+        <div className="lg:hidden bg-[#0072CE] border-t border-[#005b9f] fixed inset-x-0 top-20 md:top-24 bottom-0 z-[9998] overflow-y-auto">
           <div className="px-4 pt-4 pb-20 space-y-2">
             {navLinks.map((link) => (
               link.isExternal ? (
@@ -106,7 +115,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
                   href={link.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block w-full text-left px-4 py-4 rounded-lg text-lg font-medium text-white hover:bg-[#005b9f] hover:text-[#edcd20] transition-colors touch-manipulation border-b border-white/10"
+                  className="block w-full text-left px-4 py-4 rounded-lg text-lg font-medium text-white hover:bg-[#005b9f] hover:text-[#edcd20] transition-colors border-b border-white/10"
                 >
                   {link.name}
                 </a>
@@ -115,7 +124,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
                   key={link.name}
                   href={link.path}
                   onClick={(e) => handleLinkClick(e, link.view)}
-                  className="block w-full text-left px-4 py-4 rounded-lg text-lg font-medium text-white hover:bg-[#005b9f] hover:text-[#edcd20] transition-colors touch-manipulation border-b border-white/10 cursor-pointer"
+                  className="block w-full text-left px-4 py-4 rounded-lg text-lg font-medium text-white hover:bg-[#005b9f] hover:text-[#edcd20] transition-colors border-b border-white/10 cursor-pointer"
                 >
                   {link.name}
                 </a>
@@ -124,7 +133,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
             <a 
               href="/oportunidades"
               onClick={(e) => handleLinkClick(e, 'list')}
-              className="block w-full text-left px-4 py-4 rounded-lg text-lg font-bold text-[#1c1c1c] bg-[#edcd20] border border-[#edcd20] touch-manipulation cursor-pointer mt-4 text-center shadow-lg"
+              className="block w-full text-left px-4 py-4 rounded-lg text-lg font-bold text-[#1c1c1c] bg-[#edcd20] border border-[#edcd20] cursor-pointer mt-4 text-center shadow-lg"
             >
               Oportunidades Inversión
             </a>

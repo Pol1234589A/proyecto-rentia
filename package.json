@@ -14,8 +14,8 @@
     "react-dom": "^19.2.0"
   },
   "devDependencies": {
-    "@prerenderer/rollup-plugin": "^0.4.1",
-    "@prerenderer/renderer-puppeteer": "^0.2.0",
+    "@prerenderer/rollup-plugin": "latest",
+    "@prerenderer/renderer-puppeteer": "latest",
     "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
     "typescript": "~5.8.2",

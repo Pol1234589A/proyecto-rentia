@@ -31,7 +31,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, openLegalModal }) =>
               <img 
                 src="https://i.ibb.co/QvzK6db3/Logo-Negativo.png" 
                 alt="RentiaRoom" 
-                className="h-auto w-48 brightness-0 invert"
+                className="h-12 w-auto brightness-0 invert object-contain"
               />
             </a>
             <p className="text-white text-[15px] leading-relaxed">

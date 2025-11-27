@@ -5,17 +5,21 @@ import { useLanguage } from '../contexts/LanguageContext';
 
 export const WhatsAppButton: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [now, setNow] = useState(new Date());
+  const [now, setNow] = useState<Date | null>(null); // Start null to avoid hydration mismatch
   const { t } = useLanguage();
 
   useEffect(() => {
+    setNow(new Date()); // Set date only on client
     const timer = setInterval(() => {
       setNow(new Date());
     }, 60000);
     return () => clearInterval(timer);
   }, []);
 
+  // Helper safe getStatus
   const getStatus = (startHour: number, endHour: number) => {
+    if (!now) return { isOpen: false, label: t('common.loading') }; // Loading state
+
     const day = now.getDay(); // 0 = Sunday, 6 = Saturday
     const hour = now.getHours();
 
@@ -34,6 +38,9 @@ export const WhatsAppButton: React.FC = () => {
 
   const sandraStatus = getStatus(9, 14);
   const polStatus = getStatus(9, 20);
+
+  // Don't render anything until client has initialized date
+  if (!now) return null;
 
   return (
     // CRITICAL FIX: pointer-events-none on parent ensures the invisible wrapper 

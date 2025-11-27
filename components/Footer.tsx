@@ -1,21 +1,17 @@
 
 import React from 'react';
+import Link from 'next/link';
 import { ModalType } from './LegalModals';
 import { useLanguage } from '../contexts/LanguageContext';
 
 interface FooterProps {
-  onNavigate: (view: 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts') => void;
+  onNavigate?: any; // Mantenido para compatibilidad temporal si es necesario, pero no usado
   openLegalModal: (type: ModalType) => void;
 }
 
-export const Footer: React.FC<FooterProps> = ({ onNavigate, openLegalModal }) => {
+export const Footer: React.FC<FooterProps> = ({ openLegalModal }) => {
   const { t } = useLanguage();
   
-  const handleNavClick = (e: React.MouseEvent, view: 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts') => {
-    e.preventDefault();
-    onNavigate(view);
-  };
-
   return (
     <footer className="bg-[#0072CE] text-white pt-16 font-sans no-print">
       <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 pb-12">
@@ -23,17 +19,13 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, openLegalModal }) =>
           
           {/* Column 1: Logo & Slogan */}
           <div className="space-y-6">
-            <a 
-              href="#/" 
-              aria-label="Ir a inicio"
-              onClick={(e) => handleNavClick(e, 'home')}
-            >
+            <Link href="/" aria-label="Ir a inicio">
               <img 
                 src="https://i.ibb.co/QvzK6db3/Logo-Negativo.png" 
                 alt="RentiaRoom" 
                 className="h-12 w-auto brightness-0 invert object-contain"
               />
-            </a>
+            </Link>
             <p className="text-white text-[15px] leading-relaxed">
               {t('footer.slogan')}
             </p>
@@ -44,22 +36,20 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, openLegalModal }) =>
             <h6 className="text-xl font-bold mb-6 text-white">{t('footer.links_title')}</h6>
             <ul className="space-y-3 text-[15px] text-white">
               <li>
-                  <a 
-                    href="#/oportunidades" 
+                  <Link 
+                    href="/oportunidades" 
                     className="hover:text-[#edcd20] transition-colors text-left cursor-pointer font-semibold block py-1"
-                    onClick={(e) => handleNavClick(e, 'list')}
                   >
                       {t('header.opportunities_mobile')}
-                  </a>
+                  </Link>
               </li>
                <li>
-                  <a 
-                    href="#/servicios" 
+                  <Link 
+                    href="/servicios" 
                     className="hover:text-[#edcd20] transition-colors text-left cursor-pointer block py-1"
-                    onClick={(e) => handleNavClick(e, 'services')}
                   >
                       {t('header.services')}
-                  </a>
+                  </Link>
               </li>
               <li>
                   <button onClick={() => openLegalModal('legal')} className="hover:text-[#edcd20] transition-colors text-left cursor-pointer block py-1">

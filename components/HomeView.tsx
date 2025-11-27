@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronDown, Check, KeyRound, TrendingUp, ClipboardList, Sparkles, Settings, FileBarChart, ArrowRight, ShieldCheck, UserCheck, Home, MessageCircle, X, Megaphone, Star, Quote, CheckCircle, Users, Smartphone, Clock, FileText } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useRouter } from 'next/navigation';
 
 interface FAQItemProps {
   question: string;
@@ -45,12 +44,16 @@ interface ProcessStep {
   details: string[];
 }
 
-export const HomeView: React.FC = () => {
+interface HomeViewProps {
+  onNavigate?: (view: 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts') => void;
+}
+
+export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
   const [selectedProcess, setSelectedProcess] = useState<ProcessStep | null>(null);
   const { t } = useLanguage();
-  const router = useRouter();
 
   // --- SEO INJECTION: FAQPage Schema ---
+  // This tells Google specifically that this page contains FAQs, increasing the chance of appearing in rich snippets.
   useEffect(() => {
     const faqData = {
       "@context": "https://schema.org",
@@ -191,14 +194,14 @@ export const HomeView: React.FC = () => {
                 <div className="flex flex-col sm:flex-row gap-4 relative z-30">
                     <button 
                         type="button"
-                        onClick={() => router.push('/contacto')}
+                        onClick={() => onNavigate && onNavigate('contact')}
                         className="inline-flex items-center justify-center bg-rentia-blue hover:bg-blue-600 text-white font-bold py-4 px-8 rounded-lg transition-all duration-300 shadow-lg hover:shadow-blue-500/30 transform hover:-translate-y-1 w-full sm:w-auto">
                         {t('home.hero.cta_primary')}
                         <ArrowRight className="ml-2 w-5 h-5" />
                     </button>
                     <button 
                         type="button"
-                        onClick={() => router.push('/oportunidades')}
+                        onClick={() => onNavigate && onNavigate('list')}
                         className="inline-flex items-center justify-center bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/30 font-bold py-4 px-8 rounded-lg transition-all duration-300 pointer-events-auto w-full sm:w-auto"
                     >
                         {t('home.hero.cta_secondary')}

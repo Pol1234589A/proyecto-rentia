@@ -4,12 +4,11 @@ import { Mail, Clock, MessageCircle, User, Briefcase, CheckCircle, XCircle } fro
 import { useLanguage } from '../contexts/LanguageContext';
 
 export const ContactView: React.FC = () => {
-  const [now, setNow] = useState<Date | null>(null);
+  const [now, setNow] = useState(new Date());
   const { t } = useLanguage();
 
   // Update time every minute to keep status accurate
   useEffect(() => {
-    setNow(new Date());
     const timer = setInterval(() => {
       setNow(new Date());
     }, 60000);
@@ -18,8 +17,6 @@ export const ContactView: React.FC = () => {
 
   // Helper to determine if a specific schedule is currently active based on USER'S local time
   const getStatus = (startHour: number, endHour: number) => {
-    if (!now) return { isOpen: false, label: t('common.loading') };
-
     const day = now.getDay(); // 0 = Sunday, 6 = Saturday
     const hour = now.getHours();
 
@@ -77,12 +74,10 @@ export const ContactView: React.FC = () => {
                 {/* Sandra Card */}
                 <div className="bg-white p-6 md:p-8 rounded-2xl shadow-idealista border border-gray-100 hover:border-rentia-gold transition-all duration-300 hover:-translate-y-1 group relative overflow-hidden">
                     {/* Status Indicator */}
-                    {now && (
-                        <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 border ${sandraStatus.isOpen ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
-                            {sandraStatus.isOpen ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-                            {sandraStatus.label}
-                        </div>
-                    )}
+                    <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 border ${sandraStatus.isOpen ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
+                        {sandraStatus.isOpen ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+                        {sandraStatus.label}
+                    </div>
 
                     <div className="flex flex-col items-center text-center">
                         <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center text-rentia-black font-bold text-3xl mb-4 shadow-sm group-hover:scale-110 transition-transform">
@@ -117,7 +112,7 @@ export const ContactView: React.FC = () => {
                             <MessageCircle className="w-5 h-5 mr-2" /> 
                             {sandraStatus.isOpen ? t('contact.sandra.btn') : t('contact.sandra.btn_msg')}
                         </a>
-                        {!sandraStatus.isOpen && now && (
+                        {!sandraStatus.isOpen && (
                             <p className="text-xs text-gray-400 mt-2">{t('contact.sandra.offline')}</p>
                         )}
                     </div>
@@ -126,12 +121,10 @@ export const ContactView: React.FC = () => {
                 {/* Pol Card */}
                 <div className="bg-white p-6 md:p-8 rounded-2xl shadow-idealista border border-gray-100 hover:border-rentia-blue transition-all duration-300 hover:-translate-y-1 group relative overflow-hidden">
                     {/* Status Indicator */}
-                    {now && (
-                        <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 border ${polStatus.isOpen ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
-                            {polStatus.isOpen ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-                            {polStatus.label}
-                        </div>
-                    )}
+                    <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 border ${polStatus.isOpen ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
+                        {polStatus.isOpen ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+                        {polStatus.label}
+                    </div>
 
                     <div className="flex flex-col items-center text-center">
                         <div className="w-20 h-20 rounded-full bg-blue-50 flex items-center justify-center text-rentia-blue font-bold text-3xl mb-4 shadow-sm group-hover:scale-110 transition-transform">
@@ -166,7 +159,7 @@ export const ContactView: React.FC = () => {
                             <MessageCircle className="w-5 h-5 mr-2" /> 
                             {polStatus.isOpen ? t('contact.pol.btn') : t('contact.pol.btn_msg')}
                         </a>
-                        {!polStatus.isOpen && now && (
+                        {!polStatus.isOpen && (
                             <p className="text-xs text-gray-400 mt-2">{t('contact.pol.offline')}</p>
                         )}
                     </div>

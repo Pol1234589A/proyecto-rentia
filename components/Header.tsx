@@ -1,36 +1,47 @@
 
 import React, { useState } from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { Menu, X, Globe } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
-export const Header: React.FC = () => {
+interface HeaderProps {
+  onNavigate: (view: 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts' | 'blog') => void;
+}
+
+type ViewType = 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts' | 'blog';
+
+interface NavLink {
+  nameKey: string;
+  view?: ViewType;
+  path?: string;
+  url?: string;
+  isExternal?: boolean;
+}
+
+export const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { language, setLanguage, t } = useLanguage();
-  const pathname = usePathname();
 
   const toggleLanguage = () => {
     setLanguage(language === 'es' ? 'en' : 'es');
   };
 
-  const navLinks = [
-    { nameKey: 'header.home', path: '/' },
-    { nameKey: 'header.services', path: '/servicios' },
-    { nameKey: 'header.rooms', path: '/habitaciones' },
-    { nameKey: 'header.blog', path: '/blog' },
-    { nameKey: 'header.discounts', path: '/descuentos' },
+  // Hash paths for navigation
+  const navLinks: NavLink[] = [
+    { nameKey: 'header.home', view: 'home', path: '#/' },
+    { nameKey: 'header.services', view: 'services', path: '#/servicios' },
+    { nameKey: 'header.rooms', view: 'rooms', path: '#/habitaciones' },
+    { nameKey: 'header.blog', view: 'blog', path: '#/blog' },
+    { nameKey: 'header.discounts', view: 'discounts', path: '#/descuentos' },
     { nameKey: 'header.hub', url: 'https://www.rentiahub.rentiaroom.com', isExternal: true },
-    { nameKey: 'header.about', path: '/nosotros' },
-    { nameKey: 'header.contact', path: '/contacto' },
+    { nameKey: 'header.about', view: 'about', path: '#/nosotros' },
+    { nameKey: 'header.contact', view: 'contact', path: '#/contacto' },
   ];
 
-  const isActive = (path?: string) => {
-    if (!path) return false;
-    if (!pathname) return false;
-    if (path === '/' && pathname === '/') return true;
-    if (path !== '/' && pathname.startsWith(path)) return true;
-    return false;
+  const handleLinkClick = (e: React.MouseEvent, view?: ViewType) => {
+    if (!view) return;
+    e.preventDefault();
+    onNavigate(view);
+    setIsMenuOpen(false);
   };
 
   return (
@@ -39,9 +50,10 @@ export const Header: React.FC = () => {
         <div className="flex justify-between items-center h-20 md:h-24">
           
           {/* Logo Area */}
-          <Link 
-            href="/" 
-            className="flex-shrink-0 flex items-center cursor-pointer select-none"
+          <a 
+            href="#/" 
+            className="flex-shrink-0 flex items-center cursor-pointer select-none" 
+            onClick={(e) => handleLinkClick(e, 'home')}
             aria-label="Volver a inicio"
           >
             <img 
@@ -49,7 +61,7 @@ export const Header: React.FC = () => {
               src="https://i.ibb.co/QvzK6db3/Logo-Negativo.png" 
               alt="RentiaRoom" 
             />
-          </Link>
+          </a>
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex space-x-6 xl:space-x-8 items-center">
@@ -65,21 +77,23 @@ export const Header: React.FC = () => {
                   {t(link.nameKey)}
                 </a>
               ) : (
-                <Link
+                <a
                   key={link.nameKey}
-                  href={link.path!}
-                  className={`font-medium text-[15px] transition-colors ${isActive(link.path) ? 'text-[#edcd20]' : 'text-white hover:text-[#edcd20]'}`}
+                  href={link.path}
+                  onClick={(e) => handleLinkClick(e, link.view)}
+                  className="text-white hover:text-[#edcd20] font-medium text-[15px] transition-colors cursor-pointer"
                 >
                   {t(link.nameKey)}
-                </Link>
+                </a>
               )
             ))}
-             <Link 
-              href="/oportunidades"
-              className={`font-bold border-b-2 px-1 py-1 text-[15px] transition-colors cursor-pointer ${isActive('/oportunidades') ? 'text-[#edcd20] border-[#edcd20]' : 'text-white border-[#edcd20] hover:text-[#edcd20]'}`}
+             <a 
+              href="#/oportunidades"
+              onClick={(e) => handleLinkClick(e, 'list')}
+              className="text-white hover:text-[#edcd20] font-bold border-b-2 border-[#edcd20] px-1 py-1 text-[15px] transition-colors cursor-pointer"
             >
               {t('header.opportunities')}
-            </Link>
+            </a>
 
             {/* Language Switcher Desktop */}
             <button 
@@ -128,23 +142,23 @@ export const Header: React.FC = () => {
                   {t(link.nameKey)}
                 </a>
               ) : (
-                <Link
+                <a
                   key={link.nameKey}
-                  href={link.path!}
-                  onClick={() => setIsMenuOpen(false)}
-                  className={`block w-full text-left px-4 py-4 rounded-lg text-lg font-medium transition-colors border-b border-white/10 ${isActive(link.path) ? 'text-[#edcd20] bg-[#005b9f]' : 'text-white hover:bg-[#005b9f] hover:text-[#edcd20]'}`}
+                  href={link.path}
+                  onClick={(e) => handleLinkClick(e, link.view)}
+                  className="block w-full text-left px-4 py-4 rounded-lg text-lg font-medium text-white hover:bg-[#005b9f] hover:text-[#edcd20] transition-colors border-b border-white/10 cursor-pointer"
                 >
                   {t(link.nameKey)}
-                </Link>
+                </a>
               )
             ))}
-            <Link 
-              href="/oportunidades"
-              onClick={() => setIsMenuOpen(false)}
+            <a 
+              href="#/oportunidades"
+              onClick={(e) => handleLinkClick(e, 'list')}
               className="block w-full text-left px-4 py-4 rounded-lg text-lg font-bold text-[#1c1c1c] bg-[#edcd20] border border-[#edcd20] cursor-pointer mt-4 text-center shadow-lg"
             >
               {t('header.opportunities_mobile')}
-            </Link>
+            </a>
           </div>
         </div>
       )}

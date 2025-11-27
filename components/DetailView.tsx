@@ -4,7 +4,6 @@ import { Opportunity } from '../types';
 import { ArrowLeft, Check, MapPin, Users, Printer, TrendingUp, Bed, Maximize, Building, Bath, X, Settings, ChevronLeft, ChevronRight, PlayCircle, ExternalLink } from 'lucide-react';
 import { ImageLightbox } from './ImageLightbox';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useRouter } from 'next/navigation';
 
 interface Props {
   opportunity: Opportunity;
@@ -13,15 +12,14 @@ interface Props {
   onPrev: () => void;
   hasNext: boolean;
   hasPrev: boolean;
-  // onNavigate removido
+  onNavigate: (view: 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts' | 'blog') => void;
 }
 
 type RentalStrategy = 'rooms' | 'traditional';
 
-export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPrev, hasNext, hasPrev }) => {
+export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPrev, hasNext, hasPrev, onNavigate }) => {
   const { financials, specs, images, videos, driveFolder } = opportunity;
   const { t } = useLanguage();
-  const router = useRouter();
   
   // State
   const [rentalStrategy, setRentalStrategy] = useState<RentalStrategy>(
@@ -456,7 +454,7 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
                  </div>
 
                  {/* Contact Card */}
-                 <div className="bg-rentia-blue text-white p-6 rounded-2xl shadow-xl relative overflow-hidden group cursor-pointer hover:shadow-2xl transition-all no-print" onClick={() => router.push('/contacto')}>
+                 <div className="bg-rentia-blue text-white p-6 rounded-2xl shadow-xl relative overflow-hidden group cursor-pointer hover:shadow-2xl transition-all no-print" onClick={() => onNavigate('contact')}>
                      <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 group-hover:bg-white/20 transition-colors"></div>
                      <h3 className="text-xl font-bold font-display mb-2 relative z-10">{t('home.cta.title')}</h3>
                      <p className="text-blue-100 text-sm mb-6 relative z-10 leading-relaxed">

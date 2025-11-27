@@ -1,9 +1,15 @@
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
 
-/**
- * This file is deprecated as part of the migration to Next.js.
- * The application entry point is now managed by Next.js in the app/ directory.
- * 
- * If you are running this project, ensure you are using 'next dev' and accessing the
- * Next.js served pages, rather than 'index.html'.
- */
-export {};
+const rootElement = document.getElementById('root');
+if (!rootElement) {
+  throw new Error("Could not find root element to mount to");
+}
+
+const root = ReactDOM.createRoot(rootElement);
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);

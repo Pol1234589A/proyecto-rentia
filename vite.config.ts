@@ -2,7 +2,8 @@ import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import prerender from '@prerenderer/rollup-plugin';
-import Renderer from '@prerenderer/renderer-puppeteer';
+// 👇 CAMBIO AQUÍ: Importamos el renderer ligero
+import Renderer from '@prerenderer/renderer-jsdom';
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
@@ -24,10 +25,9 @@ export default defineConfig(({ mode }) => {
              '/descuentos',
              '/blog'
           ],
+          // 👇 CONFIGURACIÓN SIMPLIFICADA PARA JSDOM
           renderer: new Renderer({
-              renderAfterTime: 1000,
-              headless: true,
-              args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+              renderAfterTime: 1000, // Esperamos 1 seg a que cargue React
           }),
           postProcess(renderedRoute) {
             renderedRoute.html = renderedRoute.html

@@ -16,7 +16,7 @@
   },
   "devDependencies": {
     "@prerenderer/rollup-plugin": "latest",
-    "@prerenderer/renderer-puppeteer": "latest",
+    "@prerenderer/renderer-jsdom": "latest", 
     "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
     "typescript": "~5.8.2",

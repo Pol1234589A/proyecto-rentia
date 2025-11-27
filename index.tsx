@@ -1,8 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
-// 1. IMPORTAMOS EL ROUTER 👇
 import { BrowserRouter } from 'react-router-dom';
+// 👇 NUEVO: Importamos los estilos de Tailwind
+import './index.css'; 
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -12,7 +13,6 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    {/* 2. ENVOLVEMOS LA APP PARA ACTIVAR EL ROUTER 👇 */}
     <BrowserRouter>
       <App />
     </BrowserRouter>

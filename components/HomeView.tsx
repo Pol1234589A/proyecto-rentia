@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronDown, Check, KeyRound, TrendingUp, ClipboardList, Sparkles, Settings, FileBarChart, ArrowRight, ShieldCheck, UserCheck, Home, MessageCircle, X, Megaphone, Star, Quote, CheckCircle, Users, Smartphone, Clock, FileText } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { NewsTicker } from './NewsTicker';
 
 interface FAQItemProps {
   question: string;
@@ -53,7 +54,6 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
   const { t } = useLanguage();
 
   // --- SEO INJECTION: FAQPage Schema ---
-  // This tells Google specifically that this page contains FAQs, increasing the chance of appearing in rich snippets.
   useEffect(() => {
     const faqData = {
       "@context": "https://schema.org",
@@ -160,7 +160,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
   return (
     <div className="font-sans bg-white">
       
-      {/* --- HERO SECTION WITH VIDEO BACKGROUND --- */}
+      {/* --- HERO SECTION --- */}
       <section className="relative min-h-[75vh] md:min-h-[85vh] w-full overflow-hidden flex items-center text-white py-16 md:py-0">
         <div className="absolute inset-0 w-full h-full z-0">
           <video 
@@ -174,7 +174,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
             <source src="https://cdn.coverr.co/videos/coverr-living-room-interior-2624/1080p.mp4" type="video/mp4" />
             Tu navegador no soporta videos HTML5.
           </video>
-          {/* Dark Overlay with Blur for better text readability */}
+          {/* Dark Overlay with Blur */}
           <div className="absolute inset-0 bg-rentia-black/60 backdrop-blur-[2px]"></div>
           <div className="absolute inset-0 bg-rentia-blue/20 mix-blend-overlay"></div>
         </div>
@@ -210,6 +210,9 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
             </div>
         </div>
       </section>
+
+      {/* --- NEWS TICKER (INSERTED HERE) --- */}
+      <NewsTicker />
 
       {/* --- MODELO DE GESTIÓN --- */}
       <section className="py-16 md:py-20 bg-white">
@@ -258,9 +261,10 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
           </div>
       </section>
 
-      {/* --- SOLUTIONS CARDS --- */}
+      {/* --- RESTO DEL CONTENIDO (SIN CAMBIOS) --- */}
+      {/* ... (Solutions, Process, Steps, CTA, Testimonials, FAQ, Contact) */}
       <section className="py-20 md:py-24 bg-gray-50 relative">
-          <div className="absolute top-0 left-0 w-full h-96 md:h-64 bg-white"></div> {/* Top white spacing fix - adjusted for mobile text wrap */}
+          <div className="absolute top-0 left-0 w-full h-96 md:h-64 bg-white"></div> {/* Top white spacing fix */}
           
           <div className="container mx-auto px-4 relative z-10">
               <div className="text-center max-w-3xl mx-auto mb-12 md:mb-16">
@@ -269,7 +273,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-                  {/* Card 1: Gestión Completa */}
+                  {/* Card 1 */}
                   <div className="bg-white p-8 md:p-10 rounded-2xl shadow-idealista hover:shadow-idealista-hover transition-all duration-300 group border border-gray-100 flex flex-col items-center text-center hover:-translate-y-1">
                       <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-blue-50 text-rentia-blue flex items-center justify-center mb-6 group-hover:bg-rentia-blue group-hover:text-white transition-colors duration-300">
                           <KeyRound className="w-8 h-8 md:w-10 md:h-10" />
@@ -278,7 +282,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
                       <p className="text-gray-600 leading-relaxed text-sm md:text-base">{t('home.solutions.card1_desc')}</p>
                   </div>
                   
-                   {/* Card 2: Estrategia de Ocupación */}
+                   {/* Card 2 */}
                    <div className="bg-white p-8 md:p-10 rounded-2xl shadow-idealista hover:shadow-idealista-hover transition-all duration-300 group border border-gray-100 flex flex-col items-center text-center hover:-translate-y-1">
                       <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-yellow-50 text-rentia-gold flex items-center justify-center mb-6 group-hover:bg-rentia-gold group-hover:text-rentia-black transition-colors duration-300">
                           <Megaphone className="w-8 h-8 md:w-10 md:h-10" />
@@ -366,7 +370,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
             </div>
         )}
 
-      {/* --- STEPS SECTION (Updated Content) --- */}
+      {/* --- STEPS SECTION --- */}
       <section className="py-16 md:py-24 bg-gray-50">
           <div className="container mx-auto px-4">
               <div className="text-center mb-12 md:mb-16 max-w-3xl mx-auto">
@@ -452,7 +456,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
            </div>
        </section>
 
-      {/* --- TESTIMONIALS SECTION (PREMIUM MASONRY) --- */}
+      {/* --- TESTIMONIALS SECTION --- */}
       <section className="py-16 md:py-24 bg-gray-50">
           <div className="container mx-auto px-4">
               <div className="text-center mb-12 md:mb-16">
@@ -526,7 +530,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
           </div>
       </section>
 
-      {/* --- NEW DUAL CONTACT SECTION (WhatsApp Focused) --- */}
+      {/* --- DUAL CONTACT SECTION --- */}
       <section className="py-16 md:py-24 bg-gray-50">
           <div className="container mx-auto px-4">
               <div className="text-center mb-10 md:mb-12 max-w-2xl mx-auto">
@@ -538,7 +542,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
                   
-                  {/* Card 1: SANDRA (Admin/Owners) */}
+                  {/* Card 1: SANDRA */}
                   <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                       <div className="bg-rentia-black p-6 text-white relative overflow-hidden">
                           <div className="absolute top-0 right-0 w-32 h-32 bg-gray-700 rounded-full mix-blend-overlay filter blur-2xl -translate-y-1/2 translate-x-1/2"></div>
@@ -582,7 +586,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
                       </div>
                   </div>
 
-                  {/* Card 2: POL (Management/Strategy) */}
+                  {/* Card 2: POL */}
                   <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                       <div className="bg-rentia-blue p-6 text-white relative overflow-hidden">
                            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-400 rounded-full mix-blend-overlay filter blur-2xl -translate-y-1/2 translate-x-1/2"></div>

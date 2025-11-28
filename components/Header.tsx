@@ -57,7 +57,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
             aria-label="Volver a inicio"
           >
             <img 
-              className="h-10 md:h-14 w-auto object-contain" 
+              className="h-10 md:h-12 w-auto object-contain" 
               src="https://i.ibb.co/QvzK6db3/Logo-Negativo.png" 
               alt="RentiaRoom" 
             />

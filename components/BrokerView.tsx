@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { brokerRequests, RequestTag } from '../data/brokerRequests';
-import { Briefcase, Search, MapPin, FileText, MessageCircle, ArrowRight, Building2, ShieldCheck, Filter, X, AlertCircle, Handshake, Crown, Star } from 'lucide-react';
+import { Briefcase, Search, MapPin, FileText, MessageCircle, ArrowRight, Building2, ShieldCheck, Filter, X, AlertCircle, Handshake, Crown, Star, Network } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { ModalType } from './LegalModals';
 
@@ -13,6 +13,7 @@ export const BrokerView: React.FC<BrokerViewProps> = ({ openLegalModal }) => {
   const { t } = useLanguage();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterLocation, setFilterLocation] = useState('');
+  const [filterTag, setFilterTag] = useState<RequestTag | 'all'>('all');
 
   // Extract unique locations for the dropdown
   const uniqueLocations = useMemo(() => {
@@ -31,14 +32,25 @@ export const BrokerView: React.FC<BrokerViewProps> = ({ openLegalModal }) => {
               req.specs.toLowerCase().includes(term);
           
           const matchesLocation = filterLocation ? req.location === filterLocation : true;
+          
+          // New Tag Filter Logic
+          let matchesTag = true;
+          if (filterTag !== 'all') {
+              if (filterTag === 'collaboration') {
+                  matchesTag = req.tag === 'collaboration';
+              } else if (filterTag === 'own') {
+                  matchesTag = req.tag === 'own' || req.tag === 'exclusive';
+              }
+          }
 
-          return matchesSearch && matchesLocation;
+          return matchesSearch && matchesLocation && matchesTag;
       });
-  }, [searchTerm, filterLocation]);
+  }, [searchTerm, filterLocation, filterTag]);
 
   const clearFilters = () => {
       setSearchTerm('');
       setFilterLocation('');
+      setFilterTag('all');
   };
 
   const getTagStyle = (tag: RequestTag) => {
@@ -92,7 +104,7 @@ export const BrokerView: React.FC<BrokerViewProps> = ({ openLegalModal }) => {
           <div className="bg-white p-6 md:p-8 rounded-xl shadow-lg border-l-4 border-rentia-gold max-w-4xl mx-auto">
               <div className="flex items-start gap-4">
                   <div className="p-3 bg-yellow-50 rounded-full text-rentia-gold hidden md:block">
-                      <Search className="w-6 h-6" />
+                      <Network className="w-6 h-6" />
                   </div>
                   <div>
                       <h3 className="text-xl font-bold text-rentia-black mb-2">{t('brokers.intro.title')}</h3>
@@ -109,53 +121,83 @@ export const BrokerView: React.FC<BrokerViewProps> = ({ openLegalModal }) => {
           
           {/* Filters Bar */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
-              <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
-                  <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto flex-grow">
-                      
-                      {/* Search Input */}
-                      <div className="relative w-full md:max-w-xs">
-                          <input 
-                              type="text" 
-                              placeholder={t('brokers.filter.search_placeholder')} 
-                              value={searchTerm}
-                              onChange={(e) => setSearchTerm(e.target.value)}
-                              className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-rentia-blue/50 text-sm bg-gray-50 focus:bg-white transition-all"
-                          />
-                          <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
+              <div className="flex flex-col gap-4">
+                  
+                  {/* Row 1: Search & Location */}
+                  <div className="flex flex-col md:flex-row gap-4 justify-between items-center w-full">
+                      <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto flex-grow">
+                          {/* Search Input */}
+                          <div className="relative w-full md:max-w-xs">
+                              <input 
+                                  type="text" 
+                                  placeholder={t('brokers.filter.search_placeholder')} 
+                                  value={searchTerm}
+                                  onChange={(e) => setSearchTerm(e.target.value)}
+                                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-rentia-blue/50 text-sm bg-gray-50 focus:bg-white transition-all"
+                              />
+                              <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
+                          </div>
+
+                          {/* Location Dropdown */}
+                          <div className="relative w-full md:max-w-xs">
+                              <select 
+                                  value={filterLocation}
+                                  onChange={(e) => setFilterLocation(e.target.value)}
+                                  className="w-full pl-10 pr-8 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-rentia-blue/50 text-sm bg-gray-50 focus:bg-white transition-all appearance-none cursor-pointer"
+                              >
+                                  <option value="">{t('brokers.filter.all_zones')}</option>
+                                  {uniqueLocations.map(loc => (
+                                      <option key={loc} value={loc}>{loc}</option>
+                                  ))}
+                              </select>
+                              <MapPin className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
+                              <div className="absolute right-3 top-3 pointer-events-none">
+                                  <Filter className="w-4 h-4 text-gray-400" />
+                              </div>
+                          </div>
                       </div>
 
-                      {/* Location Dropdown */}
-                      <div className="relative w-full md:max-w-xs">
-                          <select 
-                              value={filterLocation}
-                              onChange={(e) => setFilterLocation(e.target.value)}
-                              className="w-full pl-10 pr-8 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-rentia-blue/50 text-sm bg-gray-50 focus:bg-white transition-all appearance-none cursor-pointer"
-                          >
-                              <option value="">{t('brokers.filter.all_zones')}</option>
-                              {uniqueLocations.map(loc => (
-                                  <option key={loc} value={loc}>{loc}</option>
-                              ))}
-                          </select>
-                          <MapPin className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
-                          <div className="absolute right-3 top-3 pointer-events-none">
-                              <Filter className="w-4 h-4 text-gray-400" />
-                          </div>
+                      {/* Results Count & Clear */}
+                      <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 border-gray-100 pt-3 md:pt-0">
+                          <span className="text-xs font-medium text-gray-500">
+                              {filteredRequests.length} {t('brokers.filter.results_count')}
+                          </span>
+                          {(searchTerm || filterLocation || filterTag !== 'all') && (
+                              <button 
+                                  onClick={clearFilters}
+                                  className="text-xs font-bold text-red-500 hover:text-red-700 flex items-center gap-1"
+                              >
+                                  <X className="w-3 h-3" /> {t('common.close')}
+                              </button>
+                          )}
                       </div>
                   </div>
 
-                  {/* Results Count & Clear */}
-                  <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 border-gray-100 pt-3 md:pt-0">
-                      <span className="text-xs font-medium text-gray-500">
-                          {filteredRequests.length} {t('brokers.filter.results_count')}
+                  {/* Row 2: Origin Tags Filter */}
+                  <div className="flex items-center gap-2 pt-2 border-t border-gray-100 w-full overflow-x-auto no-scrollbar">
+                      <span className="text-xs font-bold text-gray-500 uppercase tracking-wide mr-2 flex-shrink-0">
+                          {t('brokers.filter.source_label')}
                       </span>
-                      {(searchTerm || filterLocation) && (
-                          <button 
-                              onClick={clearFilters}
-                              className="text-xs font-bold text-red-500 hover:text-red-700 flex items-center gap-1"
-                          >
-                              <X className="w-3 h-3" /> {t('common.close')}
-                          </button>
-                      )}
+                      <button 
+                          onClick={() => setFilterTag('all')}
+                          className={`px-3 py-1 rounded-full text-xs font-bold transition-all border whitespace-nowrap ${filterTag === 'all' ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}
+                      >
+                          {t('brokers.filter.all_sources')}
+                      </button>
+                      <button 
+                          onClick={() => setFilterTag('own')}
+                          className={`px-3 py-1 rounded-full text-xs font-bold transition-all border whitespace-nowrap flex items-center gap-1 ${filterTag === 'own' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-white text-gray-600 border-gray-200 hover:border-green-200'}`}
+                      >
+                          <Star className="w-3 h-3" />
+                          {t('brokers.filter.own_source')}
+                      </button>
+                      <button 
+                          onClick={() => setFilterTag('collaboration')}
+                          className={`px-3 py-1 rounded-full text-xs font-bold transition-all border whitespace-nowrap flex items-center gap-1 ${filterTag === 'collaboration' ? 'bg-indigo-100 text-indigo-700 border-indigo-200' : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-200'}`}
+                      >
+                          <Handshake className="w-3 h-3" />
+                          {t('brokers.filter.collab_source')}
+                      </button>
                   </div>
               </div>
           </div>
@@ -306,7 +348,7 @@ export const BrokerView: React.FC<BrokerViewProps> = ({ openLegalModal }) => {
                           <Filter className="w-8 h-8 opacity-50" />
                       </div>
                       <p>{t('brokers.table.empty')}</p>
-                      {(searchTerm || filterLocation) && (
+                      {(searchTerm || filterLocation || filterTag !== 'all') && (
                           <button onClick={clearFilters} className="text-rentia-blue text-sm font-bold mt-2 hover:underline">
                               Limpiar filtros
                           </button>

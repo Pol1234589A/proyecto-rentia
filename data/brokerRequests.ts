@@ -45,7 +45,7 @@ export const brokerRequests: BrokerRequest[] = [
     condition: 'Movilidad Reducida',
     budget: 0,
     notes: 'Urgente. Movilidad reducida. No hay tope de precio si encaja.',
-    tag: 'collaboration'
+    tag: 'own'
   },
   {
     id: '4',

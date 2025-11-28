@@ -429,16 +429,16 @@ export const translations = {
         confidential: 'Rentia Investments S.L. • Confidential document. Information contained may be subject to change.'
       }
     },
-    // BROKERS SECTION
+    // BROKERS SECTION UPDATED
     brokers: {
       hero: {
-        badge: 'Solo Profesionales',
-        title: 'Encargos de Inversores RentiaRoom',
-        subtitle: 'Consulta en tiempo real qué están buscando nuestros clientes inversores cualificados y contacta con nosotros si tienes un activo que encaje.'
+        badge: 'Profesionales',
+        title: 'Bolsa de Demandas y Colaboración',
+        subtitle: 'Conectamos oferta y demanda. Consulta los encargos de compra de nuestros inversores y las búsquedas activas de nuestra red de colaboración.'
       },
       intro: {
         title: '¿Tienes un inmueble que encaja?',
-        text: 'Nuestros inversores tienen capital disponible y han validado su búsqueda con nosotros. Si eres agente inmobiliario o corredor y tienes un activo que cumpla con los requisitos, contáctanos indicando la referencia.'
+        text: 'Gestionamos mandatos de compra directos y colaboramos difundiendo búsquedas verificadas de compañeros del sector. Si tienes un activo que encaja en cualquiera de estos perfiles, contáctanos.'
       },
       disclaimer: {
         title: 'Nota Importante',
@@ -453,7 +453,11 @@ export const translations = {
         search_placeholder: 'Buscar por ref, tipo...',
         location_label: 'Filtrar por Zona',
         all_zones: 'Todas las zonas',
-        results_count: 'resultados encontrados'
+        results_count: 'resultados encontrados',
+        source_label: 'Origen:',
+        all_sources: 'Todos',
+        own_source: 'Propias',
+        collab_source: 'Red Colaboración'
       },
       table: {
         title: 'Encargos de Compra Activos',
@@ -977,49 +981,53 @@ export const translations = {
         confidential: 'Rentia Investments S.L. • Confidential document. Information contained may be subject to change.'
       }
     },
-    // NEW BROKERS SECTION
+    // NEW BROKERS SECTION UPDATED
     brokers: {
       hero: {
-        badge: 'Professionals Only',
-        title: 'RentiaRoom Investor Orders',
-        subtitle: 'Check in real-time what our qualified investors are looking for and contact us if you have an asset that fits.'
+        badge: 'Profesionales',
+        title: 'Bolsa de Demandas y Colaboración',
+        subtitle: 'Conectamos oferta y demanda. Consulta los encargos de compra de nuestros inversores y las búsquedas activas de nuestra red de colaboración.'
       },
       intro: {
-        title: 'Do you have a property that fits?',
-        text: 'Our investors have available capital and have validated their search with us. If you are a real estate agent or broker and have an asset that meets the requirements, contact us indicating the reference.'
+        title: '¿Tienes un inmueble que encaja?',
+        text: 'Gestionamos mandatos de compra directos y colaboramos difundiendo búsquedas verificadas de compañeros del sector. Si tienes un activo que encaja en cualquiera de estos perfiles, contáctanos.'
       },
       disclaimer: {
-        title: 'Important Note',
-        text: 'Displayed requests may not update automatically if completed or reserved. We perform status checks monthly or when deemed appropriate. Please verify validity when contacting.'
+        title: 'Nota Importante',
+        text: 'Los encargos mostrados pueden no actualizarse automáticamente si se completan o reservan. Realizamos comprobaciones de estado mensualmente o cuando se considera oportuno. Por favor, verifique la vigencia al contactar.'
       },
       tags: {
-        collaboration: 'Collaboration',
-        exclusive: 'Exclusive',
-        own: 'Own'
+        collaboration: 'Colaboración',
+        exclusive: 'Exclusiva',
+        own: 'Propia'
       },
       filter: {
-        search_placeholder: 'Search by ref, type...',
-        location_label: 'Filter by Area',
-        all_zones: 'All areas',
-        results_count: 'results found'
+        search_placeholder: 'Buscar por ref, tipo...',
+        location_label: 'Filtrar por Zona',
+        all_zones: 'Todas las zonas',
+        results_count: 'resultados encontrados',
+        source_label: 'Origen:',
+        all_sources: 'Todos',
+        own_source: 'Propias',
+        collab_source: 'Red Colaboración'
       },
       table: {
-        title: 'Active Purchase Orders',
-        active_req: 'active requirements',
-        ref: 'Reference',
-        date: 'Date',
-        type: 'Type & Specs',
-        location: 'Area / Location',
-        budget: 'Max Budget',
-        action: 'Action',
-        contact_btn: 'I have this asset',
-        empty: 'No orders found matching criteria.',
-        legal_note: 'These data are shown for informational purposes. By contacting RentiaRoom, you accept our'
+        title: 'Encargos de Compra Activos',
+        active_req: 'requerimientos activos',
+        ref: 'Referencia',
+        date: 'Fecha',
+        type: 'Tipo & Características',
+        location: 'Zona / Ubicación',
+        budget: 'Presupuesto Máx',
+        action: 'Acción',
+        contact_btn: 'Tengo este activo',
+        empty: 'No se encontraron encargos con estos criterios.',
+        legal_note: 'Estos datos se muestran con fines informativos. Al contactar con RentiaRoom, usted acepta nuestra'
       },
       footer: {
-        title: 'Are you an agency?',
-        text: 'We actively collaborate with real estate agencies in Murcia. We respect your fees and seek win-win operations. Write to introduce yourself.',
-        legal_contact: 'By clicking on contact means, you accept the processing of your data for collaboration management.'
+        title: '¿Eres una agencia?',
+        text: 'Colaboramos activamente con inmobiliarias de Murcia. Respetamos vuestros honorarios y buscamos operaciones win-win. Escríbenos para presentarnos.',
+        legal_contact: 'Al pulsar en los medios de contacto, aceptas el tratamiento de tus datos para la gestión de la colaboración.'
       }
     },
     legal: {

@@ -21,7 +21,9 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { language, setLanguage, t } = useLanguage();
 
-  const toggleLanguage = () => {
+  const toggleLanguage = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     setLanguage(language === 'es' ? 'en' : 'es');
   };
 
@@ -98,7 +100,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
             {/* Language Switcher Desktop */}
             <button 
                 onClick={toggleLanguage}
-                className="flex items-center gap-1 text-white hover:text-[#edcd20] font-medium text-xs border border-white/30 rounded px-2 py-1 transition-colors"
+                className="flex items-center gap-1 text-white hover:text-[#edcd20] font-medium text-xs border border-white/30 rounded px-2 py-1 transition-colors cursor-pointer"
             >
                 <Globe className="w-3 h-3" />
                 {language === 'es' ? 'EN' : 'ES'}
@@ -109,7 +111,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
           <div className="flex items-center lg:hidden gap-4">
              <button 
                 onClick={toggleLanguage}
-                className="flex items-center gap-1 text-white font-bold text-xs border border-white/30 rounded px-2 py-1"
+                className="flex items-center gap-1 text-white font-bold text-xs border border-white/30 rounded px-2 py-1 cursor-pointer"
             >
                 {language === 'es' ? 'EN' : 'ES'}
             </button>

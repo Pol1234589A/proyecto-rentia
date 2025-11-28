@@ -2,6 +2,7 @@
 import React from 'react';
 import { Users, Briefcase, Heart, Quote, TrendingUp, Home, User } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { CollaborationBanner } from './CollaborationBanner';
 
 export const AboutView: React.FC = () => {
   const { t } = useLanguage();
@@ -203,6 +204,9 @@ export const AboutView: React.FC = () => {
               </div>
           </div>
       </section>
+
+      {/* B2B Collaboration Banner */}
+      <CollaborationBanner />
 
     </div>
   );

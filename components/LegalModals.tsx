@@ -62,21 +62,28 @@ export const LegalModals: React.FC<LegalModalsProps> = ({ activeModal, onClose }
             <p>{t('legal.legal_notice.text1')}</p>
             
             <h3 className="text-rentia-black font-bold text-base mt-6 border-b border-gray-100 pb-2">{t('legal.legal_notice.header1')}</h3>
-            <ul className="space-y-2 mt-2 bg-gray-50 p-4 rounded-lg border border-gray-100">
-                <li><strong>{t('legal.legal_notice.trade_name')}</strong> RentiaRoom</li>
-                <li><strong>{t('legal.legal_notice.activity')}</strong> {t('legal.legal_notice.activity_desc')}</li>
+            <ul className="space-y-2 mt-2 bg-gray-50 p-4 rounded-lg border border-gray-100 font-mono text-xs md:text-sm">
+                <li><strong>{t('legal.legal_notice.trade_name')}</strong> Rentia Investments S.L. (RentiaRoom)</li>
+                <li><strong>NIF:</strong> {t('legal.legal_notice.nif')}</li>
+                <li><strong>{t('legal.legal_notice.address')}</strong> {t('legal.legal_notice.address_val')}</li>
+                <li><strong>{t('legal.legal_notice.registry')}</strong> {t('legal.legal_notice.registry_data')}</li>
                 <li><strong>Email:</strong> <a href="mailto:info@rentiaroom.com" className="text-rentia-blue hover:underline">info@rentiaroom.com</a></li>
-                <li><strong>{t('legal.legal_notice.address')}</strong> Murcia, España.</li>
+                <li><strong>{t('legal.legal_notice.activity')}</strong> {t('legal.legal_notice.activity_desc')}</li>
             </ul>
 
             <h3 className="text-rentia-black font-bold text-base mt-6 border-b border-gray-100 pb-2">{t('legal.legal_notice.header2')}</h3>
-            <p>{t('legal.legal_notice.text2')}</p>
+            <p dangerouslySetInnerHTML={{ __html: t('legal.legal_notice.text2') }}></p>
 
             <h3 className="text-rentia-black font-bold text-base mt-6 border-b border-gray-100 pb-2">{t('legal.legal_notice.header3')}</h3>
             <p>{t('legal.legal_notice.text3')}</p>
 
             <h3 className="text-rentia-black font-bold text-base mt-6 border-b border-gray-100 pb-2">{t('legal.legal_notice.header4')}</h3>
             <p>{t('legal.legal_notice.text4')}</p>
+
+            <h3 className="text-rentia-black font-bold text-base mt-6 border-b border-gray-100 pb-2">{t('legal.legal_notice.header_disclaimer')}</h3>
+            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r">
+                <p className="font-medium text-gray-800">{t('legal.legal_notice.text_disclaimer')}</p>
+            </div>
 
             <h3 className="text-rentia-black font-bold text-base mt-6 border-b border-gray-100 pb-2">{t('legal.legal_notice.header5')}</h3>
             <p>{t('legal.legal_notice.text5')}</p>
@@ -96,10 +103,17 @@ export const LegalModals: React.FC<LegalModalsProps> = ({ activeModal, onClose }
              <p>{t('legal.privacy_policy.text1')}</p>
 
              <h3 className="text-rentia-black font-bold text-base mt-6 border-b border-gray-100 pb-2">{t('legal.privacy_policy.header2')}</h3>
-             <p>{t('legal.privacy_policy.text2')}</p>
+             <ul className="list-disc pl-5 space-y-1">
+                 {t('legal.privacy_policy.purpose_list').map((item: string, idx: number) => (
+                     <li key={idx}>{item}</li>
+                 ))}
+             </ul>
 
              <h3 className="text-rentia-black font-bold text-base mt-6 border-b border-gray-100 pb-2">{t('legal.privacy_policy.header3')}</h3>
              <p>{t('legal.privacy_policy.text3')}</p>
+
+             <h3 className="text-rentia-black font-bold text-base mt-6 border-b border-gray-100 pb-2">{t('legal.privacy_policy.header4')}</h3>
+             <p>{t('legal.privacy_policy.text4')}</p>
           </div>
         );
       

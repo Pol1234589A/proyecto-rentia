@@ -18,7 +18,7 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
   // Load language from localStorage if available
   useEffect(() => {
     const savedLang = localStorage.getItem('rentia-lang') as Language;
-    if (savedLang) {
+    if (savedLang === 'es' || savedLang === 'en') {
       setLanguage(savedLang);
     } else {
         // Auto-detect
@@ -28,6 +28,7 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
   }, []);
 
   const handleSetLanguage = (lang: Language) => {
+    if (lang !== 'es' && lang !== 'en') return; // Safety check
     setLanguage(lang);
     localStorage.setItem('rentia-lang', lang);
   };
@@ -60,7 +61,6 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
         }
         
         // If even fallback fails, return the key itself
-        console.warn(`Translation missing for key: ${path} in language: ${language}`);
         return path;
       }
       current = current[key];

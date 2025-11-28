@@ -1,6 +1,7 @@
 
 export const translations = {
   es: {
+    // ... [KEEP PREVIOUS SECTIONS] ...
     common: {
       back: 'Volver',
       print: 'Imprimir',
@@ -55,8 +56,10 @@ export const translations = {
       director_role: 'Dirección y Oportunidades',
       schedule_admin: 'Lunes a Viernes: 09:00h - 14:00h',
       schedule_dir: 'Lunes a Viernes: 09:00h - 20:00h',
-      rights: '© 2025 Todos los derechos reservados'
+      rights: '© 2025 Todos los derechos reservados',
+      brokers_link: 'Colaboradores & Agencias'
     },
+    // ... [KEEP ALL EXISTING SECTIONS home, services, rooms, about, contact, discounts, opportunities AS IS] ...
     home: {
       hero: {
         badge: 'Gestión Profesional de Alquileres',
@@ -350,7 +353,7 @@ export const translations = {
         savings: 'Ahorro estimado anual',
         savings_note: '*Estimación sobre facturación promedio',
         btn_start: 'Empezar ahora',
-        btn_recalc: 'Recalcular'
+        btn_recalc: 'Recalculate'
       },
       conditions: {
         title: 'Condiciones de los descuentos',
@@ -369,6 +372,11 @@ export const translations = {
         cta: '¿Quieres ser el primero en enterarte?',
         btn: 'Unirme al Canal de Inversores',
         note: 'Acceso gratuito y exclusivo vía WhatsApp'
+      },
+      collaboration: {
+        title: '¿Eres Propietario o Inmobiliaria?',
+        subtitle: 'Estamos buscando activamente nuevas propiedades para nuestra cartera de inversores. Si tienes activos para vender o gestionar, colabora con RentiaRoom.',
+        btn: 'Propose Colaboración'
       },
       card: {
         profitability: 'Rentabilidad',
@@ -421,67 +429,112 @@ export const translations = {
         confidential: 'Rentia Investments S.L. • Confidential document. Information contained may be subject to change.'
       }
     },
+    // NEW BROKERS SECTION
+    brokers: {
+      hero: {
+        badge: 'Solo Profesionales',
+        title: 'Encargos de Inversores RentiaRoom',
+        subtitle: 'Consulta en tiempo real qué están buscando nuestros clientes inversores cualificados y contacta con nosotros si tienes un activo que encaje.'
+      },
+      intro: {
+        title: '¿Tienes un inmueble que encaja?',
+        text: 'Nuestros inversores tienen capital disponible y han validado su búsqueda con nosotros. Si eres agente inmobiliario o corredor y tienes un activo que cumpla con los requisitos, contáctanos indicando la referencia.'
+      },
+      table: {
+        title: 'Encargos de Compra Activos',
+        active_req: 'requerimientos activos',
+        ref: 'Referencia',
+        date: 'Fecha',
+        type: 'Tipo & Características',
+        location: 'Zona / Ubicación',
+        budget: 'Presupuesto Máx',
+        action: 'Acción',
+        contact_btn: 'Tengo este activo',
+        empty: 'No hay encargos activos en este momento.',
+        legal_note: 'Estos datos se muestran con fines informativos. Al contactar con RentiaRoom, usted acepta nuestra'
+      },
+      footer: {
+        title: '¿Eres una agencia?',
+        text: 'Colaboramos activamente con inmobiliarias de Murcia. Respetamos vuestros honorarios y buscamos operaciones win-win. Escríbenos para presentarnos.',
+        legal_contact: 'Al pulsar en los medios de contacto, aceptas el tratamiento de tus datos para la gestión de la colaboración.'
+      }
+    },
     legal: {
       titles: {
-        legal: 'Legal Notice and Terms of Use',
-        privacy: 'Privacy and Data Protection Policy',
-        social: 'Social Media Privacy',
-        cookies: 'Cookie Policy',
-        cookiesPanel: 'Cookie Settings'
+        legal: 'Aviso Legal y Condiciones de Uso',
+        privacy: 'Política de Privacidad y Protección de Datos',
+        social: 'Privacidad en Redes Sociales',
+        cookies: 'Política de Cookies',
+        cookiesPanel: 'Configuración de Cookies'
       },
       legal_notice: {
-         text1: 'In compliance with the duty of information contained in article 10 of Law 34/2002, the following data is reflected below:',
-         header1: '1. Identification Data',
-         trade_name: 'Trade Name:',
-         activity: 'Activity:',
-         activity_desc: 'Real estate investment management, intermediation and rental.',
-         address: 'Address:',
-         header2: '2. Purpose and Scope',
-         text2: 'These conditions regulate the use of the website. Access implies unreserved acceptance.',
-         header3: '3. Intellectual Property',
-         text3: 'RentiaRoom owns all intellectual and industrial property rights of its website.',
-         header4: '4. Exclusion of Guarantees',
-         text4: 'RentiaRoom is not responsible for damages that may be caused by errors or omissions in the contents.',
-         header5: '5. Applicable Law',
-         text5: 'The relationship will be governed by current Spanish regulations and the courts of Murcia.'
+         text1: 'En cumplimiento del deber de información recogido en el artículo 10 de la Ley 34/2002, de 11 de julio, de Servicios de la Sociedad de la Información y del Comercio Electrónico (LSSI-CE), se exponen a continuación los datos identificativos de la empresa propietaria de este sitio web.',
+         header1: '1. Datos Identificativos',
+         trade_name: 'Denominación Social:',
+         nif: 'B-75995308',
+         activity: 'Actividad:',
+         activity_desc: 'Gestión de inversiones inmobiliarias, intermediación y alquiler de habitaciones.',
+         address: 'Domicilio Social:',
+         address_val: 'C/ Brazal de Álamos, 7, 30130, Beniel, Murcia, España.',
+         registry: 'Datos Registrales:',
+         registry_data: 'Sociedad inscrita en el Registro Mercantil de Murcia. Representante legal: Pol Matencio Espinosa (44996927A).',
+         header2: '2. Objeto y Ámbito de Aplicación',
+         text2: 'Las presentes condiciones generales regulan el acceso y uso del sitio web <strong>www.rentiaroom.com</strong> (en adelante, el "Portal"). El acceso al mismo implica la aceptación sin reservas de las presentes condiciones. El usuario se compromete a hacer un uso adecuado de los contenidos y servicios, y a no emplearlos para actividades ilícitas o contrarias a la buena fe y al ordenamiento jurídico.',
+         header3: '3. Propiedad Intelectual e Industrial',
+         text3: 'Todos los derechos de propiedad intelectual e industrial del sitio web y de sus contenidos (textos, imágenes, sonidos, audio, vídeo, diseños, creatividades, software) pertenecen a Rentia Investments S.L. o, en su caso, a terceros licenciantes. Quedan expresamente prohibidas la reproducción, la distribución y la comunicación pública, incluida su modalidad de puesta a disposición, de la totalidad o parte de los contenidos de esta página web, con fines comerciales, en cualquier soporte y por cualquier medio técnico, sin la autorización de RentiaRoom.',
+         header4: '4. Exclusión de Garantías y Responsabilidad',
+         text4: 'Rentia Investments S.L. no se hace responsable, en ningún caso, de los daños y perjuicios de cualquier naturaleza que pudieran ocasionar, a título enunciativo: errores u omisiones en los contenidos, falta de disponibilidad del portal o la transmisión de virus o programas maliciosos o lesivos en los contenidos, a pesar de haber adoptado todas las medidas tecnológicas necesarias para evitarlo.',
+         header_disclaimer: '5. Descarga de Responsabilidad sobre Inversiones',
+         text_disclaimer: 'Rentia Investments S.L. no se hace responsable en ningún momento de las decisiones finales de propietarios o compradores. Toda la información, datos y estudios compartidos por la empresa por cualquier medio (web, documentos, comunicaciones directas) son estimaciones basadas en la experiencia de mercado y no constituyen una declaración contractual ni garantía de resultados futuros. El usuario reconoce que cualquier transacción inmobiliaria conlleva riesgos y debe realizar su propia diligencia debida.',
+         header5: '6. Ley Aplicable y Jurisdicción',
+         text5: 'La relación entre Rentia Investments S.L. y el Usuario se regirá por la normativa española vigente. Para la resolución de cualquier controversia, las partes se someten expresamente a los Juzgados y Tribunales de la ciudad de Murcia, renunciando a cualquier otro fuero que pudiera corresponderles.'
       },
       privacy_policy: {
-         intro: 'RentiaRoom is committed to compliance with the GDPR and LOPDGDD.',
-         header1: '1. Data Controller',
-         text1: 'The controller is RentiaRoom.',
-         header2: '2. Purpose',
-         text2: 'Management of inquiries, contracts, and commercial communications with consent.',
-         header3: '3. Rights',
-         text3: 'You have the right to access, rectification, deletion, limitation, and opposition by sending an email to info@rentiaroom.com.'
+         intro: 'Rentia Investments S.L. se compromete al cumplimiento del Reglamento (UE) 2016/679 (RGPD) y la Ley Orgánica 3/2018 (LOPDGDD).',
+         header1: '1. Responsable del Tratamiento',
+         text1: 'El responsable del tratamiento de sus datos es Rentia Investments S.L., con domicilio en C/ Brazal de Álamos, 7, 30130, Beniel, Murcia. Puede contactar con nosotros para cualquier cuestión relacionada con la privacidad en info@rentiaroom.com.',
+         header2: '2. Finalidad del Tratamiento',
+         text2: 'Sus datos personales serán tratados con las siguientes finalidades:',
+         purpose_list: [
+             'Gestión de consultas y solicitudes realizadas a través de la web o WhatsApp.',
+             'Ejecución de contratos de prestación de servicios o alquiler.',
+             'Envío de comunicaciones comerciales sobre oportunidades de inversión, siempre que haya otorgado su consentimiento expreso.',
+             'Cumplimiento de obligaciones legales, fiscales y contables.'
+         ],
+         header3: '3. Legitimación y Conservación',
+         text3: 'La base legal para el tratamiento es el consentimiento del usuario (al contactar) y/o la ejecución de una relación contractual. Los datos se conservarán mientras se mantenga la relación comercial o durante los años necesarios para cumplir con las obligaciones legales.',
+         header4: '4. Derechos del Usuario',
+         text4: 'Tiene derecho a acceder, rectificar y suprimir los datos, así como otros derechos (limitación, portabilidad, oposición), enviando una solicitud a info@rentiaroom.com. También tiene derecho a presentar una reclamación ante la Agencia Española de Protección de Datos (AEPD) si considera que el tratamiento no se ajusta a la normativa vigente.'
       },
       cookies: {
-         intro: 'A cookie is a file that is downloaded to your computer when you access certain web pages.',
-         types: 'Types of cookies used: Technical (necessary), Analytical (statistics), and Marketing.',
-         manage: 'You can configure your browser to block them or use our configuration panel.'
+         intro: 'Una cookie es un pequeño fichero de texto que se almacena en su navegador cuando accede a casi cualquier página web. Su utilidad es que la web sea capaz de recordar su visita cuando vuelva a navegar por esa página.',
+         types: 'Este sitio web utiliza Cookies Técnicas (necesarias para la navegación y funcionamiento de la web), Cookies Analíticas (para medir la audiencia y tráfico, de forma anónima) y Cookies de Marketing (para gestión de espacios publicitarios).',
+         manage: 'Puede usted permitir, bloquear o eliminar las cookies instaladas en su equipo mediante la configuración de las opciones del navegador instalado en su ordenador.'
       },
       panel: {
-         intro: 'This panel allows you to configure your consent preferences.',
-         technical: 'Technical Cookies',
-         technical_desc: 'Necessary for navigation. Cannot be disabled.',
-         mandatory: 'Mandatory',
-         analytics: 'Analytical Cookies',
-         analytics_desc: 'Measurement and statistical analysis of the use of the service.',
-         marketing: 'Marketing Cookies',
-         marketing_desc: 'Tracking for effective management of advertising spaces.',
-         save: 'Save Preferences'
+         intro: 'Este panel le permite configurar sus preferencias de consentimiento para las cookies que utilizamos.',
+         technical: 'Cookies Técnicas',
+         technical_desc: 'Son aquellas que permiten al usuario la navegación a través de una página web y la utilización de las diferentes opciones o servicios que en ella existan. No pueden desactivarse.',
+         mandatory: 'Obligatorias',
+         analytics: 'Cookies Analíticas',
+         analytics_desc: 'Permiten el seguimiento y análisis del comportamiento de los usuarios de los sitios web a los que están vinculadas.',
+         marketing: 'Cookies de Marketing',
+         marketing_desc: 'Almacenan información del comportamiento de los usuarios obtenida a través de la observación continuada de sus hábitos de navegación.',
+         save: 'Guardar Preferencias'
       }
     },
     whatsapp: {
-      online: 'Online',
-      closed: 'Closed',
-      opens_at: 'Opens at',
-      admin_label: 'Secretary (Sandra)',
-      admin_desc: 'Admin & Owners',
-      dir_label: 'Management (Pol)',
-      dir_desc: 'Strategy & Investment'
+      online: 'En línea',
+      closed: 'Cerrado',
+      opens_at: 'Abre a las',
+      admin_label: 'Secretaría (Sandra)',
+      admin_desc: 'Admin y Propietarios',
+      dir_label: 'Dirección (Pol)',
+      dir_desc: 'Estrategia e Inversión'
     }
   },
   en: {
+    // ... [KEEP EN COMMON to OPPORTUNITIES AS IS] ...
     common: {
       back: 'Back',
       print: 'Print',
@@ -536,7 +589,8 @@ export const translations = {
       director_role: 'Management & Opportunities',
       schedule_admin: 'Monday to Friday: 09:00h - 14:00h',
       schedule_dir: 'Monday to Friday: 09:00h - 20:00h',
-      rights: '© 2025 All rights reserved'
+      rights: '© 2025 All rights reserved',
+      brokers_link: 'Partners & Agencies'
     },
     home: {
       hero: {
@@ -749,7 +803,7 @@ export const translations = {
       },
       story: {
         title: 'The Origin of RentiaRoom',
-        p1: 'RentiaRoom arises from the collaboration between Pol and Víctor. Pol came from the Personal Real Estate Shopper (PSI) sector, while Víctor came from the field of vacation rental management.',
+        p1: 'RentiaRoom arises from the collaboration between Pol y Víctor. Pol came from the Personal Real Estate Shopper (PSI) sector, while Víctor came from the field of vacation rental management.',
         p2: 'Both decided to join their paths and ways of working to create a joint project focused on rental management.',
         highlight: '"We thank all the people who have worked with us and the owners who have trusted our management from the beginning."',
         quote: '"We unite financial vision and daily operational management."'
@@ -851,6 +905,11 @@ export const translations = {
         btn: 'Join Investor Channel',
         note: 'Free and exclusive access via WhatsApp'
       },
+      collaboration: {
+        title: 'Are you an Owner or Real Estate Agency?',
+        subtitle: 'We are actively looking for new properties for our investor portfolio. If you have assets to sell or manage, collaborate with RentiaRoom.',
+        btn: 'Propose Collaboration'
+      },
       card: {
         profitability: 'Profitability',
         reserved: 'Reserved',
@@ -902,6 +961,36 @@ export const translations = {
         confidential: 'Rentia Investments S.L. • Confidential document. Information contained may be subject to change.'
       }
     },
+    // NEW BROKERS SECTION
+    brokers: {
+      hero: {
+        badge: 'Professionals Only',
+        title: 'RentiaRoom Investor Orders',
+        subtitle: 'Check in real-time what our qualified investors are looking for and contact us if you have an asset that fits.'
+      },
+      intro: {
+        title: 'Do you have a property that fits?',
+        text: 'Our investors have available capital and have validated their search with us. If you are a real estate agent or broker and have an asset that meets the requirements, contact us indicating the reference.'
+      },
+      table: {
+        title: 'Active Purchase Orders',
+        active_req: 'active requirements',
+        ref: 'Reference',
+        date: 'Date',
+        type: 'Type & Specs',
+        location: 'Area / Location',
+        budget: 'Max Budget',
+        action: 'Action',
+        contact_btn: 'I have this asset',
+        empty: 'No active orders at this moment.',
+        legal_note: 'These data are shown for informational purposes. By contacting RentiaRoom, you accept our'
+      },
+      footer: {
+        title: 'Are you an agency?',
+        text: 'We actively collaborate with real estate agencies in Murcia. We respect your fees and seek win-win operations. Write to introduce yourself.',
+        legal_contact: 'By clicking on contact means, you accept the processing of your data for collaboration management.'
+      }
+    },
     legal: {
       titles: {
         legal: 'Legal Notice and Terms of Use',
@@ -911,44 +1000,58 @@ export const translations = {
         cookiesPanel: 'Cookie Settings'
       },
       legal_notice: {
-         text1: 'In compliance with the duty of information contained in article 10 of Law 34/2002, the following data is reflected below:',
+         text1: 'In compliance with the duty of information contained in article 10 of Law 34/2002, of July 11, on Services of the Information Society and Electronic Commerce (LSSI-CE), the following identifying data of the company owning this website is displayed below.',
          header1: '1. Identification Data',
-         trade_name: 'Trade Name:',
+         trade_name: 'Company Name:',
+         nif: 'B-75995308',
          activity: 'Activity:',
          activity_desc: 'Real estate investment management, intermediation and rental.',
-         address: 'Address:',
+         address: 'Registered Address:',
+         address_val: 'C/ Brazal de Álamos, 7, 30130, Beniel, Murcia, Spain.',
+         registry: 'Registry Data:',
+         registry_data: 'Company registered in the Mercantile Registry of Murcia. Legal Representative: Pol Matencio Espinosa (44996927A).',
          header2: '2. Purpose and Scope',
-         text2: 'These conditions regulate the use of the website. Access implies unreserved acceptance.',
+         text2: 'These general conditions regulate access to and use of the website <strong>www.rentiaroom.com</strong> (hereinafter, the "Portal"). Access implies unreserved acceptance of these conditions. The user agrees to make appropriate use of the content and services, and not to use them for illegal activities or contrary to good faith and legal order.',
          header3: '3. Intellectual Property',
-         text3: 'RentiaRoom owns all intellectual and industrial property rights of its website.',
-         header4: '4. Exclusion of Guarantees',
-         text4: 'RentiaRoom is not responsible for damages that may be caused by errors or omissions in the contents.',
-         header5: '5. Applicable Law',
-         text5: 'The relationship will be governed by current Spanish regulations and the courts of Murcia.'
+         text3: 'All intellectual and industrial property rights of the website and its contents (texts, images, sounds, audio, video, designs, creatives, software) belong to Rentia Investments S.L. or, where appropriate, to third-party licensors. The reproduction, distribution, and public communication, including making available, of all or part of the contents of this website, for commercial purposes, on any medium and by any technical means, without the authorization of RentiaRoom, are expressly prohibited.',
+         header4: '4. Exclusion of Guarantees and Liability',
+         text4: 'Rentia Investments S.L. is not responsible, under any circumstances, for damages of any nature that may be caused by, for example: errors or omissions in the contents, lack of availability of the portal, or the transmission of viruses or malicious or harmful programs in the contents, despite having adopted all necessary technological measures to prevent it.',
+         header_disclaimer: '5. Investment Liability Disclaimer',
+         text_disclaimer: 'Rentia Investments S.L. is not responsible at any time for the final decisions of owners or buyers. All information, data, and studies shared by the company through any means (web, documents, direct communications) are estimates based on market experience and do not constitute a contractual statement or guarantee of future results. The user acknowledges that any real estate transaction involves risks and must conduct their own due diligence.',
+         header5: '6. Applicable Law and Jurisdiction',
+         text5: 'The relationship between Rentia Investments S.L. and the User shall be governed by current Spanish regulations. For the resolution of any dispute, the parties expressly submit to the Courts and Tribunals of the city of Murcia, waiving any other jurisdiction that may correspond to them.'
       },
       privacy_policy: {
-         intro: 'RentiaRoom is committed to compliance with the GDPR and LOPDGDD.',
+         intro: 'Rentia Investments S.L. is committed to compliance with Regulation (EU) 2016/679 (GDPR) and Organic Law 3/2018 (LOPDGDD).',
          header1: '1. Data Controller',
-         text1: 'The controller is RentiaRoom.',
-         header2: '2. Purpose',
-         text2: 'Management of inquiries, contracts, and commercial communications with consent.',
-         header3: '3. Rights',
-         text3: 'You have the right to access, rectification, deletion, limitation, and opposition by sending an email to info@rentiaroom.com.'
+         text1: 'The data controller is Rentia Investments S.L., domiciled in C/ Brazal de Álamos, 7, 30130, Beniel, Murcia, Spain. You can contact us for any privacy-related issues at info@rentiaroom.com.',
+         header2: '2. Purpose of Treatment',
+         text2: 'Your personal data will be processed for the following purposes:',
+         purpose_list: [
+             'Management of inquiries and requests made through the website or WhatsApp.',
+             'Execution of service provision or rental contracts.',
+             'Sending commercial communications about investment opportunities, provided you have given your express consent.',
+             'Compliance with legal, fiscal, and accounting obligations.'
+         ],
+         header3: '3. Legitimation and Conservation',
+         text3: 'The legal basis for processing is the user\'s consent (by contacting) and/or the execution of a contractual relationship. Data will be kept as long as the commercial relationship is maintained or for the years necessary to comply with legal obligations.',
+         header4: '4. User Rights',
+         text4: 'You have the right to access, rectify, and delete data, as well as other rights (limitation, portability, opposition), by sending a request to info@rentiaroom.com. You also have the right to file a complaint with the Spanish Data Protection Agency (AEPD) if you consider that the processing does not comply with current regulations.'
       },
       cookies: {
-         intro: 'A cookie is a file that is downloaded to your computer when you access certain web pages.',
-         types: 'Types of cookies used: Technical (necessary), Analytical (statistics), and Marketing.',
-         manage: 'You can configure your browser to block them or use our configuration panel.'
+         intro: 'A cookie is a small text file that is stored in your browser when you access almost any web page. Its utility is that the web is able to remember your visit when you return to browse that page.',
+         types: 'This website uses Technical Cookies (necessary for navigation and operation of the web), Analytical Cookies (to measure audience and traffic, anonymously), and Marketing Cookies (for advertising space management).',
+         manage: 'You can allow, block, or delete cookies installed on your computer by configuring the options of the browser installed on your computer.'
       },
       panel: {
-         intro: 'This panel allows you to configure your consent preferences.',
+         intro: 'This panel allows you to configure your consent preferences for the cookies we use.',
          technical: 'Technical Cookies',
-         technical_desc: 'Necessary for navigation. Cannot be disabled.',
+         technical_desc: 'Those that allow the user to navigate through a web page and use the different options or services that exist in it. Cannot be disabled.',
          mandatory: 'Mandatory',
          analytics: 'Analytical Cookies',
-         analytics_desc: 'Measurement and statistical analysis of the use of the service.',
+         analytics_desc: 'Allow the monitoring and analysis of the behavior of the users of the websites to which they are linked.',
          marketing: 'Marketing Cookies',
-         marketing_desc: 'Tracking for effective management of advertising spaces.',
+         marketing_desc: 'Store information on user behavior obtained through continuous observation of their browsing habits.',
          save: 'Save Preferences'
       }
     },

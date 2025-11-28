@@ -2,11 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import { newsDatabase, NewsItem } from '../data/newsData';
 import { TrendingUp, Info, AlertCircle, LineChart, X, Calendar, Share2, ArrowRight } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export const NewsTicker: React.FC = () => {
   const [currentNews, setCurrentNews] = useState<NewsItem | null>(null);
   const [isVisible, setIsVisible] = useState(true);
   const [activeModalItem, setActiveModalItem] = useState<NewsItem | null>(null);
+  const { language, t } = useLanguage();
 
   // Lógica de Selección de Noticias basada en el Tiempo
   useEffect(() => {
@@ -67,9 +69,22 @@ export const NewsTicker: React.FC = () => {
     }
   };
 
+  // Helper para traducir categorías
+  const translateCategory = (cat: string) => {
+    if (language === 'es') return cat;
+    switch(cat) {
+        case 'Mercado': return 'Market';
+        case 'Regulación': return 'Regulation';
+        case 'Inversión': return 'Investment';
+        case 'Tendencia': return 'Trend';
+        case 'Consejo': return 'Advice';
+        default: return cat;
+    }
+  };
+
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);
-    alert('Enlace copiado al portapapeles');
+    alert(language === 'es' ? 'Enlace copiado al portapapeles' : 'Link copied to clipboard');
   };
 
   return (
@@ -85,7 +100,7 @@ export const NewsTicker: React.FC = () => {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
               </span>
-              <span className="hidden sm:inline">Mercado</span>
+              <span className="hidden sm:inline">{language === 'es' ? 'Mercado' : 'Market'}</span>
               <span className="sm:hidden">Info</span>
             </div>
 
@@ -93,25 +108,25 @@ export const NewsTicker: React.FC = () => {
             <div 
               className="flex-1 flex items-center px-4 py-2 overflow-hidden bg-gray-50/50 cursor-pointer hover:bg-gray-100 transition-colors group"
               onClick={() => setActiveModalItem(currentNews)}
-              title="Leer noticia completa"
+              title={language === 'es' ? "Leer noticia completa" : "Read full story"}
             >
-              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 w-full animate-in fade-in slide-in-from-right-2 duration-500 key={currentNews.id}">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 w-full animate-in fade-in slide-in-from-right-2 duration-500" key={currentNews.id + language}>
                 
                 {/* Categoría Badge */}
                 <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide w-fit flex-shrink-0 border ${getCategoryColor(currentNews.category)}`}>
                   {getIcon(currentNews.category)}
-                  {currentNews.category}
+                  {translateCategory(currentNews.category)}
                 </span>
 
-                {/* Titular */}
+                {/* Titular Traducido */}
                 <p className="text-xs sm:text-sm font-medium text-rentia-black leading-snug line-clamp-2 sm:line-clamp-1 flex-grow group-hover:text-rentia-blue transition-colors">
-                  {currentNews.headline}
+                  {currentNews.headline[language]}
                 </p>
 
                 {/* Fuente & Hint */}
                 <div className="flex items-center gap-2 flex-shrink-0">
                     <span className="text-[10px] text-gray-400 whitespace-nowrap hidden sm:block">
-                        Fuente: {currentNews.source}
+                        {language === 'es' ? 'Fuente:' : 'Source:'} {currentNews.source}
                     </span>
                     <ArrowRight className="w-3 h-3 text-gray-300 group-hover:text-rentia-blue transform group-hover:translate-x-1 transition-all hidden sm:block" />
                 </div>
@@ -142,7 +157,7 @@ export const NewsTicker: React.FC = () => {
                 <div className="p-6 pb-0 flex justify-between items-start">
                     <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border ${getCategoryColor(activeModalItem.category)}`}>
                         {getIcon(activeModalItem.category)}
-                        {activeModalItem.category}
+                        {translateCategory(activeModalItem.category)}
                     </div>
                     <button 
                         onClick={() => setActiveModalItem(null)}
@@ -155,13 +170,13 @@ export const NewsTicker: React.FC = () => {
                 {/* Contenido Modal */}
                 <div className="p-6 overflow-y-auto">
                     <h2 className="text-xl md:text-2xl font-bold font-display text-rentia-black leading-tight mb-4">
-                        {activeModalItem.headline}
+                        {activeModalItem.headline[language]}
                     </h2>
                     
                     <div className="flex items-center gap-4 text-xs text-gray-500 mb-6 pb-6 border-b border-gray-100">
                         <span className="flex items-center gap-1.5">
                             <Calendar className="w-3.5 h-3.5" />
-                            {activeModalItem.date || 'Hoy'}
+                            {activeModalItem.date || (language === 'es' ? 'Hoy' : 'Today')}
                         </span>
                         <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
                         <span className="font-medium text-rentia-blue uppercase tracking-wide">
@@ -170,10 +185,14 @@ export const NewsTicker: React.FC = () => {
                     </div>
 
                     <div className="text-gray-700 leading-relaxed text-sm md:text-base space-y-4">
-                        {activeModalItem.body ? (
-                            <p>{activeModalItem.body}</p>
+                        {activeModalItem.body[language] ? (
+                            <p>{activeModalItem.body[language]}</p>
                         ) : (
-                            <p className="italic text-gray-400">Contenido detallado no disponible en este momento.</p>
+                            <p className="italic text-gray-400">
+                                {language === 'es' 
+                                    ? 'Contenido detallado no disponible en este momento.' 
+                                    : 'Detailed content not available at this moment.'}
+                            </p>
                         )}
                     </div>
                 </div>
@@ -185,13 +204,13 @@ export const NewsTicker: React.FC = () => {
                         className="text-gray-500 hover:text-rentia-blue text-xs font-bold flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white transition-colors"
                     >
                         <Share2 className="w-4 h-4" />
-                        Compartir
+                        {language === 'es' ? 'Compartir' : 'Share'}
                     </button>
                     <button 
                         onClick={() => setActiveModalItem(null)}
                         className="bg-rentia-black text-white px-5 py-2 rounded-lg text-sm font-bold hover:bg-gray-800 transition-colors shadow-md"
                     >
-                        Cerrar noticia
+                        {language === 'es' ? 'Cerrar noticia' : 'Close story'}
                     </button>
                 </div>
             </div>

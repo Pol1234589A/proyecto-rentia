@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Check, UserPlus, FileText, Clock, AlertTriangle, ShieldCheck, Hammer, Search, MessageCircle, X, ArrowRight, Eye, BarChart3, ClipboardCheck, Megaphone, Activity } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { CollaborationBanner } from './CollaborationBanner';
 
 interface PainPoint {
   icon: React.ReactNode;
@@ -405,6 +406,9 @@ export const ServicesView: React.FC = () => {
               </a>
           </div>
       </section>
+
+      {/* B2B Collaboration Banner */}
+      <CollaborationBanner />
 
     </div>
   );

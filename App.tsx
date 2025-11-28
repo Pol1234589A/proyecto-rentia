@@ -12,15 +12,17 @@ import { ContactView } from './components/ContactView';
 import { AboutView } from './components/AboutView';
 import { DiscountsView } from './components/DiscountsView';
 import { BlogView } from './components/BlogView';
+import { BrokerView } from './components/BrokerView'; // Import new view
 import { LegalModals, ModalType } from './components/LegalModals';
+import { CollaborationBanner } from './components/CollaborationBanner';
 import { opportunities } from './data';
 import { TrendingUp, MessageCircle, Bell } from 'lucide-react';
-import { LanguageProvider } from './contexts/LanguageContext';
+import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 
-// Type alias for easier usage
-type ViewType = 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts' | 'blog';
+// Type alias for easier usage - Added 'brokers'
+type ViewType = 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts' | 'blog' | 'brokers';
 
-// Mapping Hash paths to Views for Router
+// Mapping Hash paths to Views for Router - Added broker route
 const PATH_MAP: Record<string, ViewType> = {
   '#/': 'home',
   '#/servicios': 'services',
@@ -29,7 +31,8 @@ const PATH_MAP: Record<string, ViewType> = {
   '#/contacto': 'contact',
   '#/nosotros': 'about',
   '#/descuentos': 'discounts',
-  '#/blog': 'blog'
+  '#/blog': 'blog',
+  '#/colaboradores': 'brokers'
 };
 
 const VIEW_TO_HASH: Record<ViewType, string> = {
@@ -40,13 +43,15 @@ const VIEW_TO_HASH: Record<ViewType, string> = {
   'contact': '#/contacto',
   'about': '#/nosotros',
   'discounts': '#/descuentos',
-  'blog': '#/blog'
+  'blog': '#/blog',
+  'brokers': '#/colaboradores'
 };
 
 function AppContent() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [view, setView] = useState<ViewType>('home');
   const [activeLegalModal, setActiveLegalModal] = useState<ModalType>(null);
+  const { t } = useLanguage();
 
   // Initialize view based on Hash on first load and listen to changes
   useEffect(() => {
@@ -94,17 +99,14 @@ function AppContent() {
     
     switch (view) {
       case 'home':
-        // TARGET: Owners & General Branding
         title = "RentiaRoom Murcia | Gestión de Pisos y Alquiler por Habitaciones";
-        description = "Transformamos tu propiedad en Murcia en una inversión rentable. Nos encargamos de la gestión integral, alquiler por habitaciones y optimización de ingresos.";
+        description = "Transformamos tu propiedad en una inversión rentable. Nos encargamos de la gestión integral, alquiler por habitaciones y optimización de ingresos.";
         break;
       case 'services':
-        // TARGET: Owners
         title = "Servicios de Gestión Integral para Propietarios | RentiaRoom";
         description = "¿Tienes un piso en Murcia? Descubre nuestros servicios de gestión integral, Rent to Rent, seguro de impagos y reformas para alquiler. Despreocúpate y cobra mes a mes.";
         break;
       case 'rooms':
-        // TARGET: Tenants
         title = "Alquiler de Habitaciones en Murcia | Estudiantes y Trabajadores";
         description = "Encuentra tu habitación ideal en Murcia. Pisos compartidos premium para estudiantes UCAM/UMU y trabajadores. Sin comisiones ocultas, totalmente equipadas.";
         break;
@@ -116,7 +118,6 @@ function AppContent() {
             description = `Oportunidad de inversión inmobiliaria en ${opp.city}. ${opp.specs.rooms} habitaciones. Rentabilidad neta estimada alta. Gestión integral incluida por RentiaRoom.`;
           }
         } else {
-          // TARGET: Investors
           title = "Invertir en Murcia | Oportunidades Inmobiliarias Rentables";
           description = "Cartera exclusiva de oportunidades de inversión en Murcia. Pisos analizados para alquiler por habitaciones con altas rentabilidades y gestión delegada.";
         }
@@ -136,6 +137,10 @@ function AppContent() {
       case 'blog':
         title = "Blog Inmobiliario Murcia | Rentabilidad, Inversión y Consejos";
         description = "Artículos expertos sobre inversión inmobiliaria en Murcia, gestión de alquileres, normativa legal y tendencias del mercado. Aprende con RentiaRoom.";
+        break;
+      case 'brokers':
+        title = "Zona Colaboradores Inmobiliarios | RentiaRoom Murcia";
+        description = "Acceso para agentes inmobiliarios y corredores. Consulta los encargos de compra de nuestros inversores cualificados y colabora con nosotros.";
         break;
       default:
         break;
@@ -212,6 +217,8 @@ function AppContent() {
         return <DiscountsView />;
       case 'blog':
         return <BlogView />;
+      case 'brokers':
+        return <BrokerView openLegalModal={openLegalModal} />;
       case 'list':
         return (
           <>
@@ -230,13 +237,13 @@ function AppContent() {
               <div className="relative z-10 container mx-auto px-4 text-center text-white">
                   <div className="inline-flex items-center gap-2 bg-rentia-gold text-rentia-black px-4 py-1 rounded-full mb-6 font-bold text-sm shadow-lg uppercase tracking-wider">
                       <TrendingUp className="w-4 h-4" />
-                      Cartera Exclusiva
+                      {t('opportunities.hero.badge')}
                   </div>
                   <h1 className="text-3xl md:text-5xl font-bold font-display mb-4 drop-shadow-md">
-                      Oportunidades para Inversores
+                      {t('opportunities.hero.title')}
                   </h1>
                   <p className="text-lg md:text-xl text-gray-100 max-w-2xl mx-auto drop-shadow-sm font-light leading-relaxed">
-                      Propiedades seleccionadas y analizadas para ofrecer la máxima rentabilidad mediante nuestro modelo de gestión integral.
+                      {t('opportunities.hero.subtitle')}
                   </p>
               </div>
             </section>
@@ -247,11 +254,11 @@ function AppContent() {
                  <div className="bg-blue-50 p-6 rounded-full mb-6">
                     <Bell className="w-12 h-12 text-rentia-blue" />
                  </div>
-                 <h2 className="text-2xl md:text-3xl font-bold text-rentia-black font-display mb-4">Muy pronto tendremos más</h2>
+                 <h2 className="text-2xl md:text-3xl font-bold text-rentia-black font-display mb-4">{t('opportunities.empty.title')}</h2>
                  <p className="text-gray-600 text-base md:text-lg max-w-2xl mb-8 leading-relaxed">
-                   Actualmente hemos vendido toda nuestra cartera disponible. Estamos analizando nuevos activos que saldrán al mercado en los próximos días.
+                   {t('opportunities.empty.text')}
                    <br/><br/>
-                   <span className="font-semibold text-rentia-black">¿Quieres ser el primero en enterarte?</span> Únete a nuestro canal privado donde publicamos las novedades antes que en la web.
+                   <span className="font-semibold text-rentia-black">{t('opportunities.empty.cta')}</span>
                  </p>
                  
                  <a 
@@ -261,11 +268,14 @@ function AppContent() {
                     className="inline-flex items-center gap-3 bg-[#25D366] hover:bg-[#20ba5c] text-white font-bold py-4 px-8 rounded-xl transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 transform w-full md:w-auto justify-center"
                  >
                     <MessageCircle className="w-6 h-6" />
-                    Unirme al Canal de Inversores
+                    {t('opportunities.empty.btn')}
                  </a>
-                 <p className="text-xs text-gray-400 mt-4">Acceso gratuito y exclusivo vía WhatsApp</p>
+                 <p className="text-xs text-gray-400 mt-4">{t('opportunities.empty.note')}</p>
               </div>
             </div>
+
+            {/* B2B COLLABORATION BANNER - Usando componente reutilizable */}
+            <CollaborationBanner />
           </>
         );
       default:

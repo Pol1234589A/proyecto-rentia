@@ -4,14 +4,14 @@ import { ModalType } from './LegalModals';
 import { useLanguage } from '../contexts/LanguageContext';
 
 interface FooterProps {
-  onNavigate: (view: 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts') => void;
+  onNavigate: (view: 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts' | 'brokers') => void;
   openLegalModal: (type: ModalType) => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({ onNavigate, openLegalModal }) => {
   const { t } = useLanguage();
   
-  const handleNavClick = (e: React.MouseEvent, view: 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts') => {
+  const handleNavClick = (e: React.MouseEvent, view: 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts' | 'brokers') => {
     e.preventDefault();
     onNavigate(view);
   };
@@ -59,6 +59,15 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, openLegalModal }) =>
                     onClick={(e) => handleNavClick(e, 'services')}
                   >
                       {t('header.services')}
+                  </a>
+              </li>
+              <li>
+                  <a 
+                    href="#/colaboradores" 
+                    className="hover:text-[#edcd20] transition-colors text-left cursor-pointer block py-1"
+                    onClick={(e) => handleNavClick(e, 'brokers')}
+                  >
+                      {t('footer.brokers_link')}
                   </a>
               </li>
               <li>

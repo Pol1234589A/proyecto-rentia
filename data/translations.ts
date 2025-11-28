@@ -1,7 +1,7 @@
 
 export const translations = {
   es: {
-    // ... [KEEP PREVIOUS SECTIONS] ...
+    // ... [KEEP ALL EXISTING SECTIONS UP TO BROKERS] ...
     common: {
       back: 'Volver',
       print: 'Imprimir',
@@ -59,7 +59,7 @@ export const translations = {
       rights: '© 2025 Todos los derechos reservados',
       brokers_link: 'Colaboradores & Agencias'
     },
-    // ... [KEEP ALL EXISTING SECTIONS home, services, rooms, about, contact, discounts, opportunities AS IS] ...
+    // ... [SKIP home, services, rooms, about, contact, discounts, opportunities - THEY REMAIN THE SAME] ...
     home: {
       hero: {
         badge: 'Gestión Profesional de Alquileres',
@@ -429,7 +429,7 @@ export const translations = {
         confidential: 'Rentia Investments S.L. • Confidential document. Information contained may be subject to change.'
       }
     },
-    // NEW BROKERS SECTION
+    // BROKERS SECTION
     brokers: {
       hero: {
         badge: 'Solo Profesionales',
@@ -439,6 +439,12 @@ export const translations = {
       intro: {
         title: '¿Tienes un inmueble que encaja?',
         text: 'Nuestros inversores tienen capital disponible y han validado su búsqueda con nosotros. Si eres agente inmobiliario o corredor y tienes un activo que cumpla con los requisitos, contáctanos indicando la referencia.'
+      },
+      filter: {
+        search_placeholder: 'Buscar por ref, tipo...',
+        location_label: 'Filtrar por Zona',
+        all_zones: 'Todas las zonas',
+        results_count: 'resultados encontrados'
       },
       table: {
         title: 'Encargos de Compra Activos',
@@ -450,7 +456,7 @@ export const translations = {
         budget: 'Presupuesto Máx',
         action: 'Acción',
         contact_btn: 'Tengo este activo',
-        empty: 'No hay encargos activos en este momento.',
+        empty: 'No se encontraron encargos con estos criterios.',
         legal_note: 'Estos datos se muestran con fines informativos. Al contactar con RentiaRoom, usted acepta nuestra'
       },
       footer: {
@@ -534,7 +540,7 @@ export const translations = {
     }
   },
   en: {
-    // ... [KEEP EN COMMON to OPPORTUNITIES AS IS] ...
+    // ... [KEEP ALL EXISTING SECTIONS UP TO BROKERS] ...
     common: {
       back: 'Back',
       print: 'Print',
@@ -592,6 +598,7 @@ export const translations = {
       rights: '© 2025 All rights reserved',
       brokers_link: 'Partners & Agencies'
     },
+    // ... [SKIP home, services, rooms, about, contact, discounts, opportunities - THEY REMAIN THE SAME] ...
     home: {
       hero: {
         badge: 'Professional Rental Management',
@@ -972,6 +979,12 @@ export const translations = {
         title: 'Do you have a property that fits?',
         text: 'Our investors have available capital and have validated their search with us. If you are a real estate agent or broker and have an asset that meets the requirements, contact us indicating the reference.'
       },
+      filter: {
+        search_placeholder: 'Search by ref, type...',
+        location_label: 'Filter by Area',
+        all_zones: 'All areas',
+        results_count: 'results found'
+      },
       table: {
         title: 'Active Purchase Orders',
         active_req: 'active requirements',
@@ -982,7 +995,7 @@ export const translations = {
         budget: 'Max Budget',
         action: 'Action',
         contact_btn: 'I have this asset',
-        empty: 'No active orders at this moment.',
+        empty: 'No orders found matching criteria.',
         legal_note: 'These data are shown for informational purposes. By contacting RentiaRoom, you accept our'
       },
       footer: {

@@ -237,7 +237,7 @@ export const translations = {
         check: 'Ver solo con habitaciones libres'
       },
       status: {
-        guide: 'Guía de estados',
+        guide: 'Status Guide',
         free: 'Libre',
         new: 'Nuevo',
         consult: 'Consultar',
@@ -280,7 +280,7 @@ export const translations = {
         title: 'Quiénes Somos',
         subtitle: 'El equipo humano detrás de la gestión.',
         pol: { role: 'Co-fundador y Gerente', desc: 'Co fundador y gerente. Encargado de la captación, relación con inversores, procesos y gestión de propiedades.' },
-        victor: { role: 'Co-fundador', desc: 'Co fundador, estrategia, apoyo en procesos, captación y apoyo en otras tareas.' },
+        victor: { role: 'Co-founder', desc: 'Co fundador, estrategia, apoyo en procesos, captación y apoyo en otras tareas.' },
         sandra: { role: 'Administración', desc: 'Administración, secretaría, relación con el propietario, gestión activa de las propiedades.' }
       },
       values: {
@@ -362,70 +362,70 @@ export const translations = {
     },
     opportunities: {
       hero: {
-        badge: 'Cartera Exclusiva',
-        title: 'Oportunidades para Inversores',
-        subtitle: 'Propiedades seleccionadas y analizadas para ofrecer la máxima rentabilidad mediante nuestro modelo de gestión integral.'
+        badge: 'Exclusive Portfolio',
+        title: 'Investment Opportunities',
+        subtitle: 'Properties selected and analyzed to offer maximum profitability through our comprehensive management model.'
       },
       empty: {
-        title: 'Muy pronto tendremos más',
-        text: 'Actualmente hemos vendido toda nuestra cartera disponible. Estamos analizando nuevos activos que saldrán al mercado en los próximos días.',
-        cta: '¿Quieres ser el primero en enterarte?',
-        btn: 'Unirme al Canal de Inversores',
-        note: 'Acceso gratuito y exclusivo vía WhatsApp'
+        title: 'More coming soon',
+        text: 'We have currently sold our entire available portfolio. We are analyzing new assets that will hit the market in the coming days.',
+        cta: 'Want to be the first to know?',
+        btn: 'Join Investor Channel',
+        note: 'Free and exclusive access via WhatsApp'
       },
       collaboration: {
-        title: '¿Eres Propietario o Inmobiliaria?',
-        subtitle: 'Estamos buscando activamente nuevas propiedades para nuestra cartera de inversores. Si tienes activos para vender o gestionar, colabora con RentiaRoom.',
-        btn: 'Propose Colaboración'
+        title: 'Are you an Owner or Real Estate Agency?',
+        subtitle: 'We are actively looking for new properties for our investor portfolio. If you have assets to sell or manage, collaborate with RentiaRoom.',
+        btn: 'Propose Collaboration'
       },
       card: {
         profitability: 'Rentabilidad',
-        reserved: 'Reservado',
-        sold: 'Vendido',
+        reserved: 'Reserved',
+        sold: 'Sold',
         purchase_price: 'Precio Compra',
         total_investment: 'Inversión Total',
-        rooms: 'habs.',
-        floor: 'planta',
-        btn: 'Ver Análisis Completo'
+        rooms: 'rms',
+        floor: 'floor',
+        btn: 'View Complete Analysis'
       },
       detail: {
-        back: 'Volver a Oportunidades',
-        print: 'Imprimir Ficha',
-        net_yield: 'Rentabilidad Neta',
-        net_monthly: 'Ingreso Neto Mensual',
-        gross_yield: 'Rentabilidad Bruta',
-        financial_study: 'Estudio de Rentabilidad',
-        includes_fees: 'Incluye Honorarios (3% o 3k)',
-        investment_breakdown: 'Desglose de la Inversión',
-        reform_furniture: 'Reforma + Mobiliario',
-        notary_taxes: 'Notaría e Impuestos',
-        agency_fees: 'Honorarios Agencia (+IVA)',
-        strategy: 'Estrategia de Alquiler',
-        rooms_strategy: 'Habitaciones',
-        traditional_strategy: 'Tradicional',
-        management: 'Gestión Integral',
-        active: 'Activada',
-        disabled: 'Desactivada',
-        with_management: 'Con Gestión',
-        self_management: 'Autogestión',
-        monthly_estimation: 'Estimación Mensual',
-        gross_income: 'Ingreso Bruto',
-        expenses_ibi: 'Gastos Comunidad e IBI (aprox)',
-        management_fee: 'Comisión Gestión',
-        management_vat: 'IVA Gestión',
+        back: 'Back to Opportunities',
+        print: 'Print Sheet',
+        net_yield: 'Net Yield',
+        net_monthly: 'Net Monthly Income',
+        gross_yield: 'Gross Yield',
+        financial_study: 'Profitability Study',
+        includes_fees: 'Includes Fees (3% or 3k)',
+        investment_breakdown: 'Investment Breakdown',
+        reform_furniture: 'Renovation + Furniture',
+        notary_taxes: 'Notary & Taxes',
+        agency_fees: 'Agency Fees (+VAT)',
+        strategy: 'Rental Strategy',
+        rooms_strategy: 'Rooms',
+        traditional_strategy: 'Traditional',
+        management: 'Full Management',
+        active: 'Activated',
+        disabled: 'Disabled',
+        with_management: 'With Management',
+        self_management: 'Self-management',
+        monthly_estimation: 'Monthly Estimation',
+        gross_income: 'Gross Income',
+        expenses_ibi: 'Community & IBI Expenses (approx)',
+        management_fee: 'Management Fee',
+        management_vat: 'Management VAT',
         without_management_note: '*Without deducting management',
-        description: 'Descripción',
-        key_points: 'Puntos Clave',
-        area_benefits: 'Beneficios de la Zona',
-        property_summary: 'Resumen del Inmueble',
-        bathrooms: 'baños',
-        elevator: 'Con ascensor',
-        no_elevator: 'Sin ascensor',
-        video_available: 'Disponible (Ver en web)',
+        description: 'Description',
+        key_points: 'Key Points',
+        area_benefits: 'Area Benefits',
+        property_summary: 'Property Summary',
+        bathrooms: 'bathrooms',
+        elevator: 'With elevator',
+        no_elevator: 'No elevator',
+        video_available: 'Available (See on web)',
         multimedia: 'Multimedia',
-        photos: 'Fotos',
-        see_all: 'Ver todas las fotos',
-        appendix: 'Anexo: Galería Fotográfica',
+        photos: 'Photos',
+        see_all: 'See all photos',
+        appendix: 'Annex: Photo Gallery',
         confidential: 'Rentia Investments S.L. • Confidential document. Information contained may be subject to change.'
       }
     },
@@ -439,6 +439,15 @@ export const translations = {
       intro: {
         title: '¿Tienes un inmueble que encaja?',
         text: 'Nuestros inversores tienen capital disponible y han validado su búsqueda con nosotros. Si eres agente inmobiliario o corredor y tienes un activo que cumpla con los requisitos, contáctanos indicando la referencia.'
+      },
+      disclaimer: {
+        title: 'Nota Importante',
+        text: 'Los encargos mostrados pueden no actualizarse automáticamente si se completan o reservan. Realizamos comprobaciones de estado mensualmente o cuando se considera oportuno. Por favor, verifique la vigencia al contactar.'
+      },
+      tags: {
+        collaboration: 'Colaboración',
+        exclusive: 'Exclusiva',
+        own: 'Propia'
       },
       filter: {
         search_placeholder: 'Buscar por ref, tipo...',
@@ -799,7 +808,7 @@ export const translations = {
       },
       card: {
         map: 'View on Map',
-        rooms: 'Rooms'
+        rooms: 'Habitaciones'
       }
     },
     about: {
@@ -978,6 +987,15 @@ export const translations = {
       intro: {
         title: 'Do you have a property that fits?',
         text: 'Our investors have available capital and have validated their search with us. If you are a real estate agent or broker and have an asset that meets the requirements, contact us indicating the reference.'
+      },
+      disclaimer: {
+        title: 'Important Note',
+        text: 'Displayed requests may not update automatically if completed or reserved. We perform status checks monthly or when deemed appropriate. Please verify validity when contacting.'
+      },
+      tags: {
+        collaboration: 'Collaboration',
+        exclusive: 'Exclusive',
+        own: 'Own'
       },
       filter: {
         search_placeholder: 'Search by ref, type...',

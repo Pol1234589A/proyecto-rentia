@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
-import { brokerRequests } from '../data/brokerRequests';
-import { Briefcase, Search, MapPin, FileText, MessageCircle, ArrowRight, Building2, ShieldCheck, Filter, X } from 'lucide-react';
+import { brokerRequests, RequestTag } from '../data/brokerRequests';
+import { Briefcase, Search, MapPin, FileText, MessageCircle, ArrowRight, Building2, ShieldCheck, Filter, X, AlertCircle, Handshake, Crown, Star } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { ModalType } from './LegalModals';
 
@@ -39,6 +39,35 @@ export const BrokerView: React.FC<BrokerViewProps> = ({ openLegalModal }) => {
   const clearFilters = () => {
       setSearchTerm('');
       setFilterLocation('');
+  };
+
+  const getTagStyle = (tag: RequestTag) => {
+      switch(tag) {
+          case 'collaboration':
+              return { 
+                  style: 'bg-indigo-50 text-indigo-700 border-indigo-100', 
+                  icon: <Handshake className="w-3 h-3" />, 
+                  textKey: 'brokers.tags.collaboration' 
+              };
+          case 'exclusive':
+              return { 
+                  style: 'bg-amber-50 text-amber-700 border-amber-100', 
+                  icon: <Crown className="w-3 h-3" />, 
+                  textKey: 'brokers.tags.exclusive' 
+              };
+          case 'own':
+              return { 
+                  style: 'bg-green-50 text-green-700 border-green-100', 
+                  icon: <Star className="w-3 h-3" />, 
+                  textKey: 'brokers.tags.own' 
+              };
+          default:
+              return { 
+                  style: 'bg-gray-50 text-gray-700 border-gray-100', 
+                  icon: <Briefcase className="w-3 h-3" />, 
+                  textKey: 'brokers.tags.collaboration' 
+              };
+      }
   };
 
   return (
@@ -131,6 +160,17 @@ export const BrokerView: React.FC<BrokerViewProps> = ({ openLegalModal }) => {
               </div>
           </div>
 
+          {/* Status Disclaimer Banner */}
+          <div className="bg-orange-50 border-l-4 border-orange-400 p-4 mb-6 rounded-r-lg flex items-start gap-3 shadow-sm">
+              <AlertCircle className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />
+              <div>
+                  <h4 className="text-sm font-bold text-orange-800 mb-1">{t('brokers.disclaimer.title')}</h4>
+                  <p className="text-xs text-orange-700 leading-relaxed">
+                      {t('brokers.disclaimer.text')}
+                  </p>
+              </div>
+          </div>
+
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
               <div className="p-4 md:p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
                   <h2 className="font-bold text-lg text-rentia-black flex items-center gap-2">
@@ -152,83 +192,112 @@ export const BrokerView: React.FC<BrokerViewProps> = ({ openLegalModal }) => {
                           </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100 text-sm text-gray-700">
-                          {filteredRequests.map((req) => (
-                              <tr key={req.id} className="hover:bg-blue-50/30 transition-colors group">
-                                  <td className="p-4 font-mono font-bold text-rentia-blue bg-gray-50/50 group-hover:bg-transparent">
-                                      {req.reference}
-                                  </td>
-                                  <td className="p-4">
-                                      <div className="font-bold text-gray-900 mb-0.5">{req.type}</div>
-                                      <div className="text-xs text-gray-500 flex items-center gap-1">
-                                          <FileText className="w-3 h-3" /> {req.specs}
-                                      </div>
-                                      <div className="text-xs text-gray-500 mt-1 italic opacity-80">
-                                          "{req.condition}"
-                                      </div>
-                                  </td>
-                                  <td className="p-4">
-                                      <div className="flex items-start gap-1.5">
-                                          <MapPin className="w-3.5 h-3.5 mt-0.5 text-gray-400" />
-                                          <span>{req.location}</span>
-                                      </div>
-                                  </td>
-                                  <td className="p-4 text-right font-bold text-slate-800">
-                                      {req.budget.toLocaleString('es-ES')} €
-                                  </td>
-                                  <td className="p-4 text-center">
-                                      <a 
-                                          href={`https://api.whatsapp.com/send?phone=34672886369&text=Hola%20Pol,%20soy%20compa%C3%B1ero%20del%20sector.%20Tengo%20un%20activo%20que%20encaja%20con%20la%20referencia%20${req.reference}.%20He%20le%C3%ADdo%20la%20pol%C3%ADtica%20de%20privacidad.`}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="inline-flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20ba5c] text-white px-4 py-2 rounded-lg font-bold transition-all shadow-sm hover:shadow text-xs"
-                                      >
-                                          <MessageCircle className="w-3.5 h-3.5" />
-                                          {t('brokers.table.contact_btn')}
-                                      </a>
-                                  </td>
-                              </tr>
-                          ))}
+                          {filteredRequests.map((req) => {
+                              const tagInfo = getTagStyle(req.tag);
+                              return (
+                                  <tr key={req.id} className="hover:bg-blue-50/30 transition-colors group">
+                                      <td className="p-4 align-top">
+                                          <div className="font-mono font-bold text-rentia-blue mb-1">{req.reference}</div>
+                                          <div className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider ${tagInfo.style}`}>
+                                              {tagInfo.icon}
+                                              {t(tagInfo.textKey)}
+                                          </div>
+                                      </td>
+                                      <td className="p-4 align-top">
+                                          <div className="font-bold text-gray-900 mb-0.5">{req.type}</div>
+                                          <div className="text-xs text-gray-500 flex items-center gap-1">
+                                              <FileText className="w-3 h-3" /> {req.specs}
+                                          </div>
+                                          <div className="text-xs text-gray-500 mt-1 italic opacity-80">
+                                              "{req.condition}"
+                                          </div>
+                                          {req.notes && (
+                                              <div className="mt-2 text-xs text-slate-600 bg-slate-50 p-2 rounded border border-slate-100">
+                                                  <strong>Nota:</strong> {req.notes}
+                                              </div>
+                                          )}
+                                      </td>
+                                      <td className="p-4 align-top">
+                                          <div className="flex items-start gap-1.5">
+                                              <MapPin className="w-3.5 h-3.5 mt-0.5 text-gray-400" />
+                                              <span>{req.location}</span>
+                                          </div>
+                                      </td>
+                                      <td className="p-4 text-right align-top font-bold text-slate-800">
+                                          {req.budget > 0 ? `${req.budget.toLocaleString('es-ES')} €` : <span className="text-green-600">Flexible</span>}
+                                      </td>
+                                      <td className="p-4 text-center align-middle">
+                                          <a 
+                                              href={`https://api.whatsapp.com/send?phone=34672886369&text=Hola%20Pol,%20tengo%20un%20activo%20que%20encaja%20con%20la%20referencia%20${req.reference}%20(${t(tagInfo.textKey)}).`}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="inline-flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20ba5c] text-white px-4 py-2 rounded-lg font-bold transition-all shadow-sm hover:shadow text-xs"
+                                          >
+                                              <MessageCircle className="w-3.5 h-3.5" />
+                                              {t('brokers.table.contact_btn')}
+                                          </a>
+                                      </td>
+                                  </tr>
+                              );
+                          })}
                       </tbody>
                   </table>
               </div>
 
               {/* MOBILE VIEW: Cards Stack */}
               <div className="md:hidden bg-gray-50 p-4 space-y-4">
-                  {filteredRequests.map((req) => (
-                      <div key={req.id} className="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
-                          <div className="flex justify-between items-start mb-3">
-                              <span className="font-mono text-xs font-bold text-rentia-blue bg-blue-50 px-2 py-1 rounded border border-blue-100">
-                                  {req.reference}
-                              </span>
-                          </div>
-                          
-                          <h4 className="font-bold text-gray-900 mb-1">{req.type}</h4>
-                          <p className="text-xs text-gray-500 mb-3 flex items-center gap-1">
-                              <FileText className="w-3 h-3" /> {req.specs}
-                          </p>
-
-                          <div className="flex items-start gap-2 mb-3 text-sm text-gray-700 bg-gray-50 p-2 rounded">
-                              <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                              <span className="leading-snug">{req.location}</span>
-                          </div>
-
-                          <div className="flex justify-between items-center border-t border-gray-100 pt-3 mt-2">
-                              <div className="flex flex-col">
-                                  <span className="text-[10px] uppercase text-gray-400 font-bold">{t('brokers.table.budget')}</span>
-                                  <span className="font-bold text-lg text-slate-800">{req.budget.toLocaleString('es-ES')} €</span>
+                  {filteredRequests.map((req) => {
+                      const tagInfo = getTagStyle(req.tag);
+                      return (
+                          <div key={req.id} className="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+                              <div className="flex justify-between items-start mb-3">
+                                  <div className="flex flex-col gap-1">
+                                      <span className="font-mono text-xs font-bold text-rentia-blue bg-blue-50 px-2 py-1 rounded border border-blue-100 w-fit">
+                                          {req.reference}
+                                      </span>
+                                      <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wider w-fit ${tagInfo.style}`}>
+                                          {tagInfo.icon}
+                                          {t(tagInfo.textKey)}
+                                      </span>
+                                  </div>
                               </div>
-                              <a 
-                                  href={`https://api.whatsapp.com/send?phone=34672886369&text=Hola%20Pol,%20soy%20compa%C3%B1ero%20del%20sector.%20Tengo%20un%20activo%20que%20encaja%20con%20la%20referencia%20${req.reference}.%20He%20le%C3%ADdo%20la%20pol%C3%ADtica%20de%20privacidad.`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20ba5c] text-white px-4 py-2.5 rounded-lg font-bold shadow-sm text-sm"
-                              >
-                                  <MessageCircle className="w-4 h-4" />
-                                  {t('common.contact')}
-                              </a>
+                              
+                              <h4 className="font-bold text-gray-900 mb-1">{req.type}</h4>
+                              <p className="text-xs text-gray-500 mb-3 flex items-center gap-1">
+                                  <FileText className="w-3 h-3" /> {req.specs}
+                              </p>
+                              
+                              {req.notes && (
+                                  <div className="mb-3 text-xs text-slate-600 bg-slate-50 p-2 rounded border border-slate-100">
+                                      {req.notes}
+                                  </div>
+                              )}
+
+                              <div className="flex items-start gap-2 mb-3 text-sm text-gray-700 bg-gray-50 p-2 rounded">
+                                  <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                                  <span className="leading-snug">{req.location}</span>
+                              </div>
+
+                              <div className="flex justify-between items-center border-t border-gray-100 pt-3 mt-2">
+                                  <div className="flex flex-col">
+                                      <span className="text-[10px] uppercase text-gray-400 font-bold">{t('brokers.table.budget')}</span>
+                                      <span className="font-bold text-lg text-slate-800">
+                                          {req.budget > 0 ? `${req.budget.toLocaleString('es-ES')} €` : <span className="text-green-600 text-base">Flexible</span>}
+                                      </span>
+                                  </div>
+                                  <a 
+                                      href={`https://api.whatsapp.com/send?phone=34672886369&text=Hola%20Pol,%20tengo%20un%20activo%20que%20encaja%20con%20la%20referencia%20${req.reference}%20(${t(tagInfo.textKey)}).`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20ba5c] text-white px-4 py-2.5 rounded-lg font-bold shadow-sm text-sm"
+                                  >
+                                      <MessageCircle className="w-4 h-4" />
+                                      {t('common.contact')}
+                                  </a>
+                              </div>
                           </div>
-                      </div>
-                  ))}
+                      );
+                  })}
               </div>
               
               {filteredRequests.length === 0 && (

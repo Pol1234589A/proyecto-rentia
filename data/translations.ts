@@ -1,7 +1,78 @@
 
 export const translations = {
   es: {
-    // ... [KEEP ALL EXISTING SECTIONS UP TO BROKERS] ...
+    // ... [KEEP ALL EXISTING SECTIONS] ...
+    rooms: {
+      hero: {
+        badge: 'Catálogo en tiempo real',
+        title: 'Habitaciones Disponibles',
+        subtitle: 'Consulta el estado de todas nuestras viviendas gestionadas.',
+        count_label: 'Habitaciones en gestión'
+      },
+      update_alert: {
+        title: 'Aviso de Actualización',
+        text: 'Estamos actualizando las fotografías en la base de datos. El lunes 1 de Diciembre añadiremos 4 habitaciones más en el Barrio de San Andrés, Murcia.'
+      },
+      friend_plan: {
+        badge: 'NUEVO',
+        title: 'Plan Amigo:',
+        highlight: 'Descuento en Suministros',
+        desc: '¿Ya eres inquilino? Si nos traes a un amigo que pase el filtro y alquile con nosotros, te descontamos',
+        desc_amount: '30€',
+        desc_end: 'en tu próxima factura de suministros.',
+        tag_1: 'Acumulable',
+        tag_2: '2 amigos = 60€ dto',
+        btn: 'Recomendar Amigo'
+      },
+      filter: {
+        label: 'Filtrar Viviendas',
+        check: 'Ver solo con habitaciones libres',
+        check_soon: 'Ver liberación próxima (< 45 días)',
+        all_zones: 'Todas las zonas',
+        zone_label: 'Zona',
+        all_profiles: 'Todos los perfiles',
+        profile_label: 'Perfil Inquilino',
+        profile_students: 'Para Estudiantes',
+        profile_workers: 'Para Trabajadores',
+        air_con_label: 'Climatización',
+        air_con_all: 'Indiferente (Aire)',
+        air_con_yes: 'Con Aire Acondicionado',
+        air_con_no: 'Sin Aire Acondicionado',
+        expenses_label: 'Tipo de Gastos',
+        expenses_all: 'Indiferente (Gastos)',
+        expenses_fixed: 'Gastos Fijos',
+        expenses_shared: 'A Repartir',
+        price_min: 'Precio Mín (€)',
+        price_max: 'Precio Máx (€)'
+      },
+      status: {
+        guide: 'Status Guide',
+        free: 'Libre',
+        new: 'Nuevo',
+        consult: 'Consultar',
+        free_in: 'Liberación de habitación',
+        photos_pending: 'Fotografías disponibles en breve',
+        renovation: 'Reformas',
+        renovation_soon: 'En reformas: ¡Estreno pronto!',
+        until: 'Hasta',
+        forecast: 'Previsión',
+        contact: 'Contactar',
+        available: 'Disponible',
+        occupied: 'Completo',
+        fixed_expenses: 'Gastos fijos aparte',
+        shared_expenses: 'Se reparten los gastos'
+      },
+      profile: {
+        students: 'Solo Estudiantes',
+        workers: 'Solo Trabajadores',
+        both: 'Estudiantes y Trabajadores'
+      },
+      card: {
+        map: 'Ver en Mapa',
+        rooms: 'Habitaciones'
+      }
+    },
+    // ... [REST OF SECTIONS UNCHANGED] ...
     common: {
       back: 'Volver',
       print: 'Imprimir',
@@ -33,6 +104,7 @@ export const translations = {
       month: 'mes',
       year: 'año'
     },
+    // ... [KEEP ALL OTHER SECTIONS AS THEY WERE] ...
     header: {
       home: 'Inicio',
       services: 'Servicios',
@@ -59,7 +131,6 @@ export const translations = {
       rights: '© 2025 Todos los derechos reservados',
       brokers_link: 'Colaboradores & Agencias'
     },
-    // ... [SKIP home, services, rooms, about, contact, discounts, opportunities - THEY REMAIN THE SAME] ...
     home: {
       hero: {
         badge: 'Gestión Profesional de Alquileres',
@@ -214,55 +285,7 @@ export const translations = {
         btn: 'Contáctanos por WhatsApp'
       }
     },
-    rooms: {
-      hero: {
-        badge: 'Catálogo en tiempo real',
-        title: 'Habitaciones Disponibles',
-        subtitle: 'Consulta el estado de todas nuestras viviendas gestionadas.',
-        count_label: 'Habitaciones en gestión'
-      },
-      friend_plan: {
-        badge: 'NUEVO',
-        title: 'Plan Amigo:',
-        highlight: 'Descuento en Suministros',
-        desc: '¿Ya eres inquilino? Si nos traes a un amigo que pase el filtro y alquile con nosotros, te descontamos',
-        desc_amount: '30€',
-        desc_end: 'en tu próxima factura de suministros.',
-        tag_1: 'Acumulable',
-        tag_2: '2 amigos = 60€ dto',
-        btn: 'Recomendar Amigo'
-      },
-      filter: {
-        label: 'Filtrar Viviendas',
-        check: 'Ver solo con habitaciones libres'
-      },
-      status: {
-        guide: 'Status Guide',
-        free: 'Libre',
-        new: 'Nuevo',
-        consult: 'Consultar',
-        free_in: 'Liberación de habitación',
-        photos_pending: 'Fotografías disponibles en breve',
-        renovation: 'Reformas',
-        renovation_soon: 'En reformas: ¡Estreno pronto!',
-        until: 'Hasta',
-        forecast: 'Previsión',
-        contact: 'Contactar',
-        available: 'Disponible',
-        occupied: 'Completo',
-        fixed_expenses: 'Gastos fijos aparte',
-        shared_expenses: 'Se reparten los gastos'
-      },
-      profile: {
-        students: 'Solo Estudiantes',
-        workers: 'Solo Trabajadores',
-        both: 'Estudiantes y Trabajadores'
-      },
-      card: {
-        map: 'Ver en Mapa',
-        rooms: 'Habitaciones'
-      }
-    },
+    // ... [REST OF SECTIONS] ...
     about: {
       hero: {
         badge: 'Nuestra Historia',
@@ -429,7 +452,7 @@ export const translations = {
         confidential: 'Rentia Investments S.L. • Confidential document. Information contained may be subject to change.'
       }
     },
-    // BROKERS SECTION UPDATED
+    // BROKERS SECTION
     brokers: {
       hero: {
         badge: 'Profesionales',
@@ -553,7 +576,78 @@ export const translations = {
     }
   },
   en: {
-    // ... [KEEP ALL EXISTING SECTIONS UP TO BROKERS] ...
+    // ... [KEEP ALL EXISTING SECTIONS] ...
+    rooms: {
+      hero: {
+        badge: 'Real-time Catalog',
+        title: 'Available Rooms',
+        subtitle: 'Check the status of all our managed homes.',
+        count_label: 'Rooms under management'
+      },
+      update_alert: {
+        title: 'Update Notice',
+        text: 'We are updating the photos in our database. On Monday, December 1st, we will add 4 more rooms in the San Andrés neighborhood, Murcia.'
+      },
+      friend_plan: {
+        badge: 'NEW',
+        title: 'Friend Plan:',
+        highlight: 'Discount on Supplies',
+        desc: 'Already a tenant? If you bring us a friend who passes the filter and rents with us, we discount',
+        desc_amount: '30€',
+        desc_end: 'on your next supplies bill.',
+        tag_1: 'Cumulative',
+        tag_2: '2 friends = 60€ off',
+        btn: 'Refer a Friend'
+      },
+      filter: {
+        label: 'Filter Homes',
+        check: 'Show only with free rooms',
+        check_soon: 'Show rooms available soon (< 45 days)',
+        all_zones: 'All zones',
+        zone_label: 'Area',
+        all_profiles: 'All profiles',
+        profile_label: 'Tenant Profile',
+        profile_students: 'For Students',
+        profile_workers: 'For Workers',
+        air_con_label: 'Climate Control',
+        air_con_all: 'Any (A/C)',
+        air_con_yes: 'With Air Conditioning',
+        air_con_no: 'No Air Conditioning',
+        expenses_label: 'Expense Type',
+        expenses_all: 'Any (Expenses)',
+        expenses_fixed: 'Fixed Expenses',
+        expenses_shared: 'Shared Expenses',
+        price_min: 'Min Price (€)',
+        price_max: 'Max Price (€)'
+      },
+      status: {
+        guide: 'Status Guide',
+        free: 'Free',
+        new: 'New',
+        consult: 'Consult',
+        free_in: 'Room becoming free',
+        photos_pending: 'Photos available soon',
+        renovation: 'Renovating',
+        renovation_soon: 'In renovation: Coming soon!',
+        until: 'Until',
+        forecast: 'Forecast',
+        contact: 'Contact',
+        available: 'Available',
+        occupied: 'Full',
+        fixed_expenses: 'Fixed expenses separate',
+        shared_expenses: 'Expenses shared'
+      },
+      profile: {
+        students: 'Students Only',
+        workers: 'Workers Only',
+        both: 'Students & Workers'
+      },
+      card: {
+        map: 'View on Map',
+        rooms: 'Habitaciones'
+      }
+    },
+    // ... [REST OF SECTIONS UNCHANGED] ...
     common: {
       back: 'Back',
       print: 'Print',
@@ -585,6 +679,7 @@ export const translations = {
       month: 'month',
       year: 'year'
     },
+    // ... [KEEP ALL OTHER SECTIONS AS THEY WERE] ...
     header: {
       home: 'Home',
       services: 'Services',
@@ -611,7 +706,6 @@ export const translations = {
       rights: '© 2025 All rights reserved',
       brokers_link: 'Partners & Agencies'
     },
-    // ... [SKIP home, services, rooms, about, contact, discounts, opportunities - THEY REMAIN THE SAME] ...
     home: {
       hero: {
         badge: 'Professional Rental Management',
@@ -766,55 +860,7 @@ export const translations = {
         btn: 'Contact via WhatsApp'
       }
     },
-    rooms: {
-      hero: {
-        badge: 'Real-time Catalog',
-        title: 'Available Rooms',
-        subtitle: 'Check the status of all our managed homes.',
-        count_label: 'Rooms under management'
-      },
-      friend_plan: {
-        badge: 'NEW',
-        title: 'Friend Plan:',
-        highlight: 'Discount on Supplies',
-        desc: 'Already a tenant? If you bring us a friend who passes the filter and rents with us, we discount',
-        desc_amount: '30€',
-        desc_end: 'on your next supplies bill.',
-        tag_1: 'Cumulative',
-        tag_2: '2 friends = 60€ off',
-        btn: 'Refer a Friend'
-      },
-      filter: {
-        label: 'Filter Homes',
-        check: 'Show only with free rooms'
-      },
-      status: {
-        guide: 'Status Guide',
-        free: 'Free',
-        new: 'New',
-        consult: 'Consult',
-        free_in: 'Room becoming free',
-        photos_pending: 'Photos available soon',
-        renovation: 'Renovating',
-        renovation_soon: 'In renovation: Coming soon!',
-        until: 'Until',
-        forecast: 'Forecast',
-        contact: 'Contact',
-        available: 'Available',
-        occupied: 'Full',
-        fixed_expenses: 'Fixed expenses separate',
-        shared_expenses: 'Expenses shared'
-      },
-      profile: {
-        students: 'Students Only',
-        workers: 'Workers Only',
-        both: 'Students & Workers'
-      },
-      card: {
-        map: 'View on Map',
-        rooms: 'Habitaciones'
-      }
-    },
+    // ... [REST OF SECTIONS] ...
     about: {
       hero: {
         badge: 'Our History',
@@ -981,53 +1027,53 @@ export const translations = {
         confidential: 'Rentia Investments S.L. • Confidential document. Information contained may be subject to change.'
       }
     },
-    // NEW BROKERS SECTION UPDATED
+    // BROKERS SECTION
     brokers: {
       hero: {
-        badge: 'Profesionales',
-        title: 'Bolsa de Demandas y Colaboración',
-        subtitle: 'Conectamos oferta y demanda. Consulta los encargos de compra de nuestros inversores y las búsquedas activas de nuestra red de colaboración.'
+        badge: 'Professionals Only',
+        title: 'RentiaRoom Investor Orders',
+        subtitle: 'Check in real-time what our qualified investors are looking for and contact us if you have an asset that fits.'
       },
       intro: {
-        title: '¿Tienes un inmueble que encaja?',
-        text: 'Gestionamos mandatos de compra directos y colaboramos difundiendo búsquedas verificadas de compañeros del sector. Si tienes un activo que encaja en cualquiera de estos perfiles, contáctanos.'
+        title: 'Do you have a property that fits?',
+        text: 'Our investors have available capital and have validated their search with us. If you are a real estate agent or broker and have an asset that meets the requirements, contact us indicating the reference.'
       },
       disclaimer: {
-        title: 'Nota Importante',
-        text: 'Los encargos mostrados pueden no actualizarse automáticamente si se completan o reservan. Realizamos comprobaciones de estado mensualmente o cuando se considera oportuno. Por favor, verifique la vigencia al contactar.'
+        title: 'Important Note',
+        text: 'Displayed requests may not update automatically if completed or reserved. We perform status checks monthly or when deemed appropriate. Please verify validity when contacting.'
       },
       tags: {
-        collaboration: 'Colaboración',
-        exclusive: 'Exclusiva',
-        own: 'Propia'
+        collaboration: 'Collaboration',
+        exclusive: 'Exclusive',
+        own: 'Own'
       },
       filter: {
-        search_placeholder: 'Buscar por ref, tipo...',
-        location_label: 'Filtrar por Zona',
-        all_zones: 'Todas las zonas',
-        results_count: 'resultados encontrados',
-        source_label: 'Origen:',
-        all_sources: 'Todos',
-        own_source: 'Propias',
-        collab_source: 'Red Colaboración'
+        search_placeholder: 'Search by ref, type...',
+        location_label: 'Filter by Area',
+        all_zones: 'All areas',
+        results_count: 'results found',
+        source_label: 'Source:',
+        all_sources: 'All',
+        own_source: 'Own',
+        collab_source: 'Collab'
       },
       table: {
-        title: 'Encargos de Compra Activos',
-        active_req: 'requerimientos activos',
-        ref: 'Referencia',
-        date: 'Fecha',
-        type: 'Tipo & Características',
-        location: 'Zona / Ubicación',
-        budget: 'Presupuesto Máx',
-        action: 'Acción',
-        contact_btn: 'Tengo este activo',
-        empty: 'No se encontraron encargos con estos criterios.',
-        legal_note: 'Estos datos se muestran con fines informativos. Al contactar con RentiaRoom, usted acepta nuestra'
+        title: 'Active Purchase Orders',
+        active_req: 'active requirements',
+        ref: 'Reference',
+        date: 'Date',
+        type: 'Type & Specs',
+        location: 'Area / Location',
+        budget: 'Max Budget',
+        action: 'Action',
+        contact_btn: 'I have this asset',
+        empty: 'No orders found matching criteria.',
+        legal_note: 'These data are shown for informational purposes. By contacting RentiaRoom, you accept our'
       },
       footer: {
-        title: '¿Eres una agencia?',
-        text: 'Colaboramos activamente con inmobiliarias de Murcia. Respetamos vuestros honorarios y buscamos operaciones win-win. Escríbenos para presentarnos.',
-        legal_contact: 'Al pulsar en los medios de contacto, aceptas el tratamiento de tus datos para la gestión de la colaboración.'
+        title: 'Are you an agency?',
+        text: 'We actively collaborate with real estate agencies in Murcia. We respect your fees and seek win-win operations. Write to introduce yourself.',
+        legal_contact: 'By clicking on contact means, you accept the processing of your data for collaboration management.'
       }
     },
     legal: {
@@ -1078,7 +1124,7 @@ export const translations = {
          text4: 'You have the right to access, rectify, and delete data, as well as other rights (limitation, portability, opposition), by sending a request to info@rentiaroom.com. You also have the right to file a complaint with the Spanish Data Protection Agency (AEPD) if you consider that the processing does not comply with current regulations.'
       },
       cookies: {
-         intro: 'A cookie is a small text file that is stored in your browser when you access almost any web page. Its utility is that the web is able to remember your visit when you return to browse that page.',
+         intro: 'Una cookie es un pequeño fichero de texto que se almacena en su navegador cuando accede a casi cualquier página web. Su utilidad es que la web sea capaz de recordar su visita cuando vuelva a navegar por esa página.',
          types: 'This website uses Technical Cookies (necessary for navigation and operation of the web), Analytical Cookies (to measure audience and traffic, anonymously), and Marketing Cookies (for advertising space management).',
          manage: 'You can allow, block, or delete cookies installed on your computer by configuring the options of the browser installed on your computer.'
       },

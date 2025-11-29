@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Home, MapPin, CheckCircle, Clock, User, MessageCircle, Filter, AlertCircle, Receipt, Sparkles, Hammer, HelpCircle, Building, Gift, Users as UsersIcon, Wallet, PlayCircle, Image as ImageIcon, Camera, Timer, Bath, Wind, ExternalLink, GraduationCap, Briefcase, Users, DoorClosed, DoorOpen } from 'lucide-react';
+import { Home, MapPin, CheckCircle, Clock, User, MessageCircle, Filter, AlertCircle, Receipt, Sparkles, Hammer, HelpCircle, Building, Gift, Users as UsersIcon, Wallet, PlayCircle, Image as ImageIcon, Camera, Timer, Bath, Wind, ExternalLink, GraduationCap, Briefcase, Users, DoorClosed, DoorOpen, ChevronDown, Info, ZoomIn } from 'lucide-react';
 import { properties, Property, Room } from '../data/rooms';
 import { useLanguage } from '../contexts/LanguageContext';
 import { ImageLightbox } from './ImageLightbox';
@@ -89,9 +89,19 @@ const InteractiveDoor = ({ isOpen, onClick, className = "" }: { isOpen: boolean,
 
 export const RoomsView: React.FC = () => {
   const [showOnlyAvailable, setShowOnlyAvailable] = useState(false);
+  const [selectedZone, setSelectedZone] = useState('');
+  const [selectedProfile, setSelectedProfile] = useState('');
+  // New Filters
+  const [filterAirCon, setFilterAirCon] = useState('all');
+  const [filterExpenses, setFilterExpenses] = useState('all');
+  const [filterComingSoon, setFilterComingSoon] = useState(false);
+  
+  // UI State
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
   const [expandedProperties, setExpandedProperties] = useState<Record<string, boolean>>({});
   const [lightboxImages, setLightboxImages] = useState<string[]>([]);
-  const [lightboxIndex, setLightboxIndex] = useState(0); // Nuevo estado para el índice
+  const [lightboxIndex, setLightboxIndex] = useState(0); 
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   
   const { t } = useLanguage();
@@ -164,11 +174,78 @@ export const RoomsView: React.FC = () => {
     return properties.reduce((acc, property) => acc + property.rooms.length, 0);
   }, []);
 
-  // Filtrado de propiedades: Mostrar solo si tienen habitaciones libres si el filtro está activo
+  // Extract unique zones for dropdown
+  const uniqueZones = useMemo(() => {
+      const zones = new Set(properties.map(p => p.city));
+      return Array.from(zones).sort();
+  }, []);
+
+  // Filter Logic
   const filteredProperties = useMemo(() => {
-    if (!showOnlyAvailable) return properties;
-    return properties.filter(p => p.rooms.some(r => r.status === 'available'));
-  }, [showOnlyAvailable]);
+    return properties.filter(p => {
+        // Filter by Availability
+        if (showOnlyAvailable && !p.rooms.some(r => r.status === 'available')) {
+            return false;
+        }
+        // Filter by Zone
+        if (selectedZone && p.city !== selectedZone) {
+            return false;
+        }
+        
+        // Filter by Profile
+        if (selectedProfile) {
+            const matchesProfile = p.rooms.some(r => {
+                const profile = r.targetProfile || 'both';
+                if (selectedProfile === 'students') return profile === 'students' || profile === 'both';
+                if (selectedProfile === 'workers') return profile === 'workers' || profile === 'both';
+                return false;
+            });
+            if (!matchesProfile) return false;
+        }
+
+        // Filter by Air Conditioning
+        if (filterAirCon !== 'all') {
+            const matchesAir = p.rooms.some(r => {
+                if (filterAirCon === 'yes') return r.hasAirConditioning === true;
+                if (filterAirCon === 'no') return !r.hasAirConditioning;
+                return true;
+            });
+            if (!matchesAir) return false;
+        }
+
+        // Filter by Expenses
+        if (filterExpenses !== 'all') {
+            const matchesExpenses = p.rooms.some(r => {
+                const exp = r.expenses.toLowerCase();
+                if (filterExpenses === 'fixed') return exp.includes('fijos');
+                if (filterExpenses === 'shared') return exp.includes('reparten');
+                return true;
+            });
+            if (!matchesExpenses) return false;
+        }
+
+        // Filter by Coming Soon (Free in < 45 days)
+        if (filterComingSoon) {
+            const matchesComingSoon = p.rooms.some(room => {
+                if (room.specialStatus === 'renovation') return false; 
+                if (!room.availableFrom || room.availableFrom === 'Consultar' || room.availableFrom === 'Inmediata') return false;
+                try {
+                    const [day, month, year] = room.availableFrom.split('/').map(Number);
+                    const exitDate = new Date(year, month - 1, day);
+                    const today = new Date();
+                    exitDate.setHours(23, 59, 59); 
+                    today.setHours(0, 0, 0);
+                    const diffTime = exitDate.getTime() - today.getTime();
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    return diffDays > 0 && diffDays < 45;
+                } catch (e) { return false; }
+            });
+            if (!matchesComingSoon) return false;
+        }
+        
+        return true;
+    });
+  }, [showOnlyAvailable, selectedZone, selectedProfile, filterAirCon, filterExpenses, filterComingSoon]);
 
   // Función para determinar el color/estado inteligente del CONTENEDOR
   const getRoomStatusContainerStyle = (room: Room) => {
@@ -331,23 +408,125 @@ export const RoomsView: React.FC = () => {
       {/* Main Content */}
       <section className="container mx-auto px-4 pb-12 relative z-20">
          
+         {/* UPDATE NOTICE */}
+         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 flex items-start gap-3 shadow-sm">
+             <div className="p-2 bg-white rounded-full text-rentia-blue shrink-0 shadow-sm">
+                 <Info className="w-5 h-5" />
+             </div>
+             <div>
+                 <h4 className="font-bold text-rentia-blue text-sm">{t('rooms.update_alert.title')}</h4>
+                 <p className="text-gray-600 text-sm mt-1 leading-relaxed">{t('rooms.update_alert.text')}</p>
+             </div>
+         </div>
+
          {/* Filters */}
-         <div className="bg-white p-4 rounded-xl shadow-md border border-gray-100 mb-8 flex flex-col sm:flex-row justify-between items-center gap-4">
-             <div className="flex items-center gap-2 text-rentia-black font-bold">
-                 <Filter className="w-5 h-5 text-rentia-blue" />
-                 <span>{t('rooms.filter.label')}</span>
+         <div className="bg-white p-4 rounded-xl shadow-md border border-gray-100 mb-8 flex flex-col items-start gap-4">
+             {/* Label & Toggle (Mobile Only) */}
+             <div 
+                className="flex items-center justify-between w-full border-b border-gray-50 pb-2 cursor-pointer md:cursor-default"
+                onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
+             >
+                 <div className="flex items-center gap-2 text-rentia-black font-bold mb-2 md:mb-0">
+                     <Filter className="w-5 h-5 text-rentia-blue" />
+                     <span>{t('rooms.filter.label')}</span>
+                 </div>
+                 {/* Flecha solo en móvil */}
+                 <div className="md:hidden">
+                     <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-300 ${mobileFiltersOpen ? 'rotate-180' : ''}`} />
+                 </div>
              </div>
              
-             <label className="flex items-center cursor-pointer relative select-none p-2 w-full sm:w-auto">
-                <input 
-                    type="checkbox" 
-                    className="sr-only peer"
-                    checked={showOnlyAvailable}
-                    onChange={() => setShowOnlyAvailable(!showOnlyAvailable)}
-                />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[12px] after:left-[10px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rentia-blue"></div>
-                <span className="ml-3 text-sm font-medium text-gray-700">{t('rooms.filter.check')}</span>
-             </label>
+             {/* Controls Container - Hidden on mobile unless open, Always flex on desktop */}
+             <div className={`${mobileFiltersOpen ? 'flex' : 'hidden'} md:flex flex-wrap items-center gap-4 w-full transition-all duration-300 ease-in-out`}>
+                
+                {/* Zone Select */}
+                <div className="relative w-full sm:w-auto flex-grow min-w-[200px]">
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <select
+                        value={selectedZone}
+                        onChange={(e) => setSelectedZone(e.target.value)}
+                        className="w-full pl-9 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rentia-blue/50 appearance-none cursor-pointer text-gray-700 font-medium"
+                    >
+                        <option value="">{t('rooms.filter.all_zones')}</option>
+                        {uniqueZones.map(z => (
+                            <option key={z} value={z}>{z}</option>
+                        ))}
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                </div>
+
+                {/* Profile Select */}
+                <div className="relative w-full sm:w-auto flex-grow min-w-[200px]">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <select
+                        value={selectedProfile}
+                        onChange={(e) => setSelectedProfile(e.target.value)}
+                        className="w-full pl-9 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rentia-blue/50 appearance-none cursor-pointer text-gray-700 font-medium"
+                    >
+                        <option value="">{t('rooms.filter.all_profiles')}</option>
+                        <option value="students">{t('rooms.filter.profile_students')}</option>
+                        <option value="workers">{t('rooms.filter.profile_workers')}</option>
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                </div>
+
+                {/* Air Con Select */}
+                <div className="relative w-full sm:w-auto flex-grow min-w-[200px]">
+                    <Wind className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <select
+                        value={filterAirCon}
+                        onChange={(e) => setFilterAirCon(e.target.value)}
+                        className="w-full pl-9 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rentia-blue/50 appearance-none cursor-pointer text-gray-700 font-medium"
+                    >
+                        <option value="all">{t('rooms.filter.air_con_all')}</option>
+                        <option value="yes">{t('rooms.filter.air_con_yes')}</option>
+                        <option value="no">{t('rooms.filter.air_con_no')}</option>
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                </div>
+
+                {/* Expenses Select */}
+                <div className="relative w-full sm:w-auto flex-grow min-w-[200px]">
+                    <Receipt className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <select
+                        value={filterExpenses}
+                        onChange={(e) => setFilterExpenses(e.target.value)}
+                        className="w-full pl-9 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rentia-blue/50 appearance-none cursor-pointer text-gray-700 font-medium"
+                    >
+                        <option value="all">{t('rooms.filter.expenses_all')}</option>
+                        <option value="fixed">{t('rooms.filter.expenses_fixed')}</option>
+                        <option value="shared">{t('rooms.filter.expenses_shared')}</option>
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                </div>
+
+                {/* Checkbox: Show Only Available */}
+                <label className="flex items-center cursor-pointer relative select-none bg-gray-50 px-3 py-2 rounded-lg border border-gray-200 w-full sm:w-auto justify-start flex-grow sm:flex-grow-0">
+                    <input 
+                        type="checkbox" 
+                        className="sr-only peer"
+                        checked={showOnlyAvailable}
+                        onChange={() => setShowOnlyAvailable(!showOnlyAvailable)}
+                    />
+                    <div className="relative w-9 h-5 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-rentia-blue shadow-sm"></div>
+                    <span className="ml-2 text-xs font-bold text-gray-600">{t('rooms.filter.check')}</span>
+                </label>
+
+                {/* Checkbox: Coming Soon */}
+                <label className="flex items-center cursor-pointer relative select-none bg-orange-50 px-3 py-2 rounded-lg border border-orange-200 w-full sm:w-auto justify-start flex-grow sm:flex-grow-0">
+                    <input 
+                        type="checkbox" 
+                        className="sr-only peer"
+                        checked={filterComingSoon}
+                        onChange={() => setFilterComingSoon(!filterComingSoon)}
+                    />
+                    <div className="relative w-9 h-5 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-500 shadow-sm"></div>
+                    <span className="ml-2 text-xs font-bold text-orange-700 flex items-center gap-1">
+                        <Timer className="w-3 h-3" />
+                        {t('rooms.filter.check_soon')}
+                    </span>
+                </label>
+             </div>
          </div>
 
          {/* Property Grid (Compact Mode) */}
@@ -386,13 +565,27 @@ export const RoomsView: React.FC = () => {
                             onClick={() => toggleProperty(property.id)}
                          >
                              {/* Imagen de Portada (Izquierda) */}
-                             <div className="w-28 sm:w-48 relative flex-shrink-0 bg-gray-100 flex items-center justify-center min-h-[9rem]">
+                             <div 
+                                className="w-28 sm:w-48 relative flex-shrink-0 bg-gray-100 flex items-center justify-center min-h-[9rem] group/main-img overflow-hidden"
+                                onClick={(e) => {
+                                    if (property.image) {
+                                        e.stopPropagation();
+                                        openRoomImages([property.image]);
+                                    }
+                                }}
+                             >
                                 {property.image ? (
-                                    <img 
-                                        src={property.image} 
-                                        alt={`Habitación en alquiler ${property.address}`} 
-                                        className="absolute inset-0 w-full h-full object-cover"
-                                    />
+                                    <>
+                                        <img 
+                                            src={property.image} 
+                                            alt={`Habitación en alquiler ${property.address}`} 
+                                            className="absolute inset-0 w-full h-full object-cover cursor-zoom-in"
+                                        />
+                                        {/* Overlay with Zoom Icon */}
+                                        <div className="absolute inset-0 bg-black/0 group-hover/main-img:bg-black/20 transition-all flex items-center justify-center pointer-events-none">
+                                            <ZoomIn className="w-8 h-8 text-white opacity-0 group-hover/main-img:opacity-100 transition-all duration-300 transform scale-75 group-hover/main-img:scale-100 drop-shadow-md" />
+                                        </div>
+                                    </>
                                 ) : (
                                     <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-2 bg-gray-50">
                                         <Camera className="w-8 h-8 text-gray-300 mb-2" />
@@ -402,10 +595,10 @@ export const RoomsView: React.FC = () => {
                                     </div>
                                 )}
                                 {/* Overlay Gradiente para texto encima si fuera necesario, o simple protección */}
-                                <div className="absolute inset-0 bg-gradient-to-r from-black/10 to-transparent"></div>
+                                <div className="absolute inset-0 bg-gradient-to-r from-black/10 to-transparent pointer-events-none"></div>
                                 
                                 {/* Badges Container */}
-                                <div className="absolute top-2 left-2 flex flex-col gap-1 items-start">
+                                <div className="absolute top-2 left-2 flex flex-col gap-1 items-start pointer-events-none">
                                     {availableCount > 0 && (
                                         <div className="bg-green-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm flex items-center gap-1">
                                             <CheckCircle className="w-3 h-3" />

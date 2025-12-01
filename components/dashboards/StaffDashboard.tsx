@@ -5,6 +5,7 @@ import { UserCreator } from '../admin/UserCreator';
 import { FileAnalyzer } from '../admin/FileAnalyzer';
 import { RoomManager } from '../admin/RoomManager';
 import { SalesCRM } from '../admin/SalesCRM';
+import { ProfitCalculator } from '../admin/ProfitCalculator';
 import { db } from '../../firebase';
 import { collection, onSnapshot, addDoc, deleteDoc, updateDoc, doc, serverTimestamp, orderBy, query } from 'firebase/firestore';
 import { Property } from '../../data/rooms';
@@ -884,12 +885,13 @@ export const StaffDashboard: React.FC = () => {
         )}
 
         {/* =================================================================================
-            TAB 4: HERRAMIENTAS (USERS + IA)
+            TAB 4: HERRAMIENTAS (USERS + IA + CALCULADORA)
            ================================================================================= */}
         {activeTab === 'tools' && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in slide-in-from-bottom-4 duration-300">
                 <UserCreator />
                 <FileAnalyzer />
+                <ProfitCalculator />
             </div>
         )}
 

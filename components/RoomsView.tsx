@@ -1,7 +1,11 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Home, MapPin, CheckCircle, Clock, User, MessageCircle, Filter, AlertCircle, Receipt, Sparkles, Hammer, HelpCircle, Building, Gift, Users as UsersIcon, Wallet, PlayCircle, Image as ImageIcon, Camera, Timer, Bath, Wind, ExternalLink, GraduationCap, Briefcase, Users, DoorClosed, DoorOpen, ChevronDown, Info, ZoomIn } from 'lucide-react';
-import { properties, Property, Room } from '../data/rooms';
+import { Home, MapPin, CheckCircle, User, MessageCircle, Filter, AlertCircle, Receipt, Sparkles, Hammer, HelpCircle, Building, Gift, Users as UsersIcon, Wallet, PlayCircle, Camera, Timer, Bath, Wind, ExternalLink, GraduationCap, Briefcase, Users, ZoomIn, DoorClosed, DoorOpen, ChevronDown, Info, Layout, X, Euro } from 'lucide-react';
+// IMPORTANTE: Cambio a Firestore
+import { db } from '../firebase';
+import { collection, onSnapshot } from 'firebase/firestore';
+// Importamos la interfaz Y los datos estáticos como fallback
+import { properties as staticProperties, Property, Room } from '../data/rooms'; 
 import { useLanguage } from '../contexts/LanguageContext';
 import { ImageLightbox } from './ImageLightbox';
 
@@ -88,13 +92,19 @@ const InteractiveDoor = ({ isOpen, onClick, className = "" }: { isOpen: boolean,
 };
 
 export const RoomsView: React.FC = () => {
+  const [properties, setProperties] = useState<Property[]>([]); // Estado para los datos de Firestore
+  const [loadingProperties, setLoadingProperties] = useState(true);
+
+  // FILTROS
   const [showOnlyAvailable, setShowOnlyAvailable] = useState(false);
   const [selectedZone, setSelectedZone] = useState('');
   const [selectedProfile, setSelectedProfile] = useState('');
-  // New Filters
   const [filterAirCon, setFilterAirCon] = useState('all');
   const [filterExpenses, setFilterExpenses] = useState('all');
   const [filterComingSoon, setFilterComingSoon] = useState(false);
+  // Nuevos filtros de precio
+  const [minPrice, setMinPrice] = useState<number | ''>('');
+  const [maxPrice, setMaxPrice] = useState<number | ''>('');
   
   // UI State
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
@@ -106,54 +116,28 @@ export const RoomsView: React.FC = () => {
   
   const { t } = useLanguage();
 
-  // --- SEO INJECTION (JSON-LD Structured Data for AI/Google) ---
+  // --- CONEXIÓN A FIRESTORE ---
   useEffect(() => {
-    const schemaData = {
-      "@context": "https://schema.org",
-      "@type": "ItemList",
-      "itemListElement": properties.map((prop, index) => ({
-        "@type": "ListItem",
-        "position": index + 1,
-        "item": {
-          "@type": "Apartment",
-          "name": `Habitaciones en alquiler en ${prop.address}`,
-          "description": `Alquiler de habitaciones en ${prop.city}. Piso compartido ideal para estudiantes y trabajadores. ${prop.rooms.length} habitaciones.`,
-          "address": {
-            "@type": "PostalAddress",
-            "streetAddress": prop.address,
-            "addressLocality": prop.city.split('(')[0].trim(),
-            "addressRegion": "Murcia",
-            "addressCountry": "ES"
-          },
-          "numberOfRooms": prop.rooms.length,
-          "image": prop.image,
-          "containsPlace": prop.rooms.map(room => ({
-             "@type": "Room",
-             "name": room.name,
-             "floorSize": {
-                "@type": "QuantitativeValue",
-                "value": 10, // Estimación si no hay dato
-                "unitCode": "MTK"
-             },
-             "offers": {
-                "@type": "Offer",
-                "price": room.price,
-                "priceCurrency": "EUR",
-                "availability": room.status === 'available' ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
-             }
-          }))
+    const unsubscribe = onSnapshot(collection(db, "properties"), (snapshot) => {
+        const props: Property[] = [];
+        snapshot.forEach((doc) => {
+            props.push({ ...doc.data(), id: doc.id } as Property);
+        });
+        
+        if (props.length === 0) {
+             setProperties(staticProperties);
+        } else {
+             props.sort((a, b) => a.address.localeCompare(b.address));
+             setProperties(props);
         }
-      }))
-    };
+        setLoadingProperties(false);
+    }, (error) => {
+        console.warn("Error obteniendo propiedades de Firestore, usando datos estáticos:", error);
+        setProperties(staticProperties);
+        setLoadingProperties(false);
+    });
 
-    const script = document.createElement('script');
-    script.type = 'application/ld+json';
-    script.text = JSON.stringify(schemaData);
-    document.head.appendChild(script);
-
-    return () => {
-      document.head.removeChild(script);
-    };
+    return () => unsubscribe();
   }, []);
 
   const toggleProperty = (id: string) => {
@@ -172,13 +156,13 @@ export const RoomsView: React.FC = () => {
   // Calculate total rooms under management
   const totalRoomsManaged = useMemo(() => {
     return properties.reduce((acc, property) => acc + property.rooms.length, 0);
-  }, []);
+  }, [properties]);
 
   // Extract unique zones for dropdown
   const uniqueZones = useMemo(() => {
       const zones = new Set(properties.map(p => p.city));
       return Array.from(zones).sort();
-  }, []);
+  }, [properties]);
 
   // Filter Logic
   const filteredProperties = useMemo(() => {
@@ -224,6 +208,22 @@ export const RoomsView: React.FC = () => {
             if (!matchesExpenses) return false;
         }
 
+        // Filter by Price
+        if (minPrice !== '' || maxPrice !== '') {
+            const matchesPrice = p.rooms.some(r => {
+                // If checking availability, restrict price check to available rooms?
+                // Usually users want to find *any* property that fits their budget.
+                // Let's filter properties that have AT LEAST ONE room in range.
+                if (showOnlyAvailable && r.status !== 'available') return false;
+                
+                const p = r.price;
+                if (minPrice !== '' && p < minPrice) return false;
+                if (maxPrice !== '' && p > maxPrice) return false;
+                return true;
+            });
+            if (!matchesPrice) return false;
+        }
+
         // Filter by Coming Soon (Free in < 45 days)
         if (filterComingSoon) {
             const matchesComingSoon = p.rooms.some(room => {
@@ -245,7 +245,32 @@ export const RoomsView: React.FC = () => {
         
         return true;
     });
-  }, [showOnlyAvailable, selectedZone, selectedProfile, filterAirCon, filterExpenses, filterComingSoon]);
+  }, [properties, showOnlyAvailable, selectedZone, selectedProfile, filterAirCon, filterExpenses, filterComingSoon, minPrice, maxPrice]);
+
+  // Count Active Filters
+  const activeFiltersCount = useMemo(() => {
+      let count = 0;
+      if (selectedZone) count++;
+      if (selectedProfile) count++;
+      if (filterAirCon !== 'all') count++;
+      if (filterExpenses !== 'all') count++;
+      if (showOnlyAvailable) count++;
+      if (filterComingSoon) count++;
+      if (minPrice !== '') count++;
+      if (maxPrice !== '') count++;
+      return count;
+  }, [selectedZone, selectedProfile, filterAirCon, filterExpenses, showOnlyAvailable, filterComingSoon, minPrice, maxPrice]);
+
+  const clearFilters = () => {
+      setSelectedZone('');
+      setSelectedProfile('');
+      setFilterAirCon('all');
+      setFilterExpenses('all');
+      setShowOnlyAvailable(false);
+      setFilterComingSoon(false);
+      setMinPrice('');
+      setMaxPrice('');
+  };
 
   // Función para determinar el color/estado inteligente del CONTENEDOR
   const getRoomStatusContainerStyle = (room: Room) => {
@@ -358,7 +383,7 @@ export const RoomsView: React.FC = () => {
       </section>
 
       {/* PLAN AMIGO BANNER */}
-      <section className="container mx-auto px-4 -mt-6 relative z-30 mb-8">
+      <section className="container mx-auto px-4 -mt-6 relative z-30 mb-8 max-w-[1600px]">
         <div className="bg-gradient-to-br from-indigo-600 to-rentia-blue rounded-2xl shadow-xl p-6 text-white relative overflow-hidden border-2 border-white/20">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
           <div className="absolute bottom-0 left-0 w-32 h-32 bg-rentia-gold/20 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
@@ -406,7 +431,7 @@ export const RoomsView: React.FC = () => {
       </section>
 
       {/* Main Content */}
-      <section className="container mx-auto px-4 pb-12 relative z-20">
+      <section className="container mx-auto px-4 pb-12 relative z-20 max-w-[1600px]">
          
          {/* UPDATE NOTICE */}
          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 flex items-start gap-3 shadow-sm">
@@ -429,6 +454,11 @@ export const RoomsView: React.FC = () => {
                  <div className="flex items-center gap-2 text-rentia-black font-bold mb-2 md:mb-0">
                      <Filter className="w-5 h-5 text-rentia-blue" />
                      <span>{t('rooms.filter.label')}</span>
+                     {activeFiltersCount > 0 && (
+                         <span className="bg-rentia-blue text-white text-[10px] font-bold px-2 py-0.5 rounded-full md:hidden">
+                             {activeFiltersCount}
+                         </span>
+                     )}
                  </div>
                  {/* Flecha solo en móvil */}
                  <div className="md:hidden">
@@ -440,7 +470,7 @@ export const RoomsView: React.FC = () => {
              <div className={`${mobileFiltersOpen ? 'flex' : 'hidden'} md:flex flex-wrap items-center gap-4 w-full transition-all duration-300 ease-in-out`}>
                 
                 {/* Zone Select */}
-                <div className="relative w-full sm:w-auto flex-grow min-w-[200px]">
+                <div className="relative w-full sm:w-auto flex-grow min-w-[180px]">
                     <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <select
                         value={selectedZone}
@@ -456,7 +486,7 @@ export const RoomsView: React.FC = () => {
                 </div>
 
                 {/* Profile Select */}
-                <div className="relative w-full sm:w-auto flex-grow min-w-[200px]">
+                <div className="relative w-full sm:w-auto flex-grow min-w-[180px]">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <select
                         value={selectedProfile}
@@ -471,7 +501,7 @@ export const RoomsView: React.FC = () => {
                 </div>
 
                 {/* Air Con Select */}
-                <div className="relative w-full sm:w-auto flex-grow min-w-[200px]">
+                <div className="relative w-full sm:w-auto flex-grow min-w-[180px]">
                     <Wind className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <select
                         value={filterAirCon}
@@ -486,7 +516,7 @@ export const RoomsView: React.FC = () => {
                 </div>
 
                 {/* Expenses Select */}
-                <div className="relative w-full sm:w-auto flex-grow min-w-[200px]">
+                <div className="relative w-full sm:w-auto flex-grow min-w-[180px]">
                     <Receipt className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <select
                         value={filterExpenses}
@@ -498,6 +528,30 @@ export const RoomsView: React.FC = () => {
                         <option value="shared">{t('rooms.filter.expenses_shared')}</option>
                     </select>
                     <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                </div>
+
+                {/* PRICE FILTERS - NEW */}
+                <div className="flex gap-2 w-full sm:w-auto flex-grow">
+                    <div className="relative w-1/2 sm:w-28">
+                        <Euro className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                        <input 
+                            type="number"
+                            placeholder="Min €"
+                            value={minPrice}
+                            onChange={(e) => setMinPrice(e.target.value ? Number(e.target.value) : '')}
+                            className="w-full pl-7 pr-2 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rentia-blue/50"
+                        />
+                    </div>
+                    <div className="relative w-1/2 sm:w-28">
+                        <Euro className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                        <input 
+                            type="number"
+                            placeholder="Max €"
+                            value={maxPrice}
+                            onChange={(e) => setMaxPrice(e.target.value ? Number(e.target.value) : '')}
+                            className="w-full pl-7 pr-2 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rentia-blue/50"
+                        />
+                    </div>
                 </div>
 
                 {/* Checkbox: Show Only Available */}
@@ -526,12 +580,32 @@ export const RoomsView: React.FC = () => {
                         {t('rooms.filter.check_soon')}
                     </span>
                 </label>
+
+                {/* Clear Filters Button */}
+                {activeFiltersCount > 0 && (
+                    <button 
+                        onClick={clearFilters}
+                        className="text-xs text-red-500 hover:text-red-700 font-bold flex items-center gap-1 px-3 py-2 rounded-lg hover:bg-red-50 transition-colors w-full sm:w-auto justify-center"
+                    >
+                        <X className="w-3 h-3" /> Limpiar Filtros
+                    </button>
+                )}
              </div>
          </div>
 
          {/* Property Grid (Compact Mode) */}
-         <div className="flex flex-col gap-4 max-w-4xl mx-auto">
-             {filteredProperties.map(property => {
+         <div className="flex flex-col gap-6 max-w-[1600px] mx-auto">
+             {loadingProperties ? (
+                 <div className="text-center py-20 text-gray-500">
+                     <p className="text-sm animate-pulse">{t('common.loading')}</p>
+                 </div>
+             ) : filteredProperties.length === 0 ? (
+                 <div className="text-center py-20 text-gray-500 bg-white rounded-xl border border-dashed">
+                     <p className="text-sm">No hay viviendas que coincidan con los filtros.</p>
+                     <button onClick={clearFilters} className="mt-4 text-rentia-blue hover:underline text-sm font-bold">Ver todas</button>
+                 </div>
+             ) : (
+             filteredProperties.map(property => {
                  const availableCount = property.rooms.filter(r => r.status === 'available').length;
                  const totalRooms = property.rooms.length;
                  const isExpanded = expandedProperties[property.id] || false;
@@ -558,15 +632,15 @@ export const RoomsView: React.FC = () => {
                  });
                  
                  return (
-                     <div key={property.id} className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-200 transition-all duration-300 group relative">
-                         {/* Header Compacto - Nuevo Diseño Horizontal */}
+                     <div key={property.id} className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-lg border border-gray-200 transition-all duration-300 group relative">
+                         {/* Header Compacto - Nuevo Diseño Responsive */}
                          <div 
-                            className="flex cursor-pointer hover:bg-gray-50 transition-colors"
+                            className="flex flex-col md:flex-row cursor-pointer transition-colors"
                             onClick={() => toggleProperty(property.id)}
                          >
-                             {/* Imagen de Portada (Izquierda) */}
+                             {/* Imagen de Portada (Responsive: Full width en móvil, ancho fijo en desktop) */}
                              <div 
-                                className="w-28 sm:w-48 relative flex-shrink-0 bg-gray-100 flex items-center justify-center min-h-[9rem] group/main-img overflow-hidden"
+                                className="w-full h-48 md:w-96 md:h-auto md:min-h-[14rem] relative flex-shrink-0 bg-gray-100 flex items-center justify-center group/main-img overflow-hidden"
                                 onClick={(e) => {
                                     if (property.image) {
                                         e.stopPropagation();
@@ -579,108 +653,124 @@ export const RoomsView: React.FC = () => {
                                         <img 
                                             src={property.image} 
                                             alt={`Habitación en alquiler ${property.address}`} 
-                                            className="absolute inset-0 w-full h-full object-cover cursor-zoom-in"
+                                            className="absolute inset-0 w-full h-full object-cover cursor-zoom-in transition-transform duration-700 group-hover/main-img:scale-105"
                                         />
                                         {/* Overlay with Zoom Icon */}
                                         <div className="absolute inset-0 bg-black/0 group-hover/main-img:bg-black/20 transition-all flex items-center justify-center pointer-events-none">
-                                            <ZoomIn className="w-8 h-8 text-white opacity-0 group-hover/main-img:opacity-100 transition-all duration-300 transform scale-75 group-hover/main-img:scale-100 drop-shadow-md" />
+                                            <ZoomIn className="w-10 h-10 text-white opacity-0 group-hover/main-img:opacity-100 transition-all duration-300 transform scale-75 group-hover/main-img:scale-100 drop-shadow-md" />
                                         </div>
                                     </>
                                 ) : (
                                     <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-2 bg-gray-50">
-                                        <Camera className="w-8 h-8 text-gray-300 mb-2" />
-                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide leading-tight">
+                                        <Camera className="w-10 h-10 text-gray-300 mb-2" />
+                                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wide leading-tight">
                                             {t('rooms.status.photos_pending')}
                                         </span>
                                     </div>
                                 )}
-                                {/* Overlay Gradiente para texto encima si fuera necesario, o simple protección */}
-                                <div className="absolute inset-0 bg-gradient-to-r from-black/10 to-transparent pointer-events-none"></div>
+                                {/* Overlay Gradiente para texto encima si fuera necesario */}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent md:bg-gradient-to-r md:from-black/30 md:to-transparent pointer-events-none opacity-60"></div>
                                 
-                                {/* Badges Container */}
-                                <div className="absolute top-2 left-2 flex flex-col gap-1 items-start pointer-events-none">
+                                {/* Badges Container - Image Overlay */}
+                                <div className="absolute top-3 left-3 flex flex-col gap-2 items-start pointer-events-none z-10">
                                     {availableCount > 0 && (
-                                        <div className="bg-green-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm flex items-center gap-1">
-                                            <CheckCircle className="w-3 h-3" />
-                                            {availableCount} Libres
+                                        <div className="bg-green-500 text-white text-xs font-bold px-2.5 py-1 rounded shadow-md flex items-center gap-1.5 backdrop-blur-sm bg-opacity-90">
+                                            <CheckCircle className="w-3.5 h-3.5" />
+                                            {availableCount} {t('rooms.status.free')}
                                         </div>
                                     )}
                                     {/* Prioritize Renovation Badge over Upcoming Badge */}
                                     {hasRenovation && (
-                                        <div className="bg-yellow-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm flex items-center gap-1 animate-pulse">
-                                            <Hammer className="w-3 h-3" />
+                                        <div className="bg-yellow-500 text-white text-xs font-bold px-2.5 py-1 rounded shadow-md flex items-center gap-1.5 animate-pulse backdrop-blur-sm bg-opacity-90">
+                                            <Hammer className="w-3.5 h-3.5" />
                                             <span className="hidden sm:inline">{t('rooms.status.renovation_soon')}</span>
-                                            <span className="sm:hidden">Reformas</span>
+                                            <span className="sm:hidden">{t('rooms.status.renovation')}</span>
                                         </div>
                                     )}
                                     {!hasRenovation && hasUpcoming && (
-                                        <div className="bg-orange-500/90 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm flex items-center gap-1 animate-pulse">
-                                            <Timer className="w-3 h-3" />
+                                        <div className="bg-orange-500 text-white text-xs font-bold px-2.5 py-1 rounded shadow-md flex items-center gap-1.5 animate-pulse backdrop-blur-sm bg-opacity-90">
+                                            <Timer className="w-3.5 h-3.5" />
                                             <span className="hidden sm:inline">{t('rooms.status.free_in')}</span>
                                         </div>
                                     )}
                                 </div>
+
+                                {/* Address Overlay ONLY on Mobile */}
+                                <div className="absolute bottom-3 left-3 right-3 text-white md:hidden z-10">
+                                    <h3 className="font-bold text-lg leading-tight drop-shadow-md truncate">{property.address}</h3>
+                                    <p className="text-xs opacity-90 drop-shadow-md flex items-center gap-1 mt-0.5">
+                                        <MapPin className="w-3 h-3" /> {property.city}
+                                    </p>
+                                </div>
                              </div>
 
                              {/* Contenido (Derecha) */}
-                             <div className="flex-1 p-4 sm:p-5 flex flex-col justify-between">
-                                 <div className="min-w-0 flex-1">
-                                     <div className="flex flex-col gap-1.5">
-                                        <div className="flex items-start justify-between gap-2">
-                                            <h3 className="font-bold text-base sm:text-lg text-rentia-black leading-tight">{property.address}</h3>
-                                            
-                                            {/* Custom Door - MOBILE */}
-                                            <div className="sm:hidden ml-2 flex-shrink-0">
-                                                <InteractiveDoor 
-                                                    isOpen={isExpanded} 
-                                                    onClick={(e) => { e.stopPropagation(); toggleProperty(property.id); }} 
-                                                    className="w-9 h-12"
-                                                />
-                                            </div>
+                             <div className="flex-1 p-5 md:p-6 flex flex-col justify-between bg-white relative">
+                                 {/* Interactive Door Toggle (Mobile: Top Right floating / Desktop: Top Right static) */}
+                                 <div className="absolute top-4 right-4 z-20">
+                                     <InteractiveDoor 
+                                        isOpen={isExpanded} 
+                                        onClick={(e) => { e.stopPropagation(); toggleProperty(property.id); }} 
+                                        className="w-10 h-14 md:w-12 md:h-16"
+                                     />
+                                 </div>
+
+                                 <div className="min-w-0 flex-1 pr-12 md:pr-16">
+                                     <div className="flex flex-col gap-2">
+                                        {/* Desktop Title (Hidden on Mobile) */}
+                                        <div className="hidden md:block">
+                                            <h3 className="font-bold text-xl md:text-2xl text-rentia-black leading-tight mb-1 group-hover:text-rentia-blue transition-colors">{property.address}</h3>
+                                            <p className="text-sm text-gray-500 flex items-center gap-1">
+                                                <MapPin className="w-3.5 h-3.5" /> {property.city}
+                                                {property.floor && <span className="text-gray-300 mx-1">•</span>}
+                                                {property.floor && <span>{property.floor}</span>}
+                                            </p>
                                         </div>
                                         
-                                        <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                                        {/* Features & Badges Row */}
+                                        <div className="flex flex-wrap items-center gap-2 mt-2 md:mt-2">
+                                            <span className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 px-2.5 py-1 rounded text-xs font-bold uppercase tracking-wide border border-gray-200">
+                                                <Layout className="w-3 h-3" /> {totalRooms} habs
+                                            </span>
+                                            
+                                            {property.bathrooms && (
+                                                <span className="inline-flex items-center gap-1.5 bg-blue-50 text-rentia-blue px-2.5 py-1 rounded text-xs font-bold uppercase tracking-wide border border-blue-100">
+                                                    <Bath className="w-3 h-3" /> {property.bathrooms} baños
+                                                </span>
+                                            )}
+
                                             {hasNew && (
-                                                <span className="inline-flex text-[9px] bg-gradient-to-r from-purple-600 to-blue-600 text-white px-2 py-0.5 rounded font-bold uppercase tracking-wide items-center gap-0.5 flex-shrink-0">
-                                                    <Sparkles className="w-2.5 h-2.5" /> {t('rooms.status.new')}
+                                                <span className="inline-flex text-[10px] bg-gradient-to-r from-purple-600 to-blue-600 text-white px-2 py-1 rounded font-bold uppercase tracking-wide items-center gap-1 shadow-sm">
+                                                    <Sparkles className="w-3 h-3" /> {t('rooms.status.new')}
                                                 </span>
                                             )}
                                             
                                             {profileBadge && (
-                                                <span className={`inline-flex items-center gap-1 text-[9px] px-2 py-0.5 rounded border font-bold uppercase tracking-wide flex-shrink-0 ${profileBadge.style}`}>
+                                                <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded border font-bold uppercase tracking-wide ${profileBadge.style}`}>
                                                     {profileBadge.icon} {profileBadge.text}
                                                 </span>
                                             )}
                                         </div>
                                      </div>
-                                     
-                                     <p className="text-xs sm:text-sm text-gray-500 mt-1.5 truncate">{property.city}</p>
-                                 </div>
-                                 
-                                 {/* Custom Door - DESKTOP */}
-                                 <div className="hidden sm:block absolute top-5 right-5 z-10">
-                                     <InteractiveDoor 
-                                        isOpen={isExpanded} 
-                                        onClick={(e) => { e.stopPropagation(); toggleProperty(property.id); }} 
-                                        className="w-12 h-16"
-                                     />
                                  </div>
 
-                                 {/* FOOTER DE LA TARJETA (Mejorado para móvil) */}
-                                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-4 pt-4 border-t border-gray-50 gap-3">
-                                     <div className="flex items-center gap-2 text-xs font-medium text-gray-500 flex-wrap">
-                                         <span className="bg-gray-100 text-gray-700 px-2.5 py-1.5 rounded-md font-bold uppercase tracking-wide whitespace-nowrap shadow-sm border border-gray-200">
-                                            {totalRooms} habs.
-                                         </span>
-                                         {property.bathrooms && (
-                                             <div className="flex items-center gap-1.5 bg-blue-50 px-2.5 py-1.5 rounded-md text-rentia-blue border border-blue-100 whitespace-nowrap shadow-sm" title="Baños compartidos en la vivienda">
-                                                 <Bath className="w-3.5 h-3.5" />
-                                                 <span className="font-bold">{property.bathrooms} baños</span>
-                                             </div>
+                                 {/* FOOTER DE LA TARJETA */}
+                                 <div className="flex flex-col md:flex-row md:items-end md:justify-between mt-6 pt-4 border-t border-gray-50 gap-4">
+                                     
+                                     {/* Resumen rápido de precios (si hay libres) */}
+                                     <div className="text-sm text-gray-500">
+                                         {availableCount > 0 ? (
+                                             <span className="text-green-600 font-medium flex items-center gap-1 text-base">
+                                                 <CheckCircle className="w-4 h-4" /> Desde <span className="font-bold text-xl">{Math.min(...property.rooms.filter(r => r.status === 'available').map(r => r.price))}€</span> <span className="text-xs text-gray-400">/mes</span>
+                                             </span>
+                                         ) : (
+                                             <span className="text-gray-400 flex items-center gap-1 text-sm">
+                                                 <Info className="w-4 h-4" /> Sin disponibilidad actual
+                                             </span>
                                          )}
                                      </div>
                                      
-                                     <div className="flex items-center gap-3 w-full sm:w-auto">
+                                     <div className="flex items-center gap-2 w-full md:w-auto">
                                          {/* DRIVE LINK BUTTON */}
                                          {property.driveLink && (
                                             <a 
@@ -688,7 +778,7 @@ export const RoomsView: React.FC = () => {
                                                 target="_blank"
                                                 rel="noreferrer"
                                                 onClick={(e) => e.stopPropagation()}
-                                                className="flex-1 sm:flex-none flex items-center justify-center gap-2 text-xs font-bold bg-white text-gray-700 hover:bg-gray-50 px-3 py-2 rounded-md border border-gray-200 transition-all shadow-sm hover:shadow active:scale-95 group-link"
+                                                className="flex-1 md:flex-none flex items-center justify-center gap-2 text-xs font-bold bg-white text-gray-700 hover:bg-gray-50 px-4 py-2.5 rounded-lg border border-gray-200 transition-all shadow-sm hover:shadow active:scale-95 group-link"
                                             >
                                                 <div className="w-4 h-4 relative">
                                                      {/* SVG preserved */}
@@ -710,24 +800,31 @@ export const RoomsView: React.FC = () => {
                                             href={property.googleMapsLink}
                                             target="_blank"
                                             rel="noreferrer"
-                                            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-rentia-blue bg-blue-50/50 hover:bg-blue-50 text-xs font-bold px-3 py-2 rounded-md transition-colors border border-transparent hover:border-blue-100"
+                                            className="flex-1 md:flex-none flex items-center justify-center gap-1.5 text-rentia-blue bg-blue-50 hover:bg-blue-100 text-xs font-bold px-4 py-2.5 rounded-lg transition-colors border border-blue-100 hover:border-blue-200"
                                             onClick={(e) => e.stopPropagation()}
-                                         >
+                                        >
                                             <MapPin className="w-3.5 h-3.5" />
                                             <span>Mapa</span>
                                          </a>
+                                         
+                                         <button
+                                            onClick={(e) => { e.stopPropagation(); toggleProperty(property.id); }}
+                                            className="flex-1 md:flex-none bg-rentia-black text-white text-xs font-bold px-6 py-2.5 rounded-lg hover:bg-gray-800 transition-all shadow-md active:scale-95 flex items-center justify-center gap-2"
+                                         >
+                                             {isExpanded ? t('common.close') : t('rooms.card.rooms')} <ChevronDown className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                                         </button>
                                      </div>
                                  </div>
                              </div>
                          </div>
 
                          {/* Room List (Accordion) */}
-                         <div className={`transition-all duration-300 ease-in-out overflow-hidden bg-gray-50/50 ${isExpanded ? 'max-h-[5000px] opacity-100 border-t border-gray-100' : 'max-h-0 opacity-0'}`}>
-                             <div className="p-4 space-y-3">
+                         <div className={`transition-all duration-500 ease-in-out overflow-hidden bg-gray-50 ${isExpanded ? 'max-h-[5000px] opacity-100 border-t border-gray-200' : 'max-h-0 opacity-0'}`}>
+                             <div className="p-4 md:p-6 grid grid-cols-1 gap-3">
                                  {property.bathrooms && (
-                                      <div className="mb-2 text-center">
-                                         <span className="inline-flex items-center gap-1.5 bg-yellow-50 text-yellow-800 text-[10px] font-bold px-3 py-1 rounded-full border border-yellow-200 shadow-sm">
-                                             <Bath className="w-3 h-3" />
+                                      <div className="mb-2 flex justify-center">
+                                         <span className="inline-flex items-center gap-1.5 bg-yellow-50 text-yellow-800 text-xs font-bold px-4 py-1.5 rounded-full border border-yellow-200 shadow-sm">
+                                             <Bath className="w-3.5 h-3.5" />
                                              {property.bathrooms} baños completos en la vivienda (compartidos)
                                          </span>
                                       </div>
@@ -748,85 +845,89 @@ export const RoomsView: React.FC = () => {
                                      const displayName = room.name.replace(/^H(\d+)$/i, 'Habitación $1');
                                      
                                      return (
-                                         <div key={room.id} className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border transition-colors relative overflow-hidden gap-3 ${containerStyle}`}>
+                                         <div key={room.id} className={`flex flex-col md:flex-row md:items-center justify-between p-4 rounded-xl border transition-all relative overflow-hidden gap-4 shadow-sm hover:shadow-md ${containerStyle}`}>
                                              
                                              {/* "NEW" Badge Effect */}
                                              {room.specialStatus === 'new' && (
-                                                 <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-rentia-gold to-yellow-300"></div>
+                                                 <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-rentia-gold to-yellow-300"></div>
                                              )}
 
-                                             {/* Room Info */}
-                                             <div className="flex flex-col pl-2">
-                                                 <div className="flex items-center gap-2 flex-wrap">
-                                                     <span className="font-bold text-base text-gray-800">{displayName}</span>
-                                                     {room.specialStatus === 'new' && (
-                                                         <span className="text-[9px] bg-gradient-to-r from-purple-600 to-blue-600 text-white px-1.5 py-0.5 rounded font-bold uppercase tracking-wide flex items-center gap-0.5">
-                                                             <Sparkles className="w-2 h-2" /> {t('rooms.status.new')}
-                                                         </span>
-                                                     )}
-                                                     {room.hasAirConditioning && (
-                                                         <span className="text-[9px] bg-cyan-100 text-cyan-800 border border-cyan-200 px-1.5 py-0.5 rounded font-bold uppercase tracking-wide flex items-center gap-0.5" title="Aire Acondicionado">
-                                                             <Wind className="w-2 h-2" /> Aire Acond.
-                                                         </span>
-                                                     )}
-                                                 </div>
-                                                 <div className="flex items-baseline gap-1 mt-1">
-                                                    <span className="text-sm font-semibold text-rentia-blue">
-                                                        {room.price > 0 ? `${room.price}€` : t('common.consult')}
-                                                    </span>
-                                                 </div>
-                                                 {/* Expenses Info */}
-                                                 <div className={`flex items-center gap-1 mt-1 text-[10px] font-bold px-2 py-0.5 rounded w-fit ${isFixedExpenses ? 'bg-purple-50 text-purple-700' : 'bg-gray-100 text-gray-600'}`}>
-                                                     <Receipt className="w-3 h-3" />
-                                                     <span>{translateExpenses(room.expenses)}</span>
-                                                 </div>
+                                             {/* Left Side: Info & Media */}
+                                             <div className="flex-1 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
                                                  
-                                                 {/* NEW THUMBNAIL GALLERY */}
-                                                 <div className="flex flex-wrap gap-2 mt-3 items-center">
-                                                      {room.images && room.images.length > 0 && (
-                                                          <div className="flex gap-2 overflow-x-auto no-scrollbar" onClick={(e) => e.stopPropagation()}>
-                                                              {room.images.slice(0, 3).map((img, idx) => (
-                                                                  <div 
-                                                                    key={idx} 
-                                                                    className="relative w-12 h-12 flex-shrink-0 cursor-zoom-in group"
-                                                                    onClick={() => openRoomImages(room.images!, idx)}
-                                                                  >
-                                                                      <img 
-                                                                        src={img} 
-                                                                        alt={`${displayName} view ${idx+1}`} 
-                                                                        className="w-full h-full object-cover rounded-lg border border-gray-200 shadow-sm hover:border-rentia-blue transition-all" 
-                                                                      />
-                                                                      {/* Overlay for +X items on the last visible one if there are more */}
-                                                                      {idx === 2 && room.images!.length > 3 && (
-                                                                          <div className="absolute inset-0 bg-black/60 rounded-lg flex items-center justify-center text-white text-xs font-bold backdrop-blur-[1px]">
-                                                                              +{room.images!.length - 3}
-                                                                          </div>
-                                                                      )}
+                                                 {/* Thumbnail Gallery (Mini) */}
+                                                 {room.images && room.images.length > 0 && (
+                                                      <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                                                          <div 
+                                                            className="relative w-20 h-20 md:w-24 md:h-24 flex-shrink-0 cursor-zoom-in group rounded-lg overflow-hidden border border-gray-200 shadow-sm"
+                                                            onClick={() => openRoomImages(room.images!, 0)}
+                                                          >
+                                                              <img 
+                                                                src={room.images[0]} 
+                                                                alt={`${displayName}`} 
+                                                                className="w-full h-full object-cover transition-transform group-hover:scale-110" 
+                                                              />
+                                                              {room.images.length > 1 && (
+                                                                  <div className="absolute bottom-0 right-0 bg-black/60 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-tl-lg backdrop-blur-[1px]">
+                                                                      +{room.images.length - 1}
                                                                   </div>
-                                                              ))}
+                                                              )}
                                                           </div>
-                                                      )}
-                                                      
-                                                      {/* Video Button - kept as a pill but next to gallery */}
-                                                      {room.video && (
-                                                         <a 
-                                                            href={room.video} 
-                                                            target="_blank" 
-                                                            rel="noreferrer"
-                                                            className="flex items-center justify-center w-12 h-12 rounded-lg bg-red-50 border border-red-100 text-red-600 hover:bg-red-100 hover:text-red-700 transition-all shadow-sm group"
-                                                            onClick={(e) => e.stopPropagation()}
-                                                            title="Ver Video"
-                                                         >
-                                                             <PlayCircle className="w-6 h-6 group-hover:scale-110 transition-transform" /> 
-                                                         </a>
-                                                      )}
+                                                      </div>
+                                                 )}
+
+                                                 {/* Text Details */}
+                                                 <div className="flex flex-col gap-1 w-full">
+                                                     <div className="flex flex-wrap items-center gap-2 justify-between w-full">
+                                                         <div className="flex items-center gap-2">
+                                                            <span className="font-bold text-lg text-gray-800">{displayName}</span>
+                                                            {room.specialStatus === 'new' && (
+                                                                <span className="text-[10px] bg-gradient-to-r from-purple-600 to-blue-600 text-white px-2 py-0.5 rounded-full font-bold uppercase tracking-wide flex items-center gap-0.5 shadow-sm">
+                                                                    <Sparkles className="w-2 h-2" /> {t('rooms.status.new')}
+                                                                </span>
+                                                            )}
+                                                         </div>
+                                                         
+                                                         {/* Price Tag */}
+                                                         <div className="text-right">
+                                                            <span className="text-lg font-bold text-rentia-blue block leading-none">
+                                                                {room.price > 0 ? `${room.price}€` : t('common.consult')}
+                                                            </span>
+                                                            {room.price > 0 && <span className="text-[10px] text-gray-400 font-medium">/ mes</span>}
+                                                         </div>
+                                                     </div>
+
+                                                     <div className="flex flex-wrap gap-2 mt-1">
+                                                         <div className={`flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded border ${isFixedExpenses ? 'bg-purple-50 text-purple-700 border-purple-100' : 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+                                                             <Receipt className="w-3 h-3" />
+                                                             <span>{translateExpenses(room.expenses)}</span>
+                                                         </div>
+                                                         
+                                                         {room.hasAirConditioning && (
+                                                             <div className="flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded border bg-cyan-50 text-cyan-700 border-cyan-100">
+                                                                 <Wind className="w-3 h-3" /> Aire Acond.
+                                                             </div>
+                                                         )}
+                                                         
+                                                         {room.video && (
+                                                             <a 
+                                                                href={room.video} 
+                                                                target="_blank" 
+                                                                rel="noreferrer"
+                                                                className="flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded border bg-red-50 text-red-600 border-red-100 hover:bg-red-100 transition-colors"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                             >
+                                                                 <PlayCircle className="w-3 h-3" /> Video
+                                                             </a>
+                                                         )}
+                                                     </div>
                                                  </div>
                                              </div>
 
-                                             {/* Status & Date & Action */}
-                                             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-6 w-full sm:w-auto mt-2 sm:mt-0">
-                                                 <div className="flex flex-col items-start sm:items-end">
-                                                     <div className={`flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide ${statusInfo.color}`}>
+                                             {/* Right Side: Action & Status */}
+                                             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-6 mt-2 md:mt-0 md:min-w-[280px] justify-end border-t sm:border-t-0 border-gray-100 pt-3 sm:pt-0">
+                                                 <div className="flex flex-col items-start sm:items-end flex-grow">
+                                                     <div className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide ${statusInfo.color}`}>
                                                          {statusInfo.icon}
                                                          {statusInfo.text}
                                                      </div>
@@ -857,10 +958,10 @@ export const RoomsView: React.FC = () => {
                                                         }
                                                         target="_blank"
                                                         rel="noreferrer"
-                                                        className={`w-full sm:w-auto px-6 py-3 rounded-lg text-sm font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm hover:shadow active:scale-95 min-h-[44px] ${
+                                                        className={`w-full sm:w-auto px-6 py-3 md:py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-sm hover:shadow-md active:scale-95 whitespace-nowrap ${
                                                             room.status === 'available' 
                                                             ? 'bg-[#25D366] hover:bg-[#20ba5c] text-white' 
-                                                            : 'bg-orange-100 hover:bg-orange-200 text-orange-700'
+                                                            : 'bg-orange-100 hover:bg-orange-200 text-orange-800'
                                                         }`}
                                                      >
                                                          <MessageCircle className="w-4 h-4" />
@@ -875,12 +976,12 @@ export const RoomsView: React.FC = () => {
                          </div>
                      </div>
                  );
-             })}
+             }))}
          </div>
       </section>
 
       {/* Footer Info */}
-      <section className="pb-16 container mx-auto px-4">
+      <section className="pb-16 container mx-auto px-4 max-w-[1600px]">
         <div className="bg-white p-6 rounded-xl border border-gray-100 max-w-2xl mx-auto text-center shadow-sm">
              <h4 className="font-bold text-rentia-black mb-3 flex items-center justify-center gap-2 text-sm uppercase tracking-wide">
                  <AlertCircle className="w-4 h-4 text-rentia-blue" />

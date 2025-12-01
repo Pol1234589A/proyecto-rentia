@@ -26,6 +26,8 @@ export const opportunities: Opportunity[] = [
       'https://i.ibb.co/fd16hxDg/1729857047031.jpg'
     ],
     driveFolder: 'https://drive.google.com/drive/folders/EXAMPLE_VELAZQUEZ',
+    scenario: 'rent_rooms',
+    visibility: 'exact',
     specs: {
       rooms: 7,
       bathrooms: 2,
@@ -71,6 +73,8 @@ export const opportunities: Opportunity[] = [
       'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80'
     ],
     driveFolder: 'https://drive.google.com/drive/folders/EXAMPLE_ROSARIO',
+    scenario: 'rent_rooms',
+    visibility: 'exact',
     specs: {
       rooms: 9,
       bathrooms: 3,
@@ -115,6 +119,8 @@ export const opportunities: Opportunity[] = [
       'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?auto=format&fit=crop&w=800&q=80'
     ],
     driveFolder: 'https://drive.google.com/drive/folders/EXAMPLE_SANGINES',
+    scenario: 'rent_rooms',
+    visibility: 'exact',
     specs: {
       rooms: 6,
       bathrooms: 2,
@@ -159,6 +165,8 @@ export const opportunities: Opportunity[] = [
       'https://images.unsplash.com/photo-1484154218962-a1c002085d2f?auto=format&fit=crop&w=800&q=80'
     ],
     driveFolder: 'https://drive.google.com/drive/folders/EXAMPLE_SANJOSE',
+    scenario: 'rent_rooms',
+    visibility: 'exact',
     specs: {
       rooms: 5,
       bathrooms: 2,

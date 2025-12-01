@@ -46,7 +46,7 @@ export const translations = {
         price_max: 'Precio Máx (€)'
       },
       status: {
-        guide: 'Status Guide',
+        guide: 'Guía de Estados',
         free: 'Libre',
         new: 'Nuevo',
         consult: 'Consultar',
@@ -58,7 +58,7 @@ export const translations = {
         forecast: 'Previsión',
         contact: 'Contactar',
         available: 'Disponible',
-        occupied: 'Completo',
+        occupied: 'Alquilada',
         fixed_expenses: 'Gastos fijos aparte',
         shared_expenses: 'Se reparten los gastos'
       },
@@ -72,7 +72,6 @@ export const translations = {
         rooms: 'Habitaciones'
       }
     },
-    // ... [REST OF SECTIONS UNCHANGED] ...
     common: {
       back: 'Volver',
       print: 'Imprimir',
@@ -104,7 +103,6 @@ export const translations = {
       month: 'mes',
       year: 'año'
     },
-    // ... [KEEP ALL OTHER SECTIONS AS THEY WERE] ...
     header: {
       home: 'Inicio',
       services: 'Servicios',
@@ -285,7 +283,6 @@ export const translations = {
         btn: 'Contáctanos por WhatsApp'
       }
     },
-    // ... [REST OF SECTIONS] ...
     about: {
       hero: {
         badge: 'Nuestra Historia',
@@ -346,7 +343,7 @@ export const translations = {
         for_desc: 'Consultas generales, nuevos inversores, estrategia, colaboraciones comerciales y oportunidades.',
         btn: 'Hablar con Pol',
         btn_msg: 'Dejar mensaje a Pol',
-        offline: 'He will answer you in the next business hours.'
+        offline: 'Te responderá en el próximo horario laboral.'
       },
       email: {
         title: '¿Prefieres el correo electrónico?',
@@ -376,7 +373,7 @@ export const translations = {
         savings: 'Ahorro estimado anual',
         savings_note: '*Estimación sobre facturación promedio',
         btn_start: 'Empezar ahora',
-        btn_recalc: 'Recalculate'
+        btn_recalc: 'Recalcular'
       },
       conditions: {
         title: 'Condiciones de los descuentos',
@@ -385,83 +382,82 @@ export const translations = {
     },
     opportunities: {
       hero: {
-        badge: 'Exclusive Portfolio',
-        title: 'Investment Opportunities',
-        subtitle: 'Properties selected and analyzed to offer maximum profitability through our comprehensive management model.'
+        badge: 'Cartera Exclusiva',
+        title: 'Oportunidades de Inversión',
+        subtitle: 'Propiedades seleccionadas y analizadas para ofrecer la máxima rentabilidad a través de nuestro modelo de gestión integral.'
       },
       empty: {
-        title: 'More coming soon',
-        text: 'We have currently sold our entire available portfolio. We are analyzing new assets that will hit the market in the coming days.',
-        cta: 'Want to be the first to know?',
-        btn: 'Join Investor Channel',
-        note: 'Free and exclusive access via WhatsApp'
+        title: 'Próximamente más activos',
+        text: 'Actualmente hemos vendido toda nuestra cartera disponible. Estamos analizando nuevos activos que saldrán al mercado en los próximos días.',
+        cta: '¿Quieres ser el primero en enterarte?',
+        btn: 'Unirme al Canal de Inversores',
+        note: 'Acceso gratuito y exclusivo vía WhatsApp'
       },
       collaboration: {
-        title: 'Are you an Owner or Real Estate Agency?',
-        subtitle: 'We are actively looking for new properties for our investor portfolio. If you have assets to sell or manage, collaborate with RentiaRoom.',
-        btn: 'Propose Collaboration'
+        title: '¿Eres Propietario o Inmobiliaria?',
+        subtitle: 'Buscamos activamente nuevas propiedades para nuestra cartera de inversores. Si tienes activos para vender o gestionar, colabora con RentiaRoom.',
+        btn: 'Proponer Colaboración'
       },
       card: {
         profitability: 'Rentabilidad',
-        reserved: 'Reserved',
-        sold: 'Sold',
+        reserved: 'Reservado',
+        sold: 'Vendido',
         purchase_price: 'Precio Compra',
         total_investment: 'Inversión Total',
-        rooms: 'rms',
-        floor: 'floor',
-        btn: 'View Complete Analysis'
+        rooms: 'habs',
+        floor: 'planta',
+        btn: 'Ver Análisis Completo'
       },
       detail: {
-        back: 'Back to Opportunities',
-        print: 'Print Sheet',
-        net_yield: 'Net Yield',
-        net_monthly: 'Net Monthly Income',
-        gross_yield: 'Gross Yield',
-        financial_study: 'Profitability Study',
-        includes_fees: 'Includes Fees (3% or 3k)',
-        investment_breakdown: 'Investment Breakdown',
-        reform_furniture: 'Renovation + Furniture',
-        notary_taxes: 'Notary & Taxes',
-        agency_fees: 'Agency Fees (+VAT)',
-        strategy: 'Rental Strategy',
-        rooms_strategy: 'Rooms',
-        traditional_strategy: 'Traditional',
-        management: 'Full Management',
-        active: 'Activated',
-        disabled: 'Disabled',
-        with_management: 'With Management',
-        self_management: 'Self-management',
-        monthly_estimation: 'Monthly Estimation',
-        gross_income: 'Gross Income',
-        expenses_ibi: 'Community & IBI Expenses (approx)',
-        management_fee: 'Management Fee',
-        management_vat: 'Management VAT',
-        without_management_note: '*Without deducting management',
-        description: 'Description',
-        key_points: 'Key Points',
-        area_benefits: 'Area Benefits',
-        property_summary: 'Property Summary',
-        bathrooms: 'bathrooms',
-        elevator: 'With elevator',
-        no_elevator: 'No elevator',
-        video_available: 'Available (See on web)',
+        back: 'Volver a Oportunidades',
+        print: 'Imprimir Ficha',
+        net_yield: 'Rentabilidad Neta',
+        net_monthly: 'Ingreso Mensual Neto',
+        gross_yield: 'Rentabilidad Bruta',
+        financial_study: 'Estudio de Rentabilidad',
+        includes_fees: 'Incluye Honorarios (3% o 3k)',
+        investment_breakdown: 'Desglose de Inversión',
+        reform_furniture: 'Reforma + Mobiliario',
+        notary_taxes: 'Notaría e Impuestos',
+        agency_fees: 'Honorarios Agencia (+IVA)',
+        strategy: 'Estrategia de Alquiler',
+        rooms_strategy: 'Habitaciones',
+        traditional_strategy: 'Tradicional',
+        management: 'Gestión Integral',
+        active: 'Activada',
+        disabled: 'Desactivada',
+        with_management: 'Con Gestión',
+        self_management: 'Autogestión',
+        monthly_estimation: 'Estimación Mensual',
+        gross_income: 'Ingresos Brutos',
+        expenses_ibi: 'Gastos Comunidad e IBI (aprox)',
+        management_fee: 'Comisión Gestión',
+        management_vat: 'IVA Gestión',
+        without_management_note: '*Sin descontar gestión',
+        description: 'Descripción del Activo',
+        key_points: 'Puntos Clave',
+        area_benefits: 'Beneficios de la Zona',
+        property_summary: 'Resumen de la Propiedad',
+        bathrooms: 'baños',
+        elevator: 'Con ascensor',
+        no_elevator: 'Sin ascensor',
+        video_available: 'Disponible (Ver en web)',
         multimedia: 'Multimedia',
-        photos: 'Photos',
-        see_all: 'See all photos',
-        appendix: 'Annex: Photo Gallery',
-        confidential: 'Rentia Investments S.L. • Confidential document. Information contained may be subject to change.'
+        photos: 'Fotos',
+        see_all: 'Ver todas las fotos',
+        appendix: 'Anexo: Galería Fotográfica',
+        confidential: 'Rentia Investments S.L. • Documento confidencial. La información contenida puede estar sujeta a cambios.'
       }
     },
-    // BROKERS SECTION
     brokers: {
       hero: {
-        badge: 'Profesionales',
+        badge: 'Solo Profesionales',
         title: 'Bolsa de Demandas y Colaboración',
-        subtitle: 'Conectamos oferta y demanda. Consulta los encargos de compra de nuestros inversores y las búsquedas activas de nuestra red de colaboración.'
+        subtitle: 'Conecta oferta y demanda. Consulta los encargos de compra de nuestros inversores cualificados.'
       },
       intro: {
         title: '¿Tienes un inmueble que encaja?',
-        text: 'Gestionamos mandatos de compra directos y colaboramos difundiendo búsquedas verificadas de compañeros del sector. Si tienes un activo que encaja en cualquiera de estos perfiles, contáctanos.'
+        text: 'Nuestros inversores tienen capital disponible y han validado su búsqueda con nosotros. Si eres agente inmobiliario o broker y tienes un activo que cumple los requisitos, contáctanos indicando la referencia.'
       },
       disclaimer: {
         title: 'Nota Importante',
@@ -576,7 +572,7 @@ export const translations = {
     }
   },
   en: {
-    // ... [KEEP ALL EXISTING SECTIONS] ...
+    // ... [KEEP ALL EXISTING SECTIONS from English] ...
     rooms: {
       hero: {
         badge: 'Real-time Catalog',
@@ -633,7 +629,7 @@ export const translations = {
         forecast: 'Forecast',
         contact: 'Contact',
         available: 'Available',
-        occupied: 'Full',
+        occupied: 'Rented',
         fixed_expenses: 'Fixed expenses separate',
         shared_expenses: 'Expenses shared'
       },
@@ -647,7 +643,6 @@ export const translations = {
         rooms: 'Habitaciones'
       }
     },
-    // ... [REST OF SECTIONS UNCHANGED] ...
     common: {
       back: 'Back',
       print: 'Print',
@@ -679,7 +674,6 @@ export const translations = {
       month: 'month',
       year: 'year'
     },
-    // ... [KEEP ALL OTHER SECTIONS AS THEY WERE] ...
     header: {
       home: 'Home',
       services: 'Services',
@@ -860,7 +854,6 @@ export const translations = {
         btn: 'Contact via WhatsApp'
       }
     },
-    // ... [REST OF SECTIONS] ...
     about: {
       hero: {
         badge: 'Our History',
@@ -1096,7 +1089,7 @@ export const translations = {
          registry: 'Registry Data:',
          registry_data: 'Company registered in the Mercantile Registry of Murcia. Legal Representative: Pol Matencio Espinosa (44996927A).',
          header2: '2. Purpose and Scope',
-         text2: 'These general conditions regulate access to and use of the website <strong>www.rentiaroom.com</strong> (hereinafter, the "Portal"). Access implies unreserved acceptance of these conditions. The user agrees to make appropriate use of the content and services, and not to use them for illegal activities or contrary to good faith and legal order.',
+         text2: 'These general conditions regulate access to and use of the website <strong>www.rentiaroom.com</strong> (hereinafter, the "Portal"). Access implies unreserved acceptance of these conditions. The user agrees to make appropriate use of the content and services, and a not to use them for illegal activities or contrary to good faith and legal order.',
          header3: '3. Intellectual Property',
          text3: 'All intellectual and industrial property rights of the website and its contents (texts, images, sounds, audio, video, designs, creatives, software) belong to Rentia Investments S.L. or, where appropriate, to third-party licensors. The reproduction, distribution, and public communication, including making available, of all or part of the contents of this website, for commercial purposes, on any medium and by any technical means, without the authorization of RentiaRoom, are expressly prohibited.',
          header4: '4. Exclusion of Guarantees and Liability',

@@ -1,11 +1,40 @@
 
-import React from 'react';
-import { Users, Briefcase, Heart, Quote, TrendingUp, Home, User } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Users, Briefcase, Heart, Quote, TrendingUp, Home, Clock, MessageCircle, CheckCircle, XCircle, Mail } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { CollaborationBanner } from './CollaborationBanner';
 
 export const AboutView: React.FC = () => {
   const { t } = useLanguage();
+  
+  // --- LÓGICA DE CONTACTO (Traída de ContactView) ---
+  const [now, setNow] = useState(new Date());
+
+  // Actualizar hora cada minuto
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(new Date());
+    }, 60000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Helper para determinar horarios
+  const getStatus = (startHour: number, endHour: number) => {
+    const day = now.getDay(); // 0 = Domingo, 6 = Sábado
+    const hour = now.getHours();
+
+    if (day === 0 || day === 6) {
+      return { isOpen: false, label: t('common.closed_weekend') };
+    }
+    if (hour >= startHour && hour < endHour) {
+      return { isOpen: true, label: t('common.available_now') };
+    }
+    return { isOpen: false, label: t('common.closed_now') };
+  };
+
+  const sandraStatus = getStatus(9, 14);
+  const polStatus = getStatus(9, 20);
+  // --------------------------------------------------
 
   return (
     <div className="bg-white min-h-screen font-sans animate-in fade-in duration-500">
@@ -179,30 +208,118 @@ export const AboutView: React.FC = () => {
           </div>
       </section>
 
-      {/* --- CTA --- */}
-      <section className="py-20 bg-white text-center">
-          <div className="container mx-auto px-4">
-              <h2 className="text-2xl md:text-3xl font-bold text-rentia-black mb-8 font-display">{t('about.cta.title')}</h2>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <a 
-                    href="https://api.whatsapp.com/send?phone=34672886369" 
-                    target="_blank" 
-                    rel="noreferrer"
-                    className="inline-flex items-center justify-center bg-rentia-black text-white px-8 py-4 rounded-xl font-bold hover:bg-gray-800 transition-all shadow-lg hover:shadow-xl hover:-translate-y-1"
-                  >
-                      <Briefcase className="w-5 h-5 mr-2" />
-                      {t('about.cta.btn_dir')}
-                  </a>
-                   <a 
-                    href="https://api.whatsapp.com/send?phone=34611948589" 
-                    target="_blank" 
-                    rel="noreferrer"
-                    className="inline-flex items-center justify-center bg-white text-rentia-black border-2 border-gray-200 px-8 py-4 rounded-xl font-bold hover:border-rentia-black transition-all"
-                  >
-                      {t('about.cta.btn_admin')}
-                  </a>
-              </div>
-          </div>
+      {/* --- CONTACT SECTION (INTEGRADO) --- */}
+      <section id="contact" className="py-20 bg-gray-50">
+        <div className="container mx-auto px-4 max-w-5xl">
+            <div className="text-center mb-12">
+                <h2 className="text-2xl md:text-3xl font-bold text-rentia-black font-display mb-2">{t('contact.choose.title')}</h2>
+                <p className="text-gray-500">{t('contact.choose.subtitle')}</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
+
+                {/* Sandra Card */}
+                <div className="bg-white p-6 md:p-8 rounded-2xl shadow-idealista border border-gray-100 hover:border-rentia-gold transition-all duration-300 hover:-translate-y-1 group relative overflow-hidden">
+                    <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 border ${sandraStatus.isOpen ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
+                        {sandraStatus.isOpen ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+                        {sandraStatus.label}
+                    </div>
+
+                    <div className="flex flex-col items-center text-center">
+                        <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center text-rentia-black font-bold text-3xl mb-4 shadow-sm group-hover:scale-110 transition-transform">
+                            S
+                        </div>
+                        <h3 className="font-bold text-2xl text-rentia-black mb-1">{t('contact.sandra.name')}</h3>
+                        <p className="text-rentia-blue font-medium mb-4">{t('contact.sandra.role')}</p>
+                        
+                        <div className="w-full border-t border-gray-100 my-4"></div>
+
+                        <div className="space-y-3 text-sm text-gray-600 mb-8 w-full">
+                            <div className="flex items-center justify-center gap-2">
+                                <Clock className="w-4 h-4 text-rentia-gold" /> 
+                                <span><strong>{t('contact.sandra.hours')}</strong></span>
+                            </div>
+                            <div className="bg-gray-50 p-3 rounded-lg text-center mx-auto w-full">
+                                <p className="font-bold text-gray-800 mb-1 text-xs uppercase tracking-wide">{t('contact.sandra.for_title')}</p>
+                                <p>{t('contact.sandra.for_desc')}</p>
+                            </div>
+                        </div>
+
+                        <a 
+                            href="https://api.whatsapp.com/send?phone=34611948589" 
+                            target="_blank" 
+                            rel="noreferrer" 
+                            className={`flex items-center justify-center w-full py-4 rounded-xl font-bold text-lg transition-all shadow-md ${
+                                sandraStatus.isOpen 
+                                ? 'bg-[#25D366] hover:bg-[#20ba5c] text-white hover:shadow-green-200/50' 
+                                : 'bg-white border-2 border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600'
+                            }`}
+                        >
+                            <MessageCircle className="w-5 h-5 mr-2" /> 
+                            {sandraStatus.isOpen ? t('contact.sandra.btn') : t('contact.sandra.btn_msg')}
+                        </a>
+                    </div>
+                </div>
+
+                {/* Pol Card */}
+                <div className="bg-white p-6 md:p-8 rounded-2xl shadow-idealista border border-gray-100 hover:border-rentia-blue transition-all duration-300 hover:-translate-y-1 group relative overflow-hidden">
+                    <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 border ${polStatus.isOpen ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
+                        {polStatus.isOpen ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+                        {polStatus.label}
+                    </div>
+
+                    <div className="flex flex-col items-center text-center">
+                        <div className="w-20 h-20 rounded-full bg-blue-50 flex items-center justify-center text-rentia-blue font-bold text-3xl mb-4 shadow-sm group-hover:scale-110 transition-transform">
+                            P
+                        </div>
+                        <h3 className="font-bold text-2xl text-rentia-black mb-1">{t('contact.pol.name')}</h3>
+                        <p className="text-rentia-blue font-medium mb-4">{t('contact.pol.role')}</p>
+
+                        <div className="w-full border-t border-gray-100 my-4"></div>
+
+                        <div className="space-y-3 text-sm text-gray-600 mb-8 w-full">
+                            <div className="flex items-center justify-center gap-2">
+                                <Clock className="w-4 h-4 text-rentia-gold" /> 
+                                <span><strong>{t('contact.pol.hours')}</strong></span>
+                            </div>
+                            <div className="bg-blue-50 p-3 rounded-lg text-center mx-auto w-full">
+                                <p className="font-bold text-blue-800 mb-1 text-xs uppercase tracking-wide">{t('contact.pol.for_title')}</p>
+                                <p className="text-blue-900">{t('contact.pol.for_desc')}</p>
+                            </div>
+                        </div>
+
+                        <a 
+                            href="https://api.whatsapp.com/send?phone=34672886369" 
+                            target="_blank" 
+                            rel="noreferrer" 
+                            className={`flex items-center justify-center w-full py-4 rounded-xl font-bold text-lg transition-all shadow-md ${
+                                polStatus.isOpen 
+                                ? 'bg-[#25D366] hover:bg-[#20ba5c] text-white hover:shadow-green-200/50' 
+                                : 'bg-white border-2 border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600'
+                            }`}
+                        >
+                            <MessageCircle className="w-5 h-5 mr-2" /> 
+                            {polStatus.isOpen ? t('contact.pol.btn') : t('contact.pol.btn_msg')}
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            {/* Email Section */}
+            <div className="mt-12 bg-white rounded-xl p-8 text-center border border-gray-200 shadow-sm">
+                 <div className="inline-flex p-3 bg-gray-50 rounded-full text-rentia-blue shadow-sm mb-4">
+                    <Mail className="w-6 h-6" />
+                 </div>
+                 <h3 className="text-xl font-bold text-rentia-black mb-2">{t('contact.email.title')}</h3>
+                 <p className="text-gray-500 mb-6">{t('contact.email.desc')}</p>
+                 <a 
+                    href="mailto:info@rentiaroom.com" 
+                    className="text-rentia-blue font-bold hover:underline text-lg"
+                 >
+                    info@rentiaroom.com
+                 </a>
+            </div>
+        </div>
       </section>
 
       {/* B2B Collaboration Banner */}

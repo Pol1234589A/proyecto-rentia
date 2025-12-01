@@ -1,13 +1,15 @@
 
 import React, { useState } from 'react';
-import { Menu, X, Globe } from 'lucide-react';
+import { Menu, X, Globe, Lock, LogOut } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { LoginModal } from './auth/LoginModal';
+import { useAuth } from '../contexts/AuthContext';
 
 interface HeaderProps {
-  onNavigate: (view: 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts' | 'blog') => void;
+  onNavigate: (view: 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts' | 'blog' | 'brokers' | 'intranet') => void;
 }
 
-type ViewType = 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts' | 'blog';
+type ViewType = 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts' | 'blog' | 'brokers' | 'intranet';
 
 interface NavLink {
   nameKey: string;
@@ -19,7 +21,9 @@ interface NavLink {
 
 export const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
   const { language, setLanguage, t } = useLanguage();
+  const { userRole, logout } = useAuth();
 
   const toggleLanguage = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -34,9 +38,8 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
     { nameKey: 'header.rooms', view: 'rooms', path: '#/habitaciones' },
     { nameKey: 'header.blog', view: 'blog', path: '#/blog' },
     { nameKey: 'header.discounts', view: 'discounts', path: '#/descuentos' },
-    { nameKey: 'header.hub', url: 'https://www.rentiahub.rentiaroom.com', isExternal: true },
     { nameKey: 'header.about', view: 'about', path: '#/nosotros' },
-    { nameKey: 'header.contact', view: 'contact', path: '#/contacto' },
+    // Eliminado enlace de contacto redundante
   ];
 
   const handleLinkClick = (e: React.MouseEvent, view?: ViewType) => {
@@ -46,7 +49,20 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
     setIsMenuOpen(false);
   };
 
+  const handleIntranetClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (userRole) {
+        // Si ya está logueado, ir al dashboard
+        onNavigate('intranet');
+    } else {
+        // Si no, abrir modal
+        setIsLoginOpen(true);
+    }
+    setIsMenuOpen(false);
+  };
+
   return (
+    <>
     <header className="sticky top-0 z-[9999] bg-[#0072CE] shadow-md font-sans no-print">
       <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20 md:h-24">
@@ -105,6 +121,28 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
                 <Globe className="w-3 h-3" />
                 {language === 'es' ? 'EN' : 'ES'}
             </button>
+
+            {/* LOGIN BUTTON DESKTOP */}
+            {userRole ? (
+                <div className="flex items-center gap-2">
+                    <button 
+                        onClick={handleIntranetClick}
+                        className="flex items-center gap-1 bg-white text-rentia-blue font-bold text-xs px-3 py-1.5 rounded-full hover:bg-rentia-gold hover:text-rentia-black transition-colors"
+                    >
+                        <Lock className="w-3 h-3" /> Area Privada
+                    </button>
+                    <button onClick={logout} className="text-white/70 hover:text-white" title="Salir">
+                        <LogOut className="w-4 h-4" />
+                    </button>
+                </div>
+            ) : (
+                <button 
+                    onClick={() => setIsLoginOpen(true)}
+                    className="flex items-center gap-1 text-white/80 hover:text-white font-medium text-xs border border-white/20 hover:border-white/50 rounded px-3 py-1.5 transition-colors"
+                >
+                    <Lock className="w-3 h-3" /> Login
+                </button>
+            )}
           </nav>
 
           {/* Mobile Menu Button + Lang */}
@@ -161,9 +199,24 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
             >
               {t('header.opportunities_mobile')}
             </a>
+            
+            {/* Mobile Login Button */}
+            <button 
+                onClick={handleIntranetClick}
+                className="block w-full text-left px-4 py-4 rounded-lg text-lg font-bold text-white bg-white/10 hover:bg-white/20 border border-white/20 cursor-pointer mt-4 text-center flex items-center justify-center gap-2"
+            >
+                <Lock className="w-5 h-5" /> 
+                {userRole ? 'Ir al Área Privada' : 'Acceso Clientes'}
+            </button>
+            {userRole && (
+                <button onClick={logout} className="block w-full text-center py-2 text-white/60 text-sm">Cerrar Sesión</button>
+            )}
           </div>
         </div>
       )}
     </header>
+
+    <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
+    </>
   );
 };

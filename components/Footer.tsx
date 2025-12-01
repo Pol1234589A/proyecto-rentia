@@ -71,6 +71,16 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, openLegalModal }) =>
                   </a>
               </li>
               <li>
+                  <a 
+                    href="https://www.rentiahub.rentiaroom.com" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="hover:text-[#edcd20] transition-colors text-left cursor-pointer block py-1"
+                  >
+                      {t('header.hub')}
+                  </a>
+              </li>
+              <li>
                   <button onClick={() => openLegalModal('legal')} className="hover:text-[#edcd20] transition-colors text-left cursor-pointer block py-1">
                       {t('footer.legal')}
                   </button>

@@ -1,9 +1,11 @@
 
-import React, { useState, useMemo } from 'react';
-import { brokerRequests, RequestTag } from '../data/brokerRequests';
+import React, { useState, useMemo, useEffect } from 'react';
+import { brokerRequests as staticRequests, BrokerRequest, RequestTag } from '../data/brokerRequests';
 import { Briefcase, Search, MapPin, FileText, MessageCircle, ArrowRight, Building2, ShieldCheck, Filter, X, AlertCircle, Handshake, Crown, Star, Network } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { ModalType } from './LegalModals';
+import { db } from '../firebase';
+import { collection, onSnapshot } from 'firebase/firestore';
 
 interface BrokerViewProps {
     openLegalModal?: (type: ModalType) => void;
@@ -14,12 +16,40 @@ export const BrokerView: React.FC<BrokerViewProps> = ({ openLegalModal }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterLocation, setFilterLocation] = useState('');
   const [filterTag, setFilterTag] = useState<RequestTag | 'all'>('all');
+  const [brokerRequests, setBrokerRequests] = useState<BrokerRequest[]>(staticRequests);
+
+  // Load Broker Requests from Firestore and merge with static
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, "buyer_requests"), (snapshot) => {
+        const firestoreRequests: BrokerRequest[] = [];
+        snapshot.forEach((doc) => {
+            const data = doc.data();
+            firestoreRequests.push({
+                id: doc.id,
+                reference: data.reference,
+                type: data.type,
+                specs: data.specs,
+                location: data.location,
+                condition: data.condition || 'Estándar',
+                budget: data.budget,
+                notes: data.notes,
+                tag: data.tag || 'own'
+            });
+        });
+        // Merge: Static first, then Firestore
+        setBrokerRequests([...staticRequests, ...firestoreRequests]);
+    }, (error) => {
+        console.warn("Firestore access error:", error);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   // Extract unique locations for the dropdown
   const uniqueLocations = useMemo(() => {
       const locs = new Set(brokerRequests.map(req => req.location));
       return Array.from(locs).sort();
-  }, []);
+  }, [brokerRequests]);
 
   // Filter logic
   const filteredRequests = useMemo(() => {
@@ -45,7 +75,7 @@ export const BrokerView: React.FC<BrokerViewProps> = ({ openLegalModal }) => {
 
           return matchesSearch && matchesLocation && matchesTag;
       });
-  }, [searchTerm, filterLocation, filterTag]);
+  }, [brokerRequests, searchTerm, filterLocation, filterTag]);
 
   const clearFilters = () => {
       setSearchTerm('');

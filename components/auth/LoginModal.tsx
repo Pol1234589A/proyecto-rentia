@@ -43,7 +43,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
     } catch (err) {
       console.error(err);
       setError('Credenciales incorrectas o error de conexión.');
-    } else {
+    } finally {
       setLoading(false);
     }
   };

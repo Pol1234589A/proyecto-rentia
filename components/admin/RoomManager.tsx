@@ -1,10 +1,9 @@
 
-// ... keep imports ...
 import React, { useState, useEffect } from 'react';
 import { db } from '../../firebase';
 import { collection, getDocs, doc, updateDoc, writeBatch, setDoc, deleteDoc } from 'firebase/firestore';
 import { properties as staticProperties, Property, Room } from '../../data/rooms';
-import { Save, RefreshCw, Home, CheckCircle, AlertTriangle, ChevronDown, ChevronRight, DollarSign, Calendar, Database, Wind, Receipt, Plus, Trash2, X, MapPin, ExternalLink, Map, Fan, Timer, Image as ImageIcon, Link as LinkIcon, FileText, ShieldAlert, User, Check, Clock } from 'lucide-react';
+import { Save, RefreshCw, Home, CheckCircle, AlertTriangle, ChevronDown, ChevronRight, DollarSign, Calendar, Database, Wind, Receipt, Plus, Trash2, X, MapPin, ExternalLink, Map, Fan, Timer, Image as ImageIcon, Link as LinkIcon, FileText, ShieldAlert, User, Check, Clock, Bed, Bath, Building, History, FolderOpen, CalendarClock } from 'lucide-react';
 
 // ... interfaces ... (Keep existing interfaces Contract, Incident, AdminProperty)
 interface Contract {
@@ -92,9 +91,19 @@ export const RoomManager: React.FC = () => {
   const [newIncident, setNewIncident] = useState<Partial<Incident>>({});
   const [activeTabPrivate, setActiveTabPrivate] = useState<'contracts' | 'incidents'>('contracts');
 
-  // Estado para crear nueva propiedad
+  // Estado para historial de habitación específico
+  const [viewHistoryRoom, setViewHistoryRoom] = useState<{ room: Room, contracts: Contract[], propertyAddress: string } | null>(null);
+
+  // Estado para crear nueva propiedad - FORMULARIO AMPLIADO
   const [isCreating, setIsCreating] = useState(false);
-  const [newPropData, setNewPropData] = useState({ address: '', city: '' });
+  const [newPropData, setNewPropData] = useState({ 
+      address: '', 
+      city: 'Murcia', 
+      floor: '',
+      bathrooms: 1,
+      image: '',
+      initialRooms: 3 
+  });
 
   // Cargar datos de Firestore
   const fetchProperties = async () => {
@@ -133,7 +142,6 @@ export const RoomManager: React.FC = () => {
     fetchProperties();
   }, []);
 
-  // ... (Keep handleCreateProperty, handleDeleteProperty, handlePropertyFieldChange, generateMapLink) ...
   // --- CREAR PROPIEDAD ---
   const handleCreateProperty = async () => {
     if (!newPropData.address || !newPropData.city) {
@@ -145,20 +153,39 @@ export const RoomManager: React.FC = () => {
         const newId = `PROP_${Date.now()}`;
         const mapLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${newPropData.address}, ${newPropData.city}`)}`;
         
+        // Generar habitaciones iniciales
+        const initialRoomsList: Room[] = [];
+        for (let i = 1; i <= newPropData.initialRooms; i++) {
+            initialRoomsList.push({
+                id: `${newId}_H${i}`,
+                name: `H${i}`,
+                price: 300, // Precio base por defecto
+                status: 'available',
+                availableFrom: 'Inmediata',
+                expenses: 'Gastos fijos aparte',
+                targetProfile: 'both',
+                hasAirConditioning: false,
+                hasFan: false,
+                images: []
+            });
+        }
+
         const newProperty: Property = {
             id: newId,
             address: newPropData.address,
             city: newPropData.city,
-            image: '', 
+            floor: newPropData.floor,
+            image: newPropData.image,
+            bathrooms: newPropData.bathrooms,
             googleMapsLink: mapLink,
-            rooms: []
+            rooms: initialRoomsList
         };
 
         await setDoc(doc(db, "properties", newId), newProperty);
         
         setMessage({ type: 'success', text: "Propiedad creada correctamente." });
         setIsCreating(false);
-        setNewPropData({ address: '', city: '' });
+        setNewPropData({ address: '', city: 'Murcia', floor: '', bathrooms: 1, image: '', initialRooms: 3 });
         fetchProperties(); 
     } catch (error) {
         console.error(error);
@@ -200,7 +227,6 @@ export const RoomManager: React.FC = () => {
       }));
   };
 
-  // ... (Keep handleRoomChange, handleRoomImageOperation, handleAddRoom, handleDeleteRoom) ...
   // --- GESTIÓN DE HABITACIONES (Local State) ---
   const handleRoomChange = (propId: string, roomId: string, field: keyof Room, value: any) => {
     setProperties(prevProps => prevProps.map(prop => {
@@ -261,7 +287,15 @@ export const RoomManager: React.FC = () => {
       }));
   };
 
-  // ... (Keep internal management handlers) ...
+  const handleOpenRoomHistory = (property: AdminProperty, room: Room) => {
+      const roomContracts = (property.contracts || []).filter(c => c.roomId === room.name);
+      setViewHistoryRoom({
+          room,
+          contracts: roomContracts,
+          propertyAddress: property.address
+      });
+  };
+
   // --- GESTIÓN INTERNA (CONTRATOS E INCIDENCIAS) ---
   const handleAddContract = (propId: string) => {
       if(!newContract.tenantName || !newContract.roomId) { alert("Nombre y habitación requeridos"); return; }
@@ -275,13 +309,14 @@ export const RoomManager: React.FC = () => {
       };
       setProperties(prev => prev.map(p => {
           if(p.id !== propId) return p;
+          // Añadimos el nuevo contrato al array existente
           return { ...p, contracts: [...(p.contracts || []), contract] };
       }));
       setNewContract({});
   };
 
   const handleDeleteContract = (propId: string, contractId: string) => {
-      if(!confirm("¿Eliminar contrato?")) return;
+      if(!confirm("¿Eliminar contrato permanentemente?")) return;
       setProperties(prev => prev.map(p => {
           if(p.id !== propId) return p;
           return { ...p, contracts: (p.contracts || []).filter(c => c.id !== contractId) };
@@ -318,23 +353,19 @@ export const RoomManager: React.FC = () => {
     setMessage(null);
     try {
       const docRef = doc(db, "properties", property.id);
-      // Guardamos tanto los campos públicos como los privados en el mismo documento
-      // IMPORTANTE: Sanitizamos 'floor', 'image', etc. para evitar undefined
       await updateDoc(docRef, { 
           address: property.address || '',
           city: property.city || '',
-          floor: property.floor || '', // Corrección clave: evitar undefined
-          image: property.image || '', // Corrección clave
-          googleMapsLink: property.googleMapsLink || '', // Corrección clave
+          floor: property.floor || '', 
+          image: property.image || '', 
+          googleMapsLink: property.googleMapsLink || '', 
+          bathrooms: property.bathrooms || 1, // Nuevo campo
           rooms: property.rooms,
-          contracts: property.contracts || [], // Guardar contratos
-          incidents: property.incidents || []  // Guardar incidencias
+          contracts: property.contracts || [], 
+          incidents: property.incidents || []  
       });
-      // Show success modal
       setShowSuccessModal(true);
-      // Auto-hide after 3 seconds
       setTimeout(() => setShowSuccessModal(false), 3000);
-      
       setMessage({ type: 'success', text: `Cambios publicados en ${property.address}` });
     } catch (error: any) {
       console.error(error);
@@ -384,9 +415,106 @@ export const RoomManager: React.FC = () => {
         </div>
       )}
 
+      {/* MODAL HISTORIAL HABITACIÓN */}
+      {viewHistoryRoom && (
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-300" onClick={() => setViewHistoryRoom(null)}>
+              <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
+                  <div className="bg-slate-900 text-white p-4 flex justify-between items-center">
+                      <div>
+                          <h3 className="font-bold flex items-center gap-2 text-lg">
+                              <History className="w-5 h-5 text-rentia-gold" />
+                              Historial {viewHistoryRoom.room.name}
+                          </h3>
+                          <p className="text-xs text-slate-400">{viewHistoryRoom.propertyAddress}</p>
+                      </div>
+                      <button onClick={() => setViewHistoryRoom(null)}><X className="w-5 h-5 text-white/70 hover:text-white"/></button>
+                  </div>
+                  
+                  <div className="p-4 bg-gray-50 max-h-[60vh] overflow-y-auto">
+                      {viewHistoryRoom.contracts.length === 0 ? (
+                          <div className="text-center py-8 text-gray-400">
+                              <FolderOpen className="w-12 h-12 mx-auto mb-2 opacity-20" />
+                              <p className="text-sm">No hay contratos registrados para esta habitación.</p>
+                          </div>
+                      ) : (
+                          <div className="space-y-3">
+                              {/* Clasificar Contratos */}
+                              {(() => {
+                                  const today = new Date().toISOString().split('T')[0];
+                                  // Activos: Inicio <= Hoy <= Fin
+                                  const active = viewHistoryRoom.contracts.filter(c => c.startDate <= today && (!c.endDate || c.endDate >= today));
+                                  // Futuros: Inicio > Hoy
+                                  const future = viewHistoryRoom.contracts.filter(c => c.startDate > today);
+                                  // Pasados: Fin < Hoy
+                                  const past = viewHistoryRoom.contracts.filter(c => c.endDate && c.endDate < today).sort((a,b) => b.endDate.localeCompare(a.endDate));
+
+                                  return (
+                                      <>
+                                          {/* ACTIVO */}
+                                          {active.length > 0 && (
+                                              <div className="mb-4">
+                                                  <h6 className="text-xs font-bold text-green-700 uppercase mb-2 flex items-center gap-1"><CheckCircle className="w-3 h-3"/> Inquilino Actual</h6>
+                                                  {active.map(c => (
+                                                      <div key={c.id} className="bg-white border-l-4 border-green-500 p-3 rounded shadow-sm">
+                                                          <div className="flex justify-between items-start">
+                                                              <div>
+                                                                  <p className="font-bold text-gray-900 flex items-center gap-1"><User className="w-3 h-3"/> {c.tenantName}</p>
+                                                                  <p className="text-xs text-gray-500 mt-1 flex items-center gap-1"><Calendar className="w-3 h-3"/> {c.startDate} - {c.endDate}</p>
+                                                              </div>
+                                                              {c.documentUrl && <a href={c.documentUrl} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline text-xs"><FileText className="w-4 h-4"/></a>}
+                                                          </div>
+                                                      </div>
+                                                  ))}
+                                              </div>
+                                          )}
+
+                                          {/* FUTURO / RESERVA */}
+                                          {future.length > 0 && (
+                                              <div className="mb-4">
+                                                  <h6 className="text-xs font-bold text-orange-600 uppercase mb-2 flex items-center gap-1"><CalendarClock className="w-3 h-3"/> Próxima Entrada (Reserva)</h6>
+                                                  {future.map(c => (
+                                                      <div key={c.id} className="bg-white border-l-4 border-orange-400 p-3 rounded shadow-sm border border-gray-100">
+                                                          <div className="flex justify-between items-start">
+                                                              <div>
+                                                                  <p className="font-bold text-gray-900 flex items-center gap-1"><User className="w-3 h-3"/> {c.tenantName}</p>
+                                                                  <p className="text-xs text-gray-500 mt-1 flex items-center gap-1"><Calendar className="w-3 h-3"/> Entrada: {c.startDate}</p>
+                                                              </div>
+                                                              {c.documentUrl && <a href={c.documentUrl} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline text-xs"><FileText className="w-4 h-4"/></a>}
+                                                          </div>
+                                                      </div>
+                                                  ))}
+                                              </div>
+                                          )}
+
+                                          {/* HISTORIAL PASADO */}
+                                          {past.length > 0 && (
+                                              <div>
+                                                  <h6 className="text-xs font-bold text-slate-500 uppercase mb-2 flex items-center gap-1"><History className="w-3 h-3"/> Antiguos Inquilinos</h6>
+                                                  <div className="space-y-2">
+                                                      {past.map(c => (
+                                                          <div key={c.id} className="bg-slate-100 p-2 rounded flex justify-between items-center text-xs text-slate-600">
+                                                              <div>
+                                                                  <span className="font-bold block">{c.tenantName}</span>
+                                                                  <span className="text-[10px]">{c.startDate} - {c.endDate}</span>
+                                                              </div>
+                                                              {c.documentUrl && <a href={c.documentUrl} target="_blank" rel="noreferrer" className="text-slate-400 hover:text-blue-600"><FolderOpen className="w-3 h-3"/></a>}
+                                                          </div>
+                                                      ))}
+                                                  </div>
+                                              </div>
+                                          )}
+                                      </>
+                                  );
+                              })()}
+                          </div>
+                      )}
+                  </div>
+              </div>
+          </div>
+      )}
+
       {/* Header */}
       <div className="p-6 border-b border-gray-100 bg-gray-50 flex justify-between items-center flex-wrap gap-4">
-        {/* ... (Header Content) ... */}
         <div>
             <h3 className="font-bold text-gray-800 flex items-center gap-2">
             <Home className="w-5 h-5 text-rentia-blue" />
@@ -413,37 +541,103 @@ export const RoomManager: React.FC = () => {
         </div>
       </div>
 
-      {/* ... (Rest of the component: Create Form, Property List, etc.) ... */}
+      {/* ... (Create form content remains same) ... */}
       {isCreating && (
-          <div className="p-4 bg-blue-50 border-b border-blue-100 animate-in slide-in-from-top-2">
-              <h4 className="text-sm font-bold text-rentia-blue mb-3">Nueva Propiedad</h4>
-              <div className="flex flex-col md:flex-row gap-3 items-end">
-                  <div className="w-full md:w-1/3">
-                      <label className="text-xs text-gray-500 block mb-1">Dirección</label>
+          <div className="p-6 bg-blue-50/50 border-b border-blue-100 animate-in slide-in-from-top-2">
+              <div className="flex justify-between items-center mb-4">
+                  <h4 className="text-sm font-bold text-rentia-blue flex items-center gap-2">
+                      <Building className="w-4 h-4" /> Alta Nueva Propiedad
+                  </h4>
+                  <button onClick={() => setIsCreating(false)} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
+              </div>
+              
+              {/* ... (Resto del formulario de creación igual que antes) ... */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {/* Dirección */}
+                  <div className="lg:col-span-2">
+                      <label className="text-xs text-gray-500 font-bold block mb-1">Dirección Completa</label>
                       <input 
                           type="text" 
                           value={newPropData.address}
                           onChange={(e) => setNewPropData({...newPropData, address: e.target.value})}
-                          className="w-full p-2 rounded border border-gray-300 text-sm focus:border-rentia-blue outline-none"
+                          className="w-full p-2.5 rounded-lg border border-gray-300 text-sm focus:border-rentia-blue outline-none bg-white shadow-sm"
                           placeholder="Ej: Calle Mayor 1"
                       />
                   </div>
-                  <div className="w-full md:w-1/3">
-                      <label className="text-xs text-gray-500 block mb-1">Ciudad</label>
+                  
+                  {/* Ciudad */}
+                  <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1">Ciudad</label>
                       <input 
                           type="text" 
                           value={newPropData.city}
                           onChange={(e) => setNewPropData({...newPropData, city: e.target.value})}
-                          className="w-full p-2 rounded border border-gray-300 text-sm focus:border-rentia-blue outline-none"
+                          className="w-full p-2.5 rounded-lg border border-gray-300 text-sm focus:border-rentia-blue outline-none bg-white shadow-sm"
                           placeholder="Ej: Murcia"
                       />
                   </div>
+
+                  {/* Planta */}
+                  <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1">Planta</label>
+                      <input 
+                          type="text" 
+                          value={newPropData.floor}
+                          onChange={(e) => setNewPropData({...newPropData, floor: e.target.value})}
+                          className="w-full p-2.5 rounded-lg border border-gray-300 text-sm focus:border-rentia-blue outline-none bg-white shadow-sm"
+                          placeholder="Ej: 3º Izq"
+                      />
+                  </div>
+
+                  {/* Configuración Habitaciones */}
+                  <div className="flex gap-4">
+                      <div className="flex-1">
+                          <label className="text-xs text-gray-500 font-bold block mb-1 flex items-center gap-1"><Bed className="w-3 h-3"/> Nº Habs Iniciales</label>
+                          <input 
+                              type="number" 
+                              min="1"
+                              max="20"
+                              value={newPropData.initialRooms}
+                              onChange={(e) => setNewPropData({...newPropData, initialRooms: Number(e.target.value)})}
+                              className="w-full p-2.5 rounded-lg border border-gray-300 text-sm focus:border-rentia-blue outline-none bg-white shadow-sm"
+                          />
+                      </div>
+                      <div className="flex-1">
+                          <label className="text-xs text-gray-500 font-bold block mb-1 flex items-center gap-1"><Bath className="w-3 h-3"/> Nº Baños</label>
+                          <input 
+                              type="number" 
+                              min="1"
+                              max="10"
+                              value={newPropData.bathrooms}
+                              onChange={(e) => setNewPropData({...newPropData, bathrooms: Number(e.target.value)})}
+                              className="w-full p-2.5 rounded-lg border border-gray-300 text-sm focus:border-rentia-blue outline-none bg-white shadow-sm"
+                          />
+                      </div>
+                  </div>
+
+                  {/* Foto URL */}
+                  <div className="lg:col-span-3">
+                      <label className="text-xs text-gray-500 font-bold block mb-1 flex items-center gap-1"><ImageIcon className="w-3 h-3"/> Foto Principal (URL)</label>
+                      <div className="flex gap-2">
+                          <input 
+                              type="text" 
+                              value={newPropData.image}
+                              onChange={(e) => setNewPropData({...newPropData, image: e.target.value})}
+                              className="w-full p-2.5 rounded-lg border border-gray-300 text-sm focus:border-rentia-blue outline-none bg-white shadow-sm"
+                              placeholder="https://..."
+                          />
+                      </div>
+                  </div>
+              </div>
+
+              <div className="flex justify-end mt-6">
                   <button 
                       onClick={handleCreateProperty}
                       disabled={saving}
-                      className="bg-green-600 text-white px-4 py-2 rounded text-sm font-bold hover:bg-green-700 transition-colors flex items-center gap-2"
+                      className="bg-green-600 text-white px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-green-700 transition-colors flex items-center gap-2 shadow-md transform active:scale-95"
                   >
-                      {saving ? 'Creando...' : <><Save className="w-4 h-4"/> Guardar Piso</>}
+                      {saving ? <RefreshCw className="w-4 h-4 animate-spin"/> : <Save className="w-4 h-4"/>}
+                      {saving ? 'Creando...' : 'Guardar y Generar Habitaciones'}
                   </button>
               </div>
           </div>
@@ -451,6 +645,7 @@ export const RoomManager: React.FC = () => {
 
       {/* Lista de Propiedades */}
       <div className="p-0 overflow-y-auto max-h-[800px] bg-gray-50/50">
+        {/* ... (Error messages and empty state) ... */}
         {message && (
             <div className={`m-4 p-3 rounded-lg text-sm flex items-center gap-2 ${message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                 {message.type === 'success' ? <CheckCircle className="w-4 h-4"/> : <AlertTriangle className="w-4 h-4"/>}
@@ -472,9 +667,14 @@ export const RoomManager: React.FC = () => {
                 const occupied = prop.rooms.filter(r => r.status === 'occupied' && !isSoon(r.availableFrom));
                 const reserved = prop.rooms.filter(r => r.status === 'reserved');
 
+                // Lógica para separar contratos
+                const today = new Date().toISOString().split('T')[0];
+                const activeContracts = (prop.contracts || []).filter(c => !c.endDate || c.endDate >= today);
+                const historyContracts = (prop.contracts || []).filter(c => c.endDate && c.endDate < today).sort((a,b) => b.endDate.localeCompare(a.endDate));
+
                 return (
                 <div key={prop.id} className="bg-white group">
-                    {/* ... (Property Item Header - No Changes) ... */}
+                    {/* ... (Property Item Header) ... */}
                     <div 
                         className={`p-4 flex items-center justify-between cursor-pointer hover:bg-blue-50/50 transition-colors ${expandedProp === prop.id ? 'bg-blue-50/30' : ''}`}
                         onClick={() => toggleExpand(prop.id)}
@@ -531,6 +731,7 @@ export const RoomManager: React.FC = () => {
 
                             {/* ... (SECCIÓN DETALLES PROPIEDAD - No Changes) ... */}
                             <div className="mb-6 p-4 bg-blue-50/50 border border-blue-100 rounded-lg">
+                                {/* ... (Inputs de dirección y foto igual que antes) ... */}
                                 <h4 className="text-xs font-bold text-rentia-blue uppercase mb-3 flex items-center gap-2">
                                     <MapPin className="w-3 h-3" /> Detalles de Ubicación
                                 </h4>
@@ -607,38 +808,70 @@ export const RoomManager: React.FC = () => {
 
                                 {activeTabPrivate === 'contracts' && (
                                     <div>
-                                        <div className="space-y-2 mb-4">
-                                            {prop.contracts && prop.contracts.length > 0 ? prop.contracts.map(c => (
-                                                <div key={c.id} className="flex items-center justify-between bg-white p-2 rounded border border-slate-200 text-sm">
-                                                    <div className="flex items-center gap-3">
-                                                        <span className="font-mono font-bold bg-slate-100 px-2 py-0.5 rounded text-xs">{c.roomId}</span>
-                                                        <span className="font-bold text-slate-800 flex items-center gap-1"><User className="w-3 h-3"/> {c.tenantName}</span>
-                                                        <span className="text-xs text-slate-500 flex items-center gap-1"><Clock className="w-3 h-3"/> {c.startDate} - {c.endDate}</span>
+                                        {/* CONTRATOS VIGENTES */}
+                                        <div className="mb-4">
+                                            <h5 className="text-[10px] font-bold text-green-700 uppercase mb-2 flex items-center gap-1"><CheckCircle className="w-3 h-3"/> Vigentes</h5>
+                                            <div className="space-y-2">
+                                                {activeContracts.length > 0 ? activeContracts.map(c => (
+                                                    <div key={c.id} className="flex items-center justify-between bg-white p-2 rounded border-l-4 border-green-500 shadow-sm text-sm">
+                                                        <div className="flex items-center gap-3">
+                                                            <span className="font-mono font-bold bg-slate-100 px-2 py-0.5 rounded text-xs">{c.roomId}</span>
+                                                            <span className="font-bold text-slate-800 flex items-center gap-1"><User className="w-3 h-3"/> {c.tenantName}</span>
+                                                            <span className="text-xs text-slate-500 flex items-center gap-1"><Clock className="w-3 h-3"/> {c.startDate} - {c.endDate}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            {c.documentUrl && (
+                                                                <a href={c.documentUrl} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline text-xs font-bold flex items-center gap-1">
+                                                                    <FileText className="w-3 h-3"/> PDF
+                                                                </a>
+                                                            )}
+                                                            <button onClick={() => handleDeleteContract(prop.id, c.id)} className="text-red-400 hover:text-red-600"><Trash2 className="w-3 h-3"/></button>
+                                                        </div>
                                                     </div>
-                                                    <div className="flex items-center gap-2">
-                                                        {c.documentUrl && (
-                                                            <a href={c.documentUrl} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline text-xs font-bold flex items-center gap-1">
-                                                                <FileText className="w-3 h-3"/> Ver Contrato
-                                                            </a>
-                                                        )}
-                                                        <button onClick={() => handleDeleteContract(prop.id, c.id)} className="text-red-400 hover:text-red-600"><Trash2 className="w-3 h-3"/></button>
-                                                    </div>
-                                                </div>
-                                            )) : (
-                                                <div className="text-center py-4 text-slate-400 text-xs italic">No hay contratos activos registrados.</div>
-                                            )}
+                                                )) : (
+                                                    <div className="text-center py-2 text-slate-400 text-xs italic bg-white rounded border border-dashed border-slate-200">No hay contratos vigentes.</div>
+                                                )}
+                                            </div>
                                         </div>
+
+                                        {/* HISTORIAL (PLEGABLE) */}
+                                        {historyContracts.length > 0 && (
+                                            <div className="mb-4">
+                                                <details className="group/history">
+                                                    <summary className="cursor-pointer text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1 hover:text-slate-700 select-none">
+                                                        <History className="w-3 h-3"/> Historial ({historyContracts.length})
+                                                        <ChevronDown className="w-3 h-3 transition-transform group-open/history:rotate-180"/>
+                                                    </summary>
+                                                    <div className="mt-2 space-y-1 pl-2 border-l-2 border-slate-200">
+                                                        {historyContracts.map(c => (
+                                                            <div key={c.id} className="flex items-center justify-between bg-slate-50 p-2 rounded border border-slate-100 text-xs text-slate-500">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="font-mono bg-white px-1.5 rounded">{c.roomId}</span>
+                                                                    <span className="font-medium">{c.tenantName}</span>
+                                                                    <span className="text-[10px]">({c.startDate} a {c.endDate})</span>
+                                                                </div>
+                                                                <div className="flex items-center gap-2">
+                                                                    {c.documentUrl && <a href={c.documentUrl} target="_blank" rel="noreferrer"><FolderOpen className="w-3 h-3 text-slate-400 hover:text-blue-600"/></a>}
+                                                                    <button onClick={() => handleDeleteContract(prop.id, c.id)}><Trash2 className="w-3 h-3 text-slate-300 hover:text-red-500"/></button>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </details>
+                                            </div>
+                                        )}
+
                                         {/* Añadir Contrato */}
-                                        <div className="bg-slate-200/50 p-3 rounded flex flex-wrap gap-2 items-center">
-                                            <span className="text-xs font-bold text-slate-500">Nuevo:</span>
-                                            <select className="text-xs p-1.5 rounded" value={newContract.roomId || ''} onChange={e => setNewContract({...newContract, roomId: e.target.value})}>
+                                        <div className="bg-slate-200/50 p-3 rounded flex flex-wrap gap-2 items-center border border-slate-200 mt-4">
+                                            <span className="text-xs font-bold text-slate-500 flex items-center gap-1"><Plus className="w-3 h-3"/> Nuevo:</span>
+                                            <select className="text-xs p-1.5 rounded outline-none border-transparent focus:border-blue-300 border" value={newContract.roomId || ''} onChange={e => setNewContract({...newContract, roomId: e.target.value})}>
                                                 <option value="">Habitación</option>
                                                 {prop.rooms.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
                                             </select>
-                                            <input type="text" placeholder="Nombre Inquilino" className="text-xs p-1.5 rounded w-32" value={newContract.tenantName || ''} onChange={e => setNewContract({...newContract, tenantName: e.target.value})}/>
-                                            <input type="date" className="text-xs p-1.5 rounded" value={newContract.startDate || ''} onChange={e => setNewContract({...newContract, startDate: e.target.value})}/>
-                                            <input type="date" className="text-xs p-1.5 rounded" value={newContract.endDate || ''} onChange={e => setNewContract({...newContract, endDate: e.target.value})}/>
-                                            <input type="text" placeholder="URL Contrato (Drive/PDF)" className="text-xs p-1.5 rounded flex-grow" value={newContract.documentUrl || ''} onChange={e => setNewContract({...newContract, documentUrl: e.target.value})}/>
+                                            <input type="text" placeholder="Nombre Inquilino" className="text-xs p-1.5 rounded w-32 outline-none border-transparent focus:border-blue-300 border" value={newContract.tenantName || ''} onChange={e => setNewContract({...newContract, tenantName: e.target.value})}/>
+                                            <input type="date" className="text-xs p-1.5 rounded outline-none border-transparent focus:border-blue-300 border" value={newContract.startDate || ''} onChange={e => setNewContract({...newContract, startDate: e.target.value})}/>
+                                            <input type="date" className="text-xs p-1.5 rounded outline-none border-transparent focus:border-blue-300 border" value={newContract.endDate || ''} onChange={e => setNewContract({...newContract, endDate: e.target.value})}/>
+                                            <input type="text" placeholder="URL Contrato (Drive/PDF)" className="text-xs p-1.5 rounded flex-grow outline-none border-transparent focus:border-blue-300 border" value={newContract.documentUrl || ''} onChange={e => setNewContract({...newContract, documentUrl: e.target.value})}/>
                                             <button onClick={() => handleAddContract(prop.id)} className="bg-slate-700 text-white text-xs px-3 py-1.5 rounded font-bold hover:bg-slate-800">Añadir</button>
                                         </div>
                                     </div>
@@ -713,7 +946,7 @@ export const RoomManager: React.FC = () => {
                                                 />
                                             </div>
                                             {/* Estado */}
-                                            <div className="w-full md:w-32">
+                                            <div className="w-full md:w-32 flex flex-col gap-1">
                                                 <select 
                                                     value={room.status}
                                                     onChange={(e) => handleRoomChange(prop.id, room.id, 'status', e.target.value)}
@@ -726,6 +959,20 @@ export const RoomManager: React.FC = () => {
                                                     <option value="occupied">Alquilada</option>
                                                     <option value="reserved">Reservada</option>
                                                 </select>
+                                                
+                                                {/* ALERTA FALTA CONTRATO */}
+                                                {room.status === 'occupied' && !(prop.contracts || []).some(c => c.roomId === room.name && (!c.endDate || c.endDate >= new Date().toISOString().split('T')[0])) && (
+                                                    <button 
+                                                        onClick={() => {
+                                                            setActiveTabPrivate('contracts');
+                                                            alert(`⚠️ ATENCIÓN: La habitación ${room.name} figura como ALQUILADA pero no tiene contrato vigente registrado.\n\nPor favor, ve a la sección "Gestión Interna > Contratos" (arriba) y añade el contrato correspondiente.`);
+                                                        }}
+                                                        className="flex items-center justify-center gap-1 text-[9px] text-white bg-red-500 hover:bg-red-600 px-1.5 py-1 rounded shadow-sm font-bold transition-colors animate-pulse text-center w-full cursor-pointer"
+                                                        title="Es obligatorio registrar el contrato para habitaciones alquiladas"
+                                                    >
+                                                        <AlertTriangle className="w-3 h-3" /> <span>¡Falta Contrato!</span>
+                                                    </button>
+                                                )}
                                             </div>
                                             {/* Precio */}
                                             <div className="w-full md:w-24 relative">
@@ -766,6 +1013,18 @@ export const RoomManager: React.FC = () => {
                                                 </select>
                                                 <Receipt className="w-3 h-3 text-gray-400 absolute left-2 top-2.5"/>
                                             </div>
+                                            
+                                            {/* BOTÓN HISTORIAL ESPECÍFICO */}
+                                            <div className="w-full md:w-auto">
+                                                <button 
+                                                    onClick={() => handleOpenRoomHistory(prop, room)}
+                                                    className="w-full md:w-auto py-2 px-3 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded border border-slate-200 transition-colors text-xs font-bold flex items-center justify-center gap-1"
+                                                    title="Ver Contratos de esta Habitación"
+                                                >
+                                                    <History className="w-3.5 h-3.5" /> <span className="md:hidden">Historial</span>
+                                                </button>
+                                            </div>
+
                                             {/* Borrar Hab */}
                                             <div className="w-full md:w-8 flex justify-end">
                                                 <button onClick={() => handleDeleteRoom(prop.id, room.id)} className="p-2 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded transition-colors border border-red-100 hover:border-red-500"><Trash2 className="w-4 h-4" /></button>
@@ -808,6 +1067,104 @@ export const RoomManager: React.FC = () => {
             )})}
         </div>
       </div>
+
+      {/* MODAL HISTORIAL HABITACIÓN */}
+      {viewHistoryRoom && (
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-300" onClick={() => setViewHistoryRoom(null)}>
+              <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
+                  <div className="bg-slate-900 text-white p-4 flex justify-between items-center">
+                      <div>
+                          <h3 className="font-bold flex items-center gap-2 text-lg">
+                              <History className="w-5 h-5 text-rentia-gold" />
+                              Historial {viewHistoryRoom.room.name}
+                          </h3>
+                          <p className="text-xs text-slate-400">{viewHistoryRoom.propertyAddress}</p>
+                      </div>
+                      <button onClick={() => setViewHistoryRoom(null)}><X className="w-5 h-5 text-white/70 hover:text-white"/></button>
+                  </div>
+                  
+                  <div className="p-4 bg-gray-50 max-h-[60vh] overflow-y-auto">
+                      {viewHistoryRoom.contracts.length === 0 ? (
+                          <div className="text-center py-8 text-gray-400">
+                              <FolderOpen className="w-12 h-12 mx-auto mb-2 opacity-20" />
+                              <p className="text-sm">No hay contratos registrados para esta habitación.</p>
+                          </div>
+                      ) : (
+                          <div className="space-y-3">
+                              {/* Clasificar Contratos */}
+                              {(() => {
+                                  const today = new Date().toISOString().split('T')[0];
+                                  // Activos: Inicio <= Hoy <= Fin
+                                  const active = viewHistoryRoom.contracts.filter(c => c.startDate <= today && (!c.endDate || c.endDate >= today));
+                                  // Futuros: Inicio > Hoy
+                                  const future = viewHistoryRoom.contracts.filter(c => c.startDate > today);
+                                  // Pasados: Fin < Hoy
+                                  const past = viewHistoryRoom.contracts.filter(c => c.endDate && c.endDate < today).sort((a,b) => b.endDate.localeCompare(a.endDate));
+
+                                  return (
+                                      <>
+                                          {/* ACTIVO */}
+                                          {active.length > 0 && (
+                                              <div className="mb-4">
+                                                  <h6 className="text-xs font-bold text-green-700 uppercase mb-2 flex items-center gap-1"><CheckCircle className="w-3 h-3"/> Inquilino Actual</h6>
+                                                  {active.map(c => (
+                                                      <div key={c.id} className="bg-white border-l-4 border-green-500 p-3 rounded shadow-sm">
+                                                          <div className="flex justify-between items-start">
+                                                              <div>
+                                                                  <p className="font-bold text-gray-900 flex items-center gap-1"><User className="w-3 h-3"/> {c.tenantName}</p>
+                                                                  <p className="text-xs text-gray-500 mt-1 flex items-center gap-1"><Calendar className="w-3 h-3"/> {c.startDate} - {c.endDate}</p>
+                                                              </div>
+                                                              {c.documentUrl && <a href={c.documentUrl} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline text-xs"><FileText className="w-4 h-4"/></a>}
+                                                          </div>
+                                                      </div>
+                                                  ))}
+                                              </div>
+                                          )}
+
+                                          {/* FUTURO / RESERVA */}
+                                          {future.length > 0 && (
+                                              <div className="mb-4">
+                                                  <h6 className="text-xs font-bold text-orange-600 uppercase mb-2 flex items-center gap-1"><CalendarClock className="w-3 h-3"/> Próxima Entrada (Reserva)</h6>
+                                                  {future.map(c => (
+                                                      <div key={c.id} className="bg-white border-l-4 border-orange-400 p-3 rounded shadow-sm border border-gray-100">
+                                                          <div className="flex justify-between items-start">
+                                                              <div>
+                                                                  <p className="font-bold text-gray-900 flex items-center gap-1"><User className="w-3 h-3"/> {c.tenantName}</p>
+                                                                  <p className="text-xs text-gray-500 mt-1 flex items-center gap-1"><Calendar className="w-3 h-3"/> Entrada: {c.startDate}</p>
+                                                              </div>
+                                                              {c.documentUrl && <a href={c.documentUrl} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline text-xs"><FileText className="w-4 h-4"/></a>}
+                                                          </div>
+                                                      </div>
+                                                  ))}
+                                              </div>
+                                          )}
+
+                                          {/* HISTORIAL PASADO */}
+                                          {past.length > 0 && (
+                                              <div>
+                                                  <h6 className="text-xs font-bold text-slate-500 uppercase mb-2 flex items-center gap-1"><History className="w-3 h-3"/> Antiguos Inquilinos</h6>
+                                                  <div className="space-y-2">
+                                                      {past.map(c => (
+                                                          <div key={c.id} className="bg-slate-100 p-2 rounded flex justify-between items-center text-xs text-slate-600">
+                                                              <div>
+                                                                  <span className="font-bold block">{c.tenantName}</span>
+                                                                  <span className="text-[10px]">{c.startDate} - {c.endDate}</span>
+                                                              </div>
+                                                              {c.documentUrl && <a href={c.documentUrl} target="_blank" rel="noreferrer" className="text-slate-400 hover:text-blue-600"><FolderOpen className="w-3 h-3"/></a>}
+                                                          </div>
+                                                      ))}
+                                                  </div>
+                                              </div>
+                                          )}
+                                      </>
+                                  );
+                              })()}
+                          </div>
+                      )}
+                  </div>
+              </div>
+          </div>
+      )}
     </div>
   );
 };

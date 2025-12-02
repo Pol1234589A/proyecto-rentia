@@ -1,9 +1,15 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
-import { db } from '../../firebase';
-import { collection, addDoc, serverTimestamp, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
+import { db, storage } from '../../firebase';
+import { collection, addDoc, serverTimestamp, onSnapshot, deleteDoc, doc, writeBatch, updateDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { brokerRequests as staticRequests, BrokerRequest } from '../../data/brokerRequests';
+import { opportunities as staticOpportunities } from '../../data';
 import { Opportunity, OpportunityScenario, Visibility } from '../../types';
-import { Briefcase, Building2, UserPlus, Search, Filter, TrendingUp, MapPin, DollarSign, Save, ArrowRight, Users, Eye, EyeOff, Plus, Image as ImageIcon, Trash2, Home, Bed, Layout, Bath, Phone, FileText, Tag, AlertCircle, Handshake, Star, Crown, X } from 'lucide-react';
+import { Briefcase, Building2, UserPlus, Search, Filter, TrendingUp, MapPin, DollarSign, Save, ArrowRight, Users, Eye, EyeOff, Plus, Image as ImageIcon, Trash2, Home, Bed, Layout, Bath, Phone, FileText, Tag, AlertCircle, Handshake, Star, Crown, X, UploadCloud, RefreshCw, Pencil, Sparkles, Wand2, Loader2 } from 'lucide-react';
+import { ImageUploader } from './ImageUploader';
+import { cleanImageWithAI } from '../../utils/aiImageCleaner';
+import { compressImage } from '../../utils/imageOptimizer';
 
 // Extended interface to include CRM specific fields like name/contact if available
 interface ExtendedBrokerRequest extends BrokerRequest {
@@ -18,66 +24,58 @@ export const SalesCRM: React.FC = () => {
   const [buyers, setBuyers] = useState<ExtendedBrokerRequest[]>(staticRequests);
   const [isAddingBuyer, setIsAddingBuyer] = useState(false);
   
-  // Formulario alineado con la vista pública + datos privados
   const [newBuyer, setNewBuyer] = useState({
-    name: '',       // Privado
-    contact: '',    // Privado
-    type: '',       // Público (Ej: Piso, Casa)
-    specs: '',      // Público (Ej: Min 3 Hab)
-    condition: '',  // Público (Ej: A reformar) - NUEVO CAMPO AÑADIDO AL STATE
-    location: '',   // Público
-    budget: 0,      // Público
-    notes: '',      // Público (Notas públicas)
-    tag: 'own' as const // Público (Badge)
+    name: '',       
+    contact: '',    
+    type: '',       
+    specs: '',      
+    condition: '',  
+    location: '',   
+    budget: 0,      
+    notes: '',      
+    tag: 'own' as const 
   });
 
   // --- STATE SELLERS (ASSETS) ---
-  const [assets, setAssets] = useState<Opportunity[]>([]);
-  const [sortOrder, setSortOrder] = useState<'yield_desc' | 'price_asc' | 'price_desc'>('yield_desc');
+  const [assets, setAssets] = useState<Opportunity[]>(staticOpportunities);
   const [isAddingAsset, setIsAddingAsset] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [editingAssetId, setEditingAssetId] = useState<string | null>(null);
+  
+  // Estado para limpieza de imagen individual
+  const [cleaningImageIndex, setCleaningImageIndex] = useState<number | null>(null);
 
   // --- ASSET FORM STATE ---
-  const [assetForm, setAssetForm] = useState({
-    // General
+  const initialAssetFormState = {
     title: '',
     type: 'Piso',
     scenario: 'rent_rooms' as OpportunityScenario,
     visibility: 'exact' as Visibility,
-    
-    // Location
     address: '',
     streetName: '', 
     streetNumber: '', 
     city: 'Murcia',
     floor: '',
     hasElevator: false,
-    
-    // Specs
     rooms: 0,
     bathrooms: 0,
     sqm: 0,
-    
-    // Description & Media
     description: '',
     images: [] as string[],
-    newImageUrl: '', 
-    
-    // Financials
     purchasePrice: 0,
     itpPercent: 8, 
     reformCost: 0,
     furnitureCost: 0,
     notaryExpenses: 1500, 
     yearlyExpenses: 0, 
-    
-    // Rental Scenarios
     roomPrices: [] as {name: string, price: number}[],
     traditionalRent: 0,
-  });
+  };
+
+  const [assetForm, setAssetForm] = useState(initialAssetFormState);
 
   // --- LOAD DATA ---
   useEffect(() => {
-    // Cargar compradores de Firestore y mezclar con estáticos para visualización completa
     const unsubscribeBuyers = onSnapshot(collection(db, "buyer_requests"), (snapshot) => {
         const firestoreBuyers: ExtendedBrokerRequest[] = [];
         snapshot.forEach((doc) => {
@@ -96,7 +94,6 @@ export const SalesCRM: React.FC = () => {
                 contact: data.contact 
             });
         });
-        // IMPORTANTE: Primero los de Firestore (más recientes/editables), luego los estáticos
         setBuyers([...firestoreBuyers, ...staticRequests]);
     });
 
@@ -105,20 +102,69 @@ export const SalesCRM: React.FC = () => {
         snapshot.forEach((doc) => {
             loadedAssets.push({ ...doc.data(), id: doc.id } as Opportunity);
         });
-        setAssets(loadedAssets);
+        
+        if (loadedAssets.length > 0) {
+            setAssets(loadedAssets);
+        } else {
+            console.log("No assets in DB, using static.");
+            setAssets(staticOpportunities);
+        }
     }, (error) => {
-        console.log("No opportunities found", error);
+        console.log("No opportunities found or permission denied, using static.", error);
+        setAssets(staticOpportunities);
     });
 
     return () => { unsubscribeBuyers(); unsubscribeAssets(); };
   }, []);
+
+  // --- HANDLER MAGIC CLEANING (EXISTING IMAGES) ---
+  const handleCleanExistingImage = async (url: string, index: number) => {
+      setCleaningImageIndex(index);
+      try {
+          // 1. Fetch imagen (intentar sortear CORS si es posible, o avisar)
+          let blob: Blob;
+          try {
+              const response = await fetch(url);
+              if (!response.ok) throw new Error("Network response was not ok");
+              blob = await response.blob();
+          } catch (e) {
+              // Si falla por CORS (común en imágenes externas), no podemos procesarla en cliente.
+              alert("No se puede acceder a la imagen original por seguridad (CORS). Por favor, descarga la imagen manualmente y súbela de nuevo usando el botón 'Subir Foto' que ya incluye limpieza.");
+              setCleaningImageIndex(null);
+              return;
+          }
+
+          // 2. Procesar con Gemini + Canvas
+          const cleanBlob = await cleanImageWithAI(blob, process.env.API_KEY);
+          
+          // 3. Comprimir y subir como nueva imagen
+          const cleanFile = new File([cleanBlob], `cleaned_${Date.now()}.jpg`, { type: 'image/jpeg' });
+          const compressedBlob = await compressImage(cleanFile);
+          
+          const storageRef = ref(storage, `opportunities/cleaned_${Date.now()}.jpg`);
+          const snapshot = await uploadBytes(storageRef, compressedBlob);
+          const newUrl = await getDownloadURL(snapshot.ref);
+
+          // 4. Actualizar estado local
+          const newImages = [...assetForm.images];
+          newImages[index] = newUrl;
+          setAssetForm(prev => ({ ...prev, images: newImages }));
+
+          alert("Imagen limpiada y reemplazada con éxito.");
+
+      } catch (error) {
+          console.error("Error cleaning image:", error);
+          alert("Error al procesar la imagen con IA.");
+      } finally {
+          setCleaningImageIndex(null);
+      }
+  };
 
   // --- HANDLERS BUYERS ---
   const handleAddBuyer = async (e: React.FormEvent) => {
       e.preventDefault();
       try {
           const refCode = `REQ-${Math.floor(1000 + Math.random() * 9000)}`;
-          // Guardamos todos los campos necesarios para que la vista pública (/colaboradores) funcione igual
           await addDoc(collection(db, "buyer_requests"), {
               ...newBuyer,
               reference: refCode,
@@ -126,21 +172,17 @@ export const SalesCRM: React.FC = () => {
           });
           setIsAddingBuyer(false);
           setNewBuyer({ name: '', contact: '', type: '', specs: '', location: '', condition: '', budget: 0, notes: '', tag: 'own' });
-          // No necesitamos alert, el snapshot actualiza la UI
       } catch (error) { console.error(error); alert('Error al guardar.'); }
   };
 
   const handleDeleteBuyer = async (id: string) => {
       if (!window.confirm("¿Seguro que quieres eliminar este encargo? Desaparecerá también de la web pública.")) return;
-      
       try {
-          // Verificar si es estático
           const isStatic = staticRequests.some(r => r.id === id);
           if (isStatic) {
               alert("Los datos de demostración estáticos no se pueden borrar desde el CRM. Borra solo los creados aquí.");
               return;
           }
-
           await deleteDoc(doc(db, "buyer_requests", id));
       } catch (error) {
           console.error("Error deleting buyer:", error);
@@ -149,10 +191,8 @@ export const SalesCRM: React.FC = () => {
   };
 
   // --- ASSET FORM HELPERS ---
-  const addImage = () => {
-      if(assetForm.newImageUrl) {
-          setAssetForm(prev => ({...prev, images: [...prev.images, prev.newImageUrl], newImageUrl: ''}));
-      }
+  const handleAddImage = (url: string) => {
+      setAssetForm(prev => ({...prev, images: [...prev.images, url]}));
   };
 
   const handleRoomCountChange = (count: number) => {
@@ -171,7 +211,51 @@ export const SalesCRM: React.FC = () => {
       setAssetForm(prev => ({ ...prev, roomPrices: newPrices }));
   };
 
-  // --- HANDLER ADD ASSET ---
+  // --- PREPARAR EDICIÓN ---
+  const handleEditAsset = (opp: Opportunity) => {
+      // Calcular gastos de notaría aproximados inversos
+      const calcItpAmount = opp.financials.purchasePrice * ((opp.financials.itpPercent || 8) / 100);
+      const calcNotary = Math.max(0, opp.financials.notaryAndTaxes - calcItpAmount);
+
+      setAssetForm({
+          title: opp.title,
+          type: 'Piso', 
+          scenario: opp.scenario,
+          visibility: opp.visibility,
+          address: opp.address, 
+          streetName: opp.address, 
+          streetNumber: '', 
+          city: opp.city,
+          floor: opp.specs.floor,
+          hasElevator: opp.specs.hasElevator,
+          rooms: opp.specs.rooms,
+          bathrooms: opp.specs.bathrooms,
+          sqm: opp.specs.sqm,
+          description: opp.description,
+          images: opp.images,
+          purchasePrice: opp.financials.purchasePrice,
+          itpPercent: opp.financials.itpPercent || 8,
+          reformCost: opp.financials.reformCost,
+          furnitureCost: opp.financials.furnitureCost,
+          notaryExpenses: Math.round(calcNotary), 
+          yearlyExpenses: opp.financials.yearlyExpenses, 
+          roomPrices: opp.roomConfiguration || [],
+          traditionalRent: opp.financials.monthlyRentTraditional,
+      });
+      setEditingAssetId(opp.id);
+      setIsAddingAsset(true);
+      setTimeout(() => {
+          document.getElementById('asset-form')?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+  };
+
+  const handleCancelAsset = () => {
+      setIsAddingAsset(false);
+      setEditingAssetId(null);
+      setAssetForm(initialAssetFormState);
+  };
+
+  // --- HANDLER SAVE (CREATE / UPDATE) ASSET ---
   const handleSaveAsset = async (e: React.FormEvent) => {
       e.preventDefault();
       
@@ -180,9 +264,8 @@ export const SalesCRM: React.FC = () => {
       const projectedRoomsIncome = assetForm.roomPrices.reduce((acc, curr) => acc + curr.price, 0);
       
       let finalAddress = assetForm.streetName;
-      if (assetForm.visibility === 'exact') finalAddress = `${assetForm.streetName}, ${assetForm.streetNumber}`;
-      if (assetForm.visibility === 'hidden') finalAddress = 'Dirección Oculta'; 
-
+      if (assetForm.streetNumber) finalAddress = `${assetForm.streetName}, ${assetForm.streetNumber}`;
+      
       try {
           const opportunityPayload: Omit<Opportunity, 'id'> = {
               title: assetForm.title,
@@ -221,14 +304,46 @@ export const SalesCRM: React.FC = () => {
               tags: [assetForm.scenario === 'sale_living' ? 'Vivienda' : 'Inversión']
           };
 
-          await addDoc(collection(db, "opportunities"), opportunityPayload);
+          if (editingAssetId) {
+              await updateDoc(doc(db, "opportunities", editingAssetId), opportunityPayload as any);
+              alert('Activo actualizado correctamente.');
+          } else {
+              await addDoc(collection(db, "opportunities"), opportunityPayload);
+              alert('Activo publicado correctamente.');
+          }
           
-          setIsAddingAsset(false);
-          setAssetForm({ ...assetForm, title: '', address: '', images: [], roomPrices: [], purchasePrice: 0 });
-          alert('Activo publicado correctamente.');
+          handleCancelAsset(); 
       } catch (error) {
-          console.error("Error adding asset:", error);
-          alert('Error al crear activo.');
+          console.error("Error saving asset:", error);
+          alert('Error al guardar activo.');
+      }
+  };
+
+  const handleSyncStaticData = async () => {
+      if (!window.confirm("¿Importar propiedades del archivo 'data.ts' a la base de datos? Esto creará/actualizará las fichas.")) return;
+      setIsSyncing(true);
+      try {
+          const batch = writeBatch(db);
+          staticOpportunities.forEach(opp => {
+              const docRef = doc(db, "opportunities", opp.id);
+              batch.set(docRef, opp, { merge: true });
+          });
+          await batch.commit();
+          alert(`Sincronización completada. ${staticOpportunities.length} oportunidades procesadas.`);
+      } catch (error) {
+          console.error("Error syncing:", error);
+          alert("Error al sincronizar datos.");
+      } finally {
+          setIsSyncing(false);
+      }
+  };
+
+  const handleDeleteAsset = async (id: string) => {
+      if (!window.confirm("¿Eliminar este activo permanentemente?")) return;
+      try {
+          await deleteDoc(doc(db, "opportunities", id));
+      } catch (e) {
+          alert("Error al eliminar");
       }
   };
 
@@ -261,7 +376,7 @@ export const SalesCRM: React.FC = () => {
       {/* --- TAB: COMPRADORES (ENCARGOS) --- */}
       {activeTab === 'buyers' && (
           <div className="p-4 md:p-6 bg-gray-50 min-h-[500px]">
-              
+              {/* ... (Contenido de compradores se mantiene igual) ... */}
               <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                   <div>
                       <h4 className="text-lg font-bold text-gray-800 flex items-center gap-2"><Briefcase className="w-5 h-5 text-rentia-blue" /> Bolsa de Demandas Activa</h4>
@@ -271,7 +386,9 @@ export const SalesCRM: React.FC = () => {
               </div>
               
               {isAddingBuyer && (
+                  // ... (Formulario de compradores se mantiene igual) ...
                   <div className="bg-white p-6 rounded-xl shadow-lg border border-blue-100 mb-8 animate-in slide-in-from-top-4">
+                      {/* ... Campos del formulario ... */}
                       <div className="flex justify-between items-center border-b pb-2 mb-4">
                           <h5 className="font-bold text-gray-800 flex items-center gap-2 text-sm uppercase tracking-wide">Nuevo Encargo de Compra</h5>
                           <button onClick={() => setIsAddingBuyer(false)}><X className="w-4 h-4 text-gray-400"/></button>
@@ -342,6 +459,7 @@ export const SalesCRM: React.FC = () => {
               )}
 
               <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+                  {/* ... Tabla de compradores se mantiene igual ... */}
                   <div className="overflow-x-auto">
                       <table className="w-full text-left text-sm">
                             <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs border-b border-gray-200">
@@ -413,13 +531,6 @@ export const SalesCRM: React.FC = () => {
                                         </td>
                                     </tr>
                                 ))}
-                                {buyers.length === 0 && (
-                                    <tr>
-                                        <td colSpan={7} className="p-8 text-center text-gray-500">
-                                            No hay encargos registrados.
-                                        </td>
-                                    </tr>
-                                )}
                             </tbody>
                       </table>
                   </div>
@@ -435,80 +546,53 @@ export const SalesCRM: React.FC = () => {
                   <h4 className="text-lg font-bold text-gray-800 flex items-center gap-2">
                       <Building2 className="w-5 h-5 text-rentia-blue" /> Cartera de Activos
                   </h4>
-                  <button onClick={() => setIsAddingAsset(!isAddingAsset)} className="bg-rentia-black text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-gray-800 transition-colors">
-                      <Plus className="w-4 h-4" /> Registrar Nuevo Activo
-                  </button>
+                  <div className="flex gap-2">
+                      <button 
+                        onClick={handleSyncStaticData} 
+                        disabled={isSyncing}
+                        className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-gray-200 transition-colors border border-gray-200"
+                        title="Subir propiedades del código a la base de datos"
+                      >
+                          <UploadCloud className={`w-4 h-4 ${isSyncing ? 'animate-bounce' : ''}`} />
+                          {isSyncing ? 'Sincronizando...' : 'Sincronizar Stock (data.ts)'}
+                      </button>
+                      <button 
+                        onClick={() => { setIsAddingAsset(!isAddingAsset); setEditingAssetId(null); setAssetForm(initialAssetFormState); }} 
+                        className="bg-rentia-black text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-gray-800 transition-colors"
+                      >
+                          <Plus className="w-4 h-4" /> Registrar Nuevo Activo
+                      </button>
+                  </div>
               </div>
 
-              {/* FORMULARIO EXTENDIDO DE ALTA DE ACTIVO */}
+              {/* FORMULARIO EXTENDIDO DE ALTA/EDICIÓN DE ACTIVO */}
               {isAddingAsset && (
-                  <form onSubmit={handleSaveAsset} className="bg-white rounded-xl shadow-xl border border-gray-200 mb-8 animate-in slide-in-from-top-4 overflow-hidden">
+                  <form id="asset-form" onSubmit={handleSaveAsset} className="bg-white rounded-xl shadow-xl border border-gray-200 mb-8 animate-in slide-in-from-top-4 overflow-hidden">
                       <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                          <h5 className="font-bold text-gray-800">Nuevo Inmueble</h5>
-                          <div className="flex items-center gap-4">
-                              <select 
-                                value={assetForm.scenario} 
-                                onChange={(e) => setAssetForm({...assetForm, scenario: e.target.value as OpportunityScenario})}
-                                className="text-sm bg-white border border-gray-300 rounded px-2 py-1 font-bold text-rentia-blue focus:outline-none"
-                              >
-                                  <option value="rent_rooms">Inversión: Habitaciones</option>
-                                  <option value="rent_traditional">Inversión: Tradicional</option>
-                                  <option value="rent_both">Inversión: Mixto</option>
-                                  <option value="sale_living">Venta: Cliente Final</option>
-                              </select>
-                          </div>
+                          <h5 className="font-bold text-gray-800 flex items-center gap-2">
+                              {editingAssetId ? <Pencil className="w-4 h-4"/> : <Plus className="w-4 h-4"/>}
+                              {editingAssetId ? 'Editar Inmueble' : 'Nuevo Inmueble'}
+                          </h5>
+                          <button type="button" onClick={handleCancelAsset}><X className="w-4 h-4 text-gray-400"/></button>
                       </div>
 
                       <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
                           
                           {/* COLUMNA IZQUIERDA: DATOS GENERALES */}
                           <div className="space-y-6">
-                              
-                              {/* Sección 1: Información Básica */}
                               <div className="space-y-4">
                                   <h6 className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-1">Información General</h6>
                                   <div>
                                       <label className="block text-sm font-medium text-gray-700 mb-1">Título de la Oportunidad *</label>
                                       <input type="text" required className="w-full p-2 border rounded-lg text-sm" placeholder="Ej: Piso muy rentable en El Carmen" value={assetForm.title} onChange={e => setAssetForm({...assetForm, title: e.target.value})} />
                                   </div>
-                                  
-                                  <div className="grid grid-cols-2 gap-4">
-                                      <div>
-                                          <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Inmueble</label>
-                                          <select className="w-full p-2 border rounded-lg text-sm bg-white" value={assetForm.type} onChange={e => setAssetForm({...assetForm, type: e.target.value})}>
-                                              <option>Piso</option>
-                                              <option>Casa / Chalet</option>
-                                              <option>Dúplex</option>
-                                              <option>Edificio</option>
-                                          </select>
-                                      </div>
-                                      <div>
-                                          <label className="block text-sm font-medium text-gray-700 mb-1">Visibilidad Dirección</label>
-                                          <div className="flex gap-2">
-                                              <button type="button" onClick={() => setAssetForm({...assetForm, visibility: 'exact'})} className={`flex-1 p-2 rounded-lg border text-xs font-bold flex justify-center items-center gap-1 ${assetForm.visibility === 'exact' ? 'bg-green-50 border-green-200 text-green-700' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>
-                                                  <Eye className="w-3 h-3" /> Exacta
-                                              </button>
-                                              <button type="button" onClick={() => setAssetForm({...assetForm, visibility: 'street_only'})} className={`flex-1 p-2 rounded-lg border text-xs font-bold flex justify-center items-center gap-1 ${assetForm.visibility === 'street_only' ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>
-                                                  <MapPin className="w-3 h-3" /> Calle
-                                              </button>
-                                              <button type="button" onClick={() => setAssetForm({...assetForm, visibility: 'hidden'})} className={`flex-1 p-2 rounded-lg border text-xs font-bold flex justify-center items-center gap-1 ${assetForm.visibility === 'hidden' ? 'bg-red-50 border-red-200 text-red-700' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>
-                                                  <EyeOff className="w-3 h-3" /> Oculta
-                                              </button>
-                                          </div>
-                                      </div>
-                                  </div>
-                              </div>
-
-                              {/* Sección 2: Localización y Características */}
-                              <div className="space-y-4">
-                                  <h6 className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-1">Localización y Specs</h6>
                                   <div className="grid grid-cols-2 gap-4">
                                       <div className="col-span-2">
-                                          <label className="block text-sm font-medium text-gray-700 mb-1">Calle / Vía</label>
+                                          <label className="block text-sm font-medium text-gray-700 mb-1">Calle / Vía (Dirección Completa)</label>
                                           <input type="text" className="w-full p-2 border rounded-lg text-sm" placeholder="Av. Constitución" value={assetForm.streetName} onChange={e => setAssetForm({...assetForm, streetName: e.target.value})} />
                                       </div>
                                       <div>
-                                          <label className="block text-sm font-medium text-gray-700 mb-1">Número</label>
+                                          <label className="block text-sm font-medium text-gray-700 mb-1">Número (Opcional)</label>
                                           <input type="text" className="w-full p-2 border rounded-lg text-sm" placeholder="12, 3ºA" value={assetForm.streetNumber} onChange={e => setAssetForm({...assetForm, streetNumber: e.target.value})} />
                                       </div>
                                       <div>
@@ -516,7 +600,6 @@ export const SalesCRM: React.FC = () => {
                                           <input type="text" className="w-full p-2 border rounded-lg text-sm" value={assetForm.city} onChange={e => setAssetForm({...assetForm, city: e.target.value})} />
                                       </div>
                                   </div>
-                                  
                                   <div className="grid grid-cols-3 gap-4">
                                       <div>
                                           <label className="block text-xs font-bold text-gray-500 mb-1 flex items-center gap-1"><Bed className="w-3 h-3"/> Habitaciones</label>
@@ -533,35 +616,51 @@ export const SalesCRM: React.FC = () => {
                                   </div>
                               </div>
 
-                              {/* Sección 3: Descripción */}
                               <div>
                                   <h6 className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-1 mb-3">Descripción</h6>
                                   <textarea className="w-full p-3 border rounded-lg text-sm h-32" placeholder="Describe la propiedad..." value={assetForm.description} onChange={e => setAssetForm({...assetForm, description: e.target.value})} />
-                                  <div className="flex justify-end mt-2">
-                                      <button type="button" className="text-xs bg-purple-50 text-purple-700 px-3 py-1 rounded border border-purple-100 flex items-center gap-1 hover:bg-purple-100">
-                                          ✨ Mejorar con IA (Próximamente)
-                                      </button>
-                                  </div>
                               </div>
 
-                              {/* Sección 4: Fotos */}
+                              {/* Sección 4: Fotos CON UPLOADER MEJORADO */}
                               <div>
-                                  <h6 className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-1 mb-3">Multimedia</h6>
-                                  <div className="flex gap-2 mb-2">
-                                      <input type="text" placeholder="https://..." className="flex-1 p-2 border rounded-lg text-sm" value={assetForm.newImageUrl} onChange={e => setAssetForm({...assetForm, newImageUrl: e.target.value})} />
-                                      <button type="button" onClick={addImage} className="bg-gray-100 hover:bg-gray-200 p-2 rounded-lg border border-gray-200"><Plus className="w-4 h-4" /></button>
+                                  <h6 className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-1 mb-3 flex items-center gap-2">
+                                      Multimedia <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-[10px] flex items-center gap-1"><Sparkles className="w-2 h-2"/> IA Auto-Limpieza</span>
+                                  </h6>
+                                  
+                                  {/* Botón de carga */}
+                                  <div className="mb-4">
+                                      <ImageUploader 
+                                          folder="opportunities" 
+                                          onUploadComplete={handleAddImage}
+                                          label="Subir Foto (Elimina logos automáticamente)"
+                                      />
                                   </div>
+
                                   <div className="flex flex-wrap gap-2">
                                       {assetForm.images.map((img, idx) => (
-                                          <div key={idx} className="relative w-16 h-16 rounded overflow-hidden border group">
+                                          <div key={idx} className="relative w-20 h-20 rounded overflow-hidden border group">
                                               <img src={img} alt="preview" className="w-full h-full object-cover" />
-                                              <button 
-                                                type="button" 
-                                                onClick={() => setAssetForm(prev => ({...prev, images: prev.images.filter((_, i) => i !== idx)}))}
-                                                className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                              >
-                                                  <Trash2 className="w-4 h-4" />
-                                              </button>
+                                              {/* Overlay acciones */}
+                                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                                                  {/* Botón limpieza manual IA */}
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => handleCleanExistingImage(img, idx)}
+                                                    className="p-1 bg-white/20 hover:bg-purple-500 rounded-full text-white backdrop-blur-sm"
+                                                    title="Limpiar logos en esta imagen"
+                                                  >
+                                                      {cleaningImageIndex === idx ? <Loader2 className="w-3 h-3 animate-spin"/> : <Wand2 className="w-3 h-3"/>}
+                                                  </button>
+                                                  
+                                                  <button 
+                                                    type="button" 
+                                                    onClick={() => setAssetForm(prev => ({...prev, images: prev.images.filter((_, i) => i !== idx)}))}
+                                                    className="p-1 bg-white/20 hover:bg-red-500 rounded-full text-white backdrop-blur-sm"
+                                                    title="Eliminar"
+                                                  >
+                                                      <Trash2 className="w-3 h-3" />
+                                                  </button>
+                                              </div>
                                           </div>
                                       ))}
                                   </div>
@@ -573,14 +672,11 @@ export const SalesCRM: React.FC = () => {
                               <h5 className="font-bold text-rentia-blue flex items-center gap-2 border-b border-blue-200 pb-2">
                                   <DollarSign className="w-5 h-5" /> Datos Económicos
                               </h5>
-
-                              {/* Precio y Gastos Compra */}
                               <div className="grid grid-cols-2 gap-4">
                                   <div className="col-span-2">
                                       <label className="block text-sm font-bold text-gray-700 mb-1">Precio de Venta (€)</label>
                                       <input type="number" required className="w-full p-2 border rounded-lg text-lg font-bold text-gray-900 focus:ring-2 focus:ring-rentia-blue" value={assetForm.purchasePrice} onChange={e => setAssetForm({...assetForm, purchasePrice: Number(e.target.value)})} />
                                   </div>
-                                  
                                   <div>
                                       <label className="block text-xs font-medium text-gray-600 mb-1">ITP (%)</label>
                                       <input type="number" className="w-full p-2 border rounded-lg text-sm" value={assetForm.itpPercent} onChange={e => setAssetForm({...assetForm, itpPercent: Number(e.target.value)})} />
@@ -603,62 +699,10 @@ export const SalesCRM: React.FC = () => {
                                   </div>
                               </div>
 
-                              {/* Configuración Escenario */}
-                              <div className="border-t border-blue-200 pt-4">
-                                  <h6 className="text-sm font-bold text-gray-800 mb-3">Configuración de Rentabilidad</h6>
-                                  
-                                  {assetForm.scenario === 'sale_living' && (
-                                      <div className="p-4 bg-white rounded-lg text-center text-gray-500 text-sm italic">
-                                          Modo Cliente Final activo. No se mostrarán datos de rentabilidad.
-                                      </div>
-                                  )}
-
-                                  {(assetForm.scenario === 'rent_rooms' || assetForm.scenario === 'rent_both') && (
-                                      <div className="mb-4">
-                                          <p className="text-xs font-bold text-gray-500 uppercase mb-2">Alquiler por Habitaciones</p>
-                                          <div className="space-y-2 bg-white p-3 rounded border border-gray-200 max-h-48 overflow-y-auto">
-                                              {assetForm.roomPrices.map((room, idx) => (
-                                                  <div key={idx} className="flex gap-2 items-center">
-                                                      <span className="text-xs font-medium w-24">{room.name}</span>
-                                                      <input 
-                                                          type="number" 
-                                                          className="flex-1 p-1 border rounded text-sm text-right" 
-                                                          value={room.price}
-                                                          onChange={(e) => updateRoomPrice(idx, Number(e.target.value))}
-                                                          placeholder="€"
-                                                      />
-                                                      <span className="text-xs text-gray-500">€/mes</span>
-                                                  </div>
-                                              ))}
-                                              {assetForm.roomPrices.length === 0 && <p className="text-xs text-red-400">Define el nº de habitaciones en Specs.</p>}
-                                          </div>
-                                          <div className="text-right mt-2 text-sm font-bold text-rentia-blue">
-                                              Total: {assetForm.roomPrices.reduce((a,b) => a + b.price, 0)} €/mes
-                                          </div>
-                                      </div>
-                                  )}
-
-                                  {(assetForm.scenario === 'rent_traditional' || assetForm.scenario === 'rent_both') && (
-                                      <div className="mb-4">
-                                          <p className="text-xs font-bold text-gray-500 uppercase mb-2">Alquiler Tradicional</p>
-                                          <div className="flex gap-2 items-center">
-                                              <input 
-                                                  type="number" 
-                                                  className="w-full p-2 border rounded text-sm" 
-                                                  value={assetForm.traditionalRent}
-                                                  onChange={(e) => setAssetForm({...assetForm, traditionalRent: Number(e.target.value)})}
-                                                  placeholder="Renta Mensual Total"
-                                              />
-                                              <span className="text-sm font-bold text-gray-600">€/mes</span>
-                                          </div>
-                                      </div>
-                                  )}
-                              </div>
-
                               <div className="pt-4 flex justify-end gap-3">
-                                  <button type="button" onClick={() => setIsAddingAsset(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm font-bold">Cancelar</button>
+                                  <button type="button" onClick={handleCancelAsset} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm font-bold">Cancelar</button>
                                   <button type="submit" className="bg-rentia-blue text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 shadow-md flex items-center gap-2">
-                                      <Save className="w-4 h-4" /> Publicar Activo
+                                      <Save className="w-4 h-4" /> {editingAssetId ? 'Guardar Cambios' : 'Publicar Activo'}
                                   </button>
                               </div>
                           </div>
@@ -672,6 +716,7 @@ export const SalesCRM: React.FC = () => {
                       <div className="flex flex-col items-center justify-center text-center py-12 px-4 bg-white rounded-xl border border-gray-200 shadow-sm border-dashed">
                          <div className="bg-gray-100 p-6 rounded-full mb-6"><Briefcase className="w-12 h-12 text-gray-400" /></div>
                          <h2 className="text-2xl font-bold text-rentia-black font-display mb-2">No hay activos en venta</h2>
+                         <button onClick={handleSyncStaticData} className="mt-4 text-rentia-blue hover:underline font-bold text-sm">Cargar datos de prueba</button>
                       </div>
                   ) : (
                       assets.map(opp => (
@@ -680,11 +725,27 @@ export const SalesCRM: React.FC = () => {
                                   <h4 className="font-bold text-gray-800">{opp.title}</h4>
                                   <p className="text-sm text-gray-500">{opp.address} ({opp.city})</p>
                               </div>
-                              <div className="text-right">
-                                  <p className="font-bold text-lg">{opp.financials.purchasePrice.toLocaleString()} €</p>
-                                  <span className={`text-xs font-bold px-2 py-0.5 rounded ${opp.status === 'available' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                      {opp.status}
-                                  </span>
+                              <div className="flex items-center gap-2">
+                                  <div className="text-right mr-4">
+                                      <p className="font-bold text-lg">{opp.financials.purchasePrice.toLocaleString()} €</p>
+                                      <span className={`text-xs font-bold px-2 py-0.5 rounded ${opp.status === 'available' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                          {opp.status}
+                                      </span>
+                                  </div>
+                                  <button 
+                                    onClick={() => handleEditAsset(opp)}
+                                    className="p-2 text-gray-400 hover:text-rentia-blue hover:bg-blue-50 rounded-lg transition-colors border border-transparent hover:border-blue-100"
+                                    title="Editar activo"
+                                  >
+                                      <Pencil className="w-4 h-4" />
+                                  </button>
+                                  <button 
+                                    onClick={() => handleDeleteAsset(opp.id)}
+                                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
+                                    title="Eliminar activo"
+                                  >
+                                      <Trash2 className="w-4 h-4" />
+                                  </button>
                               </div>
                           </div>
                       ))

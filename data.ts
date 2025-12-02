@@ -1,192 +1,64 @@
+
 import { Opportunity } from './types';
 
 export const opportunities: Opportunity[] = [
   {
-    id: 'velazquez-12',
-    title: 'Oportunidad Premium en Alcantarilla',
-    address: 'Calle Pintor Velázquez, 12',
-    city: 'Alcantarilla (Murcia)',
-    description: 'Activo de alto rendimiento con 7 habitaciones funcionando a pleno rendimiento. Ubicación estratégica en Alcantarilla, zona con alta demanda de alquiler por habitaciones debido a la cercanía con polígonos industriales y conexiones.',
+    id: 'RP1742025141383',
+    title: 'Casa Exclusiva con Parcela en Calle Mayor',
+    address: 'Calle Mayor',
+    city: 'El Palmar (Murcia)',
+    description: 'REDPISO VENDE EN EXCLUSIVA. Espectacular vivienda de dos plantas con 180 m² construidos sobre parcela de 467 metros.\n\nEsta amplia y luminosa propiedad ofrece una distribución ideal para el confort y la comodidad:\n• Elegante salón con acceso a balcón, perfecto para disfrutar de la luz natural.\n• Tres amplios dormitorios con armarios empotrados, uno de ellos con baño en suite.\n• Un baño completo adicional y un aseo de cortesía.\n• Buhardilla de 60 m², ideal como zona de ocio, despacho o espacio extra.\n• Cocina con office, con chimenea y acceso a una acogedora terraza.\n• Espaciosa plaza de garaje con capacidad para varios vehículos.\n• Terreno privado que brinda múltiples posibilidades.\n\nUna vivienda que combina amplitud, funcionalidad y una excelente ubicación.',
     features: [
-      '7 Habitaciones alquiladas',
-      'Reforma integral reciente',
-      'Alta rentabilidad demostrable',
-      'Gestión integral activa'
+      'Parcela 467 m²',
+      '180 m² construidos',
+      'Buhardilla 60 m²',
+      '3 Baños',
+      'Garaje Privado',
+      'Chimenea',
+      'Cocina Office',
+      'Terraza y Patio'
     ],
     areaBenefits: [
-      'Junto a calle Mayor',
-      'Conexión rápida con UCAM',
-      'Todos los servicios a pie',
-      'Zona tranquila y segura'
+      'Ubicación Céntrica (Calle Mayor)',
+      'Zona Pedanías Oeste',
+      'Servicios a pie',
+      'Acceso rápido autovía'
     ],
     images: [
-      'https://i.ibb.co/bgfbkz88/1729857046896.jpg',
-      'https://i.ibb.co/TXw56F9/1729857046869.jpg',
-      'https://i.ibb.co/DgpkkCP4/1729857046983.jpg',
-      'https://i.ibb.co/fd16hxDg/1729857047031.jpg'
+      'https://www.redpiso.es/upload/properties/img_9650619.jpg', // Pasillo/Exterior
+      'https://www.redpiso.es/upload/properties/img_5990594.jpg', // Salón
+      'https://www.redpiso.es/upload/properties/img_7871293.jpg', // Cocina
+      'https://www.redpiso.es/upload/properties/img_0036583.jpg', // Buhardilla
+      'https://www.redpiso.es/upload/properties/img_0982339.jpg', // Patio
+      'https://www.redpiso.es/upload/properties/img_8311684.jpg', // Dormitorio
+      'https://www.redpiso.es/upload/properties/img_0454085.jpg', // Baño
+      'https://www.redpiso.es/upload/properties/img_2120756.jpg', // Garaje
+      'https://www.redpiso.es/upload/properties/img_7553999.jpg'  // Fachada
     ],
-    driveFolder: 'https://drive.google.com/drive/folders/EXAMPLE_VELAZQUEZ',
-    scenario: 'rent_rooms',
+    driveFolder: '#',
+    scenario: 'sale_living', // Configurado como venta para vivienda habitual
     visibility: 'exact',
     specs: {
-      rooms: 7,
-      bathrooms: 2,
-      sqm: 140,
-      floor: '3º',
-      hasElevator: false
-    },
-    financials: {
-      purchasePrice: 135000,
-      reformCost: 35000,
-      furnitureCost: 8000,
-      notaryAndTaxes: 12000,
-      totalInvestment: 190000, // Approx base
-      monthlyRentProjected: 1960, // Sum of CSV rents approx
-      monthlyRentTraditional: 800,
-      yearlyExpenses: 1200,
-      marketValue: 210000,
-      appreciationRate: 3.5
-    },
-    status: 'available',
-    tags: ['Alta Rentabilidad', '7 Habs', 'Alcantarilla']
-  },
-  {
-    id: 'rosario-71',
-    title: 'Coliving Universitario La Ñora',
-    address: 'Calle Rosario, 71',
-    city: 'La Ñora (Murcia)',
-    description: 'Máquina de generar cashflow junto a la UCAM. Vivienda de grandes dimensiones adaptada para 9 estudiantes. Ubicación prime para estudiantes de la Universidad Católica.',
-    features: [
-      '9 Habitaciones',
-      'A 5 min andando de UCAM',
-      'Demanda garantizada 10 meses',
-      'Contratos de temporada'
-    ],
-    areaBenefits: [
-      'Zona universitaria UCAM',
-      'Tranvía cercano',
-      'Ambiente estudiantil',
-      'Supermercados cercanos'
-    ],
-    images: [
-      'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80'
-    ],
-    driveFolder: 'https://drive.google.com/drive/folders/EXAMPLE_ROSARIO',
-    scenario: 'rent_rooms',
-    visibility: 'exact',
-    specs: {
-      rooms: 9,
+      rooms: 3,
       bathrooms: 3,
       sqm: 180,
-      floor: 'Bajo + 1º',
-      hasElevator: true
-    },
-    financials: {
-      purchasePrice: 220000,
-      reformCost: 45000,
-      furnitureCost: 12000,
-      notaryAndTaxes: 20000,
-      totalInvestment: 297000,
-      monthlyRentProjected: 2980, // Sum based on CSV
-      monthlyRentTraditional: 1100,
-      yearlyExpenses: 1500,
-      marketValue: 330000,
-      appreciationRate: 4
-    },
-    status: 'available',
-    tags: ['UCAM', '9 Habs', 'Premium']
-  },
-  {
-    id: 'sangines-14',
-    title: 'Oportunidad Inversión Murcia Sur',
-    address: 'Plaza San Ginés, 14',
-    city: 'Murcia',
-    description: 'Piso muy luminoso en zona estratégica con fácil acceso a autovía y polígonos industriales. Ideal para perfil trabajador. Rentabilidad estable.',
-    features: [
-      '6 Habitaciones',
-      'Zona tranquila',
-      'Fácil aparcamiento',
-      'Perfil trabajador'
-    ],
-    areaBenefits: [
-      'Acceso autovía',
-      'Polígono industrial oeste',
-      'Servicios básicos',
-      'Transporte público'
-    ],
-    images: [
-      'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?auto=format&fit=crop&w=800&q=80'
-    ],
-    driveFolder: 'https://drive.google.com/drive/folders/EXAMPLE_SANGINES',
-    scenario: 'rent_rooms',
-    visibility: 'exact',
-    specs: {
-      rooms: 6,
-      bathrooms: 2,
-      sqm: 110,
-      floor: '1º',
+      floor: 'Casa / Chalet',
       hasElevator: false
     },
     financials: {
-      purchasePrice: 95000,
-      reformCost: 25000,
-      furnitureCost: 6000,
-      notaryAndTaxes: 9000,
-      totalInvestment: 135000,
-      monthlyRentProjected: 1594,
-      monthlyRentTraditional: 650,
-      yearlyExpenses: 900,
-      marketValue: 150000,
+      purchasePrice: 288900,
+      itpPercent: 8,
+      reformCost: 5000, // Estado "Perfecto", reforma mínima o pintura
+      furnitureCost: 0,
+      notaryAndTaxes: 26000, // Aprox ITP + Notaría
+      totalInvestment: 320000, 
+      monthlyRentProjected: 0, // No enfocado a alquiler habitaciones
+      monthlyRentTraditional: 1200,
+      yearlyExpenses: 1200, 
+      marketValue: 310000,
       appreciationRate: 3
     },
-    status: 'reserved',
-    tags: ['Económico', 'Rentabilidad', 'Oportunidad']
-  },
-  {
-    id: 'sanjose-16',
-    title: 'Piso Céntrico Alta Demanda',
-    address: 'Calle San Jose 16',
-    city: 'Murcia Centro',
-    description: 'Ubicación inmejorable en el centro de Murcia. Habitaciones grandes y techos altos. Reforma de diseño para atraer al mejor perfil de inquilino.',
-    features: [
-      '5 Habitaciones grandes',
-      'Centro ciudad',
-      'Reforma diseño',
-      'Alta demanda'
-    ],
-    areaBenefits: [
-      'Centro histórico',
-      'Zona comercial',
-      'Vida nocturna',
-      'Universidad La Merced'
-    ],
-    images: [
-      'https://images.unsplash.com/photo-1484154218962-a1c002085d2f?auto=format&fit=crop&w=800&q=80'
-    ],
-    driveFolder: 'https://drive.google.com/drive/folders/EXAMPLE_SANJOSE',
-    scenario: 'rent_rooms',
-    visibility: 'exact',
-    specs: {
-      rooms: 5,
-      bathrooms: 2,
-      sqm: 125,
-      floor: '1º',
-      hasElevator: true
-    },
-    financials: {
-      purchasePrice: 160000,
-      reformCost: 30000,
-      furnitureCost: 7000,
-      notaryAndTaxes: 15000,
-      totalInvestment: 212000,
-      monthlyRentProjected: 1630,
-      monthlyRentTraditional: 900,
-      yearlyExpenses: 1300,
-      marketValue: 240000,
-      appreciationRate: 5
-    },
-    status: 'sold',
-    tags: ['Centro', 'Diseño', 'Lujo']
+    status: 'available',
+    tags: ['Exclusiva', 'Parcela', 'El Palmar', 'Chalet']
   }
 ];

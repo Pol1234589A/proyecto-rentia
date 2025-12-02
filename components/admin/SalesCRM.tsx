@@ -118,20 +118,30 @@ export const SalesCRM: React.FC = () => {
   }, []);
 
   // --- HANDLER MAGIC CLEANING (EXISTING IMAGES) ---
-  const handleCleanExistingImage = async (url: string, index: number) => {
+  const handleCleanExistingImage = async (url: string, index: number, e: React.MouseEvent) => {
+      e.stopPropagation(); // Detener propagación del click
+      e.preventDefault();
+      
       setCleaningImageIndex(index);
       try {
-          // 1. Fetch imagen (intentar sortear CORS si es posible, o avisar)
+          // 1. Fetch Inteligente con Proxy Fallback
           let blob: Blob;
           try {
-              const response = await fetch(url);
-              if (!response.ok) throw new Error("Network response was not ok");
+              // Intento directo (funciona para Firebase o mismo dominio)
+              const response = await fetch(url, { mode: 'cors' });
+              if (!response.ok) throw new Error("Direct fetch failed");
               blob = await response.blob();
-          } catch (e) {
-              // Si falla por CORS (común en imágenes externas), no podemos procesarla en cliente.
-              alert("No se puede acceder a la imagen original por seguridad (CORS). Por favor, descarga la imagen manualmente y súbela de nuevo usando el botón 'Subir Foto' que ya incluye limpieza.");
-              setCleaningImageIndex(null);
-              return;
+          } catch (directError) {
+              console.log("Direct fetch failed, trying proxy...", directError);
+              try {
+                  // Fallback: Usar Proxy CORS para imágenes externas (Redpiso, etc)
+                  const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+                  const proxyResponse = await fetch(proxyUrl);
+                  if (!proxyResponse.ok) throw new Error("Proxy fetch failed");
+                  blob = await proxyResponse.blob();
+              } catch (proxyError) {
+                  throw new Error("No se pudo descargar la imagen original. Bloqueo de seguridad estricto.");
+              }
           }
 
           // 2. Procesar con Gemini + Canvas
@@ -150,11 +160,12 @@ export const SalesCRM: React.FC = () => {
           newImages[index] = newUrl;
           setAssetForm(prev => ({ ...prev, images: newImages }));
 
-          alert("Imagen limpiada y reemplazada con éxito.");
+          // Pequeño feedback visual (opcional)
+          console.log("Imagen limpiada correctamente");
 
       } catch (error) {
           console.error("Error cleaning image:", error);
-          alert("Error al procesar la imagen con IA.");
+          alert("No se pudo procesar esta imagen automáticamente debido a restricciones del servidor de origen. Por favor, descárgala y súbela manualmente con el botón 'Subir Foto'.");
       } finally {
           setCleaningImageIndex(null);
       }
@@ -641,24 +652,24 @@ export const SalesCRM: React.FC = () => {
                                           <div key={idx} className="relative w-20 h-20 rounded overflow-hidden border group">
                                               <img src={img} alt="preview" className="w-full h-full object-cover" />
                                               {/* Overlay acciones */}
-                                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 z-20">
                                                   {/* Botón limpieza manual IA */}
                                                   <button
                                                     type="button"
-                                                    onClick={() => handleCleanExistingImage(img, idx)}
-                                                    className="p-1 bg-white/20 hover:bg-purple-500 rounded-full text-white backdrop-blur-sm"
+                                                    onClick={(e) => handleCleanExistingImage(img, idx, e)}
+                                                    className="p-1.5 bg-white/20 hover:bg-purple-600 rounded-full text-white backdrop-blur-sm transition-colors border border-white/30"
                                                     title="Limpiar logos en esta imagen"
                                                   >
-                                                      {cleaningImageIndex === idx ? <Loader2 className="w-3 h-3 animate-spin"/> : <Wand2 className="w-3 h-3"/>}
+                                                      {cleaningImageIndex === idx ? <Loader2 className="w-4 h-4 animate-spin"/> : <Wand2 className="w-4 h-4"/>}
                                                   </button>
                                                   
                                                   <button 
                                                     type="button" 
                                                     onClick={() => setAssetForm(prev => ({...prev, images: prev.images.filter((_, i) => i !== idx)}))}
-                                                    className="p-1 bg-white/20 hover:bg-red-500 rounded-full text-white backdrop-blur-sm"
+                                                    className="p-1.5 bg-white/20 hover:bg-red-600 rounded-full text-white backdrop-blur-sm transition-colors border border-white/30"
                                                     title="Eliminar"
                                                   >
-                                                      <Trash2 className="w-3 h-3" />
+                                                      <Trash2 className="w-4 h-4" />
                                                   </button>
                                               </div>
                                           </div>

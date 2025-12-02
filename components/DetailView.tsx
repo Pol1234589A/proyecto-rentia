@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Opportunity } from '../types';
 import { ArrowLeft, Check, MapPin, Users, Printer, TrendingUp, Bed, Maximize, Building, Bath, X, Settings, ChevronLeft, ChevronRight, PlayCircle, ExternalLink, Home } from 'lucide-react';
@@ -61,18 +62,13 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
   const itpAmount = purchasePrice * (itpPercent / 100);
 
   // Agency Fees
-  const agencyFeeBase = purchasePrice > 100000 ? purchasePrice * 0.03 : 3000;
+  const agencyFeeBase = financials.agencyFees !== undefined 
+      ? financials.agencyFees 
+      : (purchasePrice > 100000 ? purchasePrice * 0.03 : 3000);
+      
   const agencyFeeTotal = agencyFeeBase * 1.21; 
 
   // Total Investment
-  // Note: notaryAndTaxes in legacy data might sum everything. 
-  // If we have separate ITP logic now, we should ensure we don't double count if data is new.
-  // For safety, if itpPercent is present, we recalculate structure.
-  
-  // Simple check: If legacy data, totalInvestment is already fixed. If new data driven by ITP, recalculate.
-  // But for display consistency, we use the `financials.totalInvestment` as the anchor, adding agency fee only for display if needed.
-  // Here we use the stored totalInvestment + agency fee for the card view logic, but let's break it down properly.
-  
   const finalTotalInvestment = financials.totalInvestment + agencyFeeTotal;
 
   // Yields

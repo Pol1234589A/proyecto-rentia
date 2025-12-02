@@ -65,6 +65,7 @@ export const SalesCRM: React.FC = () => {
     description: '',
     images: [] as string[],
     purchasePrice: 0,
+    agencyFees: 3000, // Honorarios base
     itpPercent: 8, 
     reformCost: 0,
     furnitureCost: 0,
@@ -252,6 +253,10 @@ export const SalesCRM: React.FC = () => {
       // Calcular gastos de notaría aproximados inversos
       const calcItpAmount = opp.financials.purchasePrice * ((opp.financials.itpPercent || 8) / 100);
       const calcNotary = Math.max(0, opp.financials.notaryAndTaxes - calcItpAmount);
+      
+      // Calculate Default Agency Fees if undefined
+      const defaultFees = opp.financials.purchasePrice > 100000 ? opp.financials.purchasePrice * 0.03 : 3000;
+      const fees = opp.financials.agencyFees !== undefined ? opp.financials.agencyFees : defaultFees;
 
       setAssetForm({
           title: opp.title,
@@ -270,6 +275,7 @@ export const SalesCRM: React.FC = () => {
           description: opp.description,
           images: opp.images,
           purchasePrice: opp.financials.purchasePrice,
+          agencyFees: fees,
           itpPercent: opp.financials.itpPercent || 8,
           reformCost: opp.financials.reformCost,
           furnitureCost: opp.financials.furnitureCost,
@@ -331,6 +337,7 @@ export const SalesCRM: React.FC = () => {
               roomConfiguration: assetForm.roomPrices,
               financials: {
                   purchasePrice: assetForm.purchasePrice,
+                  agencyFees: assetForm.agencyFees, // Save agency fees
                   itpPercent: assetForm.itpPercent,
                   reformCost: assetForm.reformCost,
                   furnitureCost: assetForm.furnitureCost,
@@ -753,6 +760,11 @@ export const SalesCRM: React.FC = () => {
                                   <div className="col-span-2">
                                       <label className="block text-sm font-bold text-gray-700 mb-1">Precio de Venta (€)</label>
                                       <input type="number" required className="w-full p-2 border rounded-lg text-lg font-bold text-gray-900 focus:ring-2 focus:ring-rentia-blue" value={assetForm.purchasePrice} onChange={e => updateForm({purchasePrice: Number(e.target.value)})} />
+                                  </div>
+                                  <div className="col-span-2">
+                                      <label className="block text-xs font-bold text-gray-600 mb-1">Honorarios Agencia (€)</label>
+                                      <input type="number" className="w-full p-2 border rounded-lg text-sm bg-white" value={assetForm.agencyFees} onChange={e => updateForm({agencyFees: Number(e.target.value)})} />
+                                      <p className="text-[10px] text-gray-400 mt-1">*Base imponible. En la web se sumará IVA.</p>
                                   </div>
                                   <div>
                                       <label className="block text-xs font-medium text-gray-600 mb-1">ITP (%)</label>

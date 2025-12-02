@@ -1,3 +1,4 @@
+
 export interface Financials {
   purchasePrice: number;
   itpPercent?: number; // New: Transfer Tax Percentage
@@ -10,6 +11,7 @@ export interface Financials {
   yearlyExpenses: number; // IBI, Community, Insurance
   marketValue: number; // Estimated market value after reform
   appreciationRate: number; // Estimated yearly appreciation percentage
+  agencyFees?: number; // Manual override for agency fees (base)
 }
 
 export type OpportunityScenario = 'rent_rooms' | 'rent_traditional' | 'rent_both' | 'sale_living';

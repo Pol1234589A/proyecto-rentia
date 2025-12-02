@@ -22,7 +22,11 @@ export const OpportunityCard: React.FC<Props> = ({ opportunity, onClick }) => {
       : opportunity.financials.monthlyRentTraditional;
 
   const purchasePrice = opportunity.financials.purchasePrice;
-  const agencyFeeBase = purchasePrice > 100000 ? purchasePrice * 0.03 : 3000;
+  // Use stored fees or default calculation
+  const agencyFeeBase = opportunity.financials.agencyFees !== undefined 
+      ? opportunity.financials.agencyFees 
+      : (purchasePrice > 100000 ? purchasePrice * 0.03 : 3000);
+      
   const agencyFeeTotal = agencyFeeBase * 1.21; 
   const finalTotalInvestment = opportunity.financials.totalInvestment + agencyFeeTotal;
       

@@ -27,7 +27,12 @@ export const LandingView: React.FC<LandingViewProps> = ({ opportunities, onClick
           const monthlyIncome = opp.financials.monthlyRentProjected > 0 
             ? opp.financials.monthlyRentProjected 
             : opp.financials.monthlyRentTraditional;
-          const agencyFeeBase = opp.financials.purchasePrice > 100000 ? opp.financials.purchasePrice * 0.03 : 3000;
+          
+          const purchasePrice = opp.financials.purchasePrice;
+          const agencyFeeBase = opp.financials.agencyFees !== undefined 
+              ? opp.financials.agencyFees 
+              : (purchasePrice > 100000 ? purchasePrice * 0.03 : 3000);
+              
           const agencyFeeTotal = agencyFeeBase * 1.21; 
           const finalTotalInvestment = opp.financials.totalInvestment + agencyFeeTotal;
           const grossYield = ((monthlyIncome * 12) / finalTotalInvestment) * 100;

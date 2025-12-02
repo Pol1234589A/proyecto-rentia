@@ -122,12 +122,14 @@ export const SalesCRM: React.FC = () => {
       e.stopPropagation(); 
       e.preventDefault();
       
+      if (!process.env.API_KEY) {
+          alert("La limpieza automática con IA requiere una API Key configurada. Por favor, configura tu entorno.");
+          return;
+      }
+      
       setCleaningImageIndex(index);
       try {
           // 1. Usar wsrv.nl como proxy de imágenes. 
-          // Este servicio descarga la imagen externa y la sirve con cabeceras CORS habilitadas (*).
-          // Esto permite que el navegador manipule los píxeles en el canvas sin bloqueo de seguridad.
-          // wsrv.nl es rápido y fiable para esto.
           const proxyUrl = `https://wsrv.nl/?url=${encodeURIComponent(url)}&output=jpg`;
           
           let blob: Blob;
@@ -136,17 +138,15 @@ export const SalesCRM: React.FC = () => {
               if (!response.ok) throw new Error("Proxy error");
               blob = await response.blob();
           } catch (fetchError) {
-              // Fallback: intentar fetch directo por si la URL ya permite CORS (ej. Firebase)
               const directResponse = await fetch(url, { mode: 'cors' });
               if (!directResponse.ok) throw new Error("Direct fetch error");
               blob = await directResponse.blob();
           }
 
-          // 2. Procesar con Gemini + Canvas (Eliminar logos)
+          // 2. Procesar con Gemini
           const cleanBlob = await cleanImageWithAI(blob, process.env.API_KEY);
           
-          // 3. Comprimir y SUBIR A NUESTRO SERVIDOR (Firebase Storage)
-          // Esto soluciona el problema de hosting. La imagen limpia pasa a ser nuestra.
+          // 3. Comprimir y SUBIR A NUESTRO SERVIDOR
           const fileName = `cleaned_${Date.now()}_${index}.jpg`;
           const cleanFile = new File([cleanBlob], fileName, { type: 'image/jpeg' });
           const compressedBlob = await compressImage(cleanFile);
@@ -155,14 +155,14 @@ export const SalesCRM: React.FC = () => {
           const snapshot = await uploadBytes(storageRef, compressedBlob);
           const newUrl = await getDownloadURL(snapshot.ref);
 
-          // 4. Actualizar estado local reemplazando la URL externa por la nuestra limpia
+          // 4. Actualizar estado local
           const newImages = [...assetForm.images];
           newImages[index] = newUrl;
           setAssetForm(prev => ({ ...prev, images: newImages }));
 
       } catch (error) {
           console.error("Error cleaning image:", error);
-          alert("No se pudo procesar esta imagen automáticamente. El servidor de origen bloquea el acceso. Por favor, descarga la imagen y súbela manualmente.");
+          alert("No se pudo procesar esta imagen automáticamente.");
       } finally {
           setCleaningImageIndex(null);
       }

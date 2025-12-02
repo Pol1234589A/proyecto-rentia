@@ -79,14 +79,24 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ folder, onUploadCo
     setError(null);
 
     try {
-      // 1. Detección y limpieza IA (Usando utilidad compartida)
-      setProcessing(true);
-      const cleanBlob = await cleanImageWithAI(file, process.env.API_KEY);
-      setProcessing(false);
+      let blobToProcess: Blob = file;
+
+      // 1. Detección y limpieza IA (Solo si existe la KEY configurada)
+      // Si process.env.API_KEY no está disponible, saltamos la limpieza silenciosamente.
+      if (process.env.API_KEY) {
+          setProcessing(true);
+          try {
+             blobToProcess = await cleanImageWithAI(file, process.env.API_KEY);
+          } catch (aiError) {
+             console.warn("IA Cleaning skipped/failed, using original image:", aiError);
+             // No lanzamos error, continuamos con la imagen original
+          }
+          setProcessing(false);
+      }
 
       // 2. Compresión para web
-      const cleanFile = new File([cleanBlob], file.name, { type: 'image/jpeg' });
-      const compressedBlob = await compressImage(cleanFile);
+      const fileToCompress = new File([blobToProcess], file.name, { type: 'image/jpeg' });
+      const compressedBlob = await compressImage(fileToCompress);
       
       // 3. Subida según destino seleccionado
       let downloadURL = '';
@@ -163,14 +173,16 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ folder, onUploadCo
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploading}
                     className="p-1.5 bg-blue-50 text-rentia-blue hover:bg-blue-100 rounded-md transition-colors border border-blue-200 disabled:opacity-50 relative overflow-hidden group"
-                    title={`Subir a ${uploadTarget === 'firebase' ? 'Firebase' : 'Archive.org'} (IA Anti-Logos activa)`}
+                    title={`Subir a ${uploadTarget === 'firebase' ? 'Firebase' : 'Archive.org'}`}
                 >
                     {uploading ? (
                         processing ? <Wand2 className="w-3 h-3 animate-pulse text-purple-500" /> : <Loader2 className="w-3 h-3 animate-spin" />
                     ) : (
                         <>
                             <Upload className="w-3 h-3" />
-                            <Sparkles className="w-2 h-2 text-rentia-gold absolute top-0.5 right-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            {process.env.API_KEY && (
+                                <Sparkles className="w-2 h-2 text-rentia-gold absolute top-0.5 right-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            )}
                         </>
                     )}
                 </button>
@@ -229,14 +241,20 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ folder, onUploadCo
                 <>
                     <div className="p-3 bg-blue-100 rounded-full text-rentia-blue group-hover:bg-rentia-blue group-hover:text-white transition-colors relative shadow-sm">
                         {uploadTarget === 'archive' ? <Database className="w-5 h-5"/> : <Upload className="w-5 h-5" />}
-                        <Sparkles className="w-3 h-3 absolute -top-1 -right-1 text-rentia-gold animate-bounce" />
+                        {process.env.API_KEY && (
+                            <Sparkles className="w-3 h-3 absolute -top-1 -right-1 text-rentia-gold animate-bounce" />
+                        )}
                     </div>
                     <div>
                         <span className="text-sm font-medium text-gray-700 block">{label}</span>
                         <div className="flex flex-col items-center gap-1 mt-1">
-                            <span className="text-[10px] text-gray-400 flex items-center justify-center gap-1">
-                                <Wand2 className="w-3 h-3 text-purple-400" /> Limpieza IA Activa
-                            </span>
+                            {process.env.API_KEY ? (
+                                <span className="text-[10px] text-gray-400 flex items-center justify-center gap-1">
+                                    <Wand2 className="w-3 h-3 text-purple-400" /> Limpieza IA Activa
+                                </span>
+                            ) : (
+                                <span className="text-[10px] text-gray-400">Subida directa (Sin IA)</span>
+                            )}
                             <span className={`text-[9px] px-1.5 py-0.5 rounded border font-bold uppercase ${uploadTarget === 'archive' ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-orange-50 text-orange-600 border-orange-200'}`}>
                                 Destino: {uploadTarget === 'archive' ? 'Archive.org (Público)' : 'Firebase (Rápido)'}
                             </span>

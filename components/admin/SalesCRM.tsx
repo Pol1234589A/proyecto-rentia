@@ -119,53 +119,50 @@ export const SalesCRM: React.FC = () => {
 
   // --- HANDLER MAGIC CLEANING (EXISTING IMAGES) ---
   const handleCleanExistingImage = async (url: string, index: number, e: React.MouseEvent) => {
-      e.stopPropagation(); // Detener propagación del click
+      e.stopPropagation(); 
       e.preventDefault();
       
       setCleaningImageIndex(index);
       try {
-          // 1. Fetch Inteligente con Proxy Fallback
+          // 1. Usar wsrv.nl como proxy de imágenes. 
+          // Este servicio descarga la imagen externa y la sirve con cabeceras CORS habilitadas (*).
+          // Esto permite que el navegador manipule los píxeles en el canvas sin bloqueo de seguridad.
+          // wsrv.nl es rápido y fiable para esto.
+          const proxyUrl = `https://wsrv.nl/?url=${encodeURIComponent(url)}&output=jpg`;
+          
           let blob: Blob;
           try {
-              // Intento directo (funciona para Firebase o mismo dominio)
-              const response = await fetch(url, { mode: 'cors' });
-              if (!response.ok) throw new Error("Direct fetch failed");
+              const response = await fetch(proxyUrl);
+              if (!response.ok) throw new Error("Proxy error");
               blob = await response.blob();
-          } catch (directError) {
-              console.log("Direct fetch failed, trying proxy...", directError);
-              try {
-                  // Fallback: Usar Proxy CORS para imágenes externas (Redpiso, etc)
-                  const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
-                  const proxyResponse = await fetch(proxyUrl);
-                  if (!proxyResponse.ok) throw new Error("Proxy fetch failed");
-                  blob = await proxyResponse.blob();
-              } catch (proxyError) {
-                  throw new Error("No se pudo descargar la imagen original. Bloqueo de seguridad estricto.");
-              }
+          } catch (fetchError) {
+              // Fallback: intentar fetch directo por si la URL ya permite CORS (ej. Firebase)
+              const directResponse = await fetch(url, { mode: 'cors' });
+              if (!directResponse.ok) throw new Error("Direct fetch error");
+              blob = await directResponse.blob();
           }
 
-          // 2. Procesar con Gemini + Canvas
+          // 2. Procesar con Gemini + Canvas (Eliminar logos)
           const cleanBlob = await cleanImageWithAI(blob, process.env.API_KEY);
           
-          // 3. Comprimir y subir como nueva imagen
-          const cleanFile = new File([cleanBlob], `cleaned_${Date.now()}.jpg`, { type: 'image/jpeg' });
+          // 3. Comprimir y SUBIR A NUESTRO SERVIDOR (Firebase Storage)
+          // Esto soluciona el problema de hosting. La imagen limpia pasa a ser nuestra.
+          const fileName = `cleaned_${Date.now()}_${index}.jpg`;
+          const cleanFile = new File([cleanBlob], fileName, { type: 'image/jpeg' });
           const compressedBlob = await compressImage(cleanFile);
           
-          const storageRef = ref(storage, `opportunities/cleaned_${Date.now()}.jpg`);
+          const storageRef = ref(storage, `opportunities/${fileName}`);
           const snapshot = await uploadBytes(storageRef, compressedBlob);
           const newUrl = await getDownloadURL(snapshot.ref);
 
-          // 4. Actualizar estado local
+          // 4. Actualizar estado local reemplazando la URL externa por la nuestra limpia
           const newImages = [...assetForm.images];
           newImages[index] = newUrl;
           setAssetForm(prev => ({ ...prev, images: newImages }));
 
-          // Pequeño feedback visual (opcional)
-          console.log("Imagen limpiada correctamente");
-
       } catch (error) {
           console.error("Error cleaning image:", error);
-          alert("No se pudo procesar esta imagen automáticamente debido a restricciones del servidor de origen. Por favor, descárgala y súbela manualmente con el botón 'Subir Foto'.");
+          alert("No se pudo procesar esta imagen automáticamente. El servidor de origen bloquea el acceso. Por favor, descarga la imagen y súbela manualmente.");
       } finally {
           setCleaningImageIndex(null);
       }

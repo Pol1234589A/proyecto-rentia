@@ -6,7 +6,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { brokerRequests as staticRequests, BrokerRequest } from '../../data/brokerRequests';
 import { opportunities as staticOpportunities } from '../../data';
 import { Opportunity, OpportunityScenario, Visibility } from '../../types';
-import { Briefcase, Building2, UserPlus, Search, Filter, TrendingUp, MapPin, DollarSign, Save, ArrowRight, Users, Eye, EyeOff, Plus, Image as ImageIcon, Trash2, Home, Bed, Layout, Bath, Phone, FileText, Tag, AlertCircle, Handshake, Star, Crown, X, UploadCloud, RefreshCw, Pencil, Sparkles, Wand2, Loader2 } from 'lucide-react';
+import { Briefcase, Building2, UserPlus, Search, Filter, TrendingUp, MapPin, DollarSign, Save, ArrowRight, Users, Eye, EyeOff, Plus, Image as ImageIcon, Trash2, Home, Bed, Layout, Bath, Phone, FileText, Tag, AlertCircle, Handshake, Star, Crown, X, UploadCloud, RefreshCw, Pencil, Sparkles, Wand2, Loader2, Link as LinkIcon, AlertTriangle } from 'lucide-react';
 import { ImageUploader } from './ImageUploader';
 import { cleanImageWithAI } from '../../utils/aiImageCleaner';
 import { compressImage } from '../../utils/imageOptimizer';
@@ -41,9 +41,11 @@ export const SalesCRM: React.FC = () => {
   const [isAddingAsset, setIsAddingAsset] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [editingAssetId, setEditingAssetId] = useState<string | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   
   // Estado para limpieza de imagen individual
   const [cleaningImageIndex, setCleaningImageIndex] = useState<number | null>(null);
+  const [manualImageUrl, setManualImageUrl] = useState('');
 
   // --- ASSET FORM STATE ---
   const initialAssetFormState = {
@@ -73,6 +75,24 @@ export const SalesCRM: React.FC = () => {
   };
 
   const [assetForm, setAssetForm] = useState(initialAssetFormState);
+
+  // --- PROTECCIÓN CAMBIOS NO GUARDADOS ---
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
+  // Wrapper para actualizar form y marcar como sucio
+  const updateForm = (updates: Partial<typeof initialAssetFormState>) => {
+      setAssetForm(prev => ({ ...prev, ...updates }));
+      setHasUnsavedChanges(true);
+  };
 
   // --- LOAD DATA ---
   useEffect(() => {
@@ -159,6 +179,7 @@ export const SalesCRM: React.FC = () => {
           const newImages = [...assetForm.images];
           newImages[index] = newUrl;
           setAssetForm(prev => ({ ...prev, images: newImages }));
+          setHasUnsavedChanges(true); // Marcar como modificado
 
       } catch (error) {
           console.error("Error cleaning image:", error);
@@ -201,6 +222,7 @@ export const SalesCRM: React.FC = () => {
   // --- ASSET FORM HELPERS ---
   const handleAddImage = (url: string) => {
       setAssetForm(prev => ({...prev, images: [...prev.images, url]}));
+      setHasUnsavedChanges(true);
   };
 
   const handleRoomCountChange = (count: number) => {
@@ -211,16 +233,22 @@ export const SalesCRM: React.FC = () => {
           else newPrices.push({ name: `Habitación ${i+1}`, price: 0 });
       }
       setAssetForm(prev => ({ ...prev, rooms: count, roomPrices: newPrices }));
+      setHasUnsavedChanges(true);
   };
 
   const updateRoomPrice = (index: number, price: number) => {
       const newPrices = [...assetForm.roomPrices];
       newPrices[index].price = price;
       setAssetForm(prev => ({ ...prev, roomPrices: newPrices }));
+      setHasUnsavedChanges(true);
   };
 
   // --- PREPARAR EDICIÓN ---
   const handleEditAsset = (opp: Opportunity) => {
+      if (hasUnsavedChanges) {
+          if (!window.confirm("Tienes cambios sin guardar. ¿Deseas descartarlos y editar este activo?")) return;
+      }
+
       // Calcular gastos de notaría aproximados inversos
       const calcItpAmount = opp.financials.purchasePrice * ((opp.financials.itpPercent || 8) / 100);
       const calcNotary = Math.max(0, opp.financials.notaryAndTaxes - calcItpAmount);
@@ -252,15 +280,21 @@ export const SalesCRM: React.FC = () => {
       });
       setEditingAssetId(opp.id);
       setIsAddingAsset(true);
+      setHasUnsavedChanges(false); // Reset al cargar
+      
       setTimeout(() => {
           document.getElementById('asset-form')?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
   };
 
   const handleCancelAsset = () => {
+      if (hasUnsavedChanges) {
+          if (!window.confirm("¿Seguro que quieres cancelar? Perderás los datos no guardados.")) return;
+      }
       setIsAddingAsset(false);
       setEditingAssetId(null);
       setAssetForm(initialAssetFormState);
+      setHasUnsavedChanges(false);
   };
 
   // --- HANDLER SAVE (CREATE / UPDATE) ASSET ---
@@ -320,7 +354,11 @@ export const SalesCRM: React.FC = () => {
               alert('Activo publicado correctamente.');
           }
           
-          handleCancelAsset(); 
+          setHasUnsavedChanges(false); // IMPORTANTE: Resetear flag
+          setIsAddingAsset(false);
+          setEditingAssetId(null);
+          setAssetForm(initialAssetFormState);
+          
       } catch (error) {
           console.error("Error saving asset:", error);
           alert('Error al guardar activo.');
@@ -565,7 +603,7 @@ export const SalesCRM: React.FC = () => {
                           {isSyncing ? 'Sincronizando...' : 'Sincronizar Stock (data.ts)'}
                       </button>
                       <button 
-                        onClick={() => { setIsAddingAsset(!isAddingAsset); setEditingAssetId(null); setAssetForm(initialAssetFormState); }} 
+                        onClick={() => { setIsAddingAsset(!isAddingAsset); setEditingAssetId(null); setAssetForm(initialAssetFormState); setHasUnsavedChanges(false); }} 
                         className="bg-rentia-black text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-gray-800 transition-colors"
                       >
                           <Plus className="w-4 h-4" /> Registrar Nuevo Activo
@@ -576,11 +614,17 @@ export const SalesCRM: React.FC = () => {
               {/* FORMULARIO EXTENDIDO DE ALTA/EDICIÓN DE ACTIVO */}
               {isAddingAsset && (
                   <form id="asset-form" onSubmit={handleSaveAsset} className="bg-white rounded-xl shadow-xl border border-gray-200 mb-8 animate-in slide-in-from-top-4 overflow-hidden">
-                      <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                      <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center sticky top-0 z-20">
                           <h5 className="font-bold text-gray-800 flex items-center gap-2">
                               {editingAssetId ? <Pencil className="w-4 h-4"/> : <Plus className="w-4 h-4"/>}
                               {editingAssetId ? 'Editar Inmueble' : 'Nuevo Inmueble'}
                           </h5>
+                          {hasUnsavedChanges && (
+                              <span className="text-xs font-bold text-orange-600 bg-orange-100 px-3 py-1 rounded-full animate-pulse flex items-center gap-1">
+                                  <AlertTriangle className="w-3 h-3" />
+                                  Cambios pendientes
+                              </span>
+                          )}
                           <button type="button" onClick={handleCancelAsset}><X className="w-4 h-4 text-gray-400"/></button>
                       </div>
 
@@ -592,20 +636,20 @@ export const SalesCRM: React.FC = () => {
                                   <h6 className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-1">Información General</h6>
                                   <div>
                                       <label className="block text-sm font-medium text-gray-700 mb-1">Título de la Oportunidad *</label>
-                                      <input type="text" required className="w-full p-2 border rounded-lg text-sm" placeholder="Ej: Piso muy rentable en El Carmen" value={assetForm.title} onChange={e => setAssetForm({...assetForm, title: e.target.value})} />
+                                      <input type="text" required className="w-full p-2 border rounded-lg text-sm" placeholder="Ej: Piso muy rentable en El Carmen" value={assetForm.title} onChange={e => updateForm({title: e.target.value})} />
                                   </div>
                                   <div className="grid grid-cols-2 gap-4">
                                       <div className="col-span-2">
                                           <label className="block text-sm font-medium text-gray-700 mb-1">Calle / Vía (Dirección Completa)</label>
-                                          <input type="text" className="w-full p-2 border rounded-lg text-sm" placeholder="Av. Constitución" value={assetForm.streetName} onChange={e => setAssetForm({...assetForm, streetName: e.target.value})} />
+                                          <input type="text" className="w-full p-2 border rounded-lg text-sm" placeholder="Av. Constitución" value={assetForm.streetName} onChange={e => updateForm({streetName: e.target.value})} />
                                       </div>
                                       <div>
                                           <label className="block text-sm font-medium text-gray-700 mb-1">Número (Opcional)</label>
-                                          <input type="text" className="w-full p-2 border rounded-lg text-sm" placeholder="12, 3ºA" value={assetForm.streetNumber} onChange={e => setAssetForm({...assetForm, streetNumber: e.target.value})} />
+                                          <input type="text" className="w-full p-2 border rounded-lg text-sm" placeholder="12, 3ºA" value={assetForm.streetNumber} onChange={e => updateForm({streetNumber: e.target.value})} />
                                       </div>
                                       <div>
                                           <label className="block text-sm font-medium text-gray-700 mb-1">Localidad</label>
-                                          <input type="text" className="w-full p-2 border rounded-lg text-sm" value={assetForm.city} onChange={e => setAssetForm({...assetForm, city: e.target.value})} />
+                                          <input type="text" className="w-full p-2 border rounded-lg text-sm" value={assetForm.city} onChange={e => updateForm({city: e.target.value})} />
                                       </div>
                                   </div>
                                   <div className="grid grid-cols-3 gap-4">
@@ -615,18 +659,18 @@ export const SalesCRM: React.FC = () => {
                                       </div>
                                       <div>
                                           <label className="block text-xs font-bold text-gray-500 mb-1 flex items-center gap-1"><Bath className="w-3 h-3"/> Baños</label>
-                                          <input type="number" className="w-full p-2 border rounded-lg text-sm" value={assetForm.bathrooms} onChange={e => setAssetForm({...assetForm, bathrooms: Number(e.target.value)})} />
+                                          <input type="number" className="w-full p-2 border rounded-lg text-sm" value={assetForm.bathrooms} onChange={e => updateForm({bathrooms: Number(e.target.value)})} />
                                       </div>
                                       <div>
                                           <label className="block text-xs font-bold text-gray-500 mb-1 flex items-center gap-1"><Layout className="w-3 h-3"/> m²</label>
-                                          <input type="number" className="w-full p-2 border rounded-lg text-sm" value={assetForm.sqm} onChange={e => setAssetForm({...assetForm, sqm: Number(e.target.value)})} />
+                                          <input type="number" className="w-full p-2 border rounded-lg text-sm" value={assetForm.sqm} onChange={e => updateForm({sqm: Number(e.target.value)})} />
                                       </div>
                                   </div>
                               </div>
 
                               <div>
                                   <h6 className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-1 mb-3">Descripción</h6>
-                                  <textarea className="w-full p-3 border rounded-lg text-sm h-32" placeholder="Describe la propiedad..." value={assetForm.description} onChange={e => setAssetForm({...assetForm, description: e.target.value})} />
+                                  <textarea className="w-full p-3 border rounded-lg text-sm h-32" placeholder="Describe la propiedad..." value={assetForm.description} onChange={e => updateForm({description: e.target.value})} />
                               </div>
 
                               {/* Sección 4: Fotos CON UPLOADER MEJORADO */}
@@ -636,12 +680,34 @@ export const SalesCRM: React.FC = () => {
                                   </h6>
                                   
                                   {/* Botón de carga */}
-                                  <div className="mb-4">
+                                  <div className="mb-4 space-y-3">
                                       <ImageUploader 
                                           folder="opportunities" 
                                           onUploadComplete={handleAddImage}
                                           label="Subir Foto (Elimina logos automáticamente)"
                                       />
+                                      
+                                      {/* Opción Manual URL */}
+                                      <div className="flex items-center gap-2 bg-gray-50 p-2 rounded-lg border border-gray-200">
+                                          <div className="p-1.5 bg-white rounded border border-gray-200 text-gray-400">
+                                              <LinkIcon className="w-4 h-4" />
+                                          </div>
+                                          <input 
+                                              type="text" 
+                                              placeholder="Pegar URL directa (ej: Archive.org / Drive...)" 
+                                              className="flex-1 bg-transparent text-xs outline-none text-gray-600 placeholder:text-gray-400"
+                                              value={manualImageUrl}
+                                              onChange={(e) => setManualImageUrl(e.target.value)}
+                                              onKeyDown={(e) => { if(e.key === 'Enter') { e.preventDefault(); if(manualImageUrl) { handleAddImage(manualImageUrl); setManualImageUrl(''); } } }}
+                                          />
+                                          <button 
+                                              type="button"
+                                              onClick={() => { if(manualImageUrl) { handleAddImage(manualImageUrl); setManualImageUrl(''); } }}
+                                              className="text-[10px] font-bold bg-white border border-gray-200 px-3 py-1 rounded hover:bg-gray-100 hover:text-rentia-blue transition-colors uppercase"
+                                          >
+                                              Añadir
+                                          </button>
+                                      </div>
                                   </div>
 
                                   <div className="flex flex-wrap gap-2">
@@ -662,7 +728,10 @@ export const SalesCRM: React.FC = () => {
                                                   
                                                   <button 
                                                     type="button" 
-                                                    onClick={() => setAssetForm(prev => ({...prev, images: prev.images.filter((_, i) => i !== idx)}))}
+                                                    onClick={() => {
+                                                        setAssetForm(prev => ({...prev, images: prev.images.filter((_, i) => i !== idx)}));
+                                                        setHasUnsavedChanges(true);
+                                                    }}
                                                     className="p-1.5 bg-white/20 hover:bg-red-600 rounded-full text-white backdrop-blur-sm transition-colors border border-white/30"
                                                     title="Eliminar"
                                                   >
@@ -683,34 +752,42 @@ export const SalesCRM: React.FC = () => {
                               <div className="grid grid-cols-2 gap-4">
                                   <div className="col-span-2">
                                       <label className="block text-sm font-bold text-gray-700 mb-1">Precio de Venta (€)</label>
-                                      <input type="number" required className="w-full p-2 border rounded-lg text-lg font-bold text-gray-900 focus:ring-2 focus:ring-rentia-blue" value={assetForm.purchasePrice} onChange={e => setAssetForm({...assetForm, purchasePrice: Number(e.target.value)})} />
+                                      <input type="number" required className="w-full p-2 border rounded-lg text-lg font-bold text-gray-900 focus:ring-2 focus:ring-rentia-blue" value={assetForm.purchasePrice} onChange={e => updateForm({purchasePrice: Number(e.target.value)})} />
                                   </div>
                                   <div>
                                       <label className="block text-xs font-medium text-gray-600 mb-1">ITP (%)</label>
-                                      <input type="number" className="w-full p-2 border rounded-lg text-sm" value={assetForm.itpPercent} onChange={e => setAssetForm({...assetForm, itpPercent: Number(e.target.value)})} />
+                                      <input type="number" className="w-full p-2 border rounded-lg text-sm" value={assetForm.itpPercent} onChange={e => updateForm({itpPercent: Number(e.target.value)})} />
                                   </div>
                                   <div>
                                       <label className="block text-xs font-medium text-gray-600 mb-1">Notaría/Reg (€)</label>
-                                      <input type="number" className="w-full p-2 border rounded-lg text-sm" value={assetForm.notaryExpenses} onChange={e => setAssetForm({...assetForm, notaryExpenses: Number(e.target.value)})} />
+                                      <input type="number" className="w-full p-2 border rounded-lg text-sm" value={assetForm.notaryExpenses} onChange={e => updateForm({notaryExpenses: Number(e.target.value)})} />
                                   </div>
                                   <div>
                                       <label className="block text-xs font-medium text-gray-600 mb-1">Reforma (€)</label>
-                                      <input type="number" className="w-full p-2 border rounded-lg text-sm" value={assetForm.reformCost} onChange={e => setAssetForm({...assetForm, reformCost: Number(e.target.value)})} />
+                                      <input type="number" className="w-full p-2 border rounded-lg text-sm" value={assetForm.reformCost} onChange={e => updateForm({reformCost: Number(e.target.value)})} />
                                   </div>
                                   <div>
                                       <label className="block text-xs font-medium text-gray-600 mb-1">Mobiliario (€)</label>
-                                      <input type="number" className="w-full p-2 border rounded-lg text-sm" value={assetForm.furnitureCost} onChange={e => setAssetForm({...assetForm, furnitureCost: Number(e.target.value)})} />
+                                      <input type="number" className="w-full p-2 border rounded-lg text-sm" value={assetForm.furnitureCost} onChange={e => updateForm({furnitureCost: Number(e.target.value)})} />
                                   </div>
                                   <div className="col-span-2">
                                       <label className="block text-xs font-medium text-gray-600 mb-1">Gastos Anuales (IBI+Comunidad)</label>
-                                      <input type="number" className="w-full p-2 border rounded-lg text-sm" value={assetForm.yearlyExpenses} onChange={e => setAssetForm({...assetForm, yearlyExpenses: Number(e.target.value)})} />
+                                      <input type="number" className="w-full p-2 border rounded-lg text-sm" value={assetForm.yearlyExpenses} onChange={e => updateForm({yearlyExpenses: Number(e.target.value)})} />
                                   </div>
                               </div>
 
-                              <div className="pt-4 flex justify-end gap-3">
+                              <div className="pt-4 flex justify-end gap-3 sticky bottom-0 bg-blue-50 py-4 -mb-6 border-t border-blue-100">
                                   <button type="button" onClick={handleCancelAsset} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm font-bold">Cancelar</button>
-                                  <button type="submit" className="bg-rentia-blue text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 shadow-md flex items-center gap-2">
-                                      <Save className="w-4 h-4" /> {editingAssetId ? 'Guardar Cambios' : 'Publicar Activo'}
+                                  <button 
+                                    type="submit" 
+                                    className={`px-6 py-2 rounded-lg text-sm font-bold shadow-md flex items-center gap-2 transition-all ${
+                                        hasUnsavedChanges 
+                                        ? 'bg-amber-500 hover:bg-amber-600 text-white animate-pulse' 
+                                        : 'bg-rentia-blue hover:bg-blue-700 text-white'
+                                    }`}
+                                  >
+                                      <Save className="w-4 h-4" /> 
+                                      {hasUnsavedChanges ? 'Guardar Cambios' : (editingAssetId ? 'Actualizado' : 'Publicar Activo')}
                                   </button>
                               </div>
                           </div>

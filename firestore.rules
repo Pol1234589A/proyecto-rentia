@@ -133,6 +133,14 @@ service cloud.firestore {
         allow update, delete: if isStaff();
     }
 
+    // NUEVA REGLA PARA REGISTRO DE VISITAS
+    match /room_visits/{visitId} {
+        // Ayoub y Staff pueden crear nuevos registros
+        allow create: if isStaffOrWorker();
+        // Solo Staff puede leer el historial, actualizarlo o borrarlo
+        allow read, update, delete: if isStaff();
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

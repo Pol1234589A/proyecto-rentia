@@ -1,5 +1,6 @@
 
 
+
 export interface Financials {
   purchasePrice: number;
   itpPercent?: number; // New: Transfer Tax Percentage
@@ -149,4 +150,20 @@ export interface Candidate {
     submittedBy: string;
     submittedAt: any; // Firestore Timestamp
     status: CandidateStatus;
+}
+
+// --- NEW TYPES FOR ROOM VISITS ---
+export type VisitOutcome = 'successful' | 'unsuccessful' | 'pending';
+
+export interface RoomVisit {
+    id: string;
+    propertyId: string;
+    propertyName: string;
+    roomId: string;
+    roomName: string;
+    workerName: string;
+    visitDate: any; // Firestore Timestamp
+    outcome: VisitOutcome;
+    comments: string;
+    commission: number;
 }

@@ -125,10 +125,12 @@ service cloud.firestore {
         allow write: if isStaff();
     }
     
-    // NUEVA REGLA PARA PIPELINE DE CANDIDATOS
+    // REGLA ACTUALIZADA PARA PIPELINE DE CANDIDATOS
     match /candidate_pipeline/{candidateId} {
         allow create: if isStaffOrWorker();
-        allow read, update, delete: if isStaff();
+        // Staff puede leer todo. Worker solo puede leer los candidatos que ha enviado.
+        allow read: if isStaff() || (isWorker() && resource.data.submittedBy == getUserData().displayName);
+        allow update, delete: if isStaff();
     }
 
     match /{document=**} {

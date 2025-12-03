@@ -139,6 +139,8 @@ export type CandidateStatus = 'pending_review' | 'approved' | 'rejected' | 'arch
 export interface Candidate {
     id: string;
     candidateName: string;
+    candidatePhone?: string;
+    candidateEmail?: string;
     additionalInfo: string;
     propertyId: string;
     propertyName: string;

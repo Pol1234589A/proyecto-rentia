@@ -124,6 +124,12 @@ service cloud.firestore {
         allow read: if isAuthenticated();
         allow write: if isStaff();
     }
+    
+    // NUEVA REGLA PARA PIPELINE DE CANDIDATOS
+    match /candidate_pipeline/{candidateId} {
+        allow create: if isStaffOrWorker();
+        allow read, update, delete: if isStaff();
+    }
 
     match /{document=**} {
       allow read, write: if false;

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-// Fix: Use namespaced import for `firebase/app` to address module resolution issues.
-import * as firebase from "firebase/app";
+// Fix: Use 'firebase/compat/app' for app management functions.
+import firebase from "firebase/compat/app";
 import { getAuth, createUserWithEmailAndPassword, signOut, updateProfile } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { firebaseConfig, db } from '../../firebase';
@@ -25,7 +25,7 @@ export const UserCreator: React.FC = () => {
     let secondaryApp: any;
 
     try {
-      // Fix: Call initializeApp from the namespaced import.
+      // Fix: Call initializeApp from the compat import.
       secondaryApp = firebase.initializeApp(firebaseConfig, secondaryAppName);
       const secondaryAuth = getAuth(secondaryApp);
 
@@ -66,8 +66,8 @@ export const UserCreator: React.FC = () => {
       // Limpieza robusta de la app secundaria
       if (secondaryApp) {
           try {
-            // Fix: Call deleteApp from the namespaced import.
-            await firebase.deleteApp(secondaryApp);
+            // Fix: Call delete() on the app instance for compat mode.
+            await secondaryApp.delete();
           } catch (e) {
             console.warn("Error limpiando app secundaria:", e);
           }

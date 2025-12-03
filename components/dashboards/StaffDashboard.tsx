@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
-import { Users, Building, AlertCircle, CheckCircle, BarChart3, RefreshCw, LayoutDashboard, Calculator, Briefcase, Wrench, Plus, ArrowUpRight, ArrowDownRight, Search, FileText, Trash2, Save, X, DollarSign, Calendar as CalendarIcon, Filter, Download, Pencil, ChevronLeft, ChevronRight, PieChart, Landmark, ChevronDown, Wallet, CreditCard, Clock, Zap, Droplets, Flame, Wifi, Settings, Receipt, Split, Info, MessageCircle, Share2, ClipboardList } from 'lucide-react';
+import { Users, Building, AlertCircle, CheckCircle, BarChart3, RefreshCw, LayoutDashboard, Calculator, Briefcase, Wrench, Plus, ArrowUpRight, ArrowDownRight, Search, FileText, Trash2, Save, X, DollarSign, Calendar as CalendarIcon, Filter, Download, Pencil, ChevronLeft, ChevronRight, PieChart, Landmark, ChevronDown, Wallet, CreditCard, Clock, Zap, Droplets, Flame, Wifi, Settings, Receipt, Split, Info, MessageCircle, Share2, ClipboardList, UserCheck, Mail, Phone, ArrowRight } from 'lucide-react';
 import { UserCreator } from '../admin/UserCreator';
 import { FileAnalyzer } from '../admin/FileAnalyzer';
 import { RoomManager } from '../admin/RoomManager';
@@ -15,7 +14,73 @@ import { TaskManager } from '../admin/TaskManager';
 import { db } from '../../firebase';
 import { collection, onSnapshot, addDoc, deleteDoc, updateDoc, setDoc, doc, serverTimestamp, orderBy, query, where, getDocs } from 'firebase/firestore';
 import { Property, properties as staticProperties } from '../../data/rooms'; // Import static properties too
-import { Contract } from '../../types';
+import { Contract, Candidate, CandidateStatus } from '../../types';
+
+// --- NEW SUBCOMPONENT: CANDIDATE PIPELINE ---
+const CandidatePipeline: React.FC = () => {
+    const [candidates, setCandidates] = useState<Candidate[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const q = query(collection(db, "candidate_pipeline"), where("status", "==", "pending_review"), orderBy("submittedAt", "desc"));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const newCandidates: Candidate[] = [];
+            snapshot.forEach(doc => {
+                newCandidates.push({ ...doc.data(), id: doc.id } as Candidate);
+            });
+            setCandidates(newCandidates);
+            setLoading(false);
+        });
+        return () => unsubscribe();
+    }, []);
+
+    const handleUpdateStatus = async (id: string, status: CandidateStatus) => {
+        try {
+            await updateDoc(doc(db, "candidate_pipeline", id), { status });
+        } catch (error) {
+            console.error("Error updating status:", error);
+            alert("No se pudo actualizar el estado del candidato.");
+        }
+    };
+
+    return (
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <h3 className="text-xl font-bold text-rentia-black mb-4 flex items-center gap-2">
+                <UserCheck className="w-5 h-5 text-rentia-blue" /> Candidatos a Filtrar
+            </h3>
+            {loading ? (
+                <div className="text-center py-8 text-gray-400">Cargando...</div>
+            ) : candidates.length === 0 ? (
+                <div className="text-center py-8 text-gray-400">
+                    <p>No hay nuevos candidatos pendientes de revisión.</p>
+                </div>
+            ) : (
+                <div className="space-y-4">
+                    {candidates.map(c => (
+                        <div key={c.id} className="bg-gray-50 p-4 rounded-lg border border-gray-200 flex flex-col md:flex-row justify-between items-start gap-4">
+                            <div className="flex-1">
+                                <div className="flex items-center gap-4 mb-2">
+                                    <span className="font-bold text-lg text-gray-800">{c.candidateName}</span>
+                                    <div className="text-xs font-medium text-gray-500">
+                                        <p className="font-bold">{c.propertyName}</p>
+                                        <p>Habitación: {c.roomName}</p>
+                                    </div>
+                                </div>
+                                <p className="text-xs text-gray-600 bg-white p-2 border rounded whitespace-pre-line">{c.additionalInfo}</p>
+                                <p className="text-[10px] text-gray-400 mt-2">Enviado por: {c.submittedBy} - {c.submittedAt?.toDate().toLocaleDateString()}</p>
+                            </div>
+                            <div className="flex gap-2 flex-shrink-0 w-full md:w-auto">
+                                <button onClick={() => handleUpdateStatus(c.id, 'rejected')} className="w-1/2 md:w-auto flex-1 bg-red-50 hover:bg-red-100 text-red-700 px-4 py-2 text-xs font-bold rounded-lg border border-red-100 transition-colors">Rechazar</button>
+                                <button onClick={() => handleUpdateStatus(c.id, 'approved')} className="w-1/2 md:w-auto flex-1 bg-green-500 hover:bg-green-600 text-white px-6 py-2 text-xs font-bold rounded-lg shadow-sm transition-colors">Aprobar</button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
 
 // --- INTERFACES CONTABILIDAD PROFESIONAL ---
 interface Transaction {
@@ -597,6 +662,9 @@ export const StaffDashboard: React.FC = () => {
                             <Landmark className="w-6 h-6 text-purple-100 absolute right-4 top-4 transform scale-150" />
                         </div>
                     </div>
+                </div>
+                <div className="mt-8">
+                    <CandidatePipeline />
                 </div>
             </div>
         )}

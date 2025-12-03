@@ -1,8 +1,8 @@
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
-// Fix: Use namespaced import for `firebase/app` to address module resolution issues.
-import * as firebase from "firebase/app";
+// Fix: Use 'firebase/compat/app' to address module resolution issues with initializeApp.
+import firebase from "firebase/compat/app";
 
 export const firebaseConfig = {
   apiKey: "AIzaSyCv5G788hEWYmgv-2n0SRl9d0geUHkC9ko",
@@ -14,7 +14,7 @@ export const firebaseConfig = {
 };
 
 // Initialize Firebase
-// Fix: Call initializeApp from the namespaced import.
+// Fix: Call initializeApp from the compat import.
 const app = firebase.initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);

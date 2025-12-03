@@ -131,3 +131,20 @@ export interface Task {
     googleEventId?: string; // Link to Google Calendar
     createdAt: any;
 }
+
+// --- NEW TYPES FOR CANDIDATE PIPELINE ---
+
+export type CandidateStatus = 'pending_review' | 'approved' | 'rejected' | 'archived';
+
+export interface Candidate {
+    id: string;
+    candidateName: string;
+    additionalInfo: string;
+    propertyId: string;
+    propertyName: string;
+    roomId: string;
+    roomName: string;
+    submittedBy: string;
+    submittedAt: any; // Firestore Timestamp
+    status: CandidateStatus;
+}

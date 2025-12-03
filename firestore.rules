@@ -18,13 +18,27 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
-    // Verifica si es STAFF, ADMIN u OWNER y si su cuenta está ACTIVA
+    // Verifica si es STAFF (Staff, Admin, Owner)
     function isStaff() {
       let role = getUserData().get('role', '');
       return isAuthenticated() 
         && exists(/databases/$(database)/documents/users/$(request.auth.uid))
         && (role == 'staff' || role == 'admin' || role == 'owner')
         && getUserData().get('active', false) == true;
+    }
+
+    // Verifica si es WORKER (Nuevo Rol para Ayoub)
+    function isWorker() {
+      let role = getUserData().get('role', '');
+      return isAuthenticated() 
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && role == 'worker'
+        && getUserData().get('active', false) == true;
+    }
+
+    // Helper combinado: Staff O Trabajador
+    function isStaffOrWorker() {
+      return isStaff() || isWorker();
     }
 
     function isValidAmount() {
@@ -38,12 +52,13 @@ service cloud.firestore {
     // --- REGLAS POR COLECCIÓN ---
 
     match /users/{userId} {
-      allow read: if isOwner(userId) || isStaff();
+      // El Worker necesita leer su propio perfil para que la app determine su rol
+      allow read: if isOwner(userId) || isStaffOrWorker();
       allow write: if isStaff();
     }
 
     match /properties/{propertyId} {
-      allow read: if true;
+      allow read: if true; // Público para la web y Worker
       allow write: if isStaff();
     }
 
@@ -75,12 +90,24 @@ service cloud.firestore {
       allow write: if isStaff();
     }
 
+    // TAREAS (Tasks) - ACTUALIZADO PARA WORKER
     match /tasks/{taskId} {
-      allow read, write: if true; 
+      // Lectura: Staff ve todo, Worker ve sus tareas y las del equipo
+      allow read: if isStaffOrWorker();
+      
+      // Creación: Worker puede crear incidencias, Staff crea tareas
+      allow create: if isStaffOrWorker();
+      
+      // Actualización: Worker actualiza estado, Staff todo
+      allow update: if isStaffOrWorker();
+      
+      // Borrado: Solo Staff puede borrar tareas definitivamente
+      allow delete: if isStaff(); 
     }
 
     match /task_boards/{boardId} {
-      allow read, write: if true;
+      allow read: if isStaffOrWorker();
+      allow write: if isStaff();
     }
 
     match /social_inbox/{msgId} {

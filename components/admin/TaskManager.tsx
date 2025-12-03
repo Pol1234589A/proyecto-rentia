@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { db } from '../../firebase';
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy } from 'firebase/firestore';
@@ -173,9 +174,10 @@ export const TaskManager: React.FC = () => {
             });
             setShowBoardModal(false);
             setBoardFormData({ title: '', group: 'General' });
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error saving board:", error);
-            alert("Error al crear tablero.");
+            // Muestra el mensaje exacto del error para depuración
+            alert(`Error al crear tablero: ${error.message}`);
         } finally {
             setLoading(false);
         }
@@ -186,8 +188,8 @@ export const TaskManager: React.FC = () => {
         try {
             await deleteDoc(doc(db, "task_boards", boardId));
             if (selectedBoardId === boardId) setSelectedBoardId(null);
-        } catch (e) {
-            alert("Error al eliminar tablero.");
+        } catch (e: any) {
+            alert(`Error al eliminar tablero: ${e.message}`);
         }
     };
 

@@ -16,10 +16,11 @@ import { TenantDashboard } from './components/dashboards/TenantDashboard';
 import { BrokerDashboardInternal } from './components/dashboards/BrokerDashboard';
 import { StaffDashboard } from './components/dashboards/StaffDashboard';
 import { AgencyDashboard } from './components/dashboards/AgencyDashboard';
+import { WorkerDashboard } from './components/dashboards/WorkerDashboard'; // Importamos el nuevo dashboard
 import { LegalModals, ModalType } from './components/LegalModals';
 import { CollaborationBanner } from './components/CollaborationBanner';
 import { OpportunityCard } from './components/OpportunityCard'; 
-import { LandingView } from './components/LandingView'; // Importar nueva vista
+import { LandingView } from './components/LandingView';
 import { Opportunity } from './types';
 import { opportunities as staticOpportunities } from './data';
 import { TrendingUp, MessageCircle, Bell } from 'lucide-react';
@@ -28,6 +29,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { db } from './firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
 
+// ... (Rest of imports and types definitions remain same until AppContent) ...
 // Type alias
 type ViewType = 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts' | 'blog' | 'brokers' | 'intranet' | 'landing';
 
@@ -43,7 +45,7 @@ const PATH_MAP: Record<string, ViewType> = {
   '#/blog': 'blog',
   '#/colaboradores': 'brokers',
   '#/intranet': 'intranet',
-  '#/landing': 'landing' // Nueva ruta
+  '#/landing': 'landing'
 };
 
 const VIEW_TO_HASH: Record<ViewType, string> = {
@@ -65,7 +67,7 @@ function AppContent() {
   const [view, setView] = useState<ViewType>('home');
   const [activeLegalModal, setActiveLegalModal] = useState<ModalType>(null);
   const { t } = useLanguage();
-  const { userRole } = useAuth();
+  const { userRole, currentUser } = useAuth();
   
   const [opportunities, setOpportunities] = useState<Opportunity[]>(staticOpportunities); 
 
@@ -242,7 +244,8 @@ function AppContent() {
         if (userRole === 'tenant') return <TenantDashboard />;
         if (userRole === 'broker') return <BrokerDashboardInternal />;
         if (userRole === 'agency') return <AgencyDashboard />;
-        if (userRole === 'staff' || userRole === 'worker') return <StaffDashboard />;
+        if (userRole === 'staff') return <StaffDashboard />;
+        if (userRole === 'worker') return <WorkerDashboard />; // Renderizado del nuevo Dashboard
         return <div className="min-h-screen flex items-center justify-center">Cargando perfil...</div>;
 
       case 'list':

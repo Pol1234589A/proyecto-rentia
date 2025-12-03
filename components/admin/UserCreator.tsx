@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import * as firebaseApp from "firebase/app";
-import { getAuth, createUserWithEmailAndPassword, signOut } from "firebase/auth";
+import { initializeApp, deleteApp } from "firebase/app";
+import { getAuth, createUserWithEmailAndPassword, signOut, updateProfile } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { firebaseConfig, db } from '../../firebase';
 import { UserPlus, Save, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
@@ -24,12 +24,15 @@ export const UserCreator: React.FC = () => {
     let secondaryApp: any;
 
     try {
-      secondaryApp = firebaseApp.initializeApp(firebaseConfig, secondaryAppName);
+      secondaryApp = initializeApp(firebaseConfig, secondaryAppName);
       const secondaryAuth = getAuth(secondaryApp);
 
       // 2. Crear usuario en Authentication (en la app secundaria)
       const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, password);
       const newUser = userCredential.user;
+
+      // 2.1 Actualizar perfil de Auth INMEDIATAMENTE para asegurar que el displayName esté disponible
+      await updateProfile(newUser, { displayName: name });
 
       // 3. Crear documento en Firestore (usando la instancia DB principal del Admin)
       // SEGURIDAD: Es vital que el usuario nazca con 'active: true' para pasar las reglas de seguridad
@@ -61,10 +64,7 @@ export const UserCreator: React.FC = () => {
       // Limpieza robusta de la app secundaria
       if (secondaryApp) {
           try {
-            // Check if deleteApp exists in the imported module (runtime safety)
-            if ((firebaseApp as any).deleteApp) {
-                await (firebaseApp as any).deleteApp(secondaryApp);
-            }
+            await deleteApp(secondaryApp);
           } catch (e) {
             console.warn("Error limpiando app secundaria:", e);
           }

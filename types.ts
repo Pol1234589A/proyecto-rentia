@@ -1,4 +1,5 @@
 
+
 export interface Financials {
   purchasePrice: number;
   itpPercent?: number; // New: Transfer Tax Percentage
@@ -107,7 +108,7 @@ export interface Contract {
 export type StaffMember = 'Pol' | 'Sandra' | 'Víctor' | 'Ayoub' | 'Hugo' | 'Colaboradores';
 export type TaskPriority = 'Alta' | 'Media' | 'Baja';
 export type TaskStatus = 'Pendiente' | 'En Curso' | 'Completada' | 'Bloqueada';
-export type TaskCategory = 'Gestión' | 'Marketing' | 'Legal' | 'Operaciones' | 'Reformas' | 'Contabilidad';
+export type TaskCategory = 'Gestión' | 'Marketing' | 'Legal' | 'Operaciones' | 'Reformas' | 'Contabilidad' | 'Mantenimiento';
 
 export interface TaskBoard {
     id: string;

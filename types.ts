@@ -98,6 +98,8 @@ export interface Contract {
     status: 'active' | 'pending' | 'ended' | 'reserved';
     createdAt: any;
     documents?: string[]; // URLs de PDFs generados
+    isExternal?: boolean; // Si es gestionado fuera (Rentger)
+    externalRef?: string;
 }
 
 // --- NEW TYPES FOR TASK MANAGER ---
@@ -107,8 +109,16 @@ export type TaskPriority = 'Alta' | 'Media' | 'Baja';
 export type TaskStatus = 'Pendiente' | 'En Curso' | 'Completada' | 'Bloqueada';
 export type TaskCategory = 'Gestión' | 'Marketing' | 'Legal' | 'Operaciones' | 'Reformas' | 'Contabilidad';
 
+export interface TaskBoard {
+    id: string;
+    title: string;
+    group: string; // Para agrupar (ej: "Marketing", "Operaciones")
+    createdAt: any;
+}
+
 export interface Task {
     id: string;
+    boardId?: string; // Link al tablero
     title: string;
     description: string;
     assignee: StaffMember;

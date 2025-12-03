@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -75,7 +76,11 @@ service cloud.firestore {
     }
 
     match /tasks/{taskId} {
-      allow read, write: if isStaff();
+      allow read, write: if true; 
+    }
+
+    match /task_boards/{boardId} {
+      allow read, write: if true;
     }
 
     match /social_inbox/{msgId} {

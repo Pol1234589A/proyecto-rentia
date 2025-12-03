@@ -61,7 +61,10 @@ export const UserCreator: React.FC = () => {
       // Limpieza robusta de la app secundaria
       if (secondaryApp) {
           try {
-            await firebaseApp.deleteApp(secondaryApp);
+            // Check if deleteApp exists in the imported module (runtime safety)
+            if ((firebaseApp as any).deleteApp) {
+                await (firebaseApp as any).deleteApp(secondaryApp);
+            }
           } catch (e) {
             console.warn("Error limpiando app secundaria:", e);
           }

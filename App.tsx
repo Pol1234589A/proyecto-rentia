@@ -332,8 +332,8 @@ function AppContent() {
         {renderContent()}
       </main>
 
-      {/* Ocultar WhatsApp Button si es vista Landing (opcional, pero limpia más la vista) */}
-      {view !== 'landing' && <WhatsAppButton />}
+      {/* Ocultar WhatsApp si es landing O si es el dashboard de Worker */}
+      {view !== 'landing' && !(view === 'intranet' && userRole === 'worker') && <WhatsAppButton />}
 
       <LegalModals activeModal={activeLegalModal} onClose={() => setActiveLegalModal(null)} />
 

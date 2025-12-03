@@ -13,6 +13,11 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
+    // Helper para verificar existencia antes de leer datos (Evita errores de null pointer)
+    function userExists() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
     // Helper para obtener datos del usuario de forma segura
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
@@ -20,20 +25,18 @@ service cloud.firestore {
 
     // Verifica si es STAFF (Staff, Admin, Owner)
     function isStaff() {
-      let role = getUserData().get('role', '');
       return isAuthenticated() 
-        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        && (role == 'staff' || role == 'admin' || role == 'owner')
-        && getUserData().get('active', false) == true;
+        && userExists()
+        && (getUserData().role == 'staff' || getUserData().role == 'admin' || getUserData().role == 'owner')
+        && getUserData().get('active', true) == true;
     }
 
     // Verifica si es WORKER (Nuevo Rol para Ayoub)
     function isWorker() {
-      let role = getUserData().get('role', '');
       return isAuthenticated() 
-        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        && role == 'worker'
-        && getUserData().get('active', false) == true;
+        && userExists()
+        && getUserData().role == 'worker'
+        && getUserData().get('active', true) == true;
     }
 
     // Helper combinado: Staff O Trabajador
@@ -105,9 +108,11 @@ service cloud.firestore {
       allow delete: if isStaff(); 
     }
 
+    // TABLEROS (Boards) - ACTUALIZADO PARA PERMITIR CREAR "INCIDENCIAS"
     match /task_boards/{boardId} {
       allow read: if isStaffOrWorker();
-      allow write: if isStaff();
+      // Permitimos escritura al Worker para que el sistema pueda autogenerar el tablón "Incidencias" si no existe
+      allow write: if isStaffOrWorker();
     }
 
     match /social_inbox/{msgId} {

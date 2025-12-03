@@ -1,11 +1,12 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { db } from '../../firebase';
-import { collection, query, where, onSnapshot, updateDoc, doc, addDoc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, updateDoc, doc, addDoc, serverTimestamp, getDoc, getDocs } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
 import { Task, TaskStatus } from '../../types';
-import { Property } from '../../data/rooms';
-import { ClipboardList, Home, CheckCircle, Clock, AlertCircle, MapPin, Search, Calendar, Wrench, Plus, X, AlertTriangle, Save, ChevronRight, Filter, Loader2 } from 'lucide-react';
+import { Property, Room } from '../../data/rooms';
+import { ClipboardList, Home, CheckCircle, Clock, AlertCircle, MapPin, Search, Calendar, Wrench, Plus, X, AlertTriangle, Save, ChevronRight, Filter, Loader2, WifiOff, Monitor, Tv, Lock, Sun, Bed, Layout, Image as ImageIcon } from 'lucide-react';
+import { ImageLightbox } from '../ImageLightbox';
 
 // Priority Badge Helper
 const getPriorityBadge = (p: string) => {
@@ -36,7 +37,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, showStatusBtn = true, onStatu
             </div>
         </div>
         
-        <h4 className="font-bold text-gray-800 text-sm mb-2 leading-snug">{task.title}</h4>
+        <h4 className="font-bold text-gray-800 text-sm mb-2 leading-snug break-words">{task.title}</h4>
         <p className="text-xs text-gray-500 line-clamp-3 mb-3 whitespace-pre-line bg-gray-50 p-2 rounded border border-gray-100">{task.description}</p>
         
         <div className="flex items-center justify-between pt-2 border-t border-gray-50">
@@ -81,7 +82,6 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, showStatusBtn = true, onStatu
 export const WorkerDashboard: React.FC = () => {
     const { currentUser } = useAuth();
     const [activeTab, setActiveTab] = useState<'tasks' | 'rooms'>('tasks');
-    const [mobileTaskFilter, setMobileTaskFilter] = useState<string>('Pendiente');
     
     // Identity State (Nombre verificado para cruzar con tareas)
     const [workerName, setWorkerName] = useState<string>('');
@@ -90,11 +90,18 @@ export const WorkerDashboard: React.FC = () => {
     const [myTasks, setMyTasks] = useState<Task[]>([]);
     const [properties, setProperties] = useState<Property[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     
     // Filters & UI State
     const [roomSearch, setRoomSearch] = useState('');
     const [showIncidentModal, setShowIncidentModal] = useState(false);
+    const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
     
+    // Lightbox State
+    const [lightboxImages, setLightboxImages] = useState<string[]>([]);
+    const [lightboxIndex, setLightboxIndex] = useState(0);
+    const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+
     // Incident Form State
     const [newIncident, setNewIncident] = useState({
         propertyId: '',
@@ -124,8 +131,7 @@ export const WorkerDashboard: React.FC = () => {
                 }
             }
 
-            // Normalización para Ayoub: Si el nombre contiene "Ayoub", forzar "Ayoub"
-            // Esto asegura que si el admin asigna tareas a "Ayoub" pero el perfil es "Ayoub Amrani", funcione igual.
+            // Normalización para Ayoub
             if (resolvedName && resolvedName.toLowerCase().includes('ayoub')) {
                 resolvedName = 'Ayoub';
             }
@@ -136,13 +142,14 @@ export const WorkerDashboard: React.FC = () => {
         resolveWorkerIdentity();
     }, [currentUser]);
 
-    // 2. Cargar Datos (Solo cuando tenemos la identidad confirmada)
+    // 2. Cargar Datos
     useEffect(() => {
         if (!workerName) return;
 
         setLoading(true);
+        setError(null);
 
-        // Escuchar Tareas asignadas EXACTAMENTE a este nombre
+        // Escuchar Tareas
         const qTasks = query(
             collection(db, "tasks"), 
             where("assignee", "==", workerName) 
@@ -159,6 +166,11 @@ export const WorkerDashboard: React.FC = () => {
                 return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
             });
             setMyTasks(tasksList);
+            setLoading(false);
+        }, (err) => {
+            console.error("Error cargando tareas:", err);
+            setError("No se pudieron cargar las tareas. Verifica permisos.");
+            setLoading(false);
         });
 
         // Escuchar Propiedades
@@ -169,7 +181,6 @@ export const WorkerDashboard: React.FC = () => {
             });
             propsList.sort((a,b) => a.address.localeCompare(b.address));
             setProperties(propsList);
-            setLoading(false);
         });
 
         return () => { unsubTasks(); unsubProps(); };
@@ -224,6 +235,23 @@ export const WorkerDashboard: React.FC = () => {
             const taskTitle = `INCIDENCIA: ${newIncident.title}`;
             const fullDescription = `[Ubicación: ${locationText}]\n\n${newIncident.description}`;
 
+            // Lógica Tablón Incidencias (Auto-creación)
+            let targetBoardId = '';
+            const boardsRef = collection(db, "task_boards");
+            const qBoard = query(boardsRef, where("title", "==", "Incidencias"));
+            const boardSnap = await getDocs(qBoard);
+
+            if (!boardSnap.empty) {
+                targetBoardId = boardSnap.docs[0].id;
+            } else {
+                const newBoard = await addDoc(boardsRef, {
+                    title: "Incidencias",
+                    group: "Mantenimiento",
+                    createdAt: serverTimestamp()
+                });
+                targetBoardId = newBoard.id;
+            }
+
             await addDoc(collection(db, "tasks"), {
                 title: taskTitle,
                 description: fullDescription,
@@ -231,13 +259,14 @@ export const WorkerDashboard: React.FC = () => {
                 priority: newIncident.priority,
                 status: 'Pendiente',
                 category: 'Mantenimiento', 
+                boardId: targetBoardId,
                 createdAt: serverTimestamp(),
                 dueDate: new Date().toISOString() 
             });
 
             setShowIncidentModal(false);
             setNewIncident({ propertyId: '', roomId: 'common', title: '', description: '', priority: 'Media' });
-            alert("Incidencia reportada correctamente.");
+            alert("Incidencia reportada correctamente en el tablón.");
 
         } catch (error) {
             console.error("Error creating incident:", error);
@@ -245,27 +274,30 @@ export const WorkerDashboard: React.FC = () => {
         }
     };
 
-    // --- LOGIC: ROOMS ---
-    const availableRooms = useMemo(() => {
-        let rooms: any[] = [];
-        properties.forEach(prop => {
-            if (!prop.rooms) return;
-            prop.rooms.forEach(room => {
-                if (room.status === 'available' || room.specialStatus === 'renovation') {
-                    const searchContent = `${prop.address} ${room.name} ${prop.city}`.toLowerCase();
-                    if (searchContent.includes(roomSearch.toLowerCase())) {
-                        rooms.push({
-                            ...room,
-                            propertyAddress: prop.address,
-                            propertyCity: prop.city,
-                            propertyId: prop.id
-                        });
-                    }
-                }
-            });
-        });
-        return rooms;
+    // --- LOGIC: PROPERTIES FILTER ---
+    const filteredProperties = useMemo(() => {
+        return properties.filter(p => 
+            p.address.toLowerCase().includes(roomSearch.toLowerCase()) || 
+            p.city.toLowerCase().includes(roomSearch.toLowerCase())
+        );
     }, [properties, roomSearch]);
+
+    // --- HELPERS ---
+    const openImages = (images: string[], index = 0) => {
+        setLightboxImages(images);
+        setLightboxIndex(index);
+        setIsLightboxOpen(true);
+    };
+
+    const getFeatureIcon = (id: string) => {
+        switch(id) {
+            case 'balcony': return <Sun className="w-3 h-3"/>;
+            case 'smart_tv': return <Tv className="w-3 h-3"/>;
+            case 'lock': return <Lock className="w-3 h-3"/>;
+            case 'desk': return <Monitor className="w-3 h-3"/>;
+            default: return <CheckCircle className="w-3 h-3"/>;
+        }
+    };
 
     if (!workerName) return <div className="h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-rentia-blue"/></div>;
 
@@ -273,7 +305,7 @@ export const WorkerDashboard: React.FC = () => {
         <div className="min-h-screen bg-gray-50 pb-24 md:pb-6 animate-in fade-in">
             <div className="max-w-6xl mx-auto p-4 md:p-6">
                 
-                {/* HEADER MÓVIL OPTIMIZADO */}
+                {/* HEADER */}
                 <header className="mb-6 flex flex-col gap-4">
                     <div className="flex justify-between items-center">
                         <div>
@@ -290,7 +322,13 @@ export const WorkerDashboard: React.FC = () => {
                         </button>
                     </div>
 
-                    {/* Tabs Principales Estilo iOS Segmented Control */}
+                    {error && (
+                        <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-sm flex items-center gap-2">
+                            <WifiOff className="w-4 h-4" />
+                            {error}
+                        </div>
+                    )}
+
                     <div className="bg-white p-1 rounded-xl shadow-sm border border-gray-200 flex">
                         <button 
                             onClick={() => setActiveTab('tasks')}
@@ -314,41 +352,34 @@ export const WorkerDashboard: React.FC = () => {
 
                 {/* --- TAB: TAREAS --- */}
                 {activeTab === 'tasks' && (
-                    <div className="space-y-4">
+                    <div>
                         
-                        {/* FILTRO ESTADOS MÓVIL (Scroll Horizontal) */}
-                        <div className="flex md:hidden overflow-x-auto pb-2 gap-2 no-scrollbar -mx-4 px-4">
-                            {['Pendiente', 'En Curso', 'Completada', 'Bloqueada'].map(status => (
-                                <button
-                                    key={status}
-                                    onClick={() => setMobileTaskFilter(status)}
-                                    className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap border transition-colors ${
-                                        mobileTaskFilter === status 
-                                        ? (status === 'Pendiente' ? 'bg-orange-100 text-orange-800 border-orange-200' : 
-                                           status === 'En Curso' ? 'bg-blue-100 text-blue-800 border-blue-200' :
-                                           status === 'Completada' ? 'bg-green-100 text-green-800 border-green-200' : 'bg-red-100 text-red-800 border-red-200')
-                                        : 'bg-white text-gray-500 border-gray-200'
-                                    }`}
-                                >
-                                    {status} ({tasksByStatus[status]?.length || 0})
-                                </button>
+                        {/* KANBAN MÓVIL (Scroll Horizontal) */}
+                        <div className="md:hidden flex gap-4 overflow-x-auto pb-20 -mx-4 px-4 no-scrollbar snap-x snap-mandatory">
+                            {['Pendiente', 'En Curso', 'Completada', 'Bloqueada'].map((status) => (
+                                <div key={status} className="flex flex-col w-[85vw] sm:w-[320px] flex-shrink-0 snap-start bg-gray-100 p-3 rounded-xl">
+                                    <div className={`flex items-center justify-between mb-4 pb-2 border-b-2 ${
+                                        status === 'Pendiente' ? 'border-orange-200' :
+                                        status === 'En Curso' ? 'border-blue-200' :
+                                        status === 'Completada' ? 'border-green-200' : 'border-red-200'
+                                    }`}>
+                                        <h3 className="font-bold text-gray-700 text-sm uppercase">{status}</h3>
+                                        <span className="text-xs font-bold text-gray-400 bg-white px-2 py-0.5 rounded-full border">{tasksByStatus[status]?.length || 0}</span>
+                                    </div>
+                                    <div className="space-y-3 flex-grow">
+                                        {tasksByStatus[status]?.map(task => (
+                                            <TaskCard key={task.id} task={task} onStatusChange={handleStatusChange} />
+                                        ))}
+                                        {tasksByStatus[status]?.length === 0 && (
+                                            <div className="text-center py-8 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 text-xs">
+                                                Sin tareas
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
                             ))}
                         </div>
-
-                        {/* VISTA MÓVIL (LISTA FILTRADA) */}
-                        <div className="md:hidden space-y-3 pb-20">
-                            {tasksByStatus[mobileTaskFilter]?.length === 0 ? (
-                                <div className="text-center py-12 flex flex-col items-center opacity-50">
-                                    <ClipboardList className="w-12 h-12 mb-3 text-gray-300" />
-                                    <p className="text-sm font-medium text-gray-400">No hay tareas en "{mobileTaskFilter}"</p>
-                                </div>
-                            ) : (
-                                tasksByStatus[mobileTaskFilter]?.map(task => (
-                                    <TaskCard key={task.id} task={task} onStatusChange={handleStatusChange} />
-                                ))
-                            )}
-                        </div>
-
+                        
                         {/* VISTA DESKTOP (KANBAN COMPLETO) */}
                         <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-4 gap-6">
                             {['Pendiente', 'En Curso', 'Bloqueada', 'Completada'].map((status) => (
@@ -373,13 +404,13 @@ export const WorkerDashboard: React.FC = () => {
                     </div>
                 )}
 
-                {/* --- TAB: ROOMS (CATÁLOGO) --- */}
+                {/* --- TAB: PROPERTIES (PRESENTACIÓN) --- */}
                 {activeTab === 'rooms' && (
                     <div className="animate-in slide-in-from-right-4 duration-300 pb-20">
-                        <div className="mb-4 relative">
+                        <div className="mb-6 relative">
                             <input 
                                 type="text" 
-                                placeholder="Buscar habitación, calle..." 
+                                placeholder="Buscar propiedad (calle o ciudad)..." 
                                 className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-rentia-blue shadow-sm text-sm"
                                 value={roomSearch}
                                 onChange={(e) => setRoomSearch(e.target.value)}
@@ -387,60 +418,186 @@ export const WorkerDashboard: React.FC = () => {
                             <Search className="w-5 h-5 text-gray-400 absolute left-3 top-3.5" />
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {availableRooms.map((room, idx) => (
-                                <div key={idx} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-row sm:flex-col h-32 sm:h-auto">
-                                    <div className="w-32 sm:w-full sm:h-40 bg-gray-200 relative shrink-0">
-                                        {room.images && room.images.length > 0 ? (
-                                            <img src={room.images[0]} alt={room.name} className="w-full h-full object-cover" />
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-gray-400">
-                                                <Home className="w-8 h-8 opacity-50" />
-                                            </div>
-                                        )}
-                                        <div className="absolute top-2 left-2 sm:right-2 sm:left-auto">
-                                            {room.status === 'available' ? (
-                                                <span className="bg-green-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm flex items-center gap-1">
-                                                    <CheckCircle className="w-3 h-3" /> LIBRE
-                                                </span>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {filteredProperties.map((prop) => {
+                                const availCount = prop.rooms.filter(r => r.status === 'available').length;
+                                return (
+                                    <div 
+                                        key={prop.id} 
+                                        onClick={() => setSelectedProperty(prop)}
+                                        className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden cursor-pointer hover:shadow-lg transition-all group"
+                                    >
+                                        <div className="h-48 bg-gray-200 relative">
+                                            {prop.image ? (
+                                                <img src={prop.image} alt={prop.address} className="w-full h-full object-cover" />
                                             ) : (
-                                                <span className="bg-yellow-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm flex items-center gap-1">
-                                                    <AlertCircle className="w-3 h-3" /> OBRA
-                                                </span>
+                                                <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                                    <Home className="w-12 h-12 opacity-30" />
+                                                </div>
+                                            )}
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                                            <div className="absolute bottom-3 left-3 text-white">
+                                                <h3 className="font-bold text-lg leading-tight">{prop.address}</h3>
+                                                <p className="text-xs opacity-90">{prop.city}</p>
+                                            </div>
+                                            {availCount > 0 && (
+                                                <div className="absolute top-3 right-3 bg-green-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm flex items-center gap-1">
+                                                    <CheckCircle className="w-3 h-3" /> {availCount} Libres
+                                                </div>
                                             )}
                                         </div>
-                                    </div>
-                                    
-                                    <div className="p-3 flex flex-col justify-between flex-grow min-w-0">
-                                        <div>
-                                            <h4 className="font-bold text-gray-800 text-sm mb-0.5 flex justify-between items-center truncate">
-                                                {room.name}
-                                                <span className="text-rentia-blue">{room.price} €</span>
-                                            </h4>
-                                            <p className="text-[10px] text-gray-500 flex items-center gap-1 truncate mb-2">
-                                                <MapPin className="w-3 h-3 shrink-0" /> {room.propertyAddress}
-                                            </p>
+                                        <div className="p-4 flex justify-between items-center">
+                                            <div className="text-xs text-gray-500 font-medium">
+                                                {prop.rooms.length} Habitaciones Total
+                                            </div>
+                                            <button className="text-xs font-bold text-rentia-blue bg-blue-50 px-3 py-1.5 rounded-lg group-hover:bg-rentia-blue group-hover:text-white transition-colors">
+                                                Ver Ficha
+                                            </button>
                                         </div>
-
-                                        <button 
-                                            className="w-full text-xs bg-gray-100 text-gray-700 px-3 py-2 rounded-lg font-bold hover:bg-gray-200 transition-colors flex items-center justify-center gap-1 active:scale-95"
-                                            onClick={() => {
-                                                const text = `Hola, te paso info de la habitación ${room.name} en ${room.propertyAddress}. Precio: ${room.price}€.`;
-                                                navigator.clipboard.writeText(text);
-                                                alert("Info copiada.");
-                                            }}
-                                        >
-                                            <ClipboardList className="w-3 h-3" /> Copiar Info
-                                        </button>
                                     </div>
-                                </div>
-                            ))}
-                            {availableRooms.length === 0 && (
-                                <div className="col-span-full text-center py-12 text-gray-400 border-2 border-dashed border-gray-200 rounded-xl">
-                                    <Home className="w-12 h-12 mx-auto mb-2 opacity-30" />
-                                    <p>No se encontraron habitaciones.</p>
-                                </div>
-                            )}
+                                );
+                            })}
+                        </div>
+                        {filteredProperties.length === 0 && (
+                            <div className="text-center py-12 text-gray-400 border-2 border-dashed border-gray-200 rounded-xl">
+                                <Home className="w-12 h-12 mx-auto mb-2 opacity-30" />
+                                <p>No se encontraron propiedades.</p>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* --- MODAL PRESENTACIÓN (FICHA TÉCNICA) --- */}
+                {selectedProperty && (
+                    <div className="fixed inset-0 z-50 bg-white flex flex-col animate-in slide-in-from-bottom-10 overflow-hidden">
+                        {/* Header Modal */}
+                        <div className="bg-white border-b border-gray-100 p-4 shadow-sm flex justify-between items-center z-10 sticky top-0">
+                            <div>
+                                <h2 className="font-bold text-lg text-gray-900 leading-tight">{selectedProperty.address}</h2>
+                                <p className="text-xs text-gray-500">{selectedProperty.city} • {selectedProperty.rooms.length} Habitaciones</p>
+                            </div>
+                            <div className="flex gap-2">
+                                <a 
+                                    href={selectedProperty.googleMapsLink} 
+                                    target="_blank" 
+                                    rel="noreferrer"
+                                    className="p-2 bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 transition-colors"
+                                >
+                                    <MapPin className="w-5 h-5" />
+                                </a>
+                                <button 
+                                    onClick={() => setSelectedProperty(null)}
+                                    className="p-2 bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200 transition-colors"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Content Scrollable */}
+                        <div className="flex-grow overflow-y-auto p-4 md:p-8 bg-gray-50">
+                            <div className="max-w-4xl mx-auto space-y-6">
+                                
+                                {/* Room Cards Loop */}
+                                {selectedProperty.rooms.map((room) => {
+                                    const isAvailable = room.status === 'available';
+                                    const isReno = room.specialStatus === 'renovation';
+                                    
+                                    return (
+                                        <div key={room.id} className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                                            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="font-mono text-sm font-bold bg-gray-200 px-2 py-1 rounded text-gray-700">{room.name}</span>
+                                                    {isAvailable ? (
+                                                        <span className="text-[10px] font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded border border-green-200 uppercase">Disponible</span>
+                                                    ) : isReno ? (
+                                                        <span className="text-[10px] font-bold bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded border border-yellow-200 uppercase">En Obras</span>
+                                                    ) : (
+                                                        <span className="text-[10px] font-bold bg-red-50 text-red-400 px-2 py-0.5 rounded border border-red-100 uppercase">Ocupada</span>
+                                                    )}
+                                                </div>
+                                                <div className="text-right">
+                                                    <span className="block font-bold text-lg text-rentia-blue">{room.price} €</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Room Details */}
+                                            <div className="p-5">
+                                                
+                                                {/* Image Gallery Row */}
+                                                {room.images && room.images.length > 0 ? (
+                                                    <div className="flex gap-3 overflow-x-auto pb-4 mb-4 no-scrollbar snap-x">
+                                                        {room.images.map((img, idx) => (
+                                                            <div 
+                                                                key={idx} 
+                                                                onClick={() => openImages(room.images!, idx)}
+                                                                className="flex-shrink-0 w-32 h-32 md:w-40 md:h-40 rounded-lg overflow-hidden cursor-zoom-in border border-gray-100 snap-start relative group"
+                                                            >
+                                                                <img src={img} className="w-full h-full object-cover transition-transform group-hover:scale-105" alt={`Room ${room.name}`} />
+                                                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <div className="h-24 bg-gray-50 rounded-lg border border-dashed border-gray-200 flex items-center justify-center text-gray-400 text-xs mb-4">
+                                                        <ImageIcon className="w-5 h-5 mr-2 opacity-50" /> Sin fotos disponibles
+                                                    </div>
+                                                )}
+
+                                                {/* Description & Features */}
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                                    <div className="md:col-span-2">
+                                                        <h4 className="text-xs font-bold text-gray-400 uppercase mb-2">Descripción</h4>
+                                                        <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">
+                                                            {room.description || "Habitación completamente equipada ideal para estudiantes o trabajadores. Consultar disponibilidad exacta."}
+                                                        </p>
+                                                        {room.availableFrom && (
+                                                            <div className="mt-3 flex items-center gap-2 text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded w-fit">
+                                                                <Calendar className="w-3 h-3" /> Disponible: {room.availableFrom}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    
+                                                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                                        <h4 className="text-xs font-bold text-gray-400 uppercase mb-3">Equipamiento</h4>
+                                                        <div className="space-y-2">
+                                                            <div className="flex items-center gap-2 text-xs text-gray-700">
+                                                                <Layout className="w-3 h-3 text-gray-400" /> {room.sqm ? `${room.sqm} m²` : 'Estándar'}
+                                                            </div>
+                                                            <div className="flex items-center gap-2 text-xs text-gray-700">
+                                                                <Bed className="w-3 h-3 text-gray-400" /> 
+                                                                {room.bedType === 'double' ? 'Cama Doble' : room.bedType === 'king' ? 'Cama King' : 'Cama Individual'}
+                                                            </div>
+                                                            {room.features?.map(f => (
+                                                                <div key={f} className="flex items-center gap-2 text-xs text-gray-700">
+                                                                    {getFeatureIcon(f)} 
+                                                                    {f === 'balcony' ? 'Balcón Privado' : f === 'smart_tv' ? 'Smart TV' : f === 'lock' ? 'Cerradura' : 'Escritorio'}
+                                                                </div>
+                                                            ))}
+                                                            {room.hasAirConditioning && (
+                                                                <div className="flex items-center gap-2 text-xs text-gray-700">
+                                                                    <WifiOff className="w-3 h-3 text-blue-400 rotate-45" /> Aire Acond.
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        
+                                                        <button 
+                                                            className="w-full mt-4 bg-rentia-black text-white text-xs font-bold py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors"
+                                                            onClick={() => {
+                                                                const text = `Hola, te paso info de la habitación ${room.name} en ${selectedProperty.address}. Precio: ${room.price}€.\nFotos: ${room.images?.[0] || ''}`;
+                                                                navigator.clipboard.writeText(text);
+                                                                alert("Info copiada al portapapeles");
+                                                            }}
+                                                        >
+                                                            <ClipboardList className="w-3 h-3" /> Copiar para Cliente
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
                     </div>
                 )}
@@ -545,6 +702,15 @@ export const WorkerDashboard: React.FC = () => {
                             </div>
                         </div>
                     </div>
+                )}
+
+                {/* --- LIGHTBOX (GLOBAL) --- */}
+                {isLightboxOpen && (
+                    <ImageLightbox 
+                        images={lightboxImages} 
+                        selectedIndex={lightboxIndex} 
+                        onClose={() => setIsLightboxOpen(false)} 
+                    />
                 )}
 
             </div>

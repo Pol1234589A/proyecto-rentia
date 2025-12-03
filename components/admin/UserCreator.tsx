@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { initializeApp, deleteApp } from "firebase/app";
+// Fix: Use namespaced import for `firebase/app` to address module resolution issues.
+import * as firebase from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, signOut, updateProfile } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { firebaseConfig, db } from '../../firebase';
@@ -24,7 +25,8 @@ export const UserCreator: React.FC = () => {
     let secondaryApp: any;
 
     try {
-      secondaryApp = initializeApp(firebaseConfig, secondaryAppName);
+      // Fix: Call initializeApp from the namespaced import.
+      secondaryApp = firebase.initializeApp(firebaseConfig, secondaryAppName);
       const secondaryAuth = getAuth(secondaryApp);
 
       // 2. Crear usuario en Authentication (en la app secundaria)
@@ -64,7 +66,8 @@ export const UserCreator: React.FC = () => {
       // Limpieza robusta de la app secundaria
       if (secondaryApp) {
           try {
-            await deleteApp(secondaryApp);
+            // Fix: Call deleteApp from the namespaced import.
+            await firebase.deleteApp(secondaryApp);
           } catch (e) {
             console.warn("Error limpiando app secundaria:", e);
           }

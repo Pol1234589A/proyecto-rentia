@@ -368,16 +368,10 @@ export const StaffDashboard: React.FC = () => {
       }
   };
 
-  const realMonthlyRevenue = useMemo(() => {
-      const now = new Date();
-      const currentMonth = now.getMonth();
-      const currentYear = now.getFullYear();
-      return transactions
-        .filter(t => {
-            const d = new Date(t.date);
-            return d.getMonth() === currentMonth && d.getFullYear() === currentYear && t.type === 'income';
-        })
-        .reduce((acc, curr) => acc + curr.amount, 0);
+  const totalRealBalance = useMemo(() => {
+      return transactions.reduce((acc, curr) => {
+          return acc + (curr.type === 'income' ? curr.amount : -curr.amount);
+      }, 0);
   }, [transactions]);
 
   const filteredTransactions = useMemo(() => {
@@ -594,13 +588,13 @@ export const StaffDashboard: React.FC = () => {
                         </div>
                     </div>
                     <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-purple-500 relative overflow-hidden">
-                        <span className="text-xs text-gray-500 uppercase font-bold">Facturación Mes (Real)</span>
+                        <span className="text-xs text-gray-500 uppercase font-bold">Balance Total (Caja)</span>
                         <div className="flex justify-between items-end mt-2">
-                            <span className="text-3xl font-bold text-gray-800">
-                                {realMonthlyRevenue.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                                <span className="text-sm text-gray-400 font-medium ml-1">€</span>
+                            <span className={`text-3xl font-bold ${totalRealBalance >= 0 ? 'text-gray-800' : 'text-red-600'}`}>
+                                {totalRealBalance.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                                <span className="text-sm font-medium ml-1">€</span>
                             </span>
-                            <BarChart3 className="w-6 h-6 text-purple-100 absolute right-4 top-4 transform scale-150" />
+                            <Landmark className="w-6 h-6 text-purple-100 absolute right-4 top-4 transform scale-150" />
                         </div>
                     </div>
                 </div>

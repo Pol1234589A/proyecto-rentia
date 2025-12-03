@@ -17,12 +17,12 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
-    // Verifica si es STAFF y si su cuenta está ACTIVA
-    // Usamos .get() para evitar crashes si el campo no existe
+    // Verifica si es STAFF, ADMIN u OWNER y si su cuenta está ACTIVA
     function isStaff() {
+      let role = getUserData().get('role', '');
       return isAuthenticated() 
         && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        && getUserData().get('role', '') == 'staff'
+        && (role == 'staff' || role == 'admin' || role == 'owner')
         && getUserData().get('active', false) == true;
     }
 

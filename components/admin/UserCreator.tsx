@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { initializeApp, deleteApp } from "firebase/app";
+import * as firebaseApp from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, signOut } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { firebaseConfig, db } from '../../firebase';
@@ -24,7 +24,7 @@ export const UserCreator: React.FC = () => {
     let secondaryApp: any;
 
     try {
-      secondaryApp = initializeApp(firebaseConfig, secondaryAppName);
+      secondaryApp = firebaseApp.initializeApp(firebaseConfig, secondaryAppName);
       const secondaryAuth = getAuth(secondaryApp);
 
       // 2. Crear usuario en Authentication (en la app secundaria)
@@ -61,7 +61,7 @@ export const UserCreator: React.FC = () => {
       // Limpieza robusta de la app secundaria
       if (secondaryApp) {
           try {
-            await deleteApp(secondaryApp);
+            await firebaseApp.deleteApp(secondaryApp);
           } catch (e) {
             console.warn("Error limpiando app secundaria:", e);
           }

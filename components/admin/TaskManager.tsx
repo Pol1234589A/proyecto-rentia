@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { db } from '../../firebase';
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy } from 'firebase/firestore';
 import { StaffMember, Task, TaskPriority, TaskStatus, TaskCategory } from '../../types';
-import { Plus, Calendar, User, Clock, AlertTriangle, CheckCircle, MoreVertical, Trash2, Edit2, X, Filter, List, Kanban, Save, Link, RefreshCw } from 'lucide-react';
+import { Plus, Calendar, User, Clock, AlertTriangle, CheckCircle, MoreVertical, Trash2, Edit2, X, Filter, List, Kanban, Save, Link, RefreshCw, AlertCircle } from 'lucide-react';
 
 const STAFF_MEMBERS: StaffMember[] = ['Pol', 'Sandra', 'Víctor', 'Ayoub', 'Hugo', 'Colaboradores'];
 const PRIORITIES: TaskPriority[] = ['Alta', 'Media', 'Baja'];
@@ -58,6 +58,7 @@ export const TaskManager: React.FC = () => {
     const [showModal, setShowModal] = useState(false);
     const [isEditing, setIsEditing] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const [permissionError, setPermissionError] = useState(false);
 
     // Filters
     const [filterAssignee, setFilterAssignee] = useState<StaffMember | 'All'>('All');
@@ -86,6 +87,12 @@ export const TaskManager: React.FC = () => {
                 loadedTasks.push({ ...doc.data(), id: doc.id } as Task);
             });
             setTasks(loadedTasks);
+            setPermissionError(false);
+        }, (error) => {
+            console.error("Error leyendo tareas:", error);
+            if (error.code === 'permission-denied') {
+                setPermissionError(true);
+            }
         });
         return () => unsubscribe();
     }, []);
@@ -134,9 +141,18 @@ export const TaskManager: React.FC = () => {
 
             setShowModal(false);
             resetForm();
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error saving task:", error);
-            alert("Error al guardar tarea.");
+            
+            // Mensaje de error detallado para depuración
+            let errorMsg = "Error desconocido al guardar la tarea.";
+            if (error.code === 'permission-denied') {
+                errorMsg = "Permiso denegado: Tu usuario no tiene rol 'staff', 'admin' u 'owner' activo.";
+            } else if (error.message) {
+                errorMsg = `Error: ${error.message}`;
+            }
+            
+            alert(errorMsg);
         } finally {
             setLoading(false);
         }
@@ -146,8 +162,13 @@ export const TaskManager: React.FC = () => {
         if (!confirm("¿Eliminar tarea definitivamente?")) return;
         try {
             await deleteDoc(doc(db, "tasks", id));
-        } catch (e) {
-            console.error(e);
+        } catch (error: any) {
+            console.error("Error deleting task:", error);
+            if (error.code === 'permission-denied') {
+                alert("No tienes permisos para eliminar tareas.");
+            } else {
+                alert("Error al eliminar la tarea.");
+            }
         }
     };
 
@@ -226,6 +247,17 @@ export const TaskManager: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* ERROR BANNER */}
+            {permissionError && (
+                <div className="m-6 mb-0 p-4 bg-red-50 border border-red-200 text-red-800 rounded-lg flex items-center gap-2">
+                    <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                    <div>
+                        <p className="font-bold text-sm">Error de Permisos</p>
+                        <p className="text-xs">No se pueden cargar las tareas. Verifica que tu usuario tenga rol Staff/Admin/Owner activo.</p>
+                    </div>
+                </div>
+            )}
 
             {/* Board Area */}
             <div className="flex-grow p-6 overflow-x-auto">

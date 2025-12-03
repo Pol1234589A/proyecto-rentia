@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { db, storage } from '../../firebase';
 import { collection, addDoc, serverTimestamp, onSnapshot, deleteDoc, doc, writeBatch, updateDoc } from 'firebase/firestore';
@@ -372,9 +371,13 @@ export const SalesCRM: React.FC = () => {
           setEditingAssetId(null);
           setAssetForm(initialAssetFormState);
           
-      } catch (error) {
+      } catch (error: any) {
           console.error("Error saving asset:", error);
-          alert('Error al guardar activo.');
+          if (error.code === 'permission-denied') {
+              alert("Error de Permisos: No tienes autorización para guardar cambios. Verifica que tu usuario tenga rol Staff/Owner y esté activo.");
+          } else {
+              alert(`Error al guardar activo: ${error.message}`);
+          }
       }
   };
 
@@ -389,9 +392,13 @@ export const SalesCRM: React.FC = () => {
           });
           await batch.commit();
           alert(`Sincronización completada. ${staticOpportunities.length} oportunidades procesadas.`);
-      } catch (error) {
+      } catch (error: any) {
           console.error("Error syncing:", error);
-          alert("Error al sincronizar datos.");
+          if (error.code === 'permission-denied') {
+              alert("Error de Permisos: No puedes escribir en la base de datos.");
+          } else {
+              alert("Error al sincronizar datos.");
+          }
       } finally {
           setIsSyncing(false);
       }
@@ -403,9 +410,13 @@ export const SalesCRM: React.FC = () => {
           await deleteDoc(doc(db, "opportunities", id));
           // Remove from local view if it was purely static (not in DB list anymore)
           setAssets(prev => prev.filter(p => p.id !== id));
-      } catch (e) {
+      } catch (error: any) {
           // If it fails, maybe it was a static item not in DB. Just hide it.
-          setAssets(prev => prev.filter(p => p.id !== id));
+          if (error.code === 'permission-denied') {
+              alert("Error: Permiso denegado para eliminar.");
+          } else {
+              setAssets(prev => prev.filter(p => p.id !== id));
+          }
       }
   };
 

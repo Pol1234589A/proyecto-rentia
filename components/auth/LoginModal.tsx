@@ -1,9 +1,8 @@
 
 import React, { useState } from 'react';
-import { X, Lock, User, KeyRound, AlertCircle, ArrowRight, ShieldCheck } from 'lucide-react';
+import { X, Lock, User, KeyRound, AlertCircle, ArrowRight, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 import { auth } from '../../firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { useAuth, UserRole } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 interface LoginModalProps {
@@ -14,9 +13,9 @@ interface LoginModalProps {
 export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  // const { simulateLogin } = useAuth(); // Demo mode disabled for production
   const { t } = useLanguage();
 
   if (!isOpen) return null;
@@ -26,23 +25,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
     setError('');
     setLoading(true);
 
-    /* 
-    // --- MODO DEMO DESACTIVADO ---
-    // Descomentar solo para pruebas sin backend
-    if (email.includes('admin')) { simulateLogin('staff'); onClose(); return; }
-    if (email.includes('prop')) { simulateLogin('owner'); onClose(); return; }
-    if (email.includes('inqui')) { simulateLogin('tenant'); onClose(); return; }
-    if (email.includes('colab')) { simulateLogin('broker'); onClose(); return; }
-    if (email.includes('inmo')) { simulateLogin('agency'); onClose(); return; }
-    if (email.includes('trab')) { simulateLogin('worker'); onClose(); return; }
-    */
-
     try {
       await signInWithEmailAndPassword(auth, email, password);
       onClose();
-    } catch (err) {
-      console.error(err);
-      setError('Credenciales incorrectas o error de conexión.');
+    } catch (err: any) {
+      // SEGURIDAD: No revelar si el error es por email no encontrado o contraseña mal.
+      // Usar mensaje genérico para evitar enumeración de usuarios.
+      console.error("Login attempt failed"); // Log interno (no visible al usuario final en prod)
+      setError('Credenciales no válidas o acceso denegado.');
     } finally {
       setLoading(false);
     }
@@ -131,16 +121,23 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                                     <KeyRound className="w-5 h-5" />
                                 </div>
                                 <input 
-                                    type="password"
+                                    type={showPassword ? "text" : "password"}
                                     name="password"
                                     id="password"
                                     autoComplete="current-password"
                                     required
                                     placeholder="Contraseña"
-                                    className="w-full pl-12 pr-4 py-4 bg-gray-50/50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0072CE]/10 focus:border-[#0072CE] focus:bg-white transition-all text-sm font-medium text-gray-800 placeholder:text-gray-400 shadow-sm hover:border-gray-200"
+                                    className="w-full pl-12 pr-12 py-4 bg-gray-50/50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0072CE]/10 focus:border-[#0072CE] focus:bg-white transition-all text-sm font-medium text-gray-800 placeholder:text-gray-400 shadow-sm hover:border-gray-200"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                 />
+                                <button 
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-rentia-blue focus:outline-none transition-colors"
+                                >
+                                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -156,7 +153,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                             {loading ? (
                                 <span className="flex items-center gap-2 text-sm">
                                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                                    Accediendo...
+                                    Verificando...
                                 </span>
                             ) : (
                                 <>
@@ -183,7 +180,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
             {/* Footer */}
             <div className="bg-gray-50 py-3 text-center border-t border-gray-100/50">
                 <p className="text-[9px] text-gray-300 font-mono tracking-wider">
-                    RentiaRoom Secure Access
+                    RentiaRoom Secure Access • 256-bit Encrypted
                 </p>
             </div>
         </div>

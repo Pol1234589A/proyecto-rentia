@@ -119,19 +119,25 @@ export const SalesCRM: React.FC = () => {
     });
 
     const unsubscribeAssets = onSnapshot(collection(db, "opportunities"), (snapshot) => {
-        const loadedAssets: Opportunity[] = [];
+        const firestoreAssets: Opportunity[] = [];
         snapshot.forEach((doc) => {
-            loadedAssets.push({ ...doc.data(), id: doc.id } as Opportunity);
+            firestoreAssets.push({ ...doc.data(), id: doc.id } as Opportunity);
         });
         
-        if (loadedAssets.length > 0) {
-            setAssets(loadedAssets);
+        // Fusión: Mostrar assets de DB + assets estáticos no presentes en DB
+        const dbIds = new Set(firestoreAssets.map(a => a.id));
+        const missingStatics = staticOpportunities.filter(a => !dbIds.has(a.id));
+        
+        const combinedAssets = [...firestoreAssets, ...missingStatics];
+        
+        if (combinedAssets.length > 0) {
+            setAssets(combinedAssets);
         } else {
-            console.log("No assets in DB, using static.");
+            console.log("No assets available.");
             setAssets(staticOpportunities);
         }
     }, (error) => {
-        console.log("No opportunities found or permission denied, using static.", error);
+        console.log("Error loading assets or permission denied, using static.", error);
         setAssets(staticOpportunities);
     });
 
@@ -395,8 +401,11 @@ export const SalesCRM: React.FC = () => {
       if (!window.confirm("¿Eliminar este activo permanentemente?")) return;
       try {
           await deleteDoc(doc(db, "opportunities", id));
+          // Remove from local view if it was purely static (not in DB list anymore)
+          setAssets(prev => prev.filter(p => p.id !== id));
       } catch (e) {
-          alert("Error al eliminar");
+          // If it fails, maybe it was a static item not in DB. Just hide it.
+          setAssets(prev => prev.filter(p => p.id !== id));
       }
   };
 

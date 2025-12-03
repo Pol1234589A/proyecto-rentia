@@ -51,3 +51,72 @@ export interface Opportunity {
   status: 'available' | 'reserved' | 'sold';
   tags: string[];
 }
+
+// --- NEW TYPES FOR CONTRACT MANAGEMENT ---
+
+export interface UserProfile {
+    id?: string; // Firebase UID
+    role: 'owner' | 'tenant' | 'broker' | 'agency' | 'staff' | 'worker';
+    name: string;
+    email: string;
+    phone?: string;
+    dni?: string;
+    address?: string; // Dirección fiscal
+    bankAccount?: string; // IBAN
+    createdAt?: string;
+}
+
+export interface Contract {
+    id?: string;
+    alias: string; // Nombre amigable del contrato
+    propertyId: string;
+    roomId: string; // ID de la habitación
+    roomName: string;
+    
+    ownerId: string;
+    ownerName: string;
+    
+    tenantId: string;
+    tenantName: string;
+    
+    guarantorId?: string; // Avalista opcional
+    guarantorName?: string;
+
+    startDate: string;
+    endDate: string;
+    
+    rentAmount: number;
+    expensesType: 'fixed' | 'shared';
+    expensesAmount?: number; // Si es fijo
+    
+    isProrated: boolean;
+    proratedAmount?: number; // Primer mes
+    
+    depositAmount: number; // Fianza legal
+    extraDeposit?: number; // Garantía adicional
+    
+    status: 'active' | 'pending' | 'ended' | 'reserved';
+    createdAt: any;
+    documents?: string[]; // URLs de PDFs generados
+}
+
+// --- NEW TYPES FOR TASK MANAGER ---
+
+export type StaffMember = 'Pol' | 'Sandra' | 'Víctor' | 'Ayoub' | 'Hugo' | 'Colaboradores';
+export type TaskPriority = 'Alta' | 'Media' | 'Baja';
+export type TaskStatus = 'Pendiente' | 'En Curso' | 'Completada' | 'Bloqueada';
+export type TaskCategory = 'Gestión' | 'Marketing' | 'Legal' | 'Operaciones' | 'Reformas' | 'Contabilidad';
+
+export interface Task {
+    id: string;
+    title: string;
+    description: string;
+    assignee: StaffMember;
+    dueDate?: string; // ISO Date string
+    priority: TaskPriority;
+    status: TaskStatus;
+    category: TaskCategory;
+    subtasks?: { id: string; text: string; done: boolean }[];
+    googleEventId?: string; // Link to Google Calendar
+    createdAt: any;
+}

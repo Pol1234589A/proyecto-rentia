@@ -69,18 +69,24 @@ function AppContent() {
   
   const [opportunities, setOpportunities] = useState<Opportunity[]>(staticOpportunities); 
 
-  // Firestore connection for Opportunities
+  // Firestore connection for Opportunities with Merge Logic
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "opportunities"), (snapshot) => {
-        const opps: Opportunity[] = [];
+        const firestoreOpps: Opportunity[] = [];
         snapshot.forEach((doc) => {
-            opps.push({ ...doc.data(), id: doc.id } as Opportunity);
+            firestoreOpps.push({ ...doc.data(), id: doc.id } as Opportunity);
         });
         
-        if (opps.length > 0) {
-            setOpportunities(opps);
+        // Fusión: Datos Firestore + Datos Estáticos que no están en Firestore
+        const dbIds = new Set(firestoreOpps.map(o => o.id));
+        const missingStatics = staticOpportunities.filter(o => !dbIds.has(o.id));
+        
+        const combinedOpps = [...firestoreOpps, ...missingStatics];
+        
+        if (combinedOpps.length > 0) {
+            setOpportunities(combinedOpps);
         } else {
-            console.log("Firestore vacío, mostrando datos estáticos.");
+            console.log("No data available, showing static only.");
             setOpportunities(staticOpportunities);
         }
     }, (error) => {

@@ -97,11 +97,10 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
   return (
     <>
       <div className="max-w-7xl mx-auto p-3 sm:p-6 lg:p-8 animate-in fade-in duration-500 print:p-0 print:max-w-none print:bg-white">
-        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100 print:shadow-none print:border-none print:rounded-none">
+        <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 print:shadow-none print:border-none print:rounded-none relative">
           
-          {/* ... (Print Header & Web Header kept same) ... */}
-          {/* WEB HEADER (Hidden when printing) */}
-          <div className="p-4 sm:p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 no-print">
+          {/* WEB HEADER (Sticky) */}
+          <div className="sticky top-0 z-40 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 p-4 sm:p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 no-print rounded-t-2xl shadow-sm">
             <div className="w-full md:w-auto">
               <button onClick={onBack} className="flex items-center text-rentia-blue hover:underline text-sm font-semibold mb-3 p-2 -ml-2 rounded-lg hover:bg-gray-50 touch-manipulation">
                 <ArrowLeft className="w-5 h-5 mr-1" />
@@ -360,12 +359,10 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
 
                  {/* Media Gallery (Preview) */}
                  <div className="bg-white p-6 rounded-2xl shadow-idealista border border-gray-100 print:hidden">
-                     {/* ... (Existing gallery code same as before) */}
                      <h3 className="text-lg font-bold font-display text-rentia-black mb-4 flex items-center gap-2">
                          <Printer className="w-5 h-5 text-rentia-gold" />
                          {t('opportunities.detail.multimedia')}
                      </h3>
-                     {/* ... (Videos section) ... */}
                      {hasRealImages ? (
                          <div>
                              <div className="flex justify-between items-center mb-3">

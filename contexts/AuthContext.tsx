@@ -30,7 +30,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setCurrentUser(user);
       setLoading(true);
 
       if (user) {
@@ -41,17 +40,34 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
           if (userDocSnap.exists()) {
             const userData = userDocSnap.data();
+            
+            // SEGURIDAD: Verificar si el usuario está activo
+            if (userData.active === false) {
+                console.warn('Usuario desactivado intentando acceder. Cerrando sesión.');
+                await signOut(auth);
+                setCurrentUser(null);
+                setUserRole(null);
+                setLoading(false);
+                return;
+            }
+
             // Asignamos el rol desde el campo 'role'
             setUserRole(userData.role as UserRole);
+            setCurrentUser(user);
           } else {
-            console.warn('Usuario autenticado sin perfil en Firestore (users collection)');
-            setUserRole(null); 
+            // Usuario en Auth pero no en DB (Inconsistencia de seguridad)
+            console.warn('Usuario autenticado sin perfil en Firestore (users collection). Cerrando sesión.');
+            await signOut(auth);
+            setCurrentUser(null);
+            setUserRole(null);
           }
         } catch (error) {
           console.error("Error obteniendo rol del usuario:", error);
           setUserRole(null);
+          setCurrentUser(null);
         }
       } else {
+        setCurrentUser(null);
         setUserRole(null);
       }
       
@@ -64,6 +80,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const logout = async () => {
     await signOut(auth);
     setUserRole(null);
+    setCurrentUser(null);
     window.location.hash = '#/';
   };
 

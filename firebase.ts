@@ -1,4 +1,3 @@
-
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
@@ -13,6 +12,7 @@ export const firebaseConfig = {
   appId: "1:539747978100:web:c54cd8f9b5b545c26eba21"
 };
 
+// Initialize Firebase using named import
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);

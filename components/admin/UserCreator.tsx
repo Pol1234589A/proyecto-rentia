@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { initializeApp, getApp, getApps, deleteApp } from "firebase/app";
+import { initializeApp, deleteApp } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, signOut } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { firebaseConfig, db } from '../../firebase';
@@ -22,7 +21,7 @@ export const UserCreator: React.FC = () => {
 
     // Usamos un ID único para la app secundaria para evitar conflictos de "App already exists"
     const secondaryAppName = `SecondaryApp-${Date.now()}`;
-    let secondaryApp;
+    let secondaryApp: any;
 
     try {
       secondaryApp = initializeApp(firebaseConfig, secondaryAppName);
@@ -33,13 +32,13 @@ export const UserCreator: React.FC = () => {
       const newUser = userCredential.user;
 
       // 3. Crear documento en Firestore (usando la instancia DB principal del Admin)
-      // Usamos el UID generado por Auth como ID del documento
+      // SEGURIDAD: Es vital que el usuario nazca con 'active: true' para pasar las reglas de seguridad
       await setDoc(doc(db, "users", newUser.uid), {
         email: email.toLowerCase(),
         displayName: name,
         role: role,
         createdAt: new Date().toISOString(),
-        active: true
+        active: true // Flag de seguridad obligatorio
       });
 
       // 4. Cerrar sesión en la app secundaria para limpiar

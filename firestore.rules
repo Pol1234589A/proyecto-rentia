@@ -1,62 +1,93 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --- Funciones de Ayuda ---
+    // --- FUNCIONES DE SEGURIDAD Y AUXILIARES ---
 
-    // 1. Verifica si el usuario ha iniciado sesión
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    // 2. Verifica si el usuario es dueño del documento (útil para perfiles)
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // 3. Verifica si es STAFF leyendo el campo 'role' de su documento de usuario en Firestore
-    // Esto conecta tu autenticación con el dato que has puesto en la base de datos (role: "staff")
+    // Helper para obtener datos del usuario de forma segura
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // Verifica si es STAFF y si su cuenta está ACTIVA
+    // Usamos .get() para evitar crashes si el campo no existe
     function isStaff() {
       return isAuthenticated() 
         && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'staff';
+        && getUserData().get('role', '') == 'staff'
+        && getUserData().get('active', false) == true;
     }
 
-    // --- Reglas por Colección ---
+    function isValidAmount() {
+      return request.resource.data.amount is number;
+    }
+    
+    function hasMandatoryFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
 
-    // 1. Usuarios: Cada uno lee lo suyo, Staff lee/escribe todo
+    // --- REGLAS POR COLECCIÓN ---
+
     match /users/{userId} {
       allow read: if isOwner(userId) || isStaff();
       allow write: if isStaff();
     }
 
-    // 2. Propiedades: Público lee, Solo Staff edita
     match /properties/{propertyId} {
       allow read: if true;
       allow write: if isStaff();
     }
 
-    // 3. Oportunidades: Público lee, Solo Staff edita
     match /opportunities/{opportunityId} {
       allow read: if true;
-      allow write: if isStaff();
+      allow write: if isStaff() 
+        && request.resource.data.financials.purchasePrice is number;
     }
     
-    // 4. Contabilidad: Estrictamente privado para Staff
     match /accounting/{transactionId} {
-      allow read, write: if isStaff();
+      allow read: if isStaff();
+      allow write: if isStaff() 
+        && isValidAmount()
+        && hasMandatoryFields(['date', 'concept', 'type']);
     }
     
-    // 5. Encargos de Compra (CRM):
-    // - Lectura pública (para que se vean en la sección /colaboradores de la web)
-    // - Escritura solo Staff (desde el CRM)
     match /buyer_requests/{requestId} {
       allow read: if true;
       allow write: if isStaff();
     }
 
-    // 6. Bloqueo por defecto
+    // Contratos: Lectura para Staff o las partes involucradas (Dueño/Inquilino)
+    match /contracts/{contractId} {
+      allow read: if isStaff() 
+        || (isAuthenticated() && (
+             resource.data.get('ownerId', '') == request.auth.uid || 
+             resource.data.get('tenantId', '') == request.auth.uid
+           ));
+      allow write: if isStaff();
+    }
+
+    match /tasks/{taskId} {
+      allow read, write: if isStaff();
+    }
+
+    match /social_inbox/{msgId} {
+      allow read: if isStaff();
+      allow write: if true; 
+    }
+    
+    match /supply_records/{recordId} {
+        allow read: if isAuthenticated();
+        allow write: if isStaff();
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

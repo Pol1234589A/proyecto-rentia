@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Upload, Loader2, AlertCircle, Sparkles, Wand2, Eraser, Server, Globe, Database, Info, Layers } from 'lucide-react';
 import { storage } from '../../firebase';
@@ -59,8 +58,11 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ folder, onUploadCo
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+    const fileList = e.target.files;
+    if (!fileList || fileList.length === 0) return;
+
+    // Convertir FileList a Array para persistir los datos aunque se limpie el input
+    const files: File[] = Array.from(fileList);
 
     // Validación básica de tipos
     for (let i = 0; i < files.length; i++) {
@@ -123,17 +125,21 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ folder, onUploadCo
     setUploading(false);
     setProcessing(false);
     setProgress(null);
+    
+    // Limpiar input para permitir subir el mismo archivo de nuevo si se desea
     if (fileInputRef.current) fileInputRef.current.value = '';
 
-    // Reporte final si hubo errores parciales
-    if (errors.length > 0) {
-        setError(`Se subieron ${files.length - errors.length} imágenes. Fallaron: ${errors.join(', ')}`);
-        if (uploadTarget === 'archive') {
-            alert("Aviso: Las imágenes subidas a Archive.org pueden tardar unos minutos en ser visibles (Error 404 temporal).");
+    // Reporte final si hubo errores parciales (con Timeout para permitir renderizado de UI)
+    setTimeout(() => {
+        if (errors.length > 0) {
+            setError(`Se subieron ${files.length - errors.length} imágenes. Fallaron: ${errors.join(', ')}`);
+            if (uploadTarget === 'archive') {
+                alert("Aviso: Las imágenes subidas a Archive.org pueden tardar unos minutos en ser visibles (Error 404 temporal).");
+            }
+        } else if (uploadTarget === 'archive') {
+            alert(`Se han subido ${files.length} imágenes a Archive.org. Pueden tardar unos minutos en ser visibles públicamente.`);
         }
-    } else if (uploadTarget === 'archive') {
-        alert(`Se han subido ${files.length} imágenes a Archive.org. Pueden tardar unos minutos en ser visibles públicamente.`);
-    }
+    }, 100);
   };
 
   const ServerToggle = () => (

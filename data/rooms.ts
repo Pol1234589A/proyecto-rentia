@@ -14,6 +14,12 @@ export interface Room {
   video?: string;    // URL del video (YouTube, etc)
   notes?: string;
   driveUrl?: string; // Enlace carpeta drive específico si existe
+  
+  // CAMPOS DE OPTIMIZACIÓN (OPCIONALES)
+  sqm?: number; // Metros cuadrados
+  bedType?: 'single' | 'double' | 'king' | 'sofa'; // Tipo de cama
+  features?: string[]; // ['balcony', 'smart_tv', 'lock', 'desk', 'closet', 'exterior']
+  description?: string; // Descripción detallada específica de la habitación
 }
 
 export interface Property {
@@ -26,6 +32,10 @@ export interface Property {
   googleMapsLink: string;
   driveLink?: string; // Nuevo campo para carpeta Drive
   rooms: Room[];
+  suppliesConfig?: {
+      type: 'fixed' | 'shared';
+      fixedAmount?: number;
+  };
 }
 
 // Función auxiliar para generar enlace de maps
@@ -43,7 +53,7 @@ export const properties: Property[] = [
     driveLink: 'https://drive.google.com/drive/folders/185JuNMSgQ1Kcli98L3w-i1h-rA20PRs0',
     googleMapsLink: getMapsLink('Calle Pintor Velázquez, 12, Alcantarilla, Murcia'),
     rooms: [
-      { id: 'VELAZQ12_H1', name: 'H1', price: 290, status: 'occupied', availableFrom: '01/08/2025', expenses: 'Gastos fijos aparte', targetProfile: 'both', hasAirConditioning: false, hasFan: true, video: 'https://youtube.com/shorts/mQJRnWNjhWw', images: ['https://i.ibb.co/bgfbkz88/1729857046896.jpg'] },
+      { id: 'VELAZQ12_H1', name: 'H1', price: 290, status: 'occupied', availableFrom: '01/08/2025', expenses: 'Gastos fijos aparte', targetProfile: 'both', hasAirConditioning: false, hasFan: true, video: 'https://youtube.com/shorts/mQJRnWNjhWw', images: ['https://i.ibb.co/bgfbkz88/1729857046896.jpg'], bedType: 'double', features: ['lock', 'desk'], sqm: 12 },
       { id: 'VELAZQ12_H2', name: 'H2', price: 250, status: 'occupied', availableFrom: '10/02/2025', expenses: 'Gastos fijos aparte', targetProfile: 'both', hasAirConditioning: false, hasFan: true, video: 'https://youtube.com/shorts/Sn3BdS5we2I?feature=share', images: ['https://i.ibb.co/DgpkkCP4/1729857046983.jpg'] },
       { id: 'VELAZQ12_H3', name: 'H3', price: 270, status: 'occupied', availableFrom: '01/11/2025', expenses: 'Gastos fijos aparte', targetProfile: 'both', hasAirConditioning: true, video: 'https://youtube.com/shorts/9a0eTZcg4bY', images: ['https://i.ibb.co/fd16hxDg/1729857047031.jpg'] },
       { id: 'VELAZQ12_H4', name: 'H4', price: 280, status: 'available', availableFrom: 'Inmediata', expenses: 'Gastos fijos aparte', targetProfile: 'both', hasAirConditioning: true, video: 'https://youtube.com/shorts/V8ku5NhXlUs', images: ['https://i.ibb.co/Vp22dL8z/1729857047344.jpg'] },

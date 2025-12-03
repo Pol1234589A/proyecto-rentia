@@ -1,24 +1,19 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
-import { Home, MapPin, CheckCircle, User, MessageCircle, Filter, AlertCircle, Receipt, Sparkles, Hammer, HelpCircle, Building, Gift, Users as UsersIcon, Wallet, PlayCircle, Camera, Timer, Bath, Wind, ExternalLink, GraduationCap, Briefcase, Users, ZoomIn, DoorClosed, DoorOpen, ChevronDown, Info, Layout, X, Euro } from 'lucide-react';
-// IMPORTANTE: Cambio a Firestore
+import { Home, MapPin, CheckCircle, User, MessageCircle, Filter, AlertCircle, Receipt, Sparkles, Hammer, HelpCircle, Building, Gift, Users as UsersIcon, Wallet, PlayCircle, Camera, Timer, Bath, Wind, ExternalLink, GraduationCap, Briefcase, Users, ZoomIn, DoorClosed, DoorOpen, ChevronDown, Info, Layout, X, Euro, BedDouble, Bed, Tv, Lock, Sun, Monitor } from 'lucide-react';
 import { db } from '../firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
-// Importamos la interfaz Y los datos estáticos como fallback
 import { properties as staticProperties, Property, Room } from '../data/rooms'; 
 import { useLanguage } from '../contexts/LanguageContext';
 import { ImageLightbox } from './ImageLightbox';
 
-// --- Subcomponente Cronómetro ---
 const CountdownTimer = ({ targetDateStr }: { targetDateStr: string }) => {
   const [timeLeft, setTimeLeft] = useState<{days: number, hours: number, minutes: number, seconds: number} | null>(null);
 
   useEffect(() => {
     const calculateTimeLeft = () => {
       const [day, month, year] = targetDateStr.split('/').map(Number);
-      // Asumimos fin del día o inicio del día siguiente para el vencimiento
       const targetDate = new Date(year, month - 1, day); 
-      targetDate.setHours(23, 59, 59); // Final del día contrato
+      targetDate.setHours(23, 59, 59); 
 
       const now = new Date();
       const difference = targetDate.getTime() - now.getTime();
@@ -34,10 +29,7 @@ const CountdownTimer = ({ targetDateStr }: { targetDateStr: string }) => {
       return null;
     };
 
-    // Calcular inmediatamente
     setTimeLeft(calculateTimeLeft());
-
-    // Actualizar cada segundo
     const timer = setInterval(() => {
       setTimeLeft(calculateTimeLeft());
     }, 1000);
@@ -57,7 +49,6 @@ const CountdownTimer = ({ targetDateStr }: { targetDateStr: string }) => {
   );
 };
 
-// --- Subcomponente Puerta Interactiva 3D ---
 const InteractiveDoor = ({ isOpen, onClick, className = "" }: { isOpen: boolean, onClick: (e: React.MouseEvent) => void, className?: string }) => {
     return (
         <div 
@@ -65,13 +56,9 @@ const InteractiveDoor = ({ isOpen, onClick, className = "" }: { isOpen: boolean,
             onClick={onClick}
             title={isOpen ? "Cerrar tarjeta" : "Ver habitaciones"}
         >
-            {/* Interior (Fondo Dorado que se ve al abrir) */}
             <div className={`absolute inset-0 bg-rentia-gold rounded border border-rentia-gold shadow-inner transition-colors duration-500 flex items-center justify-center`}>
-                {/* Pequeño detalle de luz/brillo dentro */}
                 <div className="w-1 h-full bg-white/20 absolute left-0 top-0 bottom-0 blur-sm"></div>
             </div>
-
-            {/* Hoja de la Puerta (Azul que gira) */}
             <div 
                 className={`
                     absolute inset-0 bg-rentia-blue rounded border border-blue-700 
@@ -80,10 +67,7 @@ const InteractiveDoor = ({ isOpen, onClick, className = "" }: { isOpen: boolean,
                     ${isOpen ? '[transform:rotateY(-115deg)] shadow-xl' : '[transform:rotateY(0deg)]'}
                 `}
             >
-                {/* Pomo de la puerta */}
                 <div className="absolute right-1.5 w-1.5 h-1.5 bg-white rounded-full shadow-sm border border-gray-300/50"></div>
-                
-                {/* Paneles decorativos sutiles en la puerta */}
                 <div className="absolute top-2 left-2 right-2 h-[40%] border border-black/10 rounded-sm opacity-20 pointer-events-none"></div>
                 <div className="absolute bottom-2 left-2 right-2 h-[40%] border border-black/10 rounded-sm opacity-20 pointer-events-none"></div>
             </div>
@@ -92,23 +76,19 @@ const InteractiveDoor = ({ isOpen, onClick, className = "" }: { isOpen: boolean,
 };
 
 export const RoomsView: React.FC = () => {
-  const [properties, setProperties] = useState<Property[]>([]); // Estado para los datos de Firestore
+  const [properties, setProperties] = useState<Property[]>(staticProperties); 
   const [loadingProperties, setLoadingProperties] = useState(true);
 
-  // FILTROS
   const [showOnlyAvailable, setShowOnlyAvailable] = useState(false);
   const [selectedZone, setSelectedZone] = useState('');
   const [selectedProfile, setSelectedProfile] = useState('');
   const [filterAirCon, setFilterAirCon] = useState('all');
   const [filterExpenses, setFilterExpenses] = useState('all');
   const [filterComingSoon, setFilterComingSoon] = useState(false);
-  // Nuevos filtros de precio
   const [minPrice, setMinPrice] = useState<number | ''>('');
   const [maxPrice, setMaxPrice] = useState<number | ''>('');
   
-  // UI State
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-
   const [expandedProperties, setExpandedProperties] = useState<Record<string, boolean>>({});
   const [lightboxImages, setLightboxImages] = useState<string[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState(0); 
@@ -116,23 +96,30 @@ export const RoomsView: React.FC = () => {
   
   const { t } = useLanguage();
 
-  // --- CONEXIÓN A FIRESTORE ---
   useEffect(() => {
+    // Initial Load - Already set via useState(staticProperties) but let's confirm load status
+    setLoadingProperties(false);
+
     const unsubscribe = onSnapshot(collection(db, "properties"), (snapshot) => {
-        const props: Property[] = [];
+        const firestoreProps: Property[] = [];
         snapshot.forEach((doc) => {
-            props.push({ ...doc.data(), id: doc.id } as Property);
+            firestoreProps.push({ ...doc.data(), id: doc.id } as Property);
         });
         
-        if (props.length === 0) {
-             setProperties(staticProperties);
-        } else {
-             props.sort((a, b) => a.address.localeCompare(b.address));
-             setProperties(props);
-        }
+        // Fusión: Usar datos de Firestore + datos estáticos que NO estén ya en Firestore (por ID)
+        const dbIds = new Set(firestoreProps.map(p => p.id));
+        const missingStatics = staticProperties.filter(p => !dbIds.has(p.id));
+        
+        const combinedProps = [...firestoreProps, ...missingStatics];
+        
+        // Ordenar alfabéticamente
+        combinedProps.sort((a, b) => a.address.localeCompare(b.address));
+        
+        setProperties(combinedProps);
         setLoadingProperties(false);
     }, (error) => {
         console.warn("Error obteniendo propiedades de Firestore, usando datos estáticos:", error);
+        // Fallback to static is already handled by initial state, but explicit set here ensures it.
         setProperties(staticProperties);
         setLoadingProperties(false);
     });
@@ -153,30 +140,23 @@ export const RoomsView: React.FC = () => {
       setIsLightboxOpen(true);
   };
 
-  // Calculate total rooms under management
   const totalRoomsManaged = useMemo(() => {
     return properties.reduce((acc, property) => acc + property.rooms.length, 0);
   }, [properties]);
 
-  // Extract unique zones for dropdown
   const uniqueZones = useMemo(() => {
       const zones = new Set(properties.map(p => p.city));
       return Array.from(zones).sort();
   }, [properties]);
 
-  // Filter Logic
   const filteredProperties = useMemo(() => {
     return properties.filter(p => {
-        // Filter by Availability
         if (showOnlyAvailable && !p.rooms.some(r => r.status === 'available')) {
             return false;
         }
-        // Filter by Zone
         if (selectedZone && p.city !== selectedZone) {
             return false;
         }
-        
-        // Filter by Profile
         if (selectedProfile) {
             const matchesProfile = p.rooms.some(r => {
                 const profile = r.targetProfile || 'both';
@@ -186,8 +166,6 @@ export const RoomsView: React.FC = () => {
             });
             if (!matchesProfile) return false;
         }
-
-        // Filter by Air Conditioning
         if (filterAirCon !== 'all') {
             const matchesAir = p.rooms.some(r => {
                 if (filterAirCon === 'yes') return r.hasAirConditioning === true;
@@ -196,8 +174,6 @@ export const RoomsView: React.FC = () => {
             });
             if (!matchesAir) return false;
         }
-
-        // Filter by Expenses
         if (filterExpenses !== 'all') {
             const matchesExpenses = p.rooms.some(r => {
                 const exp = r.expenses.toLowerCase();
@@ -207,15 +183,9 @@ export const RoomsView: React.FC = () => {
             });
             if (!matchesExpenses) return false;
         }
-
-        // Filter by Price
         if (minPrice !== '' || maxPrice !== '') {
             const matchesPrice = p.rooms.some(r => {
-                // If checking availability, restrict price check to available rooms?
-                // Usually users want to find *any* property that fits their budget.
-                // Let's filter properties that have AT LEAST ONE room in range.
                 if (showOnlyAvailable && r.status !== 'available') return false;
-                
                 const p = r.price;
                 if (minPrice !== '' && p < minPrice) return false;
                 if (maxPrice !== '' && p > maxPrice) return false;
@@ -223,8 +193,6 @@ export const RoomsView: React.FC = () => {
             });
             if (!matchesPrice) return false;
         }
-
-        // Filter by Coming Soon (Free in < 45 days)
         if (filterComingSoon) {
             const matchesComingSoon = p.rooms.some(room => {
                 if (room.specialStatus === 'renovation') return false; 
@@ -237,17 +205,15 @@ export const RoomsView: React.FC = () => {
                     today.setHours(0, 0, 0);
                     const diffTime = exitDate.getTime() - today.getTime();
                     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                    return diffDays > 0 && diffDays < 45;
+                    return diffDays > 0;
                 } catch (e) { return false; }
             });
             if (!matchesComingSoon) return false;
         }
-        
         return true;
     });
   }, [properties, showOnlyAvailable, selectedZone, selectedProfile, filterAirCon, filterExpenses, filterComingSoon, minPrice, maxPrice]);
 
-  // Count Active Filters
   const activeFiltersCount = useMemo(() => {
       let count = 0;
       if (selectedZone) count++;
@@ -272,48 +238,42 @@ export const RoomsView: React.FC = () => {
       setMaxPrice('');
   };
 
-  // Función para determinar el color/estado inteligente del CONTENEDOR
   const getRoomStatusContainerStyle = (room: Room) => {
-    // Special Status: Renovation
     if (room.specialStatus === 'renovation') {
         return 'bg-yellow-50 border-yellow-200 border-dashed';
     }
-
     if (room.status === 'available') return 'bg-white border-green-200 shadow-sm';
     
-    // Lógica para "Próximamente" (Naranja)
+    // Check for specific date override
     if (room.availableFrom && room.availableFrom !== 'Consultar' && room.availableFrom !== 'Inmediata') {
         const [day, month, year] = room.availableFrom.split('/').map(Number);
         const exitDate = new Date(year, month - 1, day);
         const today = new Date();
         const diffTime = exitDate.getTime() - today.getTime();
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-        if (diffDays > 0 && diffDays < 45) {
+        
+        // Si la fecha es futura, mostramos estilo de "próximamente"
+        if (diffTime > 0) {
             return 'bg-orange-50 border-orange-200';
         }
     }
-    
-    // Por defecto Azul (Alquilada)
     return 'bg-gray-50 border-gray-100 opacity-80';
   };
 
   const getStatusLabel = (room: Room) => {
-    // Special Status overrides
     if (room.specialStatus === 'renovation') {
         return { icon: <Hammer className="w-3.5 h-3.5"/>, text: t('rooms.status.renovation'), color: 'text-yellow-700' };
     }
-
     if (room.status === 'available') return { icon: <CheckCircle className="w-3.5 h-3.5"/>, text: t('rooms.status.free'), color: 'text-green-700' };
     
+    // Check for specific date override
     if (room.availableFrom && room.availableFrom !== 'Consultar') {
         const [day, month, year] = room.availableFrom.split('/').map(Number);
         const exitDate = new Date(year, month - 1, day);
         const today = new Date();
         const diffTime = exitDate.getTime() - today.getTime();
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-        if (diffDays > 0 && diffDays < 45) {
+        
+        // Si hay fecha futura, SIEMPRE mostrar "Liberación en..." independientemente del estado 'occupied'
+        if (diffTime > 0) {
              return { icon: <HelpCircle className="w-3.5 h-3.5"/>, text: t('rooms.status.free_in'), color: 'text-orange-700', showTimer: true };
         }
     }
@@ -338,12 +298,28 @@ export const RoomsView: React.FC = () => {
   };
 
   const translateExpenses = (expense: string) => {
-      // Normalizamos la cadena para búsqueda
       const exp = expense.toLowerCase();
       if (exp.includes('fijos')) return t('rooms.status.fixed_expenses');
       if (exp.includes('reparten')) return t('rooms.status.shared_expenses');
       return expense;
   }
+
+  // --- HELPER PARA ICONOS DE CAMA ---
+  const getBedIcon = (type: string | undefined) => {
+      if(!type) return null;
+      if(type === 'single') return <Bed className="w-3 h-3"/>;
+      if(type === 'double' || type === 'king') return <BedDouble className="w-3 h-3"/>;
+      return <Bed className="w-3 h-3"/>;
+  };
+
+  const getBedLabel = (type: string | undefined) => {
+      if(!type) return '';
+      if(type === 'single') return '90cm';
+      if(type === 'double') return '135cm';
+      if(type === 'king') return 'King';
+      if(type === 'sofa') return 'Sofá Cama';
+      return '';
+  };
 
   return (
     <div className="font-sans bg-gray-50 min-h-screen flex flex-col animate-in fade-in duration-500">
@@ -371,7 +347,6 @@ export const RoomsView: React.FC = () => {
             {t('rooms.hero.subtitle')}
           </p>
           
-          {/* Total Rooms Counter */}
           <div className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-md border border-white/20 px-6 py-3 rounded-xl">
               <Building className="w-6 h-6 text-rentia-blue" />
               <div className="flex flex-col items-start">
@@ -446,7 +421,7 @@ export const RoomsView: React.FC = () => {
 
          {/* Filters */}
          <div className="bg-white p-4 rounded-xl shadow-md border border-gray-100 mb-8 flex flex-col items-start gap-4">
-             {/* Label & Toggle (Mobile Only) */}
+             {/* ... (Filtros existentes sin cambios) ... */}
              <div 
                 className="flex items-center justify-between w-full border-b border-gray-50 pb-2 cursor-pointer md:cursor-default"
                 onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
@@ -460,16 +435,13 @@ export const RoomsView: React.FC = () => {
                          </span>
                      )}
                  </div>
-                 {/* Flecha solo en móvil */}
                  <div className="md:hidden">
                      <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-300 ${mobileFiltersOpen ? 'rotate-180' : ''}`} />
                  </div>
              </div>
              
-             {/* Controls Container - Hidden on mobile unless open, Always flex on desktop */}
              <div className={`${mobileFiltersOpen ? 'flex' : 'hidden'} md:flex flex-wrap items-center gap-4 w-full transition-all duration-300 ease-in-out`}>
                 
-                {/* Zone Select */}
                 <div className="relative w-full sm:w-auto flex-grow min-w-[180px]">
                     <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <select
@@ -485,7 +457,6 @@ export const RoomsView: React.FC = () => {
                     <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                 </div>
 
-                {/* Profile Select */}
                 <div className="relative w-full sm:w-auto flex-grow min-w-[180px]">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <select
@@ -500,7 +471,6 @@ export const RoomsView: React.FC = () => {
                     <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                 </div>
 
-                {/* Air Con Select */}
                 <div className="relative w-full sm:w-auto flex-grow min-w-[180px]">
                     <Wind className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <select
@@ -515,7 +485,6 @@ export const RoomsView: React.FC = () => {
                     <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                 </div>
 
-                {/* Expenses Select */}
                 <div className="relative w-full sm:w-auto flex-grow min-w-[180px]">
                     <Receipt className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <select
@@ -530,7 +499,6 @@ export const RoomsView: React.FC = () => {
                     <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                 </div>
 
-                {/* PRICE FILTERS - NEW */}
                 <div className="flex gap-2 w-full sm:w-auto flex-grow">
                     <div className="relative w-1/2 sm:w-28">
                         <Euro className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
@@ -554,7 +522,6 @@ export const RoomsView: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Checkbox: Show Only Available */}
                 <label className="flex items-center cursor-pointer relative select-none bg-gray-50 px-3 py-2 rounded-lg border border-gray-200 w-full sm:w-auto justify-start flex-grow sm:flex-grow-0">
                     <input 
                         type="checkbox" 
@@ -566,7 +533,6 @@ export const RoomsView: React.FC = () => {
                     <span className="ml-2 text-xs font-bold text-gray-600">{t('rooms.filter.check')}</span>
                 </label>
 
-                {/* Checkbox: Coming Soon */}
                 <label className="flex items-center cursor-pointer relative select-none bg-orange-50 px-3 py-2 rounded-lg border border-orange-200 w-full sm:w-auto justify-start flex-grow sm:flex-grow-0">
                     <input 
                         type="checkbox" 
@@ -581,7 +547,6 @@ export const RoomsView: React.FC = () => {
                     </span>
                 </label>
 
-                {/* Clear Filters Button */}
                 {activeFiltersCount > 0 && (
                     <button 
                         onClick={clearFilters}
@@ -614,10 +579,8 @@ export const RoomsView: React.FC = () => {
                  const propertyProfile = getPropertyProfile(property.rooms);
                  const profileBadge = getProfileBadge(propertyProfile);
                  
-                 // Check if any room is 'upcoming' (active countdown < 45 days)
-                 // IMPORTANT: We skip renovation rooms from this calculation to show the specific Renovation badge instead
                  const hasUpcoming = property.rooms.some(room => {
-                    if (room.specialStatus === 'renovation') return false; // Don't show "free in..." if it's in renovation
+                    if (room.specialStatus === 'renovation') return false; 
                     if (!room.availableFrom || room.availableFrom === 'Consultar' || room.availableFrom === 'Inmediata') return false;
                     try {
                         const [day, month, year] = room.availableFrom.split('/').map(Number);
@@ -626,8 +589,7 @@ export const RoomsView: React.FC = () => {
                         exitDate.setHours(23, 59, 59); 
                         today.setHours(0, 0, 0);
                         const diffTime = exitDate.getTime() - today.getTime();
-                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                        return diffDays > 0 && diffDays < 45;
+                        return diffTime > 0;
                     } catch (e) { return false; }
                  });
                  
@@ -638,7 +600,7 @@ export const RoomsView: React.FC = () => {
                             className="flex flex-col md:flex-row cursor-pointer transition-colors"
                             onClick={() => toggleProperty(property.id)}
                          >
-                             {/* Imagen de Portada (Responsive: Full width en móvil, ancho fijo en desktop) */}
+                             {/* Imagen de Portada (Responsive) */}
                              <div 
                                 className="w-full h-48 md:w-96 md:h-auto md:min-h-[14rem] relative flex-shrink-0 bg-gray-100 flex items-center justify-center group/main-img overflow-hidden"
                                 onClick={(e) => {
@@ -655,7 +617,6 @@ export const RoomsView: React.FC = () => {
                                             alt={`Habitación en alquiler ${property.address}`} 
                                             className="absolute inset-0 w-full h-full object-cover cursor-zoom-in transition-transform duration-700 group-hover/main-img:scale-105"
                                         />
-                                        {/* Overlay with Zoom Icon */}
                                         <div className="absolute inset-0 bg-black/0 group-hover/main-img:bg-black/20 transition-all flex items-center justify-center pointer-events-none">
                                             <ZoomIn className="w-10 h-10 text-white opacity-0 group-hover/main-img:opacity-100 transition-all duration-300 transform scale-75 group-hover/main-img:scale-100 drop-shadow-md" />
                                         </div>
@@ -668,10 +629,8 @@ export const RoomsView: React.FC = () => {
                                         </span>
                                     </div>
                                 )}
-                                {/* Overlay Gradiente para texto encima si fuera necesario */}
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent md:bg-gradient-to-r md:from-black/30 md:to-transparent pointer-events-none opacity-60"></div>
                                 
-                                {/* Badges Container - Image Overlay */}
                                 <div className="absolute top-3 left-3 flex flex-col gap-2 items-start pointer-events-none z-10">
                                     {availableCount > 0 && (
                                         <div className="bg-green-500 text-white text-xs font-bold px-2.5 py-1 rounded shadow-md flex items-center gap-1.5 backdrop-blur-sm bg-opacity-90">
@@ -679,7 +638,6 @@ export const RoomsView: React.FC = () => {
                                             {availableCount} {t('rooms.status.free')}
                                         </div>
                                     )}
-                                    {/* Prioritize Renovation Badge over Upcoming Badge */}
                                     {hasRenovation && (
                                         <div className="bg-yellow-500 text-white text-xs font-bold px-2.5 py-1 rounded shadow-md flex items-center gap-1.5 animate-pulse backdrop-blur-sm bg-opacity-90">
                                             <Hammer className="w-3.5 h-3.5" />
@@ -695,7 +653,6 @@ export const RoomsView: React.FC = () => {
                                     )}
                                 </div>
 
-                                {/* Address Overlay ONLY on Mobile */}
                                 <div className="absolute bottom-3 left-3 right-3 text-white md:hidden z-10">
                                     <h3 className="font-bold text-lg leading-tight drop-shadow-md truncate">{property.address}</h3>
                                     <p className="text-xs opacity-90 drop-shadow-md flex items-center gap-1 mt-0.5">
@@ -706,7 +663,6 @@ export const RoomsView: React.FC = () => {
 
                              {/* Contenido (Derecha) */}
                              <div className="flex-1 p-5 md:p-6 flex flex-col justify-between bg-white relative">
-                                 {/* Interactive Door Toggle (Mobile: Top Right floating / Desktop: Top Right static) */}
                                  <div className="absolute top-4 right-4 z-20">
                                      <InteractiveDoor 
                                         isOpen={isExpanded} 
@@ -717,7 +673,6 @@ export const RoomsView: React.FC = () => {
 
                                  <div className="min-w-0 flex-1 pr-12 md:pr-16">
                                      <div className="flex flex-col gap-2">
-                                        {/* Desktop Title (Hidden on Mobile) */}
                                         <div className="hidden md:block">
                                             <h3 className="font-bold text-xl md:text-2xl text-rentia-black leading-tight mb-1 group-hover:text-rentia-blue transition-colors">{property.address}</h3>
                                             <p className="text-sm text-gray-500 flex items-center gap-1">
@@ -727,7 +682,6 @@ export const RoomsView: React.FC = () => {
                                             </p>
                                         </div>
                                         
-                                        {/* Features & Badges Row */}
                                         <div className="flex flex-wrap items-center gap-2 mt-2 md:mt-2">
                                             <span className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 px-2.5 py-1 rounded text-xs font-bold uppercase tracking-wide border border-gray-200">
                                                 <Layout className="w-3 h-3" /> {totalRooms} habs
@@ -754,16 +708,32 @@ export const RoomsView: React.FC = () => {
                                      </div>
                                  </div>
 
-                                 {/* FOOTER DE LA TARJETA */}
                                  <div className="flex flex-col md:flex-row md:items-end md:justify-between mt-6 pt-4 border-t border-gray-50 gap-4">
-                                     
-                                     {/* Resumen rápido de precios (si hay libres) */}
                                      <div className="text-sm text-gray-500">
-                                         {availableCount > 0 ? (
-                                             <span className="text-green-600 font-medium flex items-center gap-1 text-base">
-                                                 <CheckCircle className="w-4 h-4" /> Desde <span className="font-bold text-xl">{Math.min(...property.rooms.filter(r => r.status === 'available').map(r => r.price))}€</span> <span className="text-xs text-gray-400">/mes</span>
-                                             </span>
-                                         ) : (
+                                         {availableCount > 0 ? (() => {
+                                             // CÁLCULO SEGURO DEL PRECIO MÍNIMO DE LAS HABITACIONES DISPONIBLES
+                                             if (!property.rooms || !Array.isArray(property.rooms)) return (
+                                                 <span className="text-gray-400 flex items-center gap-1 text-sm"><Info className="w-4 h-4" /> Consultar Precio</span>
+                                             );
+
+                                             // Filtramos habitaciones disponibles Y que tengan un precio válido > 0
+                                             const availablePrices = property.rooms
+                                                 .filter(r => r.status === 'available' && typeof r.price === 'number' && r.price > 0)
+                                                 .map(r => r.price);
+                                             
+                                             // Calculamos el mínimo si hay precios, si no 0
+                                             const minPrice = availablePrices.length > 0 ? Math.min(...availablePrices) : 0;
+
+                                             return minPrice > 0 ? (
+                                                 <span className="text-green-600 font-medium flex items-center gap-1 text-base">
+                                                     <CheckCircle className="w-4 h-4" /> Desde <span className="font-bold text-xl">{minPrice}€</span> <span className="text-xs text-gray-400">/mes</span>
+                                                 </span>
+                                             ) : (
+                                                 <span className="text-gray-400 flex items-center gap-1 text-sm">
+                                                     <Info className="w-4 h-4" /> Consultar Precio
+                                                 </span>
+                                             );
+                                         })() : (
                                              <span className="text-gray-400 flex items-center gap-1 text-sm">
                                                  <Info className="w-4 h-4" /> Sin disponibilidad actual
                                              </span>
@@ -771,7 +741,6 @@ export const RoomsView: React.FC = () => {
                                      </div>
                                      
                                      <div className="flex items-center gap-2 w-full md:w-auto">
-                                         {/* DRIVE LINK BUTTON */}
                                          {property.driveLink && (
                                             <a 
                                                 href={property.driveLink}
@@ -781,7 +750,6 @@ export const RoomsView: React.FC = () => {
                                                 className="flex-1 md:flex-none flex items-center justify-center gap-2 text-xs font-bold bg-white text-gray-700 hover:bg-gray-50 px-4 py-2.5 rounded-lg border border-gray-200 transition-all shadow-sm hover:shadow active:scale-95 group-link"
                                             >
                                                 <div className="w-4 h-4 relative">
-                                                     {/* SVG preserved */}
                                                      <svg viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
                                                         <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.9 2.5 3.2 3.3l32.3-56-4.75-8.3h-8.7c-2.6 0-5 .7-7.1 1.9l-18.8 32.7c-2.2 3.8-2.2 8.4 0 12.2l-.1.15h.1z" fill="#0066da"/>
                                                         <path d="M43.65 25h-28.7c-2.2 3.8-2.2 8.3 0 12.1l18.8 32.6c.8 1.4 1.9 2.5 3.2 3.2l32.4-56.2h-7.65c-2.4.1-4.7.8-6.75 2l-11.3 6.3z" fill="#00ac47"/>
@@ -832,22 +800,18 @@ export const RoomsView: React.FC = () => {
 
                                  {property.rooms.map(room => {
                                      const containerStyle = getRoomStatusContainerStyle(room);
-                                     // @ts-ignore - Adding custom property for logic
+                                     // @ts-ignore
                                      const statusInfo = getStatusLabel(room);
-                                     // We now consider both the traditional 'Consultar' status and the new 'Se libera en' as consultation-worthy
                                      const isConsult = statusInfo.text === t('rooms.status.consult') || statusInfo.text === t('rooms.status.free_in');
                                      const isRenovation = room.specialStatus === 'renovation';
                                      // @ts-ignore
                                      const showTimer = statusInfo.showTimer;
                                      const isFixedExpenses = room.expenses.toLowerCase().includes('fijos');
-                                     
-                                     // Transformación nombre Habitación (H1 -> Habitación 1)
                                      const displayName = room.name.replace(/^H(\d+)$/i, 'Habitación $1');
                                      
                                      return (
                                          <div key={room.id} className={`flex flex-col md:flex-row md:items-center justify-between p-4 rounded-xl border transition-all relative overflow-hidden gap-4 shadow-sm hover:shadow-md ${containerStyle}`}>
                                              
-                                             {/* "NEW" Badge Effect */}
                                              {room.specialStatus === 'new' && (
                                                  <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-rentia-gold to-yellow-300"></div>
                                              )}
@@ -855,7 +819,6 @@ export const RoomsView: React.FC = () => {
                                              {/* Left Side: Info & Media */}
                                              <div className="flex-1 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
                                                  
-                                                 {/* Thumbnail Gallery (Mini) */}
                                                  {room.images && room.images.length > 0 && (
                                                       <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                                                           <div 
@@ -876,7 +839,6 @@ export const RoomsView: React.FC = () => {
                                                       </div>
                                                  )}
 
-                                                 {/* Text Details */}
                                                  <div className="flex flex-col gap-1 w-full">
                                                      <div className="flex flex-wrap items-center gap-2 justify-between w-full">
                                                          <div className="flex items-center gap-2">
@@ -888,7 +850,6 @@ export const RoomsView: React.FC = () => {
                                                             )}
                                                          </div>
                                                          
-                                                         {/* Price Tag */}
                                                          <div className="text-right">
                                                             <span className="text-lg font-bold text-rentia-blue block leading-none">
                                                                 {room.price > 0 ? `${room.price}€` : t('common.consult')}
@@ -897,6 +858,7 @@ export const RoomsView: React.FC = () => {
                                                          </div>
                                                      </div>
 
+                                                     {/* --- ICONOS DE OPTIMIZACIÓN (SI EXISTEN) --- */}
                                                      <div className="flex flex-wrap gap-2 mt-1">
                                                          <div className={`flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded border ${isFixedExpenses ? 'bg-purple-50 text-purple-700 border-purple-100' : 'bg-gray-100 text-gray-600 border-gray-200'}`}>
                                                              <Receipt className="w-3 h-3" />
@@ -908,6 +870,29 @@ export const RoomsView: React.FC = () => {
                                                                  <Wind className="w-3 h-3" /> Aire Acond.
                                                              </div>
                                                          )}
+
+                                                         {/* Nuevos Campos de Optimización */}
+                                                         {room.bedType && (
+                                                             <div className="flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded border bg-indigo-50 text-indigo-700 border-indigo-100">
+                                                                 {getBedIcon(room.bedType)}
+                                                                 {getBedLabel(room.bedType)}
+                                                             </div>
+                                                         )}
+                                                         
+                                                         {room.sqm && (
+                                                             <div className="flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded border bg-gray-50 text-gray-700 border-gray-200">
+                                                                 <Layout className="w-3 h-3" /> {room.sqm}m²
+                                                             </div>
+                                                         )}
+
+                                                         {/* Features */}
+                                                         {room.features && room.features.map(f => {
+                                                             if(f === 'balcony') return <div key={f} className="flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded border bg-orange-50 text-orange-700 border-orange-100"><Sun className="w-3 h-3"/> Balcón</div>;
+                                                             if(f === 'smart_tv') return <div key={f} className="flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded border bg-slate-50 text-slate-700 border-slate-200"><Tv className="w-3 h-3"/> TV</div>;
+                                                             if(f === 'lock') return <div key={f} className="flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded border bg-green-50 text-green-700 border-green-100"><Lock className="w-3 h-3"/> Llave</div>;
+                                                             if(f === 'desk') return <div key={f} className="flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded border bg-blue-50 text-blue-700 border-blue-100"><Monitor className="w-3 h-3"/> Escritorio</div>;
+                                                             return null;
+                                                         })}
                                                          
                                                          {room.video && (
                                                              <a 
@@ -921,6 +906,13 @@ export const RoomsView: React.FC = () => {
                                                              </a>
                                                          )}
                                                      </div>
+                                                     
+                                                     {/* Descripción detallada opcional */}
+                                                     {room.description && (
+                                                         <div className="mt-2 text-xs text-gray-500 bg-white/50 p-2 rounded border border-gray-100 italic leading-relaxed">
+                                                             {room.description}
+                                                         </div>
+                                                     )}
                                                  </div>
                                              </div>
 
@@ -932,7 +924,6 @@ export const RoomsView: React.FC = () => {
                                                          {statusInfo.text}
                                                      </div>
 
-                                                     {/* TIMER (CRONÓMETRO) - SI CORRESPONDE */}
                                                      {showTimer && room.availableFrom && (
                                                          <CountdownTimer targetDateStr={room.availableFrom} />
                                                      )}
@@ -949,7 +940,6 @@ export const RoomsView: React.FC = () => {
                                                      )}
                                                  </div>
 
-                                                 {/* Action Button */}
                                                  {(room.status === 'available' || isConsult) && !isRenovation && (
                                                      <a 
                                                         href={isConsult 
@@ -1008,7 +998,6 @@ export const RoomsView: React.FC = () => {
         </div>
       </section>
 
-      {/* Image Lightbox */}
       {isLightboxOpen && (
         <ImageLightbox 
             images={lightboxImages} 

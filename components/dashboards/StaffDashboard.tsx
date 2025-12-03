@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Users, Building, AlertCircle, CheckCircle, BarChart3, RefreshCw, LayoutDashboard, Calculator, Briefcase, Wrench, Plus, ArrowUpRight, ArrowDownRight, Search, FileText, Trash2, Save, X, DollarSign, Calendar as CalendarIcon, Filter, Download, Pencil, ChevronLeft, ChevronRight, PieChart, Landmark, ChevronDown, Wallet, CreditCard, Clock, Zap, Droplets, Flame, Wifi, Settings, Receipt, Split, Info, MessageCircle, Share2, ClipboardList, UserCheck, Mail, Phone, ArrowRight } from 'lucide-react';
+import { Users, Building, AlertCircle, CheckCircle, BarChart3, RefreshCw, LayoutDashboard, Calculator, Briefcase, Wrench, Plus, ArrowUpRight, ArrowDownRight, Search, FileText, Trash2, Save, X, DollarSign, Calendar as CalendarIcon, Filter, Download, Pencil, ChevronLeft, ChevronRight, PieChart, Landmark, ChevronDown, Wallet, CreditCard, Clock, Zap, Droplets, Flame, Wifi, Settings, Receipt, Split, Info, MessageCircle, Share2, ClipboardList, UserCheck, Mail, Phone, ArrowRight, UserPlus, Archive, Send } from 'lucide-react';
 import { UserCreator } from '../admin/UserCreator';
 import { FileAnalyzer } from '../admin/FileAnalyzer';
 import { RoomManager } from '../admin/RoomManager';
@@ -15,20 +15,23 @@ import { db } from '../../firebase';
 import { collection, onSnapshot, addDoc, deleteDoc, updateDoc, setDoc, doc, serverTimestamp, orderBy, query, where, getDocs } from 'firebase/firestore';
 import { Property, properties as staticProperties } from '../../data/rooms'; // Import static properties too
 import { Contract, Candidate, CandidateStatus } from '../../types';
+import { useAuth } from '../../contexts/AuthContext';
 
-// --- NEW SUBCOMPONENT: CANDIDATE PIPELINE ---
-const CandidatePipeline: React.FC = () => {
-    const [candidates, setCandidates] = useState<Candidate[]>([]);
+// --- SUBCOMPONENT: CANDIDATE MANAGER ---
+const CandidateManager: React.FC = () => {
+    const [allCandidates, setAllCandidates] = useState<Candidate[]>([]);
     const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'rejected'>('pending');
 
     useEffect(() => {
-        const q = query(collection(db, "candidate_pipeline"), where("status", "==", "pending_review"), orderBy("submittedAt", "desc"));
+        const q = query(
+            collection(db, "candidate_pipeline"), 
+            where("status", "in", ["pending_review", "approved", "rejected"]), 
+            orderBy("submittedAt", "desc")
+        );
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            const newCandidates: Candidate[] = [];
-            snapshot.forEach(doc => {
-                newCandidates.push({ ...doc.data(), id: doc.id } as Candidate);
-            });
-            setCandidates(newCandidates);
+            const newCandidates: Candidate[] = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Candidate));
+            setAllCandidates(newCandidates);
             setLoading(false);
         });
         return () => unsubscribe();
@@ -42,41 +45,76 @@ const CandidatePipeline: React.FC = () => {
             alert("No se pudo actualizar el estado del candidato.");
         }
     };
+    
+    const candidatesByStatus = useMemo(() => ({
+        pending: allCandidates.filter(c => c.status === 'pending_review'),
+        approved: allCandidates.filter(c => c.status === 'approved'),
+        rejected: allCandidates.filter(c => c.status === 'rejected'),
+    }), [allCandidates]);
+
+    const renderList = (candidates: Candidate[]) => {
+        if (loading) return <div className="text-center py-8 text-gray-400">Cargando...</div>;
+        if (candidates.length === 0) return <div className="text-center py-8 text-gray-400">No hay candidatos en esta lista.</div>;
+
+        return (
+            <div className="space-y-4">
+                {candidates.map(c => (
+                    <div key={c.id} className="bg-gray-50 p-4 rounded-lg border border-gray-200 flex flex-col md:flex-row justify-between items-start gap-4">
+                        <div className="flex-1">
+                            <div className="flex items-center gap-4 mb-2 flex-wrap">
+                                <span className="font-bold text-lg text-gray-800">{c.candidateName}</span>
+                                <div className="text-xs font-medium text-gray-500">
+                                    <p className="font-bold">{c.propertyName}</p>
+                                    <p>Habitación: {c.roomName}</p>
+                                </div>
+                                {c.candidatePhone && (
+                                    <a href={`tel:${c.candidatePhone}`} className="text-xs font-medium text-rentia-blue bg-blue-50 px-2 py-1 rounded border border-blue-100 flex items-center gap-1 hover:bg-blue-100">
+                                        <Phone className="w-3 h-3"/> {c.candidatePhone}
+                                    </a>
+                                )}
+                                {c.candidateEmail && (
+                                    <a href={`mailto:${c.candidateEmail}`} className="text-xs font-medium text-rentia-blue bg-blue-50 px-2 py-1 rounded border border-blue-100 flex items-center gap-1 hover:bg-blue-100">
+                                        <Mail className="w-3 h-3"/> {c.candidateEmail}
+                                    </a>
+                                )}
+                            </div>
+                            <p className="text-xs text-gray-600 bg-white p-2 border rounded whitespace-pre-line">{c.additionalInfo}</p>
+                            <p className="text-[10px] text-gray-400 mt-2">Enviado por: {c.submittedBy} - {c.submittedAt?.toDate().toLocaleDateString()}</p>
+                        </div>
+                        <div className="flex gap-2 flex-shrink-0 w-full md:w-auto">
+                            {activeTab === 'pending' && <>
+                                <button onClick={() => handleUpdateStatus(c.id, 'rejected')} className="w-1/2 md:w-auto flex-1 bg-red-50 hover:bg-red-100 text-red-700 px-4 py-2 text-xs font-bold rounded-lg border border-red-100 transition-colors">Rechazar</button>
+                                <button onClick={() => handleUpdateStatus(c.id, 'approved')} className="w-1/2 md:w-auto flex-1 bg-green-500 hover:bg-green-600 text-white px-6 py-2 text-xs font-bold rounded-lg shadow-sm transition-colors">Aprobar</button>
+                            </>}
+                            {activeTab !== 'pending' &&
+                                <button onClick={() => handleUpdateStatus(c.id, 'archived')} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-600 px-4 py-2 text-xs font-bold rounded-lg border border-gray-200 flex items-center gap-2 justify-center">
+                                    <Archive className="w-3 h-3"/> Archivar
+                                </button>
+                            }
+                        </div>
+                    </div>
+                ))}
+            </div>
+        );
+    };
 
     return (
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <h3 className="text-xl font-bold text-rentia-black mb-4 flex items-center gap-2">
-                <UserCheck className="w-5 h-5 text-rentia-blue" /> Candidatos a Filtrar
-            </h3>
-            {loading ? (
-                <div className="text-center py-8 text-gray-400">Cargando...</div>
-            ) : candidates.length === 0 ? (
-                <div className="text-center py-8 text-gray-400">
-                    <p>No hay nuevos candidatos pendientes de revisión.</p>
-                </div>
-            ) : (
-                <div className="space-y-4">
-                    {candidates.map(c => (
-                        <div key={c.id} className="bg-gray-50 p-4 rounded-lg border border-gray-200 flex flex-col md:flex-row justify-between items-start gap-4">
-                            <div className="flex-1">
-                                <div className="flex items-center gap-4 mb-2">
-                                    <span className="font-bold text-lg text-gray-800">{c.candidateName}</span>
-                                    <div className="text-xs font-medium text-gray-500">
-                                        <p className="font-bold">{c.propertyName}</p>
-                                        <p>Habitación: {c.roomName}</p>
-                                    </div>
-                                </div>
-                                <p className="text-xs text-gray-600 bg-white p-2 border rounded whitespace-pre-line">{c.additionalInfo}</p>
-                                <p className="text-[10px] text-gray-400 mt-2">Enviado por: {c.submittedBy} - {c.submittedAt?.toDate().toLocaleDateString()}</p>
-                            </div>
-                            <div className="flex gap-2 flex-shrink-0 w-full md:w-auto">
-                                <button onClick={() => handleUpdateStatus(c.id, 'rejected')} className="w-1/2 md:w-auto flex-1 bg-red-50 hover:bg-red-100 text-red-700 px-4 py-2 text-xs font-bold rounded-lg border border-red-100 transition-colors">Rechazar</button>
-                                <button onClick={() => handleUpdateStatus(c.id, 'approved')} className="w-1/2 md:w-auto flex-1 bg-green-500 hover:bg-green-600 text-white px-6 py-2 text-xs font-bold rounded-lg shadow-sm transition-colors">Aprobar</button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
+            <div className="flex justify-between items-center mb-4 border-b border-gray-100 pb-4">
+                <h3 className="text-xl font-bold text-rentia-black flex items-center gap-2">
+                    <UserCheck className="w-5 h-5 text-rentia-blue" /> Gestor de Candidatos
+                </h3>
+            </div>
+            
+            <div className="flex border-b border-gray-200 mb-6">
+                <button onClick={() => setActiveTab('pending')} className={`px-4 py-2 text-sm font-bold flex items-center gap-2 ${activeTab === 'pending' ? 'border-b-2 border-rentia-blue text-rentia-blue' : 'text-gray-500'}`}>Pendientes <span className="bg-yellow-100 text-yellow-800 text-xs px-2 rounded-full">{candidatesByStatus.pending.length}</span></button>
+                <button onClick={() => setActiveTab('approved')} className={`px-4 py-2 text-sm font-bold flex items-center gap-2 ${activeTab === 'approved' ? 'border-b-2 border-rentia-blue text-rentia-blue' : 'text-gray-500'}`}>Aprobados <span className="bg-green-100 text-green-800 text-xs px-2 rounded-full">{candidatesByStatus.approved.length}</span></button>
+                <button onClick={() => setActiveTab('rejected')} className={`px-4 py-2 text-sm font-bold flex items-center gap-2 ${activeTab === 'rejected' ? 'border-b-2 border-rentia-blue text-rentia-blue' : 'text-gray-500'}`}>Rechazados <span className="bg-red-100 text-red-800 text-xs px-2 rounded-full">{candidatesByStatus.rejected.length}</span></button>
+            </div>
+
+            {activeTab === 'pending' && renderList(candidatesByStatus.pending)}
+            {activeTab === 'approved' && renderList(candidatesByStatus.approved)}
+            {activeTab === 'rejected' && renderList(candidatesByStatus.rejected)}
         </div>
     );
 };
@@ -143,6 +181,8 @@ const FinancialChart = ({ data }: { data: { month: string, income: number, expen
 };
 
 export const StaffDashboard: React.FC = () => {
+  const { currentUser } = useAuth();
+
   // --- STATE NAVEGACIÓN ---
   const [activeTab, setActiveTab] = useState<'overview' | 'real_estate' | 'accounting' | 'tools' | 'contracts' | 'calendar' | 'supplies' | 'calculator' | 'social' | 'tasks'>('overview');
 
@@ -197,6 +237,13 @@ export const StaffDashboard: React.FC = () => {
       category: 'General',
       status: 'paid' as 'paid' | 'pending',
       reference: ''
+  });
+  
+  // --- STATE: MODAL ENVIAR CANDIDATO ---
+  const [showCandidateModal, setShowCandidateModal] = useState(false);
+  const [newCandidate, setNewCandidate] = useState({
+      propertyId: '', roomId: '', candidateName: '', additionalInfo: '',
+      candidatePhone: '', candidateEmail: ''
   });
 
   // --- LOAD DATA (USE EFFECT) ---
@@ -366,6 +413,35 @@ export const StaffDashboard: React.FC = () => {
           setSupplyForm({ electricity: '', water: '', gas: '', internet: '', cleaning: '', notes: '' });
       }
   }, [currentMonthRecord, selectedPropId, supplyMonth]);
+  
+  // --- NEW: Handle Candidate Submission by Staff ---
+  const handleSendCandidate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCandidate.propertyId || !newCandidate.roomId || !newCandidate.candidateName) {
+        return alert("Completa todos los campos: propiedad, habitación y nombre.");
+    }
+    
+    const prop = propertiesList.find(p => p.id === newCandidate.propertyId);
+    const room = prop?.rooms.find((r:any) => r.id === newCandidate.roomId);
+
+    try {
+        await addDoc(collection(db, "candidate_pipeline"), {
+            ...newCandidate,
+            propertyName: prop?.address || 'N/A',
+            roomName: room?.name || 'N/A',
+            submittedBy: currentUser?.displayName || 'Staff',
+            submittedAt: serverTimestamp(),
+            status: 'pending_review'
+        });
+        setShowCandidateModal(false);
+        setNewCandidate({ propertyId: '', roomId: '', candidateName: '', additionalInfo: '', candidatePhone: '', candidateEmail: '' });
+        alert('Candidato enviado a filtrado correctamente.');
+    } catch (error) {
+        console.error(error);
+        alert('Error al enviar candidato.');
+    }
+  };
+
 
   // Actions
   const savePropertyConfig = async () => {
@@ -663,8 +739,17 @@ export const StaffDashboard: React.FC = () => {
                         </div>
                     </div>
                 </div>
+                
+                <button onClick={() => setShowCandidateModal(true)} className="w-full bg-green-50 text-green-700 px-6 py-4 rounded-lg font-bold hover:bg-green-100 transition-colors items-center gap-2 border border-green-200 text-left flex justify-between shadow-sm mb-8">
+                    <div className="flex items-center gap-3">
+                        <UserPlus className="w-5 h-5"/>
+                        <span>Enviar Nuevo Candidato al Pipeline</span>
+                    </div>
+                    <ArrowRight className="w-5 h-5"/>
+                </button>
+
                 <div className="mt-8">
-                    <CandidatePipeline />
+                    <CandidateManager />
                 </div>
             </div>
         )}
@@ -1274,6 +1359,56 @@ export const StaffDashboard: React.FC = () => {
             </div>
         )}
 
+        {/* --- MODAL ENVIAR CANDIDATO (STAFF) --- */}
+        {showCandidateModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+                <form onSubmit={handleSendCandidate} className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95">
+                    <div className="px-6 py-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
+                        <h3 className="font-bold text-gray-800 flex items-center gap-2"><UserPlus className="w-5 h-5 text-green-600" /> Enviar Candidato</h3>
+                        <button type="button" onClick={() => setShowCandidateModal(false)} className="p-2 text-gray-400 hover:text-gray-600"><X className="w-5 h-5"/></button>
+                    </div>
+                    <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Propiedad *</label>
+                                <select required className="w-full p-2 border rounded text-sm" value={newCandidate.propertyId} onChange={e => setNewCandidate({...newCandidate, propertyId: e.target.value, roomId: ''})}>
+                                    <option value="">Seleccionar...</option>
+                                    {propertiesList.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Habitación *</label>
+                                <select required disabled={!newCandidate.propertyId} className="w-full p-2 border rounded text-sm" value={newCandidate.roomId} onChange={e => setNewCandidate({...newCandidate, roomId: e.target.value})}>
+                                    <option value="">Seleccionar...</option>
+                                    {propertiesList.find(p => p.id === newCandidate.propertyId)?.rooms.map((r:any) => <option key={r.id} value={r.id}>{r.name} ({r.status})</option>)}
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nombre Candidato *</label>
+                            <input required type="text" className="w-full p-2 border rounded text-sm font-bold" value={newCandidate.candidateName} onChange={e => setNewCandidate({...newCandidate, candidateName: e.target.value})} />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                             <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Teléfono</label>
+                                <input type="tel" className="w-full p-2 border rounded text-sm" value={newCandidate.candidatePhone} onChange={e => setNewCandidate({...newCandidate, candidatePhone: e.target.value})} />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Email</label>
+                                <input type="email" className="w-full p-2 border rounded text-sm" value={newCandidate.candidateEmail} onChange={e => setNewCandidate({...newCandidate, candidateEmail: e.target.value})} />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Info Adicional</label>
+                            <textarea className="w-full p-2 border rounded text-sm h-20 resize-none" value={newCandidate.additionalInfo} onChange={e => setNewCandidate({...newCandidate, additionalInfo: e.target.value})} />
+                        </div>
+                    </div>
+                    <div className="p-4 bg-gray-50 border-t flex justify-end">
+                        <button type="submit" className="bg-green-600 text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-green-700 shadow-md flex items-center gap-2"><Send className="w-4 h-4"/> Enviar a Pipeline</button>
+                    </div>
+                </form>
+            </div>
+        )}
       </div>
     </div>
   );

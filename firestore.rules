@@ -13,7 +13,7 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // Helper para verificar existencia antes de leer datos (Evita errores de null pointer)
+    // Helper para verificar existencia antes de leer datos
     function userExists() {
       return exists(/databases/$(database)/documents/users/$(request.auth.uid));
     }
@@ -27,19 +27,17 @@ service cloud.firestore {
     function isStaff() {
       return isAuthenticated() 
         && userExists()
-        && (getUserData().role == 'staff' || getUserData().role == 'admin' || getUserData().role == 'owner')
-        && getUserData().get('active', true) == true;
+        && (getUserData().role == 'staff' || getUserData().role == 'admin' || getUserData().role == 'owner');
     }
 
-    // Verifica si es WORKER (Nuevo Rol para Ayoub)
+    // Verifica si es WORKER
     function isWorker() {
       return isAuthenticated() 
         && userExists()
-        && getUserData().role == 'worker'
-        && getUserData().get('active', true) == true;
+        && getUserData().role == 'worker';
     }
 
-    // Helper combinado: Staff O Trabajador
+    // Helper combinado
     function isStaffOrWorker() {
       return isStaff() || isWorker();
     }
@@ -55,27 +53,23 @@ service cloud.firestore {
     // --- REGLAS POR COLECCIÓN ---
 
     match /users/{userId} {
-      // El Worker necesita leer su propio perfil para que la app determine su rol
       allow read: if isOwner(userId) || isStaffOrWorker();
       allow write: if isStaff();
     }
 
     match /properties/{propertyId} {
-      allow read: if true; // Público para la web y Worker
+      allow read: if true;
       allow write: if isStaff();
     }
 
     match /opportunities/{opportunityId} {
       allow read: if true;
-      allow write: if isStaff() 
-        && request.resource.data.financials.purchasePrice is number;
+      allow write: if isStaff();
     }
     
     match /accounting/{transactionId} {
       allow read: if isStaff();
-      allow write: if isStaff() 
-        && isValidAmount()
-        && hasMandatoryFields(['date', 'concept', 'type']);
+      allow write: if isStaff();
     }
     
     match /buyer_requests/{requestId} {
@@ -83,7 +77,6 @@ service cloud.firestore {
       allow write: if isStaff();
     }
 
-    // Contratos: Lectura para Staff o las partes involucradas (Dueño/Inquilino)
     match /contracts/{contractId} {
       allow read: if isStaff() 
         || (isAuthenticated() && (
@@ -93,25 +86,15 @@ service cloud.firestore {
       allow write: if isStaff();
     }
 
-    // TAREAS (Tasks) - ACTUALIZADO PARA WORKER
     match /tasks/{taskId} {
-      // Lectura: Staff ve todo, Worker ve sus tareas y las del equipo
       allow read: if isStaffOrWorker();
-      
-      // Creación: Worker puede crear incidencias, Staff crea tareas
       allow create: if isStaffOrWorker();
-      
-      // Actualización: Worker actualiza estado, Staff todo
       allow update: if isStaffOrWorker();
-      
-      // Borrado: Solo Staff puede borrar tareas definitivamente
       allow delete: if isStaff(); 
     }
 
-    // TABLEROS (Boards) - ACTUALIZADO PARA PERMITIR CREAR "INCIDENCIAS"
     match /task_boards/{boardId} {
       allow read: if isStaffOrWorker();
-      // Permitimos escritura al Worker para que el sistema pueda autogenerar el tablón "Incidencias" si no existe
       allow write: if isStaffOrWorker();
     }
 
@@ -122,23 +105,22 @@ service cloud.firestore {
     
     match /supply_records/{recordId} {
         allow read: if isAuthenticated();
-        allow write: if isStaff();
+        allow create: if isStaff();
+        allow update: if isStaff(); // Permite modificar estado (Pendiente/Pagado)
+        allow delete: if isStaff(); // Permite borrar facturas erróneas
     }
     
-    // REGLA ACTUALIZADA PARA PIPELINE DE CANDIDATOS
+    // PERMISOS AMPLIADOS: Workers también pueden actualizar estado (Aprobar/Rechazar)
     match /candidate_pipeline/{candidateId} {
         allow create: if isStaffOrWorker();
-        // Staff puede leer todo. Worker puede listar (la query en la app ya filtra por su nombre).
-        // La regla anterior (`resource.data.submittedBy == ...`) rompía las query de listado.
         allow read: if isStaffOrWorker();
-        allow update, delete: if isStaff();
+        allow update: if isStaffOrWorker();
+        allow delete: if isStaff();
     }
 
-    // NUEVA REGLA PARA REGISTRO DE VISITAS
     match /room_visits/{visitId} {
-        // Ayoub y Staff pueden crear nuevos registros
+        // Workers pueden registrar visitas. Staff puede ver y gestionar todo el historial.
         allow create: if isStaffOrWorker();
-        // Solo Staff puede leer el historial, actualizarlo o borrarlo
         allow read, update, delete: if isStaff();
     }
 

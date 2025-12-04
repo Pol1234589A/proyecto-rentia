@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Users, Building, AlertCircle, CheckCircle, BarChart3, RefreshCw, LayoutDashboard, Calculator, Briefcase, Wrench, Plus, ArrowUpRight, ArrowDownRight, Search, FileText, Trash2, Save, X, DollarSign, Calendar as CalendarIcon, Filter, Download, Pencil, ChevronLeft, ChevronRight, PieChart, Landmark, ChevronDown, Wallet, CreditCard, Clock, Zap, Droplets, Flame, Wifi, Settings, Receipt, Split, Info, MessageCircle, Share2, ClipboardList, UserCheck, Mail, Phone, ArrowRight, UserPlus, Archive, Send, Home, DoorOpen } from 'lucide-react';
+import { Users, Building, AlertCircle, CheckCircle, BarChart3, RefreshCw, LayoutDashboard, Calculator, Briefcase, Wrench, Plus, ArrowUpRight, ArrowDownRight, Search, FileText, Trash2, Save, X, DollarSign, Calendar as CalendarIcon, Filter, Download, Pencil, ChevronLeft, ChevronRight, PieChart, Landmark, ChevronDown, Wallet, CreditCard, Clock, Zap, Droplets, Flame, Wifi, Settings, Receipt, Split, Info, MessageCircle, Share2, ClipboardList, UserCheck, Mail, Phone, ArrowRight, UserPlus, Archive, Send, Home, DoorOpen, Menu, Grid, Footprints, MapPin } from 'lucide-react';
 import { UserCreator } from '../admin/UserCreator';
 import { FileAnalyzer } from '../admin/FileAnalyzer';
 import { RoomManager } from '../admin/RoomManager';
@@ -14,9 +14,200 @@ import { SocialInbox } from '../admin/SocialInbox';
 import { TaskManager } from '../admin/TaskManager';
 import { db } from '../../firebase';
 import { collection, onSnapshot, addDoc, deleteDoc, updateDoc, setDoc, doc, serverTimestamp, orderBy, query, where, getDocs } from 'firebase/firestore';
-import { Property, properties as staticProperties } from '../../data/rooms'; // Import static properties too
+import { Property, properties as staticProperties } from '../../data/rooms';
 import { Contract, Candidate, CandidateStatus } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
+
+// --- SUBCOMPONENT: VISITS LOG (Registro de Visitas) ---
+interface VisitRecord {
+    id: string;
+    propertyId: string;
+    propertyName: string;
+    roomId: string;
+    roomName: string;
+    workerName: string;
+    visitDate: any; // Timestamp
+    outcome: 'successful' | 'unsuccessful' | 'pending';
+    comments: string;
+    commission?: number;
+}
+
+const VisitsLog: React.FC = () => {
+    const [visits, setVisits] = useState<VisitRecord[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [filterWorker, setFilterWorker] = useState<string>('all');
+    const [filterOutcome, setFilterOutcome] = useState<string>('all');
+
+    useEffect(() => {
+        const q = query(collection(db, "room_visits"), orderBy("visitDate", "desc"));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const list: VisitRecord[] = [];
+            snapshot.forEach((doc) => {
+                list.push({ ...doc.data(), id: doc.id } as VisitRecord);
+            });
+            setVisits(list);
+            setLoading(false);
+        });
+        return () => unsubscribe();
+    }, []);
+
+    const filteredVisits = useMemo(() => {
+        return visits.filter(v => {
+            const matchWorker = filterWorker === 'all' || v.workerName === filterWorker;
+            const matchOutcome = filterOutcome === 'all' || v.outcome === filterOutcome;
+            return matchWorker && matchOutcome;
+        });
+    }, [visits, filterWorker, filterOutcome]);
+
+    const uniqueWorkers = useMemo(() => Array.from(new Set(visits.map(v => v.workerName))), [visits]);
+
+    const getOutcomeBadge = (outcome: string) => {
+        switch(outcome) {
+            case 'successful': return <span className="inline-flex items-center gap-1 bg-green-100 text-green-800 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border border-green-200"><CheckCircle className="w-3 h-3"/> Exitosa</span>;
+            case 'unsuccessful': return <span className="inline-flex items-center gap-1 bg-red-100 text-red-800 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border border-red-200"><X className="w-3 h-3"/> No Exitosa</span>;
+            default: return <span className="inline-flex items-center gap-1 bg-yellow-100 text-yellow-800 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border border-yellow-200"><Clock className="w-3 h-3"/> Pendiente</span>;
+        }
+    };
+
+    if (loading) return <div className="text-center py-10 text-gray-400">Cargando registro de visitas...</div>;
+
+    return (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col h-full">
+            <div className="p-4 md:p-6 border-b border-gray-100 bg-gray-50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                        <Footprints className="w-5 h-5 text-rentia-blue" />
+                        Registro de Visitas
+                    </h3>
+                    <p className="text-xs text-gray-500 mt-1">Historial de actividad comercial de los trabajadores.</p>
+                </div>
+                
+                <div className="flex gap-2 w-full md:w-auto overflow-x-auto no-scrollbar pb-1 md:pb-0">
+                    <select 
+                        value={filterWorker} 
+                        onChange={(e) => setFilterWorker(e.target.value)}
+                        className="bg-white border border-gray-200 text-xs rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-rentia-blue min-w-[120px]"
+                    >
+                        <option value="all">Todos los Comerciales</option>
+                        {uniqueWorkers.map(w => <option key={w} value={w}>{w}</option>)}
+                    </select>
+                    <select 
+                        value={filterOutcome} 
+                        onChange={(e) => setFilterOutcome(e.target.value)}
+                        className="bg-white border border-gray-200 text-xs rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-rentia-blue min-w-[120px]"
+                    >
+                        <option value="all">Todos los Resultados</option>
+                        <option value="successful">Exitosas</option>
+                        <option value="unsuccessful">No exitosas</option>
+                        <option value="pending">Pendientes</option>
+                    </select>
+                </div>
+            </div>
+
+            <div className="flex-grow overflow-y-auto bg-gray-50 p-4">
+                {filteredVisits.length === 0 ? (
+                    <div className="text-center py-12 text-gray-400 flex flex-col items-center">
+                        <Footprints className="w-12 h-12 mb-3 opacity-20" />
+                        <p>No se encontraron visitas registradas.</p>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        {/* Desktop Table View */}
+                        <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-hidden">
+                            <table className="w-full text-left text-sm">
+                                <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs">
+                                    <tr>
+                                        <th className="p-4">Fecha</th>
+                                        <th className="p-4">Comercial</th>
+                                        <th className="p-4">Inmueble / Habitación</th>
+                                        <th className="p-4">Resultado</th>
+                                        <th className="p-4">Comentarios</th>
+                                        <th className="p-4 text-right">Comisión</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {filteredVisits.map(visit => (
+                                        <tr key={visit.id} className="hover:bg-blue-50/30 transition-colors">
+                                            <td className="p-4 text-gray-500 whitespace-nowrap text-xs">
+                                                {visit.visitDate?.toDate ? visit.visitDate.toDate().toLocaleString() : 'N/A'}
+                                            </td>
+                                            <td className="p-4 font-bold text-gray-800">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold">
+                                                        {visit.workerName.charAt(0)}
+                                                    </div>
+                                                    {visit.workerName}
+                                                </div>
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="font-medium text-gray-900">{visit.propertyName}</div>
+                                                <div className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                                                    <DoorOpen className="w-3 h-3" /> {visit.roomName}
+                                                </div>
+                                            </td>
+                                            <td className="p-4">
+                                                {getOutcomeBadge(visit.outcome)}
+                                            </td>
+                                            <td className="p-4 text-gray-600 text-xs max-w-xs truncate" title={visit.comments}>
+                                                {visit.comments || '-'}
+                                            </td>
+                                            <td className="p-4 text-right font-mono font-bold text-gray-700">
+                                                {visit.commission > 0 ? `${visit.commission}€` : '-'}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Mobile Card View */}
+                        <div className="md:hidden space-y-3">
+                            {filteredVisits.map(visit => (
+                                <div key={visit.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold">
+                                                {visit.workerName.charAt(0)}
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-gray-800 text-sm">{visit.workerName}</p>
+                                                <p className="text-[10px] text-gray-400">
+                                                    {visit.visitDate?.toDate ? visit.visitDate.toDate().toLocaleDateString() : 'N/A'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        {getOutcomeBadge(visit.outcome)}
+                                    </div>
+                                    
+                                    <div className="bg-gray-50 p-2 rounded-lg mb-2">
+                                        <p className="font-bold text-xs text-gray-800 truncate">{visit.propertyName}</p>
+                                        <p className="text-[10px] text-gray-500 flex items-center gap-1 mt-1">
+                                            <DoorOpen className="w-3 h-3" /> Habitación: {visit.roomName}
+                                        </p>
+                                    </div>
+
+                                    {visit.comments && (
+                                        <p className="text-xs text-gray-600 italic bg-white border border-dashed border-gray-200 p-2 rounded mb-2">
+                                            "{visit.comments}"
+                                        </p>
+                                    )}
+
+                                    {visit.commission > 0 && (
+                                        <div className="flex justify-end border-t border-gray-100 pt-2 mt-2">
+                                            <span className="text-xs font-bold text-green-600 flex items-center gap-1">
+                                                <DollarSign className="w-3 h-3" /> Comisión: {visit.commission}€
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
 
 // --- SUBCOMPONENT: CANDIDATE MANAGER ---
 const CandidateManager: React.FC = () => {
@@ -43,7 +234,7 @@ const CandidateManager: React.FC = () => {
             await updateDoc(doc(db, "candidate_pipeline", id), { status });
         } catch (error) {
             console.error("Error updating status:", error);
-            alert("No se pudo actualizar el estado del candidato.");
+            alert("No se pudo actualizar el estado del candidato. Verifica permisos.");
         }
     };
     
@@ -61,31 +252,40 @@ const CandidateManager: React.FC = () => {
             <div className="space-y-4">
                 {candidates.map(c => (
                     <div key={c.id} className="bg-gray-50 p-4 rounded-lg border border-gray-200 flex flex-col md:flex-row justify-between items-start gap-4">
-                        <div className="flex-1">
-                            <div className="flex items-center gap-4 mb-2 flex-wrap">
+                        <div className="flex-1 w-full">
+                            <div className="flex items-center gap-2 mb-2 flex-wrap">
                                 <span className="font-bold text-lg text-gray-800">{c.candidateName}</span>
-                                <div className="text-xs font-medium text-gray-500">
-                                    <p className="font-bold">{c.propertyName}</p>
-                                    <p>Habitación: {c.roomName}</p>
-                                </div>
                                 {c.candidatePhone && (
-                                    <a href={`tel:${c.candidatePhone}`} className="text-xs font-medium text-rentia-blue bg-blue-50 px-2 py-1 rounded border border-blue-100 flex items-center gap-1 hover:bg-blue-100">
-                                        <Phone className="w-3 h-3"/> {c.candidatePhone}
-                                    </a>
-                                )}
-                                {c.candidateEmail && (
-                                    <a href={`mailto:${c.candidateEmail}`} className="text-xs font-medium text-rentia-blue bg-blue-50 px-2 py-1 rounded border border-blue-100 flex items-center gap-1 hover:bg-blue-100">
-                                        <Mail className="w-3 h-3"/> {c.candidateEmail}
+                                    <a href={`tel:${c.candidatePhone}`} className="text-xs font-medium text-rentia-blue bg-blue-50 px-2 py-1 rounded border border-blue-100 flex items-center gap-1 hover:bg-blue-100 ml-auto md:ml-0">
+                                        <Phone className="w-3 h-3"/> <span className="hidden sm:inline">{c.candidatePhone}</span>
                                     </a>
                                 )}
                             </div>
-                            <p className="text-xs text-gray-600 bg-white p-2 border rounded whitespace-pre-line">{c.additionalInfo}</p>
-                            <p className="text-[10px] text-gray-400 mt-2">Enviado por: {c.submittedBy} - {c.submittedAt?.toDate().toLocaleDateString()}</p>
+                            <div className="text-xs font-medium text-gray-500 mb-2">
+                                <p className="font-bold text-gray-700">{c.propertyName}</p>
+                                <p>Habitación: {c.roomName}</p>
+                            </div>
+                            
+                            <p className="text-xs text-gray-600 bg-white p-3 border rounded-lg whitespace-pre-line leading-relaxed shadow-sm mb-3">
+                                {c.additionalInfo || 'Sin información adicional.'}
+                            </p>
+                            <p className="text-[10px] text-gray-400">Enviado por: {c.submittedBy} - {c.submittedAt?.toDate().toLocaleDateString()}</p>
                         </div>
-                        <div className="flex gap-2 flex-shrink-0 w-full md:w-auto">
+                        
+                        <div className="flex gap-2 w-full md:w-auto mt-2 md:mt-0">
                             {activeTab === 'pending' && <>
-                                <button onClick={() => handleUpdateStatus(c.id, 'rejected')} className="w-1/2 md:w-auto flex-1 bg-red-50 hover:bg-red-100 text-red-700 px-4 py-2 text-xs font-bold rounded-lg border border-red-100 transition-colors">Rechazar</button>
-                                <button onClick={() => handleUpdateStatus(c.id, 'approved')} className="w-1/2 md:w-auto flex-1 bg-green-500 hover:bg-green-600 text-white px-6 py-2 text-xs font-bold rounded-lg shadow-sm transition-colors">Aprobar</button>
+                                <button 
+                                    onClick={() => handleUpdateStatus(c.id, 'rejected')} 
+                                    className="flex-1 md:flex-none bg-white hover:bg-red-50 text-red-600 px-4 py-3 md:py-2 text-sm font-bold rounded-lg border border-red-200 transition-colors shadow-sm flex justify-center items-center gap-2"
+                                >
+                                    <X className="w-4 h-4" /> Rechazar
+                                </button>
+                                <button 
+                                    onClick={() => handleUpdateStatus(c.id, 'approved')} 
+                                    className="flex-1 md:flex-none bg-green-600 hover:bg-green-700 text-white px-6 py-3 md:py-2 text-sm font-bold rounded-lg shadow-md transition-all active:scale-95 flex justify-center items-center gap-2"
+                                >
+                                    <CheckCircle className="w-4 h-4" /> Aprobar
+                                </button>
                             </>}
                             {activeTab !== 'pending' &&
                                 <button onClick={() => handleUpdateStatus(c.id, 'archived')} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-600 px-4 py-2 text-xs font-bold rounded-lg border border-gray-200 flex items-center gap-2 justify-center">
@@ -108,9 +308,9 @@ const CandidateManager: React.FC = () => {
             </div>
             
             <div className="flex border-b border-gray-200 mb-6 w-full overflow-x-auto no-scrollbar">
-                <button onClick={() => setActiveTab('pending')} className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold flex items-center gap-2 flex-shrink-0 ${activeTab === 'pending' ? 'border-b-2 border-rentia-blue text-rentia-blue' : 'text-gray-500'}`}>Pendientes <span className="bg-yellow-100 text-yellow-800 text-xs px-2 rounded-full">{candidatesByStatus.pending.length}</span></button>
-                <button onClick={() => setActiveTab('approved')} className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold flex items-center gap-2 flex-shrink-0 ${activeTab === 'approved' ? 'border-b-2 border-rentia-blue text-rentia-blue' : 'text-gray-500'}`}>Aprobados <span className="bg-green-100 text-green-800 text-xs px-2 rounded-full">{candidatesByStatus.approved.length}</span></button>
-                <button onClick={() => setActiveTab('rejected')} className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold flex items-center gap-2 flex-shrink-0 ${activeTab === 'rejected' ? 'border-b-2 border-rentia-blue text-rentia-blue' : 'text-gray-500'}`}>Rechazados <span className="bg-red-100 text-red-800 text-xs px-2 rounded-full">{candidatesByStatus.rejected.length}</span></button>
+                <button onClick={() => setActiveTab('pending')} className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold flex items-center gap-2 flex-shrink-0 transition-colors ${activeTab === 'pending' ? 'border-b-2 border-rentia-blue text-rentia-blue' : 'text-gray-500'}`}>Pendientes <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-0.5 rounded-full">{candidatesByStatus.pending.length}</span></button>
+                <button onClick={() => setActiveTab('approved')} className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold flex items-center gap-2 flex-shrink-0 transition-colors ${activeTab === 'approved' ? 'border-b-2 border-rentia-blue text-rentia-blue' : 'text-gray-500'}`}>Aprobados <span className="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full">{candidatesByStatus.approved.length}</span></button>
+                <button onClick={() => setActiveTab('rejected')} className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold flex items-center gap-2 flex-shrink-0 transition-colors ${activeTab === 'rejected' ? 'border-b-2 border-rentia-blue text-rentia-blue' : 'text-gray-500'}`}>Rechazados <span className="bg-red-100 text-red-800 text-xs px-2 py-0.5 rounded-full">{candidatesByStatus.rejected.length}</span></button>
             </div>
 
             {activeTab === 'pending' && renderList(candidatesByStatus.pending)}
@@ -119,7 +319,6 @@ const CandidateManager: React.FC = () => {
         </div>
     );
 };
-
 
 // --- INTERFACES CONTABILIDAD PROFESIONAL ---
 interface Transaction {
@@ -148,10 +347,9 @@ interface SupplyRecord {
     costPerTenant?: number;
     tenantsCount?: number;
     notes?: string;
-    status: 'pending' | 'settled'; // Pendiente de cobro a inquilinos o liquidado
+    status: 'pending' | 'settled'; 
 }
 
-// Subcomponente: Gráfica de Barras Simple (SVG) Responsive
 const FinancialChart = ({ data }: { data: { month: string, income: number, expense: number }[] }) => {
     const maxVal = Math.max(...data.map(d => Math.max(d.income, d.expense)), 1000);
     const height = 100;
@@ -185,35 +383,39 @@ export const StaffDashboard: React.FC = () => {
   const { currentUser } = useAuth();
 
   // --- STATE NAVEGACIÓN ---
-  const [activeTab, setActiveTab] = useState<'overview' | 'real_estate' | 'accounting' | 'tools' | 'contracts' | 'calendar' | 'supplies' | 'calculator' | 'social' | 'tasks'>('overview');
-  const [activeMobileTab, setActiveMobileTab] = useState<'overview' | 'tasks' | 'candidates' | 'properties' | 'tools'>('overview');
+  // Añadimos 'visits' al estado
+  const [activeTab, setActiveTab] = useState<'overview' | 'real_estate' | 'accounting' | 'tools' | 'contracts' | 'calendar' | 'supplies' | 'calculator' | 'social' | 'tasks' | 'visits'>('overview');
+  
+  // Mobile Tab State: Includes 'visits'
+  const [activeMobileTab, setActiveMobileTab] = useState<'overview' | 'tasks' | 'candidates' | 'properties' | 'menu' | 'accounting' | 'supplies' | 'calendar' | 'contracts' | 'social' | 'calculator' | 'tools' | 'visits'>('overview');
 
-  // --- STATE RESUMEN OPERATIVO ---
+  // ... (Estados de datos: stats, candidates, accounting, supplies... se mantienen igual)
   const [stats, setStats] = useState({
     totalRooms: 0,
     occupancyRate: 0,
     activeIncidents: 0,
     monthlyRevenue: 0,
-    vacantRooms: 0 // Nuevo estado
+    vacantRooms: 0 
   });
   const [loadingStats, setLoadingStats] = useState(true);
   const [pendingCandidatesCount, setPendingCandidatesCount] = useState(0);
 
-  // --- STATE CONTABILIDAD ---
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   
-  // --- STATE SUMINISTROS ---
   const [propertiesList, setPropertiesList] = useState<any[]>([]);
   const [contractsList, setContractsList] = useState<Contract[]>([]); 
   const [selectedPropId, setSelectedPropId] = useState<string>('');
+  
+  // Nuevo filtro para facturas
+  const [supplyFilterProperty, setSupplyFilterProperty] = useState<string>('');
+  
   const [supplyMonth, setSupplyMonth] = useState(new Date().toISOString().slice(0, 7)); 
   const [supplyRecords, setSupplyRecords] = useState<SupplyRecord[]>([]);
   const [isSupplyConfigModalOpen, setIsSupplyConfigModalOpen] = useState(false);
-  const [isSupplyFormOpen, setIsSupplyFormOpen] = useState(false); // Modal para añadir factura
+  const [isSupplyFormOpen, setIsSupplyFormOpen] = useState(false); 
   
-  // Formulario Facturas Suministros
   const [supplyForm, setSupplyForm] = useState({
       electricity: '',
       water: '',
@@ -223,17 +425,11 @@ export const StaffDashboard: React.FC = () => {
       notes: ''
   });
 
-  // Configuración Propiedad Seleccionada (Para Modal)
-  const [configProp, setConfigProp] = useState<any>(null);
-
-  // Filtros Contabilidad
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('Todas');
   const [filterStatus, setFilterStatus] = useState<'all' | 'paid' | 'pending'>('all');
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
-  const [showFiltersMobile, setShowFiltersMobile] = useState(false);
 
-  // Formulario Contabilidad General
   const [form, setForm] = useState({
       date: new Date().toISOString().split('T')[0],
       concept: '',
@@ -244,16 +440,14 @@ export const StaffDashboard: React.FC = () => {
       reference: ''
   });
   
-  // --- STATE: MODAL ENVIAR CANDIDATO ---
   const [showCandidateModal, setShowCandidateModal] = useState(false);
   const [newCandidate, setNewCandidate] = useState({
       propertyId: '', roomId: '', candidateName: '', additionalInfo: '',
       candidatePhone: '', candidateEmail: ''
   });
 
-  // --- LOAD DATA (USE EFFECT) ---
+  // --- LOAD DATA EFFECTS (Igual que antes) ---
   useEffect(() => {
-    // 1. Propiedades para KPIs y Suministros (MERGED)
     const unsubscribeProps = onSnapshot(collection(db, "properties"), (snapshot) => {
       let totalRoomsCount = 0;
       let occupiedCount = 0;
@@ -265,7 +459,6 @@ export const StaffDashboard: React.FC = () => {
         firestoreProps.push({ ...doc.data(), id: doc.id });
       });
 
-      // Merge Logic for Dashboard: Combine Firestore + Static not in DB
       const dbIds = new Set(firestoreProps.map(p => p.id));
       const missingStatics = staticProperties.filter(p => !dbIds.has(p.id));
       
@@ -282,7 +475,6 @@ export const StaffDashboard: React.FC = () => {
           return { ...data, suppliesConfig: inferredConfig };
       });
 
-      // Calculate stats on merged list
       allProps.forEach((data: any) => {
         if (data.rooms && Array.isArray(data.rooms)) {
           data.rooms.forEach((room: any) => {
@@ -301,7 +493,6 @@ export const StaffDashboard: React.FC = () => {
       allProps.sort((a,b) => a.address.localeCompare(b.address));
       setPropertiesList(allProps);
       
-      // Auto-select first if none selected
       if (!selectedPropId && allProps.length > 0) setSelectedPropId(allProps[0].id);
 
       setStats({
@@ -351,7 +542,6 @@ export const StaffDashboard: React.FC = () => {
         setContractsList(conList);
     });
     
-    // Listener Candidatos Pendientes
     const qPending = query(collection(db, "candidate_pipeline"), where("status", "==", "pending_review"));
     const unsubPending = onSnapshot(qPending, (snap) => {
         setPendingCandidatesCount(snap.size);
@@ -361,7 +551,6 @@ export const StaffDashboard: React.FC = () => {
   }, []);
 
   
-  // Propiedad seleccionada actualmente
   const activeProperty = useMemo(() => {
       return propertiesList.find(p => p.id === selectedPropId);
   }, [propertiesList, selectedPropId]);
@@ -370,7 +559,6 @@ export const StaffDashboard: React.FC = () => {
       return supplyRecords.find(r => r.propertyId === selectedPropId && r.month === supplyMonth);
   }, [supplyRecords, selectedPropId, supplyMonth]);
 
-  // Use Effects for Supply Form
   useEffect(() => {
       if (currentMonthRecord) {
           setSupplyForm({
@@ -386,16 +574,13 @@ export const StaffDashboard: React.FC = () => {
       }
   }, [currentMonthRecord, selectedPropId, supplyMonth]);
   
-  // --- NEW: Handle Candidate Submission by Staff ---
   const handleSendCandidate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCandidate.propertyId || !newCandidate.roomId || !newCandidate.candidateName) {
         return alert("Completa todos los campos: propiedad, habitación y nombre.");
     }
-    
     const prop = propertiesList.find(p => p.id === newCandidate.propertyId);
     const room = prop?.rooms.find((r:any) => r.id === newCandidate.roomId);
-
     try {
         await addDoc(collection(db, "candidate_pipeline"), {
             ...newCandidate,
@@ -414,8 +599,6 @@ export const StaffDashboard: React.FC = () => {
     }
   };
 
-
-  // Actions
   const saveSupplyRecord = async () => {
       if (!activeProperty) return;
       const elec = parseFloat(supplyForm.electricity) || 0;
@@ -454,6 +637,25 @@ export const StaffDashboard: React.FC = () => {
       } catch (e) {
           console.error(e);
           alert("Error al guardar facturas.");
+      }
+  };
+
+  const deleteSupplyRecord = async (id: string) => {
+      if(confirm("¿Seguro que quieres eliminar esta factura?")) {
+          try {
+              await deleteDoc(doc(db, "supply_records", id));
+          } catch(e) {
+              alert("Error al eliminar");
+          }
+      }
+  };
+
+  const handleSupplyStatusChange = async (id: string, newStatus: string) => {
+      try {
+          await updateDoc(doc(db, "supply_records", id), { status: newStatus });
+      } catch (e) {
+          console.error("Error updating status", e);
+          alert("Error al actualizar estado");
       }
   };
 
@@ -606,11 +808,38 @@ export const StaffDashboard: React.FC = () => {
         { id: 'calculator', label: 'Calculadora', icon: <Split className="w-4 h-4" /> },
         { id: 'accounting', label: 'Contabilidad', icon: <Calculator className="w-4 h-4" /> },
         { id: 'calendar', label: 'Calendario', icon: <CalendarIcon className="w-4 h-4" /> },
+        { id: 'visits', label: 'Visitas', icon: <Footprints className="w-4 h-4" /> }, // NUEVA PESTAÑA VISITAS
         { id: 'tools', label: 'Herramientas', icon: <Wrench className="w-4 h-4" /> },
     ];
 
+    // DEFINICIÓN DEL MENÚ MÓVIL (GRID)
+    const mobileMenuOptions = [
+        { id: 'accounting', label: 'Contabilidad', icon: <Calculator className="w-6 h-6"/>, color: 'bg-blue-100 text-blue-600' },
+        { id: 'supplies', label: 'Suministros', icon: <Zap className="w-6 h-6"/>, color: 'bg-yellow-100 text-yellow-600' },
+        { id: 'calendar', label: 'Calendario', icon: <CalendarIcon className="w-6 h-6"/>, color: 'bg-green-100 text-green-600' },
+        { id: 'visits', label: 'Visitas', icon: <Footprints className="w-6 h-6"/>, color: 'bg-red-100 text-red-600' }, // NUEVO ÍTEM MÓVIL
+        { id: 'contracts', label: 'Contratos', icon: <FileText className="w-6 h-6"/>, color: 'bg-purple-100 text-purple-600' },
+        { id: 'social', label: 'Mensajería', icon: <MessageCircle className="w-6 h-6"/>, color: 'bg-pink-100 text-pink-600' },
+        { id: 'calculator', label: 'Calc. Inversión', icon: <Split className="w-6 h-6"/>, color: 'bg-orange-100 text-orange-600' },
+        { id: 'tools', label: 'Herramientas', icon: <Wrench className="w-6 h-6"/>, color: 'bg-gray-100 text-gray-600' },
+    ];
 
     const renderMobileContent = () => {
+        // Wrapper común para sub-secciones con botón de volver
+        const SubSectionWrapper = ({ title, children }: { title: string, children?: React.ReactNode }) => (
+            <div className="animate-in slide-in-from-right-4 duration-300 h-full flex flex-col">
+                <div className="flex items-center gap-3 mb-4 sticky top-0 bg-gray-100 py-2 z-10">
+                    <button onClick={() => setActiveMobileTab('menu')} className="p-2 bg-white rounded-full shadow-sm">
+                        <ChevronLeft className="w-5 h-5 text-gray-600"/>
+                    </button>
+                    <h2 className="text-lg font-bold text-gray-800">{title}</h2>
+                </div>
+                <div className="flex-grow overflow-y-auto pb-20">
+                    {children}
+                </div>
+            </div>
+        );
+
         switch (activeMobileTab) {
             case 'overview': return (
                 <div className="animate-in slide-in-from-bottom-4 duration-300 space-y-4">
@@ -618,8 +847,7 @@ export const StaffDashboard: React.FC = () => {
                         <div 
                             className="bg-orange-50 border border-orange-200 rounded-lg p-4 flex items-center justify-between shadow-sm cursor-pointer"
                             onClick={() => {
-                                const element = document.getElementById('candidate-manager');
-                                if (element) element.scrollIntoView({ behavior: 'smooth' });
+                                setActiveMobileTab('candidates');
                             }}
                         >
                             <div className="flex items-center gap-3">
@@ -643,20 +871,144 @@ export const StaffDashboard: React.FC = () => {
                     </div>
                     <button onClick={() => setShowCandidateModal(true)} className="w-full bg-green-50 text-green-700 p-4 rounded-lg font-bold hover:bg-green-100 border border-green-200 flex justify-between items-center"><span className="flex items-center gap-2"><UserPlus className="w-5 h-5"/> Enviar Candidato</span><ArrowRight/></button>
                     <button onClick={() => setActiveMobileTab('tasks')} className="w-full bg-blue-50 text-blue-700 p-4 rounded-lg font-bold hover:bg-blue-100 border border-blue-200 flex justify-between items-center"><span className="flex items-center gap-2"><ClipboardList className="w-5 h-5"/> Nueva Tarea</span><ArrowRight/></button>
-                    <div id="candidate-manager-mobile">
-                        <CandidateManager />
+                </div>
+            );
+            case 'tasks': return <div className="animate-in fade-in"><TaskManager /></div>;
+            case 'candidates': return <div className="animate-in fade-in"><CandidateManager /></div>;
+            case 'properties': return <div className="animate-in fade-in"><RoomManager /></div>;
+            
+            // MENU GRID VIEW
+            case 'menu': return (
+                <div className="animate-in slide-in-from-bottom-4 p-2">
+                    <h2 className="text-lg font-bold text-gray-800 mb-4 px-2">Más Herramientas</h2>
+                    <div className="grid grid-cols-2 gap-4">
+                        {mobileMenuOptions.map(opt => (
+                            <button 
+                                key={opt.id}
+                                onClick={() => setActiveMobileTab(opt.id as any)}
+                                className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center justify-center gap-3 hover:bg-gray-50 active:scale-95 transition-all aspect-square"
+                            >
+                                <div className={`p-3 rounded-full ${opt.color}`}>
+                                    {opt.icon}
+                                </div>
+                                <span className="font-bold text-gray-700 text-sm">{opt.label}</span>
+                            </button>
+                        ))}
                     </div>
                 </div>
             );
-            case 'tasks': return <TaskManager />;
-            case 'candidates': return <CandidateManager />;
-            case 'properties': return <RoomManager />;
+
+            // SUB-SECTIONS (Rendering desktop components adapted)
+            case 'visits': return (
+                <SubSectionWrapper title="Visitas">
+                    <VisitsLog />
+                </SubSectionWrapper>
+            );
+            case 'accounting': return (
+                <SubSectionWrapper title="Contabilidad">
+                    {/* Reutilizamos lógica de render de 'accounting' pero adaptada a wrapper */}
+                    <div className="space-y-6">
+                        {/* Resumen simplificado */}
+                        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                            <p className="text-xs text-gray-500 font-bold uppercase mb-1">Balance Neto</p>
+                            <span className={`text-2xl font-bold ${financialSummary.balance >= 0 ? 'text-rentia-blue' : 'text-orange-500'}`}>{financialSummary.balance.toLocaleString()}€</span>
+                        </div>
+                        {/* Tabla */}
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden overflow-x-auto">
+                            <div className="p-4 border-b bg-gray-50 flex justify-between items-center sticky left-0">
+                                <h3 className="font-bold text-sm">Movimientos</h3>
+                                <button onClick={() => setIsModalOpen(true)} className="bg-rentia-black text-white px-3 py-1.5 rounded text-xs font-bold flex items-center gap-1"><Plus className="w-3 h-3"/> Nuevo</button>
+                            </div>
+                            <table className="w-full text-sm text-left">
+                                <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs"><tr><th className="p-3">Fecha</th><th className="p-3">Concepto</th><th className="p-3 text-right">Importe</th></tr></thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {filteredTransactions.map(t => (
+                                        <tr key={t.id} onClick={() => handleEdit(t)} className="hover:bg-gray-50 active:bg-blue-50">
+                                            <td className="p-3 text-gray-500 text-xs whitespace-nowrap">{t.date}</td>
+                                            <td className="p-3 font-medium text-gray-900 truncate max-w-[120px]">{t.concept}</td>
+                                            <td className={`p-3 text-right font-bold whitespace-nowrap ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>{t.type === 'income' ? '+' : '-'}{t.amount.toFixed(2)}€</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        {/* MODAL para móvil */}
+                        {isModalOpen && ( <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"><div className="bg-white w-full max-w-sm rounded-xl shadow-2xl overflow-hidden max-h-[80vh] overflow-y-auto"><div className="px-4 py-3 bg-gray-50 border-b flex justify-between items-center sticky top-0"><h3 className="font-bold">{editingId ? 'Editar' : 'Nuevo'}</h3><button onClick={closeModal}><X className="w-5 h-5"/></button></div><form onSubmit={handleSaveTransaction} className="p-4 space-y-3"><input type="date" className="w-full p-2 border rounded" value={form.date} onChange={e => setForm({...form, date: e.target.value})} /><input type="text" placeholder="Concepto" className="w-full p-2 border rounded" value={form.concept} onChange={e => setForm({...form, concept: e.target.value})} /><div className="flex gap-2"><select className="w-full p-2 border rounded" value={form.type} onChange={e => setForm({...form, type: e.target.value as any})}><option value="income">Ingreso (+)</option><option value="expense">Gasto (-)</option></select><input type="number" placeholder="Importe" className="w-full p-2 border rounded" value={form.amount} onChange={e => setForm({...form, amount: e.target.value})} /></div><select className="w-full p-2 border rounded" value={form.category} onChange={e => setForm({...form, category: e.target.value})}><option>General</option><option>Alquiler</option><option>Suministros</option><option>Mantenimiento</option></select><button type="submit" className="w-full bg-rentia-blue text-white py-3 rounded-lg font-bold">Guardar</button></form></div></div> )}
+                    </div>
+                </SubSectionWrapper>
+            );
+            case 'calendar': return (
+                <SubSectionWrapper title="Calendario">
+                    <CalendarManager />
+                </SubSectionWrapper>
+            );
+            case 'supplies': return (
+                <SubSectionWrapper title="Suministros">
+                    {/* Render simplificado de suministros */}
+                    <div className="flex flex-col gap-4">
+                        <div className="bg-white p-4 rounded-xl border shadow-sm">
+                            <button onClick={() => setIsSupplyFormOpen(true)} className="w-full bg-rentia-black text-white px-4 py-3 rounded-lg font-bold text-sm flex items-center justify-center gap-2"><Plus className="w-4 h-4"/> Registrar Factura</button>
+                        </div>
+                        <div className="space-y-2">
+                            {supplyRecords.map(rec => (
+                                <div key={rec.id} className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm flex justify-between items-center">
+                                    <div>
+                                        <p className="font-bold text-gray-800 text-sm truncate max-w-[150px]">{propertiesList.find(p=>p.id===rec.propertyId)?.address}</p>
+                                        <p className="text-xs text-gray-500">{rec.month}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="font-bold text-gray-900">{rec.total.toFixed(2)}€</p>
+                                        <span className={`text-[10px] px-1.5 py-0.5 rounded ${rec.status==='settled'?'bg-green-100 text-green-700':'bg-yellow-100 text-yellow-700'}`}>{rec.status==='settled'?'Pagado':'Pendiente'}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        {isSupplyFormOpen && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                            <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+                                <div className="p-4 bg-gray-50 border-b flex justify-between items-center sticky top-0 z-10">
+                                    <h3 className="font-bold">Nueva Factura</h3>
+                                    <button onClick={() => setIsSupplyFormOpen(false)}><X className="w-5 h-5 text-gray-400"/></button>
+                                </div>
+                                <div className="p-4 space-y-3">
+                                    <select className="w-full p-2 border rounded" value={selectedPropId} onChange={e => setSelectedPropId(e.target.value)}><option value="">Propiedad...</option>{propertiesList.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}</select>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <input type="month" className="w-full p-2 border rounded" value={supplyMonth} onChange={e => setSupplyMonth(e.target.value)} />
+                                        <input type="number" placeholder="Luz" className="w-full p-2 border rounded" value={supplyForm.electricity} onChange={e => setSupplyForm({...supplyForm, electricity: e.target.value})} />
+                                        <input type="number" placeholder="Agua" className="w-full p-2 border rounded" value={supplyForm.water} onChange={e => setSupplyForm({...supplyForm, water: e.target.value})} />
+                                        <input type="number" placeholder="Internet" className="w-full p-2 border rounded" value={supplyForm.internet} onChange={e => setSupplyForm({...supplyForm, internet: e.target.value})} />
+                                    </div>
+                                    <button onClick={saveSupplyRecord} className="w-full bg-rentia-black text-white font-bold py-3 rounded-lg">Guardar</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    </div>
+                </SubSectionWrapper>
+            );
+            case 'contracts': return (
+                <SubSectionWrapper title="Contratos">
+                    <ContractManager onClose={() => setActiveMobileTab('menu')} />
+                </SubSectionWrapper>
+            );
+            case 'social': return (
+                <SubSectionWrapper title="Mensajería">
+                    <SocialInbox />
+                </SubSectionWrapper>
+            );
+            case 'calculator': return (
+                <SubSectionWrapper title="Calculadora Suministros">
+                    <SupplyCalculator properties={propertiesList} preSelectedPropertyId={selectedPropId} />
+                </SubSectionWrapper>
+            );
             case 'tools': return (
-                <div className="space-y-4 animate-in slide-in-from-bottom-4 duration-300">
-                    <UserCreator />
-                    <FileAnalyzer />
-                    <ProfitCalculator />
-                </div>
+                <SubSectionWrapper title="Herramientas Admin">
+                    <div className="space-y-4">
+                        <UserCreator />
+                        <FileAnalyzer />
+                        <ProfitCalculator />
+                    </div>
+                </SubSectionWrapper>
             );
         }
     };
@@ -689,11 +1041,12 @@ export const StaffDashboard: React.FC = () => {
         </header>
 
         {/* --- CONTENT AREA (DUAL RENDER) --- */}
-        <div className="md:hidden pb-24">
+        <div className="md:hidden pb-24 h-[calc(100vh-140px)] overflow-hidden">
             {renderMobileContent()}
         </div>
         
         <div className="hidden md:block">
+            {/* ... (Renderizado de escritorio se mantiene igual) ... */}
             {activeTab === 'overview' && ( 
                 <div className="animate-in slide-in-from-bottom-4 duration-300">
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 mb-8">
@@ -735,26 +1088,51 @@ export const StaffDashboard: React.FC = () => {
             {activeTab === 'calendar' && ( <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><CalendarManager /></div> )}
             {activeTab === 'calculator' && ( <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><SupplyCalculator properties={propertiesList} preSelectedPropertyId={selectedPropId} /></div> )}
             {activeTab === 'social' && ( <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><SocialInbox /></div> )}
+            {activeTab === 'visits' && ( <div className="animate-in slide-in-from-bottom-4 duration-300"><VisitsLog /></div> )}
             {activeTab === 'supplies' && ( 
                 <div className="animate-in slide-in-from-bottom-4 duration-300 flex flex-col gap-6">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                        <h3 className="font-bold text-gray-800 flex items-center gap-2"><Zap className="w-5 h-5 text-rentia-blue"/> Histórico de Facturas</h3>
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                            <h3 className="font-bold text-gray-800 flex items-center gap-2"><Zap className="w-5 h-5 text-rentia-blue"/> Histórico de Facturas</h3>
+                            <select 
+                                value={supplyFilterProperty} 
+                                onChange={(e) => setSupplyFilterProperty(e.target.value)} 
+                                className="bg-gray-50 border border-gray-200 text-sm rounded-lg p-2 focus:ring-2 focus:ring-rentia-blue outline-none min-w-[200px]"
+                            >
+                                <option value="">Todas las propiedades</option>
+                                {propertiesList.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}
+                            </select>
+                        </div>
                         <button onClick={() => setIsSupplyFormOpen(true)} className="bg-rentia-black text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 hover:bg-gray-800 w-full sm:w-auto justify-center"><Plus className="w-4 h-4"/> Añadir Factura</button>
                     </div>
                     {/* LISTA FACTURAS */}
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden overflow-x-auto">
                         <table className="w-full text-sm text-left">
-                            <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs"><tr><th className="p-4 whitespace-nowrap">Propiedad</th><th className="p-4 whitespace-nowrap">Mes</th><th className="p-4 whitespace-nowrap">Total</th><th className="p-4 whitespace-nowrap">Estado</th></tr></thead>
+                            <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs"><tr><th className="p-4 whitespace-nowrap">Propiedad</th><th className="p-4 whitespace-nowrap">Mes</th><th className="p-4 whitespace-nowrap">Total</th><th className="p-4 whitespace-nowrap text-center">Estado</th><th className="p-4 text-center">Acción</th></tr></thead>
                             <tbody className="divide-y divide-gray-100">
-                                {supplyRecords.map(rec => (
+                                {supplyRecords
+                                    .filter(rec => !supplyFilterProperty || rec.propertyId === supplyFilterProperty)
+                                    .map(rec => (
                                     <tr key={rec.id} className="hover:bg-gray-50">
                                         <td className="p-4 font-bold text-gray-800 whitespace-nowrap">{propertiesList.find(p=>p.id===rec.propertyId)?.address}</td>
                                         <td className="p-4 whitespace-nowrap">{rec.month}</td>
                                         <td className="p-4 font-bold whitespace-nowrap">{rec.total.toFixed(2)}€</td>
-                                        <td className="p-4 whitespace-nowrap"><span className={`px-2 py-1 rounded-full text-xs ${rec.status==='settled'?'bg-green-100 text-green-700':'bg-yellow-100 text-yellow-700'}`}>{rec.status==='settled'?'Liquidado':'Pendiente'}</span></td>
+                                        <td className="p-4 whitespace-nowrap text-center">
+                                            <select 
+                                                value={rec.status} 
+                                                onChange={(e) => handleSupplyStatusChange(rec.id, e.target.value)}
+                                                className={`px-2 py-1 rounded-full text-xs font-bold border outline-none cursor-pointer ${rec.status==='settled'?'bg-green-100 text-green-700 border-green-200':'bg-yellow-100 text-yellow-700 border-yellow-200'}`}
+                                            >
+                                                <option value="pending">Pendiente</option>
+                                                <option value="settled">Pagado</option>
+                                            </select>
+                                        </td>
+                                        <td className="p-4 text-center">
+                                            <button onClick={() => deleteSupplyRecord(rec.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"><Trash2 className="w-4 h-4"/></button>
+                                        </td>
                                     </tr>
                                 ))}
-                                {supplyRecords.length === 0 && <tr><td colSpan={4} className="p-8 text-center text-gray-400">No hay facturas registradas.</td></tr>}
+                                {supplyRecords.length === 0 && <tr><td colSpan={5} className="p-8 text-center text-gray-400">No hay facturas registradas.</td></tr>}
                             </tbody>
                         </table>
                     </div>
@@ -783,79 +1161,6 @@ export const StaffDashboard: React.FC = () => {
                     )}
                 </div> 
             )}
-            {activeTab === 'accounting' && ( 
-                <div className="animate-in slide-in-from-bottom-4 duration-300 space-y-6">
-                    {/* RESUMEN FINANCIERO */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                            <p className="text-xs text-gray-500 font-bold uppercase mb-1">Ingresos</p>
-                            <div className="flex items-end justify-between">
-                                <span className="text-2xl font-bold text-green-600">{financialSummary.income.toLocaleString()}€</span>
-                                <span className={`text-xs px-2 py-0.5 rounded ${financialSummary.incomeChange >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{financialSummary.incomeChange.toFixed(1)}%</span>
-                            </div>
-                        </div>
-                        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                            <p className="text-xs text-gray-500 font-bold uppercase mb-1">Gastos</p>
-                            <div className="flex items-end justify-between">
-                                <span className="text-2xl font-bold text-red-600">{financialSummary.expense.toLocaleString()}€</span>
-                                <span className={`text-xs px-2 py-0.5 rounded ${financialSummary.expenseChange <= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{financialSummary.expenseChange.toFixed(1)}%</span>
-                            </div>
-                        </div>
-                        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 relative overflow-hidden">
-                            <p className="text-xs text-gray-500 font-bold uppercase mb-1">Balance Neto</p>
-                            <span className={`text-2xl font-bold ${financialSummary.balance >= 0 ? 'text-rentia-blue' : 'text-orange-500'}`}>{financialSummary.balance.toLocaleString()}€</span>
-                            <div className="absolute right-0 bottom-0 opacity-10"><DollarSign className="w-16 h-16"/></div>
-                        </div>
-                    </div>
-
-                    {/* GRÁFICA */}
-                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                        <h4 className="font-bold text-gray-700 mb-2 text-sm">Evolución Semestral</h4>
-                        <FinancialChart data={financialSummary.chartData} />
-                    </div>
-
-                    {/* TABLA MOVIMIENTOS */}
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                        <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gray-50">
-                            <h3 className="font-bold text-gray-800 flex items-center gap-2"><Calculator className="w-5 h-5 text-rentia-blue"/> Movimientos</h3>
-                            <div className="flex gap-2 w-full sm:w-auto">
-                                <button onClick={() => setIsModalOpen(true)} className="bg-rentia-black text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 hover:bg-gray-800 flex-1 sm:flex-none"><Plus className="w-4 h-4"/> Nuevo</button>
-                                <button onClick={exportToCSV} className="bg-white border border-gray-300 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-50 flex items-center justify-center gap-2 flex-1 sm:flex-none" title="Exportar CSV"><Download className="w-4 h-4"/> <span className="sm:hidden">Exportar</span></button>
-                            </div>
-                        </div>
-                        
-                        {/* Filtros */}
-                        <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row gap-4 items-center">
-                            <div className="relative w-full sm:w-auto flex-grow"><Search className="w-4 h-4 absolute left-3 top-2.5 text-gray-400"/><input type="text" placeholder="Buscar..." className="pl-9 pr-4 py-2 border rounded-lg text-sm w-full" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} /></div>
-                            <div className="flex gap-2 w-full sm:w-auto">
-                                <select className="p-2 border rounded-lg text-sm bg-white flex-1" value={filterCategory} onChange={e => setFilterCategory(e.target.value)}><option value="Todas">Categoría</option><option value="General">General</option><option value="Alquiler">Alquiler</option><option value="Suministros">Suministros</option><option value="Mantenimiento">Mantenimiento</option><option value="Impuestos">Impuestos</option></select>
-                                <select className="p-2 border rounded-lg text-sm bg-white flex-1" value={filterStatus} onChange={e => setFilterStatus(e.target.value as any)}><option value="all">Estado</option><option value="paid">Pagados</option><option value="pending">Pendientes</option></select>
-                            </div>
-                        </div>
-
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-left">
-                                <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs"><tr><th className="p-4 whitespace-nowrap">Fecha</th><th className="p-4 whitespace-nowrap">Concepto</th><th className="p-4 whitespace-nowrap">Categoría</th><th className="p-4 text-right whitespace-nowrap">Importe</th><th className="p-4 text-center whitespace-nowrap">Estado</th><th className="p-4 text-right whitespace-nowrap">Acción</th></tr></thead>
-                                <tbody className="divide-y divide-gray-100">
-                                    {filteredTransactions.map(t => (
-                                        <tr key={t.id} className="hover:bg-gray-50 group">
-                                            <td className="p-4 text-gray-500 whitespace-nowrap">{t.date}</td>
-                                            <td className="p-4 font-medium text-gray-900 min-w-[150px]">{t.concept}<span className="block text-xs text-gray-400 font-normal">{t.reference}</span></td>
-                                            <td className="p-4"><span className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs whitespace-nowrap">{t.category}</span></td>
-                                            <td className={`p-4 text-right font-bold whitespace-nowrap ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>{t.type === 'income' ? '+' : '-'}{t.amount.toFixed(2)}€</td>
-                                            <td className="p-4 text-center whitespace-nowrap">{t.status === 'pending' ? <span className="bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full text-xs font-bold">Pendiente</span> : <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-bold">Pagado</span>}</td>
-                                            <td className="p-4 text-right whitespace-nowrap"><div className="flex justify-end gap-2"><button onClick={() => handleEdit(t)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"><Pencil className="w-4 h-4"/></button><button onClick={() => handleDelete(t.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4"/></button></div></td>
-                                        </tr>
-                                    ))}
-                                    {filteredTransactions.length === 0 && <tr><td colSpan={6} className="p-8 text-center text-gray-400">No hay movimientos.</td></tr>}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    {/* MODAL CONTABILIDAD */}
-                    {isModalOpen && ( <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"><div className="bg-white w-full max-w-md rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 max-h-[90vh] overflow-y-auto"><div className="px-6 py-4 bg-gray-50 border-b flex justify-between items-center sticky top-0 z-10"><h3 className="font-bold text-gray-800">{editingId ? 'Editar' : 'Nuevo'} Movimiento</h3><button onClick={closeModal}><X className="w-5 h-5 text-gray-400"/></button></div><form onSubmit={handleSaveTransaction} className="p-6 space-y-4"><div className="grid grid-cols-2 gap-4"><div><label className="block text-xs font-bold text-gray-500 mb-1">Fecha</label><input type="date" required className="w-full p-2 border rounded" value={form.date} onChange={e => setForm({...form, date: e.target.value})} /></div><div><label className="block text-xs font-bold text-gray-500 mb-1">Referencia</label><input type="text" className="w-full p-2 border rounded" value={form.reference} onChange={e => setForm({...form, reference: e.target.value})} /></div></div><div><label className="block text-xs font-bold text-gray-500 mb-1">Concepto</label><input type="text" required className="w-full p-2 border rounded" value={form.concept} onChange={e => setForm({...form, concept: e.target.value})} /></div><div className="grid grid-cols-2 gap-4"><div><label className="block text-xs font-bold text-gray-500 mb-1">Tipo</label><select className="w-full p-2 border rounded" value={form.type} onChange={e => setForm({...form, type: e.target.value as any})}><option value="income">Ingreso (+)</option><option value="expense">Gasto (-)</option></select></div><div><label className="block text-xs font-bold text-gray-500 mb-1">Importe</label><input type="number" required step="0.01" className="w-full p-2 border rounded font-bold" value={form.amount} onChange={e => setForm({...form, amount: e.target.value})} /></div></div><div className="grid grid-cols-2 gap-4"><div><label className="block text-xs font-bold text-gray-500 mb-1">Categoría</label><select className="w-full p-2 border rounded" value={form.category} onChange={e => setForm({...form, category: e.target.value})}><option>General</option><option>Alquiler</option><option>Suministros</option><option>Mantenimiento</option><option>Impuestos</option><option>Seguros</option></select></div><div><label className="block text-xs font-bold text-gray-500 mb-1">Estado</label><select className="w-full p-2 border rounded" value={form.status} onChange={e => setForm({...form, status: e.target.value as any})}><option value="paid">Pagado</option><option value="pending">Pendiente</option></select></div></div><button type="submit" className="w-full bg-rentia-blue text-white py-3 rounded-lg font-bold hover:bg-blue-700">Guardar</button></form></div></div> )}
-                </div> 
-            )}
             {activeTab === 'tools' && ( <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in slide-in-from-bottom-4 duration-300"><FeedGenerator /><UserCreator /><FileAnalyzer /><ProfitCalculator /></div> )}
         </div>
         
@@ -865,12 +1170,13 @@ export const StaffDashboard: React.FC = () => {
             <button onClick={() => setActiveMobileTab('tasks')} className={`py-2 flex flex-col items-center justify-center gap-1 transition-colors ${activeMobileTab === 'tasks' ? 'text-rentia-blue' : 'text-gray-400'}`}><ClipboardList className="w-5 h-5"/><span className="text-[10px] font-bold">Tareas</span></button>
             <button onClick={() => setActiveMobileTab('candidates')} className={`py-2 flex flex-col items-center justify-center gap-1 transition-colors ${activeMobileTab === 'candidates' ? 'text-rentia-blue' : 'text-gray-400'}`}><UserCheck className="w-5 h-5"/><span className="text-[10px] font-bold">Candidatos</span></button>
             <button onClick={() => setActiveMobileTab('properties')} className={`py-2 flex flex-col items-center justify-center gap-1 transition-colors ${activeMobileTab === 'properties' ? 'text-rentia-blue' : 'text-gray-400'}`}><Home className="w-5 h-5"/><span className="text-[10px] font-bold">Inmuebles</span></button>
-            <button onClick={() => setActiveMobileTab('tools')} className={`py-2 flex flex-col items-center justify-center gap-1 transition-colors ${activeMobileTab === 'tools' ? 'text-rentia-blue' : 'text-gray-400'}`}><Wrench className="w-5 h-5"/><span className="text-[10px] font-bold">Herramientas</span></button>
+            {/* NUEVO BOTÓN MENÚ MÓVIL */}
+            <button onClick={() => setActiveMobileTab('menu')} className={`py-2 flex flex-col items-center justify-center gap-1 transition-colors ${activeMobileTab === 'menu' ? 'text-rentia-blue' : 'text-gray-400'}`}><Grid className="w-5 h-5"/><span className="text-[10px] font-bold">Más</span></button>
         </div>
 
         {/* --- MODALS (retained) --- */}
         {showCandidateModal && ( <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setShowCandidateModal(false)}><form onSubmit={handleSendCandidate} className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-xl shadow-2xl flex flex-col animate-in slide-in-from-bottom-10 overflow-hidden" onClick={e => e.stopPropagation()}><div className="p-4 bg-gray-50 border-b flex justify-between items-center"><h3 className="font-bold flex items-center gap-2"><UserPlus className="w-5 h-5 text-green-600"/> Enviar Candidato</h3><button type="button" onClick={() => setShowCandidateModal(false)} className="p-2 -mr-2"><X className="w-5 h-5 text-gray-400"/></button></div><div className="p-4 space-y-4 overflow-y-auto max-h-[70vh]"><div className="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Propiedad *</label><select required className="w-full p-2 border rounded text-sm" value={newCandidate.propertyId} onChange={e => setNewCandidate({...newCandidate, propertyId: e.target.value, roomId: ''})}><option value="">Seleccionar...</option>{propertiesList.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}</select></div><div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Habitación *</label><select required disabled={!newCandidate.propertyId} className="w-full p-2 border rounded text-sm" value={newCandidate.roomId} onChange={e => setNewCandidate({...newCandidate, roomId: e.target.value})}><option value="">Seleccionar...</option>{propertiesList.find(p => p.id === newCandidate.propertyId)?.rooms.map((r:any) => <option key={r.id} value={r.id}>{r.name} ({r.status})</option>)}</select></div></div><div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nombre Candidato *</label><input required type="text" className="w-full p-2 border rounded text-sm font-bold" value={newCandidate.candidateName} onChange={e => setNewCandidate({...newCandidate, candidateName: e.target.value})} /></div><div className="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Teléfono</label><input type="tel" className="w-full p-2 border rounded text-sm" value={newCandidate.candidatePhone} onChange={e => setNewCandidate({...newCandidate, candidatePhone: e.target.value})} /></div><div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Email</label><input type="email" className="w-full p-2 border rounded text-sm" value={newCandidate.candidateEmail} onChange={e => setNewCandidate({...newCandidate, candidateEmail: e.target.value})} /></div></div><div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Info Adicional</label><textarea className="w-full p-2 border rounded text-sm h-20 resize-none" value={newCandidate.additionalInfo} onChange={e => setNewCandidate({...newCandidate, additionalInfo: e.target.value})} /></div></div><div className="p-4 bg-gray-50 border-t flex justify-end"><button type="submit" className="bg-green-600 text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-green-700 shadow-md flex items-center gap-2"><Send className="w-4 h-4"/> Enviar a Pipeline</button></div></form></div> )}
-        {isModalOpen && ( <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-sm animate-in fade-in" onClick={closeModal}><div className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-xl shadow-2xl flex flex-col animate-in slide-in-from-bottom-10 overflow-hidden" onClick={e => e.stopPropagation()}><div className="px-6 py-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center"><h3 className="font-bold text-gray-800">{editingId ? 'Editar Movimiento' : 'Nuevo Movimiento'}</h3><button onClick={closeModal} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5"/></button></div><form onSubmit={handleSaveTransaction} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">{/* ... Form content ... */}</form></div></div> )}
+        {isModalOpen && ( <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-sm animate-in fade-in" onClick={closeModal}><div className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-xl shadow-2xl flex flex-col animate-in slide-in-from-bottom-10 overflow-hidden" onClick={e => e.stopPropagation()}><div className="px-6 py-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center"><h3 className="font-bold text-gray-800">{editingId ? 'Editar' : 'Nuevo'} Movimiento</h3><button onClick={closeModal} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5"/></button></div><form onSubmit={handleSaveTransaction} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">{/* ... Form content ... */}</form></div></div> )}
       </div>
     </div>
   );

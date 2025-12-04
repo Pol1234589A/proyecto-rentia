@@ -15,25 +15,27 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // Obtiene los datos del usuario actual de la colección 'users'
-    function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    // Helper seguro para obtener el documento del usuario
+    function getUserDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
-    // Verifica el rol y si la cuenta está activa
+    // Verifica el rol y si la cuenta está activa de forma segura
     function hasRole(role) {
-      let user = getUserData();
+      let userDoc = getUserDoc();
       return isAuthenticated() && 
-             user.role == role && 
-             (!("active" in user) || user.active == true);
+             userDoc != null &&
+             userDoc.data.role == role && 
+             (!("active" in userDoc.data) || userDoc.data.active == true);
     }
 
-    // STAFF: Acceso total (Staff, Admin, Owner)
+    // STAFF: Empleados internos con permisos de gestión (Staff y Admin)
+    // Se ha eliminado 'owner' de este grupo para evitar que clientes externos editen datos sensibles.
     function isStaff() {
-      return hasRole('staff') || hasRole('admin') || hasRole('owner');
+      return hasRole('staff') || hasRole('admin');
     }
 
-    // WORKER: Acceso operativo limitado
+    // WORKER: Trabajadores de campo (Comerciales, Mantenimiento)
     function isWorker() {
       return hasRole('worker');
     }
@@ -54,13 +56,14 @@ service cloud.firestore {
     }
 
     // 2. PROPIEDADES (PROPERTIES)
-    // Lectura pública para la web. Escritura restringida.
+    // Lectura pública para la web. Escritura restringida a Staff.
     match /properties/{propertyId} {
       allow read: if true;
       allow write: if isStaff();
     }
 
     // 3. OPORTUNIDADES (OPPORTUNITIES)
+    // Lectura pública para la landing de inversión. Escritura restringida.
     match /opportunities/{opportunityId} {
       allow read: if true;
       allow write: if isStaff();
@@ -81,7 +84,7 @@ service cloud.firestore {
     }
 
     // 6. TAREAS Y TABLEROS (TASKS & BOARDS)
-    // Fundamental para el TaskManager. Permitimos lectura/escritura a Staff y Workers.
+    // Lectura y escritura para equipo interno (Staff y Workers)
     match /tasks/{taskId} {
       allow read, write: if isStaffOrWorker();
     }
@@ -92,7 +95,7 @@ service cloud.firestore {
     // 7. BUZÓN SOCIAL (SOCIAL_INBOX)
     match /social_inbox/{msgId} {
       allow read: if isStaff();
-      allow create: if true; // Permitir entrada anónima o autenticada desde la web
+      allow create: if true; // Permitir entrada anónima (Formularios/Webhooks)
       allow update, delete: if isStaff();
     }
 
@@ -103,8 +106,9 @@ service cloud.firestore {
 
     // 9. SUMINISTROS (SUPPLY_RECORDS)
     match /supply_records/{recordId} {
-      allow read: if isAuthenticated(); // Inquilinos pueden ver
-      allow write: if isStaff();
+      // Acceso restringido a Staff para gestión. 
+      // Los inquilinos verán su parte a través de la UI que filtra datos o documentos generados.
+      allow read, write: if isStaff();
     }
 
     // 10. PIPELINE CANDIDATOS

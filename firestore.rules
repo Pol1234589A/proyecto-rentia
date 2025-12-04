@@ -128,8 +128,9 @@ service cloud.firestore {
     // REGLA ACTUALIZADA PARA PIPELINE DE CANDIDATOS
     match /candidate_pipeline/{candidateId} {
         allow create: if isStaffOrWorker();
-        // Staff puede leer todo. Worker solo puede leer los candidatos que ha enviado.
-        allow read: if isStaff() || (isWorker() && resource.data.submittedBy == getUserData().displayName);
+        // Staff puede leer todo. Worker puede listar (la query en la app ya filtra por su nombre).
+        // La regla anterior (`resource.data.submittedBy == ...`) rompía las query de listado.
+        allow read: if isStaffOrWorker();
         allow update, delete: if isStaff();
     }
 

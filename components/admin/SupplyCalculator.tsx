@@ -221,12 +221,12 @@ export const SupplyCalculator: React.FC<SupplyCalculatorProps> = ({ properties, 
         </div>
         
         {/* Selector de Propiedad */}
-        <div className="relative">
+        <div className="relative w-full sm:w-auto">
             <Search className="w-4 h-4 absolute left-3 top-2.5 text-gray-400" />
             <select 
                 value={selectedPropId} 
                 onChange={(e) => setSelectedPropId(e.target.value)}
-                className="pl-9 pr-8 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rentia-blue"
+                className="w-full sm:w-auto pl-9 pr-8 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rentia-blue"
             >
                 <option value="">Seleccionar Propiedad...</option>
                 {properties.map(p => (

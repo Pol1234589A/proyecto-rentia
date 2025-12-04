@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { db } from '../../firebase';
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy } from 'firebase/firestore';
 import { StaffMember, Task, TaskPriority, TaskStatus, TaskCategory, TaskBoard } from '../../types';
-import { Plus, Calendar, AlertTriangle, CheckCircle, Trash2, Edit2, X, Filter, List, Kanban, Save, Loader2, Wifi, WifiOff, Layout, FolderPlus, Folder, LayoutTemplate } from 'lucide-react';
+import { Plus, Calendar, AlertTriangle, CheckCircle, Trash2, Edit2, X, Filter, List, Kanban, Save, Loader2, Wifi, WifiOff, Layout, FolderPlus, Folder, LayoutTemplate, Menu } from 'lucide-react';
 
 const STAFF_MEMBERS: StaffMember[] = ['Pol', 'Sandra', 'Víctor', 'Ayoub', 'Hugo', 'Colaboradores'];
 const PRIORITIES: TaskPriority[] = ['Alta', 'Media', 'Baja'];
@@ -64,6 +64,7 @@ export const TaskManager: React.FC = () => {
     const [isEditing, setIsEditing] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [connectionError, setConnectionError] = useState<string | null>(null);
+    const [showMobileSidebar, setShowMobileSidebar] = useState(false);
 
     // Filters
     const [filterAssignee, setFilterAssignee] = useState<StaffMember | 'All'>('All');
@@ -252,18 +253,35 @@ export const TaskManager: React.FC = () => {
     };
 
     return (
-        <div className="bg-gray-50 min-h-screen flex h-full">
+        <div className="bg-gray-50 min-h-screen flex h-full relative overflow-hidden">
             
+            {/* MOBILE OVERLAY */}
+            {showMobileSidebar && (
+                <div 
+                    className="absolute inset-0 bg-black/50 z-20 md:hidden"
+                    onClick={() => setShowMobileSidebar(false)}
+                />
+            )}
+
             {/* SIDEBAR: Tableros y Grupos */}
-            <div className="w-64 bg-white border-r border-gray-200 flex-shrink-0 flex flex-col h-full">
+            <div className={`
+                w-64 bg-white border-r border-gray-200 flex-shrink-0 flex flex-col h-full
+                absolute md:relative z-30 transition-transform duration-300 shadow-xl md:shadow-none
+                ${showMobileSidebar ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+            `}>
                 <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                     <h3 className="font-bold text-gray-700 flex items-center gap-2">
                         <Layout className="w-5 h-5 text-rentia-blue" />
                         Tableros
                     </h3>
-                    <button onClick={() => setShowBoardModal(true)} className="p-1.5 hover:bg-white rounded-md text-gray-500 hover:text-rentia-blue transition-colors border border-transparent hover:border-gray-200">
-                        <FolderPlus className="w-4 h-4" />
-                    </button>
+                    <div className="flex gap-1">
+                        <button onClick={() => setShowBoardModal(true)} className="p-1.5 hover:bg-white rounded-md text-gray-500 hover:text-rentia-blue transition-colors border border-transparent hover:border-gray-200">
+                            <FolderPlus className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => setShowMobileSidebar(false)} className="md:hidden p-1.5 text-gray-400 hover:text-gray-600">
+                            <X className="w-5 h-5"/>
+                        </button>
+                    </div>
                 </div>
                 
                 <div className="flex-grow overflow-y-auto p-3 space-y-4">
@@ -282,7 +300,7 @@ export const TaskManager: React.FC = () => {
                                 {(groupBoards as TaskBoard[]).map(board => (
                                     <div 
                                         key={board.id}
-                                        onClick={() => setSelectedBoardId(board.id)}
+                                        onClick={() => { setSelectedBoardId(board.id); setShowMobileSidebar(false); }}
                                         className={`px-3 py-2 rounded-lg text-sm font-medium cursor-pointer flex justify-between items-center group transition-colors ${
                                             selectedBoardId === board.id 
                                             ? 'bg-blue-50 text-rentia-blue border border-blue-100' 
@@ -310,29 +328,41 @@ export const TaskManager: React.FC = () => {
             </div>
 
             {/* MAIN AREA */}
-            <div className="flex-grow flex flex-col h-full overflow-hidden">
+            <div className="flex-grow flex flex-col h-full overflow-hidden w-full relative">
                 
                 {/* Header / Stats */}
-                <div className="bg-white border-b border-gray-200 p-6">
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-                        <div>
-                            <h2 className="text-2xl font-bold text-rentia-black flex items-center gap-2">
-                                {boards.find(b => b.id === selectedBoardId)?.title || "Organizador de Tareas"}
-                            </h2>
-                            <div className="flex items-center gap-2 mt-1">
-                                <p className="text-sm text-gray-500">
-                                    {boards.find(b => b.id === selectedBoardId)?.group || "Vista General"}
-                                </p>
-                                {connectionError && (
-                                    <span className="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1 border border-red-200">
-                                        <WifiOff className="w-3 h-3" /> Offline
-                                    </span>
-                                )}
+                <div className="bg-white border-b border-gray-200 p-4 md:p-6">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+                        <div className="flex items-center gap-3 w-full md:w-auto">
+                            <button 
+                                onClick={() => setShowMobileSidebar(true)}
+                                className="md:hidden p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                            >
+                                <Menu className="w-6 h-6" />
+                            </button>
+
+                            <div className="flex-1">
+                                <h2 className="text-xl md:text-2xl font-bold text-rentia-black flex items-center gap-2 truncate">
+                                    {boards.find(b => b.id === selectedBoardId)?.title || "Organizador de Tareas"}
+                                </h2>
+                                <div className="flex items-center gap-2 mt-1">
+                                    <p className="text-xs md:text-sm text-gray-500">
+                                        {boards.find(b => b.id === selectedBoardId)?.group || "Vista General"}
+                                    </p>
+                                    {connectionError && (
+                                        <span className="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1 border border-red-200">
+                                            <WifiOff className="w-3 h-3" /> Offline
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                         </div>
-                        <div className="flex gap-2">
-                            <button onClick={() => setViewMode('kanban')} className={`p-2 rounded ${viewMode === 'kanban' ? 'bg-gray-100 text-rentia-blue' : 'text-gray-400'}`}><Kanban className="w-5 h-5"/></button>
-                            <button onClick={() => setViewMode('list')} className={`p-2 rounded ${viewMode === 'list' ? 'bg-gray-100 text-rentia-blue' : 'text-gray-400'}`}><List className="w-5 h-5"/></button>
+
+                        <div className="flex gap-2 w-full md:w-auto justify-between md:justify-end">
+                            <div className="flex gap-2">
+                                <button onClick={() => setViewMode('kanban')} className={`p-2 rounded ${viewMode === 'kanban' ? 'bg-gray-100 text-rentia-blue' : 'text-gray-400'}`}><Kanban className="w-5 h-5"/></button>
+                                <button onClick={() => setViewMode('list')} className={`p-2 rounded ${viewMode === 'list' ? 'bg-gray-100 text-rentia-blue' : 'text-gray-400'}`}><List className="w-5 h-5"/></button>
+                            </div>
                             <button 
                                 onClick={() => { 
                                     if (!selectedBoardId && boards.length === 0) {
@@ -343,7 +373,7 @@ export const TaskManager: React.FC = () => {
                                         setShowTaskModal(true); 
                                     }
                                 }} 
-                                className="bg-rentia-black text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-gray-800 shadow-md"
+                                className="bg-rentia-black text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-gray-800 shadow-md whitespace-nowrap"
                             >
                                 <Plus className="w-4 h-4" /> Nueva Tarea
                             </button>
@@ -359,35 +389,35 @@ export const TaskManager: React.FC = () => {
                         </div>
                     )}
 
-                    <div className="flex flex-wrap gap-4 items-center justify-between">
-                        <div className="flex gap-4">
-                            <div className="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg text-sm font-bold border border-blue-100 flex items-center gap-2">
-                                <span className="text-xl">{stats.total}</span> Tareas
+                    <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                        <div className="flex gap-2 overflow-x-auto no-scrollbar w-full sm:w-auto pb-2 sm:pb-0">
+                            <div className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-blue-100 flex items-center gap-2 whitespace-nowrap">
+                                <span className="text-base">{stats.total}</span> Tareas
                             </div>
-                            <div className="bg-red-50 text-red-700 px-4 py-2 rounded-lg text-sm font-bold border border-red-100 flex items-center gap-2">
-                                <AlertTriangle className="w-4 h-4" /> <span className="text-xl">{stats.urgent}</span> Urgentes
+                            <div className="bg-red-50 text-red-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-red-100 flex items-center gap-2 whitespace-nowrap">
+                                <AlertTriangle className="w-3 h-3" /> <span className="text-base">{stats.urgent}</span> Urgentes
                             </div>
-                            <div className="bg-green-50 text-green-700 px-4 py-2 rounded-lg text-sm font-bold border border-green-100 flex items-center gap-2">
-                                <CheckCircle className="w-4 h-4" /> <span className="text-xl">{stats.completed}</span> Fin
+                            <div className="bg-green-50 text-green-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-green-100 flex items-center gap-2 whitespace-nowrap">
+                                <CheckCircle className="w-3 h-3" /> <span className="text-base">{stats.completed}</span> Fin
                             </div>
                         </div>
 
-                        <div className="flex gap-2 items-center">
-                            <Filter className="w-4 h-4 text-gray-400" />
+                        <div className="flex gap-2 items-center w-full sm:w-auto overflow-x-auto no-scrollbar pb-2 sm:pb-0">
+                            <Filter className="w-4 h-4 text-gray-400 flex-shrink-0" />
                             <select 
-                                className="bg-white border border-gray-200 text-sm rounded-lg p-2 focus:ring-2 focus:ring-rentia-blue outline-none"
+                                className="bg-white border border-gray-200 text-xs md:text-sm rounded-lg p-2 focus:ring-2 focus:ring-rentia-blue outline-none"
                                 value={filterAssignee}
                                 onChange={(e) => setFilterAssignee(e.target.value as any)}
                             >
-                                <option value="All">Todos los Responsables</option>
+                                <option value="All">Todos</option>
                                 {STAFF_MEMBERS.map(m => <option key={m} value={m}>{m}</option>)}
                             </select>
                             <select 
-                                className="bg-white border border-gray-200 text-sm rounded-lg p-2 focus:ring-2 focus:ring-rentia-blue outline-none"
+                                className="bg-white border border-gray-200 text-xs md:text-sm rounded-lg p-2 focus:ring-2 focus:ring-rentia-blue outline-none"
                                 value={filterPriority}
                                 onChange={(e) => setFilterPriority(e.target.value as any)}
                             >
-                                <option value="All">Todas Prioridades</option>
+                                <option value="All">Prioridad</option>
                                 {PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}
                             </select>
                         </div>
@@ -395,7 +425,7 @@ export const TaskManager: React.FC = () => {
                 </div>
 
                 {/* Content Area */}
-                <div className="flex-grow p-6 overflow-x-auto bg-gray-50">
+                <div className="flex-grow p-4 md:p-6 bg-gray-50 overflow-hidden flex flex-col">
                     {boards.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-full text-gray-400">
                             <Layout className="w-16 h-16 mb-4 opacity-20" />
@@ -403,21 +433,21 @@ export const TaskManager: React.FC = () => {
                             <button onClick={() => setShowBoardModal(true)} className="bg-rentia-blue text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700">Crear Primer Tablero</button>
                         </div>
                     ) : viewMode === 'kanban' ? (
-                        <div className="flex gap-6 min-w-[1000px] h-full">
+                        <div className="flex flex-col md:flex-row gap-4 md:gap-6 h-full overflow-y-auto md:overflow-x-auto pb-20 md:pb-4 scroll-smooth">
                             {STATUSES.map(status => (
-                                <div key={status} className="flex-1 min-w-[250px] flex flex-col h-full">
-                                    <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-200">
-                                        <h3 className="font-bold text-gray-700 text-sm uppercase tracking-wide">{status}</h3>
-                                        <span className="bg-white text-gray-600 text-xs font-bold px-2 py-0.5 rounded-full border border-gray-200 shadow-sm">
+                                <div key={status} className="flex-shrink-0 w-full md:w-[300px] flex flex-col md:h-full bg-gray-100/50 rounded-xl p-2 border border-gray-200/50">
+                                    <div className="flex items-center justify-between mb-3 px-2">
+                                        <h3 className="font-bold text-gray-700 text-xs uppercase tracking-wide">{status}</h3>
+                                        <span className="bg-white text-gray-600 text-[10px] font-bold px-2 py-0.5 rounded-full border border-gray-200 shadow-sm">
                                             {filteredTasks.filter(t => t.status === status).length}
                                         </span>
                                     </div>
-                                    <div className="flex-grow space-y-3 overflow-y-auto pr-2 custom-scrollbar">
+                                    <div className="space-y-3 md:flex-grow md:overflow-y-auto pr-1 custom-scrollbar">
                                         {filteredTasks.filter(t => t.status === status).map(task => (
                                             <TaskCard key={task.id} task={task} onEdit={openEditTask} onDelete={handleDeleteTask} />
                                         ))}
                                         {filteredTasks.filter(t => t.status === status).length === 0 && (
-                                            <div className="text-center py-8 border-2 border-dashed border-gray-200 rounded-lg text-gray-400 text-xs">
+                                            <div className="text-center py-8 border-2 border-dashed border-gray-200 rounded-lg text-gray-400 text-xs bg-white/50">
                                                 Vacío
                                             </div>
                                         )}
@@ -426,7 +456,7 @@ export const TaskManager: React.FC = () => {
                             ))}
                         </div>
                     ) : (
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden min-w-full overflow-x-auto">
                             <table className="w-full text-left text-sm">
                                 <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs">
                                     <tr>

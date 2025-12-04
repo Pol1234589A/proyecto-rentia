@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
-import { Users, Building, AlertCircle, CheckCircle, BarChart3, RefreshCw, LayoutDashboard, Calculator, Briefcase, Wrench, Plus, ArrowUpRight, ArrowDownRight, Search, FileText, Trash2, Save, X, DollarSign, Calendar as CalendarIcon, Filter, Download, Pencil, ChevronLeft, ChevronRight, PieChart, Landmark, ChevronDown, Wallet, CreditCard, Clock, Zap, Droplets, Flame, Wifi, Settings, Receipt, Split, Info, MessageCircle, Share2, ClipboardList, UserCheck, Mail, Phone, ArrowRight, UserPlus, Archive, Send, Home } from 'lucide-react';
+import { Users, Building, AlertCircle, CheckCircle, BarChart3, RefreshCw, LayoutDashboard, Calculator, Briefcase, Wrench, Plus, ArrowUpRight, ArrowDownRight, Search, FileText, Trash2, Save, X, DollarSign, Calendar as CalendarIcon, Filter, Download, Pencil, ChevronLeft, ChevronRight, PieChart, Landmark, ChevronDown, Wallet, CreditCard, Clock, Zap, Droplets, Flame, Wifi, Settings, Receipt, Split, Info, MessageCircle, Share2, ClipboardList, UserCheck, Mail, Phone, ArrowRight, UserPlus, Archive, Send, Home, DoorOpen } from 'lucide-react';
 import { UserCreator } from '../admin/UserCreator';
 import { FileAnalyzer } from '../admin/FileAnalyzer';
 import { RoomManager } from '../admin/RoomManager';
@@ -99,7 +100,7 @@ const CandidateManager: React.FC = () => {
     };
 
     return (
-        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100">
+        <div id="candidate-manager" className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100">
             <div className="flex justify-between items-center mb-4 border-b border-gray-100 pb-4">
                 <h3 className="text-lg sm:text-xl font-bold text-rentia-black flex items-center gap-2">
                     <UserCheck className="w-5 h-5 text-rentia-blue" /> Gestor de Candidatos
@@ -156,9 +157,9 @@ const FinancialChart = ({ data }: { data: { month: string, income: number, expen
     const height = 100;
     
     return (
-        <div className="h-40 w-full flex items-end justify-between gap-2 pt-6 pb-2 select-none">
+        <div className="h-40 w-full flex items-end justify-between gap-2 pt-6 pb-2 select-none overflow-x-auto no-scrollbar">
             {data.map((d, i) => (
-                <div key={i} className="flex-1 flex gap-1 h-full items-end justify-center group relative min-w-[20px]">
+                <div key={i} className="flex-1 flex gap-1 h-full items-end justify-center group relative min-w-[30px]">
                     {/* Tooltip */}
                     <div className="hidden group-hover:block absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none shadow-lg">
                         In: {d.income.toFixed(0)}€ | Out: {d.expense.toFixed(0)}€
@@ -166,12 +167,12 @@ const FinancialChart = ({ data }: { data: { month: string, income: number, expen
                     {/* Income Bar */}
                     <div 
                         style={{ height: `${(d.income / maxVal) * height}%` }} 
-                        className="w-1.5 sm:w-3 md:w-4 bg-emerald-400 rounded-t-sm opacity-80 hover:opacity-100 transition-all cursor-pointer relative"
+                        className="w-2 sm:w-3 md:w-4 bg-emerald-400 rounded-t-sm opacity-80 hover:opacity-100 transition-all cursor-pointer relative"
                     ></div>
                     {/* Expense Bar */}
                     <div 
                         style={{ height: `${(d.expense / maxVal) * height}%` }} 
-                        className="w-1.5 sm:w-3 md:w-4 bg-rose-400 rounded-t-sm opacity-80 hover:opacity-100 transition-all cursor-pointer relative"
+                        className="w-2 sm:w-3 md:w-4 bg-rose-400 rounded-t-sm opacity-80 hover:opacity-100 transition-all cursor-pointer relative"
                     ></div>
                     <span className="absolute -bottom-6 text-[8px] sm:text-[10px] text-gray-400 font-mono uppercase">{d.month}</span>
                 </div>
@@ -192,9 +193,11 @@ export const StaffDashboard: React.FC = () => {
     totalRooms: 0,
     occupancyRate: 0,
     activeIncidents: 0,
-    monthlyRevenue: 0
+    monthlyRevenue: 0,
+    vacantRooms: 0 // Nuevo estado
   });
   const [loadingStats, setLoadingStats] = useState(true);
+  const [pendingCandidatesCount, setPendingCandidatesCount] = useState(0);
 
   // --- STATE CONTABILIDAD ---
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -208,6 +211,7 @@ export const StaffDashboard: React.FC = () => {
   const [supplyMonth, setSupplyMonth] = useState(new Date().toISOString().slice(0, 7)); 
   const [supplyRecords, setSupplyRecords] = useState<SupplyRecord[]>([]);
   const [isSupplyConfigModalOpen, setIsSupplyConfigModalOpen] = useState(false);
+  const [isSupplyFormOpen, setIsSupplyFormOpen] = useState(false); // Modal para añadir factura
   
   // Formulario Facturas Suministros
   const [supplyForm, setSupplyForm] = useState({
@@ -304,7 +308,8 @@ export const StaffDashboard: React.FC = () => {
         totalRooms: totalRoomsCount,
         occupancyRate: totalRoomsCount > 0 ? Math.round((occupiedCount / totalRoomsCount) * 100) : 0,
         monthlyRevenue: revenueCount,
-        activeIncidents: renovationCount
+        activeIncidents: renovationCount,
+        vacantRooms: totalRoomsCount - occupiedCount
       });
       setLoadingStats(false);
     });
@@ -345,8 +350,14 @@ export const StaffDashboard: React.FC = () => {
         });
         setContractsList(conList);
     });
+    
+    // Listener Candidatos Pendientes
+    const qPending = query(collection(db, "candidate_pipeline"), where("status", "==", "pending_review"));
+    const unsubPending = onSnapshot(qPending, (snap) => {
+        setPendingCandidatesCount(snap.size);
+    });
 
-    return () => { unsubscribeProps(); unsubscribeAccounting(); unsubscribeSupplies(); unsubscribeContracts(); };
+    return () => { unsubscribeProps(); unsubscribeAccounting(); unsubscribeSupplies(); unsubscribeContracts(); unsubPending(); };
   }, []);
 
   
@@ -358,46 +369,6 @@ export const StaffDashboard: React.FC = () => {
   const currentMonthRecord = useMemo(() => {
       return supplyRecords.find(r => r.propertyId === selectedPropId && r.month === supplyMonth);
   }, [supplyRecords, selectedPropId, supplyMonth]);
-
-  const calculatedSplits = useMemo(() => {
-      if (!activeProperty || activeProperty.suppliesConfig?.type === 'fixed') return null;
-      const totalAmount = (parseFloat(supplyForm.electricity||'0') + parseFloat(supplyForm.water||'0') + parseFloat(supplyForm.gas||'0') + parseFloat(supplyForm.internet||'0') + parseFloat(supplyForm.cleaning||'0'));
-      if (totalAmount <= 0) return null;
-      const [yearStr, monthStr] = supplyMonth.split('-');
-      const year = parseInt(yearStr);
-      const month = parseInt(monthStr) - 1; 
-      const daysInMonth = new Date(year, month + 1, 0).getDate(); 
-      const dailyBillCost = totalAmount / daysInMonth;
-      const tenantCosts: Record<string, { name: string, days: number, amount: number, roomName: string }> = {};
-      let ownerShare = 0;
-      for (let day = 1; day <= daysInMonth; day++) {
-          const currentDay = new Date(year, month, day, 12, 0, 0); 
-          const activeTenantsToday = contractsList.filter(c => {
-              if (c.propertyId !== activeProperty.id) return false;
-              const cStart = new Date(c.startDate);
-              const cEnd = c.endDate ? new Date(c.endDate) : new Date(2099, 11, 31); 
-              cStart.setHours(0,0,0,0);
-              cEnd.setHours(23,59,59,999);
-              return currentDay >= cStart && currentDay <= cEnd;
-          });
-          if (activeTenantsToday.length > 0) {
-              const costPerHead = dailyBillCost / activeTenantsToday.length;
-              activeTenantsToday.forEach(t => {
-                  if (!tenantCosts[t.id!]) {
-                      tenantCosts[t.id!] = { name: t.tenantName, days: 0, amount: 0, roomName: t.roomName };
-                  }
-                  tenantCosts[t.id!].days += 1;
-                  tenantCosts[t.id!].amount += costPerHead;
-              });
-          } else {
-              ownerShare += dailyBillCost;
-          }
-      }
-      return {
-          tenantSplits: Object.values(tenantCosts).sort((a,b) => a.roomName.localeCompare(b.roomName)),
-          ownerShare
-      };
-  }, [activeProperty, supplyForm, supplyMonth, contractsList]);
 
   // Use Effects for Supply Form
   useEffect(() => {
@@ -445,25 +416,6 @@ export const StaffDashboard: React.FC = () => {
 
 
   // Actions
-  const savePropertyConfig = async () => {
-      if (!configProp) return;
-      try {
-          const docRef = doc(db, "properties", configProp.id);
-          // If property is static (not in DB yet), setDoc with merge creates it.
-          await setDoc(docRef, {
-              ...configProp,
-              suppliesConfig: {
-                  type: configProp.suppliesConfig?.type || 'shared',
-                  fixedAmount: configProp.suppliesConfig?.fixedAmount || 0
-              }
-          }, { merge: true });
-          setIsSupplyConfigModalOpen(false);
-      } catch (e) {
-          console.error("Error saving prop config", e);
-          alert("Error al guardar configuración");
-      }
-  };
-
   const saveSupplyRecord = async () => {
       if (!activeProperty) return;
       const elec = parseFloat(supplyForm.electricity) || 0;
@@ -474,12 +426,7 @@ export const StaffDashboard: React.FC = () => {
       const total = elec + water + gas + net + clean;
       const occupiedRooms = activeProperty.rooms?.filter((r:any) => r.status === 'occupied').length || 1;
       const costPerTenantAvg = occupiedRooms > 0 ? total / occupiedRooms : 0;
-      let notes = supplyForm.notes;
-      if (calculatedSplits && activeProperty.suppliesConfig?.type === 'shared') {
-          const breakdown = calculatedSplits.tenantSplits.map(t => `${t.roomName} (${t.name}): ${t.amount.toFixed(2)}€ [${t.days} días]`).join('\n');
-          const ownerNote = calculatedSplits.ownerShare > 0.01 ? `\nVacancia (Prop.): ${calculatedSplits.ownerShare.toFixed(2)}€` : '';
-          notes = `${notes ? notes + '\n\n' : ''}--- DESGLOSE AUTOMÁTICO (${new Date().toLocaleDateString()}) ---\n${breakdown}${ownerNote}`;
-      }
+      
       const recordData = {
           propertyId: activeProperty.id,
           propertyName: activeProperty.address, 
@@ -492,7 +439,7 @@ export const StaffDashboard: React.FC = () => {
           total: total,
           tenantsCount: occupiedRooms,
           costPerTenant: costPerTenantAvg,
-          notes: notes,
+          notes: supplyForm.notes,
           updatedAt: serverTimestamp(),
           status: 'pending' 
       };
@@ -503,7 +450,7 @@ export const StaffDashboard: React.FC = () => {
               await addDoc(collection(db, "supply_records"), recordData);
           }
           alert("Facturas registradas correctamente.");
-          setSupplyForm(prev => ({...prev, notes: notes || ''}));
+          setIsSupplyFormOpen(false);
       } catch (e) {
           console.error(e);
           alert("Error al guardar facturas.");
@@ -667,14 +614,38 @@ export const StaffDashboard: React.FC = () => {
         switch (activeMobileTab) {
             case 'overview': return (
                 <div className="animate-in slide-in-from-bottom-4 duration-300 space-y-4">
+                    {pendingCandidatesCount > 0 && (
+                        <div 
+                            className="bg-orange-50 border border-orange-200 rounded-lg p-4 flex items-center justify-between shadow-sm cursor-pointer"
+                            onClick={() => {
+                                const element = document.getElementById('candidate-manager');
+                                if (element) element.scrollIntoView({ behavior: 'smooth' });
+                            }}
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="bg-orange-100 p-2 rounded-full text-orange-600">
+                                    <UserCheck className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h4 className="font-bold text-orange-800 text-sm">Candidatos Pendientes</h4>
+                                    <p className="text-xs text-orange-700">Requieren tu aprobación</p>
+                                </div>
+                            </div>
+                            <span className="bg-orange-600 text-white font-bold text-lg px-3 py-1 rounded-full">{pendingCandidatesCount}</span>
+                        </div>
+                    )}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="bg-white p-4 rounded-lg shadow-sm border"><span className="text-xs text-gray-500 uppercase font-bold">Total Habs</span><span className="text-2xl font-bold text-gray-800 block mt-1">{loadingStats ? '-' : stats.totalRooms}</span></div>
                         <div className="bg-white p-4 rounded-lg shadow-sm border"><span className="text-xs text-gray-500 uppercase font-bold">Ocupación</span><span className={`text-2xl font-bold block mt-1 ${stats.occupancyRate > 90 ? 'text-green-600' : 'text-gray-800'}`}>{loadingStats ? '-' : `${stats.occupancyRate}%`}</span></div>
                         <div className="bg-white p-4 rounded-lg shadow-sm border"><span className="text-xs text-gray-500 uppercase font-bold">Incidencias</span><span className="text-2xl font-bold text-red-600 block mt-1">{loadingStats ? '-' : stats.activeIncidents}</span></div>
-                        <div className="bg-white p-4 rounded-lg shadow-sm border"><span className="text-xs text-gray-500 uppercase font-bold">Balance Caja</span><span className={`text-2xl font-bold block mt-1 ${totalRealBalance >= 0 ? 'text-gray-800' : 'text-red-600'}`}>{totalRealBalance.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span></div>
+                        <div className="bg-white p-4 rounded-lg shadow-sm border"><span className="text-xs text-gray-500 uppercase font-bold">Vacías</span><span className="text-2xl font-bold text-orange-500 block mt-1">{loadingStats ? '-' : stats.vacantRooms}</span></div>
+                        <div className="bg-white p-4 rounded-lg shadow-sm border col-span-2"><span className="text-xs text-gray-500 uppercase font-bold">Balance Caja</span><span className={`text-2xl font-bold block mt-1 ${totalRealBalance >= 0 ? 'text-gray-800' : 'text-red-600'}`}>{totalRealBalance.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span></div>
                     </div>
                     <button onClick={() => setShowCandidateModal(true)} className="w-full bg-green-50 text-green-700 p-4 rounded-lg font-bold hover:bg-green-100 border border-green-200 flex justify-between items-center"><span className="flex items-center gap-2"><UserPlus className="w-5 h-5"/> Enviar Candidato</span><ArrowRight/></button>
                     <button onClick={() => setActiveMobileTab('tasks')} className="w-full bg-blue-50 text-blue-700 p-4 rounded-lg font-bold hover:bg-blue-100 border border-blue-200 flex justify-between items-center"><span className="flex items-center gap-2"><ClipboardList className="w-5 h-5"/> Nueva Tarea</span><ArrowRight/></button>
+                    <div id="candidate-manager-mobile">
+                        <CandidateManager />
+                    </div>
                 </div>
             );
             case 'tasks': return <TaskManager />;
@@ -723,15 +694,168 @@ export const StaffDashboard: React.FC = () => {
         </div>
         
         <div className="hidden md:block">
-            {activeTab === 'overview' && ( <div className="animate-in slide-in-from-bottom-4 duration-300"><div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8"><div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-500 relative overflow-hidden"><span className="text-xs text-gray-500 uppercase font-bold">Total Habitaciones</span><div className="flex justify-between items-end mt-2"><span className="text-3xl font-bold text-gray-800">{loadingStats ? '-' : stats.totalRooms}</span><Building className="w-6 h-6 text-blue-100 absolute right-4 top-4 transform scale-150" /></div></div><div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-green-500 relative overflow-hidden"><span className="text-xs text-gray-500 uppercase font-bold">Ocupación Actual</span><div className="flex justify-between items-end mt-2"><span className={`text-3xl font-bold ${stats.occupancyRate > 90 ? 'text-green-600' : 'text-gray-800'}`}>{loadingStats ? '-' : `${stats.occupancyRate}%`}</span><Users className="w-6 h-6 text-green-100 absolute right-4 top-4 transform scale-150" /></div></div><div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-red-500 relative overflow-hidden"><span className="text-xs text-gray-500 uppercase font-bold">En Reformas / Incidencias</span><div className="flex justify-between items-end mt-2"><span className="text-3xl font-bold text-red-600">{loadingStats ? '-' : stats.activeIncidents}</span><AlertCircle className="w-6 h-6 text-red-100 absolute right-4 top-4 transform scale-150" /></div></div><div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-purple-500 relative overflow-hidden"><span className="text-xs text-gray-500 uppercase font-bold">Balance Total (Caja)</span><div className="flex justify-between items-end mt-2"><span className={`text-3xl font-bold ${totalRealBalance >= 0 ? 'text-gray-800' : 'text-red-600'}`}>{totalRealBalance.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}<span className="text-sm font-medium ml-1">€</span></span><Landmark className="w-6 h-6 text-purple-100 absolute right-4 top-4 transform scale-150" /></div></div></div><button onClick={() => setShowCandidateModal(true)} className="w-full bg-green-50 text-green-700 px-6 py-4 rounded-lg font-bold hover:bg-green-100 transition-colors items-center gap-2 border border-green-200 text-left flex justify-between shadow-sm mb-8"><div className="flex items-center gap-3"><UserPlus className="w-5 h-5"/><span>Enviar Nuevo Candidato al Pipeline</span></div><ArrowRight className="w-5 h-5"/></button><div className="mt-8"><CandidateManager /></div></div>)}
+            {activeTab === 'overview' && ( 
+                <div className="animate-in slide-in-from-bottom-4 duration-300">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+                        <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-500 relative overflow-hidden"><span className="text-xs text-gray-500 uppercase font-bold">Total Habitaciones</span><div className="flex justify-between items-end mt-2"><span className="text-3xl font-bold text-gray-800">{loadingStats ? '-' : stats.totalRooms}</span><Building className="w-6 h-6 text-blue-100 absolute right-4 top-4 transform scale-150" /></div></div>
+                        <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-green-500 relative overflow-hidden"><span className="text-xs text-gray-500 uppercase font-bold">Ocupación Actual</span><div className="flex justify-between items-end mt-2"><span className={`text-3xl font-bold ${stats.occupancyRate > 90 ? 'text-green-600' : 'text-gray-800'}`}>{loadingStats ? '-' : `${stats.occupancyRate}%`}</span><Users className="w-6 h-6 text-green-100 absolute right-4 top-4 transform scale-150" /></div></div>
+                        <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-orange-500 relative overflow-hidden"><span className="text-xs text-gray-500 uppercase font-bold">Habitaciones Vacías</span><div className="flex justify-between items-end mt-2"><span className="text-3xl font-bold text-orange-600">{loadingStats ? '-' : stats.vacantRooms}</span><DoorOpen className="w-6 h-6 text-orange-100 absolute right-4 top-4 transform scale-150" /></div></div>
+                        <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-red-500 relative overflow-hidden"><span className="text-xs text-gray-500 uppercase font-bold">En Reformas / Incidencias</span><div className="flex justify-between items-end mt-2"><span className="text-3xl font-bold text-red-600">{loadingStats ? '-' : stats.activeIncidents}</span><AlertCircle className="w-6 h-6 text-red-100 absolute right-4 top-4 transform scale-150" /></div></div>
+                        <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-purple-500 relative overflow-hidden"><span className="text-xs text-gray-500 uppercase font-bold">Balance Total (Caja)</span><div className="flex justify-between items-end mt-2"><span className={`text-3xl font-bold ${totalRealBalance >= 0 ? 'text-gray-800' : 'text-red-600'}`}>{totalRealBalance.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}<span className="text-sm font-medium ml-1">€</span></span><Landmark className="w-6 h-6 text-purple-100 absolute right-4 top-4 transform scale-150" /></div></div>
+                    </div>
+                    {pendingCandidatesCount > 0 && (
+                        <div 
+                            className="bg-orange-50 border border-orange-200 rounded-lg p-6 mb-8 flex items-center justify-between shadow-sm cursor-pointer hover:bg-orange-100 transition-colors"
+                            onClick={() => {
+                                const element = document.getElementById('candidate-manager');
+                                if (element) element.scrollIntoView({ behavior: 'smooth' });
+                            }}
+                        >
+                            <div className="flex items-center gap-4">
+                                <div className="bg-white p-3 rounded-full text-orange-600 shadow-sm border border-orange-100">
+                                    <UserCheck className="w-8 h-8" />
+                                </div>
+                                <div>
+                                    <h4 className="font-bold text-orange-900 text-xl">Tienes {pendingCandidatesCount} candidatos pendientes de revisión</h4>
+                                    <p className="text-sm text-orange-700">Haz clic aquí para ir al gestor y aprobarlos o rechazarlos.</p>
+                                </div>
+                            </div>
+                            <ArrowRight className="w-6 h-6 text-orange-400" />
+                        </div>
+                    )}
+                    <button onClick={() => setShowCandidateModal(true)} className="w-full bg-green-50 text-green-700 px-6 py-4 rounded-lg font-bold hover:bg-green-100 transition-colors items-center gap-2 border border-green-200 text-left flex justify-between shadow-sm mb-8"><div className="flex items-center gap-3"><UserPlus className="w-5 h-5"/><span>Enviar Nuevo Candidato al Pipeline</span></div><ArrowRight className="w-5 h-5"/></button>
+                    <div id="candidate-manager" className="mt-8">
+                        <CandidateManager />
+                    </div>
+                </div>
+            )}
             {activeTab === 'tasks' && ( <div className="animate-in slide-in-from-bottom-4 duration-300"><TaskManager /></div> )}
             {activeTab === 'real_estate' && ( <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-300"><RoomManager /><SalesCRM /></div> )}
             {activeTab === 'contracts' && ( <div className="animate-in slide-in-from-bottom-4 duration-300"><ContractManager onClose={() => setActiveTab('real_estate')} /></div> )}
             {activeTab === 'calendar' && ( <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><CalendarManager /></div> )}
             {activeTab === 'calculator' && ( <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><SupplyCalculator properties={propertiesList} preSelectedPropertyId={selectedPropId} /></div> )}
             {activeTab === 'social' && ( <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><SocialInbox /></div> )}
-            {activeTab === 'supplies' && ( <div className="animate-in slide-in-from-bottom-4 duration-300 flex flex-col gap-6">{/* ... Supply content ... */}</div> )}
-            {activeTab === 'accounting' && ( <div className="animate-in slide-in-from-bottom-4 duration-300 space-y-6">{/* ... Accounting content ... */}</div> )}
+            {activeTab === 'supplies' && ( 
+                <div className="animate-in slide-in-from-bottom-4 duration-300 flex flex-col gap-6">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                        <h3 className="font-bold text-gray-800 flex items-center gap-2"><Zap className="w-5 h-5 text-rentia-blue"/> Histórico de Facturas</h3>
+                        <button onClick={() => setIsSupplyFormOpen(true)} className="bg-rentia-black text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 hover:bg-gray-800 w-full sm:w-auto justify-center"><Plus className="w-4 h-4"/> Añadir Factura</button>
+                    </div>
+                    {/* LISTA FACTURAS */}
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden overflow-x-auto">
+                        <table className="w-full text-sm text-left">
+                            <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs"><tr><th className="p-4 whitespace-nowrap">Propiedad</th><th className="p-4 whitespace-nowrap">Mes</th><th className="p-4 whitespace-nowrap">Total</th><th className="p-4 whitespace-nowrap">Estado</th></tr></thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {supplyRecords.map(rec => (
+                                    <tr key={rec.id} className="hover:bg-gray-50">
+                                        <td className="p-4 font-bold text-gray-800 whitespace-nowrap">{propertiesList.find(p=>p.id===rec.propertyId)?.address}</td>
+                                        <td className="p-4 whitespace-nowrap">{rec.month}</td>
+                                        <td className="p-4 font-bold whitespace-nowrap">{rec.total.toFixed(2)}€</td>
+                                        <td className="p-4 whitespace-nowrap"><span className={`px-2 py-1 rounded-full text-xs ${rec.status==='settled'?'bg-green-100 text-green-700':'bg-yellow-100 text-yellow-700'}`}>{rec.status==='settled'?'Liquidado':'Pendiente'}</span></td>
+                                    </tr>
+                                ))}
+                                {supplyRecords.length === 0 && <tr><td colSpan={4} className="p-8 text-center text-gray-400">No hay facturas registradas.</td></tr>}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    {isSupplyFormOpen && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                            <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+                                <div className="p-4 bg-gray-50 border-b flex justify-between items-center sticky top-0 z-10">
+                                    <h3 className="font-bold">Nueva Factura de Suministros</h3>
+                                    <button onClick={() => setIsSupplyFormOpen(false)}><X className="w-5 h-5 text-gray-400"/></button>
+                                </div>
+                                <div className="p-6 space-y-4">
+                                    <div><label className="block text-xs font-bold text-gray-500 mb-1">Propiedad</label><select className="w-full p-2 border rounded" value={selectedPropId} onChange={e => setSelectedPropId(e.target.value)}><option value="">Seleccionar...</option>{propertiesList.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}</select></div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div><label className="block text-xs font-bold text-gray-500 mb-1">Mes (YYYY-MM)</label><input type="month" className="w-full p-2 border rounded" value={supplyMonth} onChange={e => setSupplyMonth(e.target.value)} /></div>
+                                        <div><label className="block text-xs font-bold text-gray-500 mb-1">Luz (€)</label><input type="number" className="w-full p-2 border rounded" value={supplyForm.electricity} onChange={e => setSupplyForm({...supplyForm, electricity: e.target.value})} /></div>
+                                        <div><label className="block text-xs font-bold text-gray-500 mb-1">Agua (€)</label><input type="number" className="w-full p-2 border rounded" value={supplyForm.water} onChange={e => setSupplyForm({...supplyForm, water: e.target.value})} /></div>
+                                        <div><label className="block text-xs font-bold text-gray-500 mb-1">Gas (€)</label><input type="number" className="w-full p-2 border rounded" value={supplyForm.gas} onChange={e => setSupplyForm({...supplyForm, gas: e.target.value})} /></div>
+                                        <div><label className="block text-xs font-bold text-gray-500 mb-1">Internet (€)</label><input type="number" className="w-full p-2 border rounded" value={supplyForm.internet} onChange={e => setSupplyForm({...supplyForm, internet: e.target.value})} /></div>
+                                        <div><label className="block text-xs font-bold text-gray-500 mb-1">Limpieza (€)</label><input type="number" className="w-full p-2 border rounded" value={supplyForm.cleaning} onChange={e => setSupplyForm({...supplyForm, cleaning: e.target.value})} /></div>
+                                    </div>
+                                    <button onClick={saveSupplyRecord} className="w-full bg-rentia-black text-white font-bold py-3 rounded-lg hover:bg-gray-800">Guardar Factura</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div> 
+            )}
+            {activeTab === 'accounting' && ( 
+                <div className="animate-in slide-in-from-bottom-4 duration-300 space-y-6">
+                    {/* RESUMEN FINANCIERO */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                            <p className="text-xs text-gray-500 font-bold uppercase mb-1">Ingresos</p>
+                            <div className="flex items-end justify-between">
+                                <span className="text-2xl font-bold text-green-600">{financialSummary.income.toLocaleString()}€</span>
+                                <span className={`text-xs px-2 py-0.5 rounded ${financialSummary.incomeChange >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{financialSummary.incomeChange.toFixed(1)}%</span>
+                            </div>
+                        </div>
+                        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                            <p className="text-xs text-gray-500 font-bold uppercase mb-1">Gastos</p>
+                            <div className="flex items-end justify-between">
+                                <span className="text-2xl font-bold text-red-600">{financialSummary.expense.toLocaleString()}€</span>
+                                <span className={`text-xs px-2 py-0.5 rounded ${financialSummary.expenseChange <= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{financialSummary.expenseChange.toFixed(1)}%</span>
+                            </div>
+                        </div>
+                        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 relative overflow-hidden">
+                            <p className="text-xs text-gray-500 font-bold uppercase mb-1">Balance Neto</p>
+                            <span className={`text-2xl font-bold ${financialSummary.balance >= 0 ? 'text-rentia-blue' : 'text-orange-500'}`}>{financialSummary.balance.toLocaleString()}€</span>
+                            <div className="absolute right-0 bottom-0 opacity-10"><DollarSign className="w-16 h-16"/></div>
+                        </div>
+                    </div>
+
+                    {/* GRÁFICA */}
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                        <h4 className="font-bold text-gray-700 mb-2 text-sm">Evolución Semestral</h4>
+                        <FinancialChart data={financialSummary.chartData} />
+                    </div>
+
+                    {/* TABLA MOVIMIENTOS */}
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                        <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gray-50">
+                            <h3 className="font-bold text-gray-800 flex items-center gap-2"><Calculator className="w-5 h-5 text-rentia-blue"/> Movimientos</h3>
+                            <div className="flex gap-2 w-full sm:w-auto">
+                                <button onClick={() => setIsModalOpen(true)} className="bg-rentia-black text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 hover:bg-gray-800 flex-1 sm:flex-none"><Plus className="w-4 h-4"/> Nuevo</button>
+                                <button onClick={exportToCSV} className="bg-white border border-gray-300 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-50 flex items-center justify-center gap-2 flex-1 sm:flex-none" title="Exportar CSV"><Download className="w-4 h-4"/> <span className="sm:hidden">Exportar</span></button>
+                            </div>
+                        </div>
+                        
+                        {/* Filtros */}
+                        <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row gap-4 items-center">
+                            <div className="relative w-full sm:w-auto flex-grow"><Search className="w-4 h-4 absolute left-3 top-2.5 text-gray-400"/><input type="text" placeholder="Buscar..." className="pl-9 pr-4 py-2 border rounded-lg text-sm w-full" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} /></div>
+                            <div className="flex gap-2 w-full sm:w-auto">
+                                <select className="p-2 border rounded-lg text-sm bg-white flex-1" value={filterCategory} onChange={e => setFilterCategory(e.target.value)}><option value="Todas">Categoría</option><option value="General">General</option><option value="Alquiler">Alquiler</option><option value="Suministros">Suministros</option><option value="Mantenimiento">Mantenimiento</option><option value="Impuestos">Impuestos</option></select>
+                                <select className="p-2 border rounded-lg text-sm bg-white flex-1" value={filterStatus} onChange={e => setFilterStatus(e.target.value as any)}><option value="all">Estado</option><option value="paid">Pagados</option><option value="pending">Pendientes</option></select>
+                            </div>
+                        </div>
+
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm text-left">
+                                <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs"><tr><th className="p-4 whitespace-nowrap">Fecha</th><th className="p-4 whitespace-nowrap">Concepto</th><th className="p-4 whitespace-nowrap">Categoría</th><th className="p-4 text-right whitespace-nowrap">Importe</th><th className="p-4 text-center whitespace-nowrap">Estado</th><th className="p-4 text-right whitespace-nowrap">Acción</th></tr></thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {filteredTransactions.map(t => (
+                                        <tr key={t.id} className="hover:bg-gray-50 group">
+                                            <td className="p-4 text-gray-500 whitespace-nowrap">{t.date}</td>
+                                            <td className="p-4 font-medium text-gray-900 min-w-[150px]">{t.concept}<span className="block text-xs text-gray-400 font-normal">{t.reference}</span></td>
+                                            <td className="p-4"><span className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs whitespace-nowrap">{t.category}</span></td>
+                                            <td className={`p-4 text-right font-bold whitespace-nowrap ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>{t.type === 'income' ? '+' : '-'}{t.amount.toFixed(2)}€</td>
+                                            <td className="p-4 text-center whitespace-nowrap">{t.status === 'pending' ? <span className="bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full text-xs font-bold">Pendiente</span> : <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-bold">Pagado</span>}</td>
+                                            <td className="p-4 text-right whitespace-nowrap"><div className="flex justify-end gap-2"><button onClick={() => handleEdit(t)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"><Pencil className="w-4 h-4"/></button><button onClick={() => handleDelete(t.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4"/></button></div></td>
+                                        </tr>
+                                    ))}
+                                    {filteredTransactions.length === 0 && <tr><td colSpan={6} className="p-8 text-center text-gray-400">No hay movimientos.</td></tr>}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {/* MODAL CONTABILIDAD */}
+                    {isModalOpen && ( <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"><div className="bg-white w-full max-w-md rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 max-h-[90vh] overflow-y-auto"><div className="px-6 py-4 bg-gray-50 border-b flex justify-between items-center sticky top-0 z-10"><h3 className="font-bold text-gray-800">{editingId ? 'Editar' : 'Nuevo'} Movimiento</h3><button onClick={closeModal}><X className="w-5 h-5 text-gray-400"/></button></div><form onSubmit={handleSaveTransaction} className="p-6 space-y-4"><div className="grid grid-cols-2 gap-4"><div><label className="block text-xs font-bold text-gray-500 mb-1">Fecha</label><input type="date" required className="w-full p-2 border rounded" value={form.date} onChange={e => setForm({...form, date: e.target.value})} /></div><div><label className="block text-xs font-bold text-gray-500 mb-1">Referencia</label><input type="text" className="w-full p-2 border rounded" value={form.reference} onChange={e => setForm({...form, reference: e.target.value})} /></div></div><div><label className="block text-xs font-bold text-gray-500 mb-1">Concepto</label><input type="text" required className="w-full p-2 border rounded" value={form.concept} onChange={e => setForm({...form, concept: e.target.value})} /></div><div className="grid grid-cols-2 gap-4"><div><label className="block text-xs font-bold text-gray-500 mb-1">Tipo</label><select className="w-full p-2 border rounded" value={form.type} onChange={e => setForm({...form, type: e.target.value as any})}><option value="income">Ingreso (+)</option><option value="expense">Gasto (-)</option></select></div><div><label className="block text-xs font-bold text-gray-500 mb-1">Importe</label><input type="number" required step="0.01" className="w-full p-2 border rounded font-bold" value={form.amount} onChange={e => setForm({...form, amount: e.target.value})} /></div></div><div className="grid grid-cols-2 gap-4"><div><label className="block text-xs font-bold text-gray-500 mb-1">Categoría</label><select className="w-full p-2 border rounded" value={form.category} onChange={e => setForm({...form, category: e.target.value})}><option>General</option><option>Alquiler</option><option>Suministros</option><option>Mantenimiento</option><option>Impuestos</option><option>Seguros</option></select></div><div><label className="block text-xs font-bold text-gray-500 mb-1">Estado</label><select className="w-full p-2 border rounded" value={form.status} onChange={e => setForm({...form, status: e.target.value as any})}><option value="paid">Pagado</option><option value="pending">Pendiente</option></select></div></div><button type="submit" className="w-full bg-rentia-blue text-white py-3 rounded-lg font-bold hover:bg-blue-700">Guardar</button></form></div></div> )}
+                </div> 
+            )}
             {activeTab === 'tools' && ( <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in slide-in-from-bottom-4 duration-300"><FeedGenerator /><UserCreator /><FileAnalyzer /><ProfitCalculator /></div> )}
         </div>
         

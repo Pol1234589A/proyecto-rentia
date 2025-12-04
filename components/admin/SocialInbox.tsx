@@ -44,12 +44,13 @@ export const SocialInbox: React.FC = () => {
     const [showSettings, setShowSettings] = useState(false);
     
     // Configuración de integraciones (Persistente)
+    // CAMBIO: Activadas todas por defecto para evitar que se vean "borradas"
     const [integrations, setIntegrations] = useState<Record<Platform, boolean>>({
         facebook: true,
         instagram: true,
         tiktok: true,
-        wallapop: false, // Por defecto desactivado (Solo si se permite)
-        milanuncios: false // Por defecto desactivado
+        wallapop: true, 
+        milanuncios: true 
     });
 
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -428,7 +429,7 @@ export const SocialInbox: React.FC = () => {
                             <MessageCircle className="w-12 h-12 text-rentia-blue opacity-50" />
                         </div>
                         <h3 className="text-xl font-bold text-gray-600 mb-2">Social Inbox</h3>
-                        <p className="max-w-md text-sm">Centraliza tus mensajes de todas las plataformas. Activa Wallapop y Milanuncios en configuración.</p>
+                        <p className="max-w-md text-sm">Centraliza tus mensajes de todas las plataformas.</p>
                         <div className="mt-8 flex gap-4 opacity-60">
                             {getPlatformIcon('facebook')}
                             {getPlatformIcon('instagram')}

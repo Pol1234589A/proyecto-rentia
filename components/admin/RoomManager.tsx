@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { db } from '../../firebase';
 import { collection, getDocs, doc, updateDoc, writeBatch, setDoc, deleteDoc, query, where } from 'firebase/firestore';
@@ -264,7 +265,7 @@ export const RoomManager: React.FC = () => {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col h-full">
       {/* Header */}
-      <div className="p-6 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+      <div className="p-6 border-b border-gray-100 bg-gray-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
             <h3 className="font-bold text-gray-800 flex items-center gap-2">
             <Building className="w-5 h-5 text-rentia-blue" />
@@ -272,17 +273,17 @@ export const RoomManager: React.FC = () => {
             </h3>
             <p className="text-xs text-gray-500 mt-1">Gestiona el inventario, precios y contratos.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 w-full sm:w-auto">
             <button 
                 onClick={fetchData} 
-                className="p-2 text-gray-500 hover:bg-gray-200 rounded-lg transition-colors" 
+                className="p-2 text-gray-500 hover:bg-gray-200 rounded-lg transition-colors flex-shrink-0" 
                 title="Recargar datos"
             >
                 <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
             <button 
                 onClick={() => setIsCreating(true)} 
-                className="bg-rentia-black text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-gray-800 transition-colors flex items-center gap-2"
+                className="bg-rentia-black text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-gray-800 transition-colors flex items-center gap-2 flex-grow sm:flex-grow-0 justify-center"
             >
                 <Plus className="w-4 h-4" /> Nuevo Piso
             </button>
@@ -331,18 +332,18 @@ export const RoomManager: React.FC = () => {
             return (
             <div key={prop.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 {/* Property Header Row */}
-                <div className="p-4 flex items-center justify-between bg-white hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => setExpandedProp(expandedProp === prop.id ? null : prop.id)}>
-                    <div className="flex items-center gap-3">
-                        {expandedProp === prop.id ? <ChevronDown className="w-5 h-5 text-gray-400"/> : <ChevronRight className="w-5 h-5 text-gray-400"/>}
+                <div className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-white hover:bg-gray-50 transition-colors cursor-pointer gap-4" onClick={() => setExpandedProp(expandedProp === prop.id ? null : prop.id)}>
+                    <div className="flex items-center gap-3 w-full sm:w-auto">
+                        {expandedProp === prop.id ? <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0"/> : <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0"/>}
                         <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 flex-shrink-0">
                             {prop.image ? <img src={prop.image} className="w-full h-full object-cover rounded-lg" alt=""/> : <Home className="w-5 h-5" />}
                         </div>
-                        <div>
-                            <h4 className="font-bold text-gray-800 text-sm">{prop.address}</h4>
+                        <div className="min-w-0">
+                            <h4 className="font-bold text-gray-800 text-sm truncate">{prop.address}</h4>
                             <p className="text-xs text-gray-500">{prop.city} • {prop.rooms.length} Habs</p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-3" onClick={e => e.stopPropagation()}>
+                    <div className="flex items-center gap-3 w-full sm:w-auto justify-end border-t sm:border-t-0 pt-3 sm:pt-0 border-gray-100" onClick={e => e.stopPropagation()}>
                         <button 
                             onClick={() => handleSaveAll(prop.id)}
                             className="text-xs font-bold bg-blue-50 text-blue-600 px-3 py-1.5 rounded hover:bg-blue-100 transition-colors flex items-center gap-1"
@@ -458,17 +459,17 @@ export const RoomManager: React.FC = () => {
                                         </div>
                                         <div>
                                             <label className="block text-[10px] font-bold text-gray-400 uppercase">Disponible Desde</label>
-                                            <div className="flex gap-1">
+                                            <div className="flex gap-1 flex-col sm:flex-row">
                                                 <input 
                                                     type="date" 
                                                     className="w-full p-1.5 border rounded text-xs text-gray-700" 
                                                     value={dateToInput(room.availableFrom)} 
                                                     onChange={e => handleRoomChange(prop.id, room.id, 'availableFrom', inputToDate(e.target.value))} 
                                                 />
-                                                <button onClick={() => handleRoomChange(prop.id, room.id, 'availableFrom', 'Inmediata')} className="text-[10px] px-2 bg-gray-100 hover:bg-green-100 rounded border">Ahora</button>
+                                                <button onClick={() => handleRoomChange(prop.id, room.id, 'availableFrom', 'Inmediata')} className="text-[10px] px-2 bg-gray-100 hover:bg-green-100 rounded border py-1 sm:py-0">Ahora</button>
                                             </div>
                                         </div>
-                                        <div>
+                                        <div className="col-span-2 md:col-span-1">
                                             <label className="block text-[10px] font-bold text-gray-400 uppercase">Gastos</label>
                                             <select className="w-full p-1.5 border rounded text-xs" value={room.expenses} onChange={e => handleRoomChange(prop.id, room.id, 'expenses', e.target.value)}>
                                                 <option value="Gastos fijos aparte">Fijos Aparte</option>
@@ -476,7 +477,7 @@ export const RoomManager: React.FC = () => {
                                                 <option value="Gastos incluidos">Incluidos</option>
                                             </select>
                                         </div>
-                                        <div className="flex items-center gap-2 mt-4">
+                                        <div className="flex items-center gap-2 mt-4 col-span-2 md:col-span-1 justify-end md:justify-start">
                                             <button 
                                                 onClick={() => handleRoomChange(prop.id, room.id, 'hasAirConditioning', !room.hasAirConditioning)}
                                                 className={`p-1.5 rounded border ${room.hasAirConditioning ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-gray-50 border-gray-200 text-gray-400'}`}

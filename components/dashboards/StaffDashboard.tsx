@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Users, Building, AlertCircle, CheckCircle, BarChart3, RefreshCw, LayoutDashboard, Calculator, Briefcase, Wrench, Plus, ArrowUpRight, ArrowDownRight, Search, FileText, Trash2, Save, X, DollarSign, Calendar as CalendarIcon, Filter, Download, Pencil, ChevronLeft, ChevronRight, PieChart, Landmark, ChevronDown, Wallet, CreditCard, Clock, Zap, Droplets, Flame, Wifi, Settings, Receipt, Split, Info, MessageCircle, Share2, ClipboardList, UserCheck, Mail, Phone, ArrowRight, UserPlus, Archive, Send, Home, DoorOpen, Menu, Grid, Footprints, MapPin } from 'lucide-react';
 import { UserCreator } from '../admin/UserCreator';
@@ -213,6 +214,7 @@ const CandidateManager: React.FC = () => {
     const [allCandidates, setAllCandidates] = useState<Candidate[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'rejected'>('pending');
+    const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
         const q = query(
@@ -237,11 +239,23 @@ const CandidateManager: React.FC = () => {
         }
     };
     
+    // Filtrado de candidatos basado en búsqueda
+    const filteredCandidates = useMemo(() => {
+        if (!searchTerm.trim()) return allCandidates;
+        const term = searchTerm.toLowerCase();
+        return allCandidates.filter(c => 
+            c.candidateName.toLowerCase().includes(term) ||
+            (c.candidatePhone && c.candidatePhone.includes(term)) ||
+            (c.candidateEmail && c.candidateEmail.toLowerCase().includes(term)) ||
+            c.propertyName.toLowerCase().includes(term)
+        );
+    }, [allCandidates, searchTerm]);
+
     const candidatesByStatus = useMemo(() => ({
-        pending: allCandidates.filter(c => c.status === 'pending_review'),
-        approved: allCandidates.filter(c => c.status === 'approved'),
-        rejected: allCandidates.filter(c => c.status === 'rejected'),
-    }), [allCandidates]);
+        pending: filteredCandidates.filter(c => c.status === 'pending_review'),
+        approved: filteredCandidates.filter(c => c.status === 'approved'),
+        rejected: filteredCandidates.filter(c => c.status === 'rejected'),
+    }), [filteredCandidates]);
 
     const renderList = (candidates: Candidate[]) => {
         if (loading) return <div className="text-center py-8 text-gray-400">Cargando...</div>;
@@ -250,7 +264,7 @@ const CandidateManager: React.FC = () => {
         return (
             <div className="space-y-4">
                 {candidates.map(c => (
-                    <div key={c.id} className="bg-gray-50 p-4 rounded-lg border border-gray-200 flex flex-col md:flex-row justify-between items-start gap-4">
+                    <div key={c.id} className="bg-gray-50 p-4 rounded-lg border border-gray-200 flex flex-col md:flex-row justify-between items-start gap-4 animate-in fade-in slide-in-from-left-2">
                         <div className="flex-1 w-full">
                             <div className="flex items-center gap-2 mb-2 flex-wrap">
                                 <span className="font-bold text-lg text-gray-800">{c.candidateName}</span>
@@ -268,7 +282,7 @@ const CandidateManager: React.FC = () => {
                             <p className="text-xs text-gray-600 bg-white p-3 border rounded-lg whitespace-pre-line leading-relaxed shadow-sm mb-3">
                                 {c.additionalInfo || 'Sin información adicional.'}
                             </p>
-                            <p className="text-[10px] text-gray-400">Enviado por: {c.submittedBy} - {c.submittedAt?.toDate().toLocaleDateString()}</p>
+                            <p className="text-[10px] text-gray-400">Enviado por: {c.submittedBy} - {c.submittedAt?.toDate ? c.submittedAt.toDate().toLocaleDateString() : 'N/A'}</p>
                         </div>
                         
                         <div className="flex gap-2 w-full md:w-auto mt-2 md:mt-0">
@@ -300,10 +314,22 @@ const CandidateManager: React.FC = () => {
 
     return (
         <div id="candidate-manager" className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100">
-            <div className="flex justify-between items-center mb-4 border-b border-gray-100 pb-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 border-b border-gray-100 pb-4">
                 <h3 className="text-lg sm:text-xl font-bold text-rentia-black flex items-center gap-2">
                     <UserCheck className="w-5 h-5 text-rentia-blue" /> Gestor de Candidatos
                 </h3>
+                
+                {/* Search Bar */}
+                <div className="relative w-full sm:w-64">
+                    <input 
+                        type="text" 
+                        placeholder="Buscar nombre, teléfono..." 
+                        className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rentia-blue bg-gray-50 focus:bg-white transition-colors"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                    <Search className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
+                </div>
             </div>
             
             <div className="flex border-b border-gray-200 mb-6 w-full overflow-x-auto no-scrollbar">

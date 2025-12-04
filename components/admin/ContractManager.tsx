@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../../firebase';
 import { collection, getDocs, doc, setDoc, updateDoc, addDoc, serverTimestamp, getDoc } from 'firebase/firestore';
@@ -291,6 +290,7 @@ export const ContractManager: React.FC<ContractManagerProps> = ({ initialMode = 
     const handleCreateUser = async () => {
         if (!newUserForm.name || !newUserForm.email) return alert("Nombre y Email obligatorios");
         const newId = `USER_${Date.now()}`;
+        // Fix: Ensure the role assigned to the new user is a valid UserProfile role.
         const newUser: UserProfile = { ...newUserForm as UserProfile, role: showUserModal || 'tenant', createdAt: new Date().toISOString() };
         await setDoc(doc(db, "users", newId), newUser);
         setUsers([...users, { ...newUser, id: newId }]);

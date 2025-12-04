@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { db } from '../../firebase';
 // Fix: Import 'orderBy' to sort Firestore queries.
@@ -117,9 +116,15 @@ export const WorkerDashboard: React.FC = () => {
         setLoading(true);
         setError(null);
         
-        const qTasks = query(collection(db, "tasks"), where("assignee", "==", workerName), orderBy("dueDate", "asc"));
+        const qTasks = query(collection(db, "tasks"), where("assignee", "==", workerName));
         const unsubTasks = onSnapshot(qTasks, snapshot => {
             const tasksList: Task[] = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Task));
+            // Sort client-side to avoid composite index requirement
+            tasksList.sort((a, b) => {
+                const dateA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+                const dateB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+                return dateA - dateB;
+            });
             setMyTasks(tasksList);
             setLoading(false);
         }, err => { setError("No se pudieron cargar las tareas."); setLoading(false); });

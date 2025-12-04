@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { blogPosts, BlogPost } from '../data/blogData';
 import { Clock, Calendar, ChevronRight, Search, List, ArrowLeft, Tag, TrendingUp, KeyRound, Users, Zap, FileText } from 'lucide-react';
-import { useLanguage } from '../contexts/LanguageContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 export const BlogView: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
@@ -132,7 +131,8 @@ export const BlogView: React.FC = () => {
   }, []);
 
   // Helper to get icon by category (checking both languages)
-  const getCategoryIcon = (category: string) => {
+  // Fix: Added explicit return type to help TypeScript infer props for React.cloneElement.
+  const getCategoryIcon = (category: string): React.ReactElement<{ className?: string }> => {
     if (category === 'Inversión' || category === 'Investment') return <TrendingUp className="w-5 h-5" />;
     if (category === 'Propietarios' || category === 'Owners') return <KeyRound className="w-5 h-5" />;
     if (category === 'Inquilinos' || category === 'Tenants') return <Users className="w-5 h-5" />;
@@ -371,7 +371,8 @@ export const BlogView: React.FC = () => {
                             <div className="p-6 border-b border-gray-50 flex items-center justify-between bg-white relative overflow-hidden">
                                  {/* Decorative Background Icon */}
                                  <div className="absolute -right-4 -bottom-6 text-gray-50 transform rotate-12 group-hover:text-gray-100 transition-colors duration-500">
-                                     {getCategoryIcon(currentCategory) && React.cloneElement(getCategoryIcon(currentCategory) as React.ReactElement, { className: "w-24 h-24 opacity-50" })}
+                                     {/* Fix: Removed redundant type assertion after adding a return type to getCategoryIcon. */}
+                                     {getCategoryIcon(currentCategory) && React.cloneElement(getCategoryIcon(currentCategory), { className: "w-24 h-24 opacity-50" })}
                                  </div>
 
                                  <div className={`z-10 px-3 py-1.5 rounded-lg text-xs font-bold border flex items-center gap-2 ${getCategoryColor(currentCategory)}`}>

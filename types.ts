@@ -1,6 +1,7 @@
 
 
 
+
 export interface Financials {
   purchasePrice: number;
   itpPercent?: number; // New: Transfer Tax Percentage
@@ -58,7 +59,8 @@ export interface Opportunity {
 
 export interface UserProfile {
     id?: string; // Firebase UID
-    role: 'owner' | 'tenant' | 'broker' | 'agency' | 'staff' | 'worker';
+    // Fix: Add 'guarantor' to the list of valid user roles to match its usage in the ContractManager.
+    role: 'owner' | 'tenant' | 'broker' | 'agency' | 'staff' | 'worker' | 'guarantor';
     name: string;
     email: string;
     phone?: string;

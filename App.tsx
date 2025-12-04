@@ -332,8 +332,8 @@ function AppContent() {
         {renderContent()}
       </main>
 
-      {/* Ocultar WhatsApp si es landing O si es el dashboard de Worker */}
-      {view !== 'landing' && !(view === 'intranet' && userRole === 'worker') && <WhatsAppButton />}
+      {/* Ocultar WhatsApp si es landing O si es el dashboard de Worker O Staff */}
+      {view !== 'landing' && !(view === 'intranet' && (userRole === 'worker' || userRole === 'staff')) && <WhatsAppButton />}
 
       <LegalModals activeModal={activeLegalModal} onClose={() => setActiveLegalModal(null)} />
 

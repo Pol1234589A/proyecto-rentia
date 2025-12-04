@@ -429,9 +429,9 @@ export const SalesCRM: React.FC = () => {
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden h-full flex flex-col mt-8">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col mt-0 md:mt-8">
       {/* Header CRM */}
-      <div className="p-6 border-b border-gray-100 bg-slate-900 text-white flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="p-6 border-b border-gray-100 bg-slate-900 text-white flex flex-col md:flex-row justify-between items-start md:items-center gap-4 rounded-t-xl">
         <div>
             <h3 className="font-bold text-xl flex items-center gap-2">
                 <Users className="w-6 h-6 text-rentia-gold" />

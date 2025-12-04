@@ -3,127 +3,136 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --- FUNCIONES DE SEGURIDAD Y AUXILIARES ---
+    // --- FUNCIONES AUXILIARES ---
 
+    // Verifica si el usuario está autenticado
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    function isOwner(userId) {
+    // Verifica si el usuario accede a su propio documento
+    function isSelf(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // Helper para verificar existencia antes de leer datos
-    function userExists() {
-      return exists(/databases/$(database)/documents/users/$(request.auth.uid));
-    }
-
-    // Helper para obtener datos del usuario de forma segura
+    // Obtiene los datos del usuario actual desde la colección 'users'
+    // Nota: Esto consume una lectura de base de datos
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
-    // Verifica si es STAFF (Staff, Admin, Owner)
+    // Verifica si el usuario tiene un rol específico y está activo
+    function hasRole(role) {
+      return isAuthenticated() && getUserData().role == role && getUserData().active == true;
+    }
+
+    // STAFF: Acceso total (Staff, Admin, Owner)
     function isStaff() {
-      return isAuthenticated() 
-        && userExists()
-        && (getUserData().role == 'staff' || getUserData().role == 'admin' || getUserData().role == 'owner');
+      return hasRole('staff') || hasRole('admin') || hasRole('owner');
     }
 
-    // Verifica si es WORKER
+    // WORKER: Acceso operativo limitado
     function isWorker() {
-      return isAuthenticated() 
-        && userExists()
-        && getUserData().role == 'worker';
+      return hasRole('worker');
     }
 
-    // Helper combinado
+    // STAFF O WORKER: Para funciones operativas compartidas
     function isStaffOrWorker() {
       return isStaff() || isWorker();
     }
 
-    function isValidAmount() {
-      return request.resource.data.amount is number;
-    }
-    
-    function hasMandatoryFields(fields) {
-      return request.resource.data.keys().hasAll(fields);
-    }
-
     // --- REGLAS POR COLECCIÓN ---
 
+    // 1. USUARIOS (USERS)
+    // Lectura: Uno mismo (para login) o Staff/Workers (para gestión operativa)
+    // Escritura: Solo Staff (crear/editar usuarios)
     match /users/{userId} {
-      allow read: if isOwner(userId) || isStaffOrWorker();
+      allow read: if isSelf(userId) || isStaffOrWorker();
       allow write: if isStaff();
     }
 
+    // 2. PROPIEDADES (PROPERTIES)
+    // Lectura: Pública (Web principal y catálogos)
+    // Escritura: Solo Staff
     match /properties/{propertyId} {
       allow read: if true;
       allow write: if isStaff();
     }
 
+    // 3. OPORTUNIDADES (OPPORTUNITIES)
+    // Lectura: Pública (Sección Inversión)
+    // Escritura: Solo Staff
     match /opportunities/{opportunityId} {
       allow read: if true;
       allow write: if isStaff();
     }
-    
-    match /accounting/{transactionId} {
-      allow read: if isStaff();
-      allow write: if isStaff();
-    }
-    
+
+    // 4. ENCARGOS DE COMPRA (BUYER_REQUESTS)
+    // Lectura: Pública (Sección Colaboradores / BrokerView)
+    // Escritura: Solo Staff (CRM de Ventas)
     match /buyer_requests/{requestId} {
       allow read: if true;
       allow write: if isStaff();
     }
 
+    // 5. CONTRATOS (CONTRACTS)
+    // Lectura: Staff o las partes implicadas (Propietario/Inquilino logueados)
+    // Escritura: Solo Staff
     match /contracts/{contractId} {
       allow read: if isStaff() 
-        || (isAuthenticated() && (
-             resource.data.get('ownerId', '') == request.auth.uid || 
-             resource.data.get('tenantId', '') == request.auth.uid
-           ));
+        || (isAuthenticated() && resource.data.ownerId == request.auth.uid)
+        || (isAuthenticated() && resource.data.tenantId == request.auth.uid);
       allow write: if isStaff();
     }
 
+    // 6. TAREAS Y TABLEROS (TASKS & BOARDS)
+    // Lectura/Escritura: Staff y Workers (Gestión diaria)
     match /tasks/{taskId} {
-      allow read: if isStaffOrWorker();
-      allow create: if isStaffOrWorker();
-      allow update: if isStaffOrWorker();
-      allow delete: if isStaff(); 
+      allow read, write: if isStaffOrWorker();
     }
-
     match /task_boards/{boardId} {
-      allow read: if isStaffOrWorker();
-      allow write: if isStaffOrWorker();
+      allow read, write: if isStaffOrWorker();
     }
 
+    // 7. BUZÓN SOCIAL (SOCIAL_INBOX)
+    // Lectura: Staff
+    // Escritura: Staff (Respuestas) o Workers (si fuera necesario en el futuro)
+    // Nota: El simulador de mensajes usa 'addDoc', por lo que permitimos write a Staff.
     match /social_inbox/{msgId} {
-      allow read: if isStaff();
-      allow write: if true; 
+      allow read, write: if isStaff();
     }
-    
+
+    // 8. CONTABILIDAD (ACCOUNTING)
+    // Estrictamente solo Staff
+    match /accounting/{transactionId} {
+      allow read, write: if isStaff();
+    }
+
+    // 9. SUMINISTROS (SUPPLY_RECORDS)
+    // Lectura: Autenticados (Inquilinos ven sus facturas)
+    // Escritura: Solo Staff
     match /supply_records/{recordId} {
-        allow read: if isAuthenticated();
-        allow create: if isStaff();
-        allow update: if isStaff(); // Permite modificar estado (Pendiente/Pagado)
-        allow delete: if isStaff(); // Permite borrar facturas erróneas
+      allow read: if isAuthenticated();
+      allow write: if isStaff();
     }
-    
-    // PERMISOS AMPLIADOS: Workers también pueden actualizar estado (Aprobar/Rechazar)
+
+    // 10. PIPELINE CANDIDATOS
+    // Lectura/Escritura: Staff y Workers (Filtrado de inquilinos)
     match /candidate_pipeline/{candidateId} {
-        allow create: if isStaffOrWorker();
-        allow read: if isStaffOrWorker();
-        allow update: if isStaffOrWorker();
-        allow delete: if isStaff();
+      allow read, write: if isStaffOrWorker();
     }
 
+    // 11. REGISTRO DE VISITAS (ROOM_VISITS)
+    // Crear: Staff y Workers (Registrar visita)
+    // Leer/Editar/Borrar: Solo Staff (Control)
+    // Nota: Un Worker puede leer sus propias visitas si fuera necesario, 
+    // pero por ahora limitamos lectura global a Staff.
     match /room_visits/{visitId} {
-        // Workers pueden registrar visitas. Staff puede ver y gestionar todo el historial.
-        allow create: if isStaffOrWorker();
-        allow read, update, delete: if isStaff();
+      allow create: if isStaffOrWorker();
+      allow read, update, delete: if isStaff();
     }
 
+    // Bloqueo por defecto para cualquier otra colección no definida
     match /{document=**} {
       allow read, write: if false;
     }

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { db } from '../../firebase';
 import { collection, getDocs, doc, updateDoc, writeBatch, setDoc, deleteDoc, query, where } from 'firebase/firestore';
@@ -346,11 +345,11 @@ export const RoomManager: React.FC = () => {
                     <div className="flex items-center gap-3 w-full sm:w-auto justify-end border-t sm:border-t-0 pt-3 sm:pt-0 border-gray-100" onClick={e => e.stopPropagation()}>
                         <button 
                             onClick={() => handleSaveAll(prop.id)}
-                            className="text-xs font-bold bg-blue-50 text-blue-600 px-3 py-1.5 rounded hover:bg-blue-100 transition-colors flex items-center gap-1"
+                            className="text-xs font-bold bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-sm active:scale-95"
                         >
-                            <Save className="w-3 h-3" /> Guardar
+                            <Save className="w-3 h-3" /> Guardar Cambios
                         </button>
-                        <button onClick={() => handleDeleteProperty(prop.id)} className="text-gray-400 hover:text-red-500 p-1">
+                        <button onClick={() => handleDeleteProperty(prop.id)} className="text-gray-400 hover:text-red-500 p-2 rounded-lg hover:bg-red-50 transition-colors">
                             <Trash2 className="w-4 h-4" />
                         </button>
                     </div>

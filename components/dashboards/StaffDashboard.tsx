@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Users, Building, AlertCircle, CheckCircle, BarChart3, RefreshCw, LayoutDashboard, Calculator, Briefcase, Wrench, Plus, ArrowUpRight, ArrowDownRight, Search, FileText, Trash2, Save, X, DollarSign, Calendar as CalendarIcon, Filter, Download, Pencil, ChevronLeft, ChevronRight, PieChart, Landmark, ChevronDown, Wallet, CreditCard, Clock, Zap, Droplets, Flame, Wifi, Settings, Receipt, Split, Info, MessageCircle, Share2, ClipboardList, UserCheck, Mail, Phone, ArrowRight, UserPlus, Archive, Send, Home, DoorOpen, Menu, Grid, Footprints, MapPin } from 'lucide-react';
 import { UserCreator } from '../admin/UserCreator';
@@ -388,6 +387,9 @@ export const StaffDashboard: React.FC = () => {
   
   // Mobile Tab State: Includes 'visits'
   const [activeMobileTab, setActiveMobileTab] = useState<'overview' | 'tasks' | 'candidates' | 'properties' | 'menu' | 'accounting' | 'supplies' | 'calendar' | 'contracts' | 'social' | 'calculator' | 'tools' | 'visits'>('overview');
+  
+  // State for Mobile Property View Switching (Rent vs Sale)
+  const [mobilePropertyView, setMobilePropertyView] = useState<'rent' | 'sale'>('rent');
 
   // ... (Estados de datos: stats, candidates, accounting, supplies... se mantienen igual)
   const [stats, setStats] = useState({
@@ -575,6 +577,7 @@ export const StaffDashboard: React.FC = () => {
   }, [currentMonthRecord, selectedPropId, supplyMonth]);
   
   const handleSendCandidate = async (e: React.FormEvent) => {
+    // ... (Logica de candidatos, facturas, etc. idéntica a la anterior)
     e.preventDefault();
     if (!newCandidate.propertyId || !newCandidate.roomId || !newCandidate.candidateName) {
         return alert("Completa todos los campos: propiedad, habitación y nombre.");
@@ -875,7 +878,37 @@ export const StaffDashboard: React.FC = () => {
             );
             case 'tasks': return <div className="animate-in fade-in"><TaskManager /></div>;
             case 'candidates': return <div className="animate-in fade-in"><CandidateManager /></div>;
-            case 'properties': return <div className="animate-in fade-in"><RoomManager /></div>;
+            case 'properties': return (
+                <div className="flex flex-col h-full">
+                    {/* Sub-navigation for Properties Tab */}
+                    <div className="flex p-2 bg-gray-100 gap-2 shrink-0 rounded-lg mb-2">
+                        <button 
+                            onClick={() => setMobilePropertyView('rent')}
+                            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${mobilePropertyView === 'rent' ? 'bg-white shadow text-rentia-blue' : 'text-gray-500 hover:text-gray-700'}`}
+                        >
+                            Alquiler
+                        </button>
+                        <button 
+                            onClick={() => setMobilePropertyView('sale')}
+                            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${mobilePropertyView === 'sale' ? 'bg-white shadow text-rentia-blue' : 'text-gray-500 hover:text-gray-700'}`}
+                        >
+                            Venta (CRM)
+                        </button>
+                    </div>
+                    
+                    <div className="flex-grow overflow-hidden relative">
+                        {mobilePropertyView === 'rent' ? (
+                            <div className="absolute inset-0 overflow-y-auto pb-24">
+                                <RoomManager />
+                            </div>
+                        ) : (
+                            <div className="absolute inset-0 overflow-y-auto pb-24">
+                                <SalesCRM />
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
             
             // MENU GRID VIEW
             case 'menu': return (
@@ -1015,11 +1048,11 @@ export const StaffDashboard: React.FC = () => {
   
     // MAIN RENDER
   return (
-    <div className="min-h-screen bg-gray-100 p-2 sm:p-4 md:p-6 animate-in fade-in">
+    <div className="min-h-screen bg-gray-100 p-0 sm:p-4 md:p-6 animate-in fade-in">
       <div className="max-w-7xl mx-auto">
         
         {/* --- HEADER --- */}
-        <header className="mb-4 sm:mb-6 md:bg-white md:p-6 rounded-xl md:shadow-sm md:border md:border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <header className="p-4 md:p-6 mb-4 sm:mb-6 md:bg-white rounded-xl md:shadow-sm md:border md:border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-rentia-black flex items-center gap-2">
                 <LayoutDashboard className="w-5 h-5 sm:w-6 sm:h-6 text-rentia-blue" />
@@ -1028,7 +1061,7 @@ export const StaffDashboard: React.FC = () => {
             <p className="text-gray-500 text-xs sm:text-sm mt-1">Sistema Integrado de Gestión Empresarial</p>
           </div>
           
-          <div className="hidden md:flex bg-gray-100 p-1 rounded-lg overflow-x-auto no-scrollbar max-w-full w-full md:w-auto">
+          <div className="hidden md:flex flex-wrap gap-1 justify-end bg-gray-100 p-1 rounded-lg max-w-full">
              <button onClick={() => setActiveTab('overview')} className={`px-2 py-1.5 rounded-md text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap ${activeTab === 'overview' ? 'bg-white text-rentia-blue shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
                  <BarChart3 className="w-3.5 h-3.5" /> Resumen
              </button>
@@ -1041,7 +1074,7 @@ export const StaffDashboard: React.FC = () => {
         </header>
 
         {/* --- CONTENT AREA (DUAL RENDER) --- */}
-        <div className="md:hidden pb-24 h-[calc(100vh-140px)] overflow-hidden">
+        <div className="md:hidden pb-20 h-[calc(100dvh-120px)] overflow-hidden">
             {renderMobileContent()}
         </div>
         
@@ -1088,9 +1121,10 @@ export const StaffDashboard: React.FC = () => {
             {activeTab === 'calendar' && ( <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><CalendarManager /></div> )}
             {activeTab === 'calculator' && ( <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><SupplyCalculator properties={propertiesList} preSelectedPropertyId={selectedPropId} /></div> )}
             {activeTab === 'social' && ( <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><SocialInbox /></div> )}
-            {activeTab === 'visits' && ( <div className="animate-in slide-in-from-bottom-4 duration-300"><VisitsLog /></div> )}
+            {activeTab === 'visits' && ( <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><VisitsLog /></div> )}
             {activeTab === 'supplies' && ( 
                 <div className="animate-in slide-in-from-bottom-4 duration-300 flex flex-col gap-6">
+                    {/* ... (Contenido suministros desktop se mantiene igual) ... */}
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                             <h3 className="font-bold text-gray-800 flex items-center gap-2"><Zap className="w-5 h-5 text-rentia-blue"/> Histórico de Facturas</h3>
@@ -1144,17 +1178,15 @@ export const StaffDashboard: React.FC = () => {
                                     <h3 className="font-bold">Nueva Factura de Suministros</h3>
                                     <button onClick={() => setIsSupplyFormOpen(false)}><X className="w-5 h-5 text-gray-400"/></button>
                                 </div>
-                                <div className="p-6 space-y-4">
-                                    <div><label className="block text-xs font-bold text-gray-500 mb-1">Propiedad</label><select className="w-full p-2 border rounded" value={selectedPropId} onChange={e => setSelectedPropId(e.target.value)}><option value="">Seleccionar...</option>{propertiesList.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}</select></div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div><label className="block text-xs font-bold text-gray-500 mb-1">Mes (YYYY-MM)</label><input type="month" className="w-full p-2 border rounded" value={supplyMonth} onChange={e => setSupplyMonth(e.target.value)} /></div>
-                                        <div><label className="block text-xs font-bold text-gray-500 mb-1">Luz (€)</label><input type="number" className="w-full p-2 border rounded" value={supplyForm.electricity} onChange={e => setSupplyForm({...supplyForm, electricity: e.target.value})} /></div>
-                                        <div><label className="block text-xs font-bold text-gray-500 mb-1">Agua (€)</label><input type="number" className="w-full p-2 border rounded" value={supplyForm.water} onChange={e => setSupplyForm({...supplyForm, water: e.target.value})} /></div>
-                                        <div><label className="block text-xs font-bold text-gray-500 mb-1">Gas (€)</label><input type="number" className="w-full p-2 border rounded" value={supplyForm.gas} onChange={e => setSupplyForm({...supplyForm, gas: e.target.value})} /></div>
-                                        <div><label className="block text-xs font-bold text-gray-500 mb-1">Internet (€)</label><input type="number" className="w-full p-2 border rounded" value={supplyForm.internet} onChange={e => setSupplyForm({...supplyForm, internet: e.target.value})} /></div>
-                                        <div><label className="block text-xs font-bold text-gray-500 mb-1">Limpieza (€)</label><input type="number" className="w-full p-2 border rounded" value={supplyForm.cleaning} onChange={e => setSupplyForm({...supplyForm, cleaning: e.target.value})} /></div>
+                                <div className="p-4 space-y-3">
+                                    <select className="w-full p-2 border rounded" value={selectedPropId} onChange={e => setSelectedPropId(e.target.value)}><option value="">Propiedad...</option>{propertiesList.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}</select>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <input type="month" className="w-full p-2 border rounded" value={supplyMonth} onChange={e => setSupplyMonth(e.target.value)} />
+                                        <input type="number" placeholder="Luz" className="w-full p-2 border rounded" value={supplyForm.electricity} onChange={e => setSupplyForm({...supplyForm, electricity: e.target.value})} />
+                                        <input type="number" placeholder="Agua" className="w-full p-2 border rounded" value={supplyForm.water} onChange={e => setSupplyForm({...supplyForm, water: e.target.value})} />
+                                        <input type="number" placeholder="Internet" className="w-full p-2 border rounded" value={supplyForm.internet} onChange={e => setSupplyForm({...supplyForm, internet: e.target.value})} />
                                     </div>
-                                    <button onClick={saveSupplyRecord} className="w-full bg-rentia-black text-white font-bold py-3 rounded-lg hover:bg-gray-800">Guardar Factura</button>
+                                    <button onClick={saveSupplyRecord} className="w-full bg-rentia-black text-white font-bold py-3 rounded-lg">Guardar</button>
                                 </div>
                             </div>
                         </div>

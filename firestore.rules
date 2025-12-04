@@ -16,14 +16,14 @@ service cloud.firestore {
     }
 
     // Obtiene los datos del usuario actual desde la colección 'users'
-    // Nota: Esto consume una lectura de base de datos
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
-    // Verifica si el usuario tiene un rol específico y está activo
+    // Verifica si el usuario tiene un rol específico.
+    // IMPORTANTE: 'active != false' permite acceso si el campo no existe (usuarios antiguos)
     function hasRole(role) {
-      return isAuthenticated() && getUserData().role == role && getUserData().active == true;
+      return isAuthenticated() && getUserData().role == role && getUserData().active != false;
     }
 
     // STAFF: Acceso total (Staff, Admin, Owner)
@@ -97,7 +97,6 @@ service cloud.firestore {
     // 7. BUZÓN SOCIAL (SOCIAL_INBOX)
     // Lectura: Staff
     // Escritura: Staff (Respuestas) o Workers (si fuera necesario en el futuro)
-    // Nota: El simulador de mensajes usa 'addDoc', por lo que permitimos write a Staff.
     match /social_inbox/{msgId} {
       allow read, write: if isStaff();
     }
@@ -125,8 +124,6 @@ service cloud.firestore {
     // 11. REGISTRO DE VISITAS (ROOM_VISITS)
     // Crear: Staff y Workers (Registrar visita)
     // Leer/Editar/Borrar: Solo Staff (Control)
-    // Nota: Un Worker puede leer sus propias visitas si fuera necesario, 
-    // pero por ahora limitamos lectura global a Staff.
     match /room_visits/{visitId} {
       allow create: if isStaffOrWorker();
       allow read, update, delete: if isStaff();

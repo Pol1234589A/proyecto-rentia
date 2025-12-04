@@ -92,9 +92,6 @@ export const BlogView: React.FC = () => {
     ? ['Todos', 'Inversión', 'Propietarios', 'Inquilinos', 'Tendencias']
     : ['All', 'Investment', 'Owners', 'Tenants', 'Trends'];
 
-  // Map Spanish categories to English for logic filtering if needed, 
-  // or simply rely on the post.category[language] matching the selected button.
-  
   const filteredPosts = blogPosts.filter(post => {
       // Logic: Compare the localized category with the selected one
       // If 'Todos' or 'All' is selected, show everything
@@ -131,7 +128,6 @@ export const BlogView: React.FC = () => {
   }, []);
 
   // Helper to get icon by category (checking both languages)
-  // Fix: Added explicit return type to help TypeScript infer props for React.cloneElement.
   const getCategoryIcon = (category: string): React.ReactElement<{ className?: string }> => {
     if (category === 'Inversión' || category === 'Investment') return <TrendingUp className="w-5 h-5" />;
     if (category === 'Propietarios' || category === 'Owners') return <KeyRound className="w-5 h-5" />;

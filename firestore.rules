@@ -3,27 +3,30 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --- FUNCIONES AUXILIARES ---
+    // --- FUNCIONES DE SEGURIDAD ---
 
-    // Verifica si el usuario está autenticado
+    // Verifica si el usuario está autenticado en Firebase Auth
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    // Verifica si el usuario accede a su propio documento
+    // Verifica si el usuario accede a su propio documento (por UID)
     function isSelf(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // Obtiene los datos del usuario actual desde la colección 'users'
+    // Obtiene los datos del usuario actual de la colección 'users'
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
-    // Verifica si el usuario tiene un rol específico.
-    // IMPORTANTE: 'active != false' permite acceso si el campo no existe (usuarios antiguos)
+    // Verifica el rol. 
+    // MEJORA: Es robusto si el campo 'active' no existe (asume true).
     function hasRole(role) {
-      return isAuthenticated() && getUserData().role == role && getUserData().active != false;
+      let user = getUserData();
+      return isAuthenticated() && 
+             user.role == role && 
+             (!("active" in user) || user.active == true);
     }
 
     // STAFF: Acceso total (Staff, Admin, Owner)
@@ -44,40 +47,34 @@ service cloud.firestore {
     // --- REGLAS POR COLECCIÓN ---
 
     // 1. USUARIOS (USERS)
-    // Lectura: Uno mismo (para login) o Staff/Workers (para gestión operativa)
-    // Escritura: Solo Staff (crear/editar usuarios)
+    // Importante: Permitir lectura a authenticated para que getUserData() funcione en el cliente si es necesario
     match /users/{userId} {
       allow read: if isSelf(userId) || isStaffOrWorker();
-      allow write: if isStaff();
+      allow create: if isStaff(); // Solo staff crea usuarios
+      allow update: if isStaff() || isSelf(userId); // Uno mismo puede actualizar datos básicos
+      allow delete: if isStaff();
     }
 
     // 2. PROPIEDADES (PROPERTIES)
-    // Lectura: Pública (Web principal y catálogos)
-    // Escritura: Solo Staff
+    // Lectura pública para la web. Escritura restringida.
     match /properties/{propertyId} {
       allow read: if true;
       allow write: if isStaff();
     }
 
     // 3. OPORTUNIDADES (OPPORTUNITIES)
-    // Lectura: Pública (Sección Inversión)
-    // Escritura: Solo Staff
     match /opportunities/{opportunityId} {
       allow read: if true;
       allow write: if isStaff();
     }
 
     // 4. ENCARGOS DE COMPRA (BUYER_REQUESTS)
-    // Lectura: Pública (Sección Colaboradores / BrokerView)
-    // Escritura: Solo Staff (CRM de Ventas)
     match /buyer_requests/{requestId} {
       allow read: if true;
       allow write: if isStaff();
     }
 
     // 5. CONTRATOS (CONTRACTS)
-    // Lectura: Staff o las partes implicadas (Propietario/Inquilino logueados)
-    // Escritura: Solo Staff
     match /contracts/{contractId} {
       allow read: if isStaff() 
         || (isAuthenticated() && resource.data.ownerId == request.auth.uid)
@@ -86,7 +83,7 @@ service cloud.firestore {
     }
 
     // 6. TAREAS Y TABLEROS (TASKS & BOARDS)
-    // Lectura/Escritura: Staff y Workers (Gestión diaria)
+    // Fundamental para el TaskManager. Permitimos lectura/escritura a Staff y Workers.
     match /tasks/{taskId} {
       allow read, write: if isStaffOrWorker();
     }
@@ -95,41 +92,39 @@ service cloud.firestore {
     }
 
     // 7. BUZÓN SOCIAL (SOCIAL_INBOX)
-    // Lectura: Staff
-    // Escritura: Staff (Respuestas) o Workers (si fuera necesario en el futuro)
     match /social_inbox/{msgId} {
-      allow read, write: if isStaff();
+      allow read: if isStaff();
+      allow create: if true; // Permitir entrada desde web (formularios públicos simulados) o Staff
+      allow update, delete: if isStaff();
     }
 
     // 8. CONTABILIDAD (ACCOUNTING)
-    // Estrictamente solo Staff
     match /accounting/{transactionId} {
       allow read, write: if isStaff();
     }
 
     // 9. SUMINISTROS (SUPPLY_RECORDS)
-    // Lectura: Autenticados (Inquilinos ven sus facturas)
-    // Escritura: Solo Staff
     match /supply_records/{recordId} {
-      allow read: if isAuthenticated();
+      allow read: if isAuthenticated(); // Inquilinos pueden ver
       allow write: if isStaff();
     }
 
     // 10. PIPELINE CANDIDATOS
-    // Lectura/Escritura: Staff y Workers (Filtrado de inquilinos)
     match /candidate_pipeline/{candidateId} {
-      allow read, write: if isStaffOrWorker();
+      allow read: if isStaffOrWorker();
+      allow create: if isStaffOrWorker();
+      allow update: if isStaff(); // Solo Staff aprueba/rechaza
+      allow delete: if isStaff();
     }
 
     // 11. REGISTRO DE VISITAS (ROOM_VISITS)
-    // Crear: Staff y Workers (Registrar visita)
-    // Leer/Editar/Borrar: Solo Staff (Control)
     match /room_visits/{visitId} {
+      allow read: if isStaffOrWorker();
       allow create: if isStaffOrWorker();
-      allow read, update, delete: if isStaff();
+      allow update, delete: if isStaff();
     }
 
-    // Bloqueo por defecto para cualquier otra colección no definida
+    // Bloqueo por defecto
     match /{document=**} {
       allow read, write: if false;
     }

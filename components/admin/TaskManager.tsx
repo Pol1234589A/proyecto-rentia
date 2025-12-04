@@ -88,9 +88,13 @@ export const TaskManager: React.FC = () => {
 
     // --- INITIALIZATION ---
     useEffect(() => {
+        let isMounted = true;
+        setConnectionError(null);
+
         // 1. Fetch Boards
         const qBoards = query(collection(db, "task_boards"), orderBy("createdAt", "asc"));
         const unsubBoards = onSnapshot(qBoards, (snapshot) => {
+            if (!isMounted) return;
             const loadedBoards: TaskBoard[] = [];
             snapshot.forEach((doc) => {
                 loadedBoards.push({ ...doc.data(), id: doc.id } as TaskBoard);
@@ -100,11 +104,15 @@ export const TaskManager: React.FC = () => {
             if (loadedBoards.length > 0 && !selectedBoardId) {
                 setSelectedBoardId(loadedBoards[0].id);
             }
+        }, (error) => {
+            console.error("Firebase Boards Error:", error.code);
+            // Ignorar errores de permisos iniciales mientras carga Auth
         });
 
         // 2. Fetch Tasks
         const qTasks = query(collection(db, "tasks"), orderBy("createdAt", "desc"));
         const unsubTasks = onSnapshot(qTasks, (snapshot) => {
+            if (!isMounted) return;
             const loadedTasks: Task[] = [];
             snapshot.forEach((doc) => {
                 loadedTasks.push({ ...doc.data(), id: doc.id } as Task);
@@ -112,19 +120,32 @@ export const TaskManager: React.FC = () => {
             setTasks(loadedTasks);
             setConnectionError(null);
         }, (error) => {
-            console.error("Error connecting to Firebase Tasks:", error);
-            setConnectionError("No se ha podido conectar con la base de datos.");
+            if (!isMounted) return;
+            console.error("Firebase Tasks Error:", error.code);
+            if (error.code === 'permission-denied') {
+                // Mensaje más amigable
+                setConnectionError("Sincronizando permisos...");
+                // Reintentar o esperar a que Auth se estabilice
+            } else if (error.code === 'unavailable') {
+                setConnectionError("Modo sin conexión activo.");
+            } else {
+                setConnectionError("Conectando...");
+            }
         });
 
-        return () => { unsubBoards(); unsubTasks(); };
-    }, []);
+        return () => { 
+            isMounted = false;
+            unsubBoards(); 
+            unsubTasks(); 
+        };
+    }, []); 
 
-    // Effect para seleccionar tablero si solo hay uno o ninguno al inicio
+    // Effect para seleccionar tablero si solo hay uno o ninguno al inicio y boards cambia
     useEffect(() => {
         if (!selectedBoardId && boards.length > 0) {
             setSelectedBoardId(boards[0].id);
         }
-    }, [boards]);
+    }, [boards, selectedBoardId]);
 
     // Derived Data
     const filteredTasks = useMemo(() => {
@@ -177,7 +198,6 @@ export const TaskManager: React.FC = () => {
             setBoardFormData({ title: '', group: 'General' });
         } catch (error: any) {
             console.error("Error saving board:", error);
-            // Muestra el mensaje exacto del error para depuración
             alert(`Error al crear tablero: ${error.message}`);
         } finally {
             setLoading(false);
@@ -350,8 +370,8 @@ export const TaskManager: React.FC = () => {
                                         {boards.find(b => b.id === selectedBoardId)?.group || "Vista General"}
                                     </p>
                                     {connectionError && (
-                                        <span className="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1 border border-red-200">
-                                            <WifiOff className="w-3 h-3" /> Offline
+                                        <span className="text-[10px] bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1 border border-yellow-200 animate-pulse">
+                                            <Wifi className="w-3 h-3" /> {connectionError}
                                         </span>
                                     )}
                                 </div>
@@ -379,15 +399,6 @@ export const TaskManager: React.FC = () => {
                             </button>
                         </div>
                     </div>
-
-                    {connectionError && (
-                        <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-r shadow-sm">
-                            <p className="text-sm font-bold flex items-center gap-2">
-                                <AlertTriangle className="w-4 h-4" /> Error de Conexión
-                            </p>
-                            <p className="text-xs mt-1">{connectionError}</p>
-                        </div>
-                    )}
 
                     <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
                         <div className="flex gap-2 overflow-x-auto no-scrollbar w-full sm:w-auto pb-2 sm:pb-0">

@@ -1,6 +1,6 @@
+
 import React, { useState } from 'react';
-// Fix: Use 'firebase/compat/app' for app management functions.
-import firebase from "firebase/compat/app";
+import { initializeApp, deleteApp } from "firebase/app"; // Pure modular
 import { getAuth, createUserWithEmailAndPassword, signOut, updateProfile } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { firebaseConfig, db } from '../../firebase';
@@ -20,24 +20,23 @@ export const UserCreator: React.FC = () => {
     setLoading(true);
     setMessage(null);
 
-    // Usamos un ID único para la app secundaria para evitar conflictos de "App already exists"
+    // Usamos un ID único para la app secundaria
     const secondaryAppName = `SecondaryApp-${Date.now()}`;
     let secondaryApp: any;
 
     try {
-      // Fix: Call initializeApp from the compat import.
-      secondaryApp = firebase.initializeApp(firebaseConfig, secondaryAppName);
+      // Usar initializeApp modular
+      secondaryApp = initializeApp(firebaseConfig, secondaryAppName);
       const secondaryAuth = getAuth(secondaryApp);
 
       // 2. Crear usuario en Authentication (en la app secundaria)
       const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, password);
       const newUser = userCredential.user;
 
-      // 2.1 Actualizar perfil de Auth INMEDIATAMENTE para asegurar que el displayName esté disponible
+      // 2.1 Actualizar perfil de Auth INMEDIATAMENTE
       await updateProfile(newUser, { displayName: name });
 
       // 3. Crear documento en Firestore (usando la instancia DB principal del Admin)
-      // SEGURIDAD: Es vital que el usuario nazca con 'active: true' para pasar las reglas de seguridad
       await setDoc(doc(db, "users", newUser.uid), {
         email: email.toLowerCase(),
         displayName: name,
@@ -46,7 +45,7 @@ export const UserCreator: React.FC = () => {
         active: true // Flag de seguridad obligatorio
       });
 
-      // 4. Cerrar sesión en la app secundaria para limpiar
+      // 4. Cerrar sesión en la app secundaria
       await signOut(secondaryAuth);
 
       // 5. Feedback y Limpieza
@@ -66,8 +65,7 @@ export const UserCreator: React.FC = () => {
       // Limpieza robusta de la app secundaria
       if (secondaryApp) {
           try {
-            // Fix: Call delete() on the app instance for compat mode.
-            await secondaryApp.delete();
+            await deleteApp(secondaryApp); // Usar deleteApp modular
           } catch (e) {
             console.warn("Error limpiando app secundaria:", e);
           }

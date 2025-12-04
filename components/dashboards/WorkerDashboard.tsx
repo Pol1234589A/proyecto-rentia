@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { db } from '../../firebase';
-// Fix: Import 'orderBy' to sort Firestore queries.
-import { collection, query, where, onSnapshot, updateDoc, doc, addDoc, serverTimestamp, orderBy } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, updateDoc, doc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
 import { Task, TaskStatus, Candidate, CandidateStatus, VisitOutcome, RoomVisit } from '../../types';
 import { Property, Room } from '../../data/rooms';
@@ -116,10 +115,15 @@ export const WorkerDashboard: React.FC = () => {
         setLoading(true);
         setError(null);
         
-        const qTasks = query(collection(db, "tasks"), where("assignee", "==", workerName));
+        // ESTRATEGIA ROBUSTA: Cargar todas y filtrar en cliente para evitar errores de índice o permisos de 'where'
+        const qTasks = query(collection(db, "tasks"));
         const unsubTasks = onSnapshot(qTasks, snapshot => {
-            const tasksList: Task[] = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Task));
-            // Sort client-side to avoid composite index requirement
+            const allTasks: Task[] = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Task));
+            
+            // Filtrar por asignado en memoria
+            const tasksList = allTasks.filter(t => t.assignee === workerName);
+            
+            // Ordenar en cliente
             tasksList.sort((a, b) => {
                 const dateA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
                 const dateB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
@@ -127,7 +131,11 @@ export const WorkerDashboard: React.FC = () => {
             });
             setMyTasks(tasksList);
             setLoading(false);
-        }, err => { setError("No se pudieron cargar las tareas."); setLoading(false); });
+        }, err => { 
+            console.error("Task error:", err);
+            setError(`Error cargando tareas: ${err.message}`); 
+            setLoading(false); 
+        });
 
         const unsubProps = onSnapshot(collection(db, "properties"), snapshot => {
             const propsList: Property[] = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Property));
@@ -135,9 +143,16 @@ export const WorkerDashboard: React.FC = () => {
             setProperties(propsList);
         });
         
-        const qCandidates = query(collection(db, "candidate_pipeline"), where("submittedBy", "==", workerName), orderBy("submittedAt", "desc"));
+        // ESTRATEGIA ROBUSTA: Filtrar por 'where' pero quitar 'orderBy' para evitar índice compuesto
+        const qCandidates = query(collection(db, "candidate_pipeline"), where("submittedBy", "==", workerName));
         const unsubCandidates = onSnapshot(qCandidates, snapshot => {
             const candidatesList: Candidate[] = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Candidate));
+            // Ordenar en cliente
+            candidatesList.sort((a, b) => {
+                const timeA = a.submittedAt?.toMillis ? a.submittedAt.toMillis() : 0;
+                const timeB = b.submittedAt?.toMillis ? b.submittedAt.toMillis() : 0;
+                return timeB - timeA;
+            });
             setMyCandidates(candidatesList);
         });
 
@@ -364,7 +379,7 @@ export const WorkerDashboard: React.FC = () => {
 
             {/* --- Modals --- */}
             {selectedProperty && (
-                <div className="fixed inset-0 z-[100] bg-white flex flex-col animate-in slide-in-from-bottom-10">
+                <div className="fixed inset-0 z-[10000] bg-white flex flex-col animate-in slide-in-from-bottom-10">
                     <div className="flex-shrink-0 bg-white shadow-sm p-4 flex justify-between items-center sticky top-0">
                         <button onClick={() => setSelectedProperty(null)} className="flex items-center gap-1 text-rentia-blue text-sm font-bold"><ChevronLeft className="w-5 h-5"/> Volver</button>
                         <h2 className="font-bold text-sm truncate">{selectedProperty.address}</h2>
@@ -395,7 +410,7 @@ export const WorkerDashboard: React.FC = () => {
 
             {/* NEW: Visit Log Modal */}
             {showVisitLogModal && (
-                <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setShowVisitLogModal(null)}>
+                <div className="fixed inset-0 z-[10001] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setShowVisitLogModal(null)}>
                     <form onSubmit={handleSaveVisit} className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-xl shadow-2xl flex flex-col animate-in slide-in-from-bottom-10 overflow-hidden" onClick={e => e.stopPropagation()}>
                         <div className="p-4 bg-gray-50 border-b flex justify-between items-center"><h3 className="font-bold flex items-center gap-2"><Eye className="w-5 h-5 text-indigo-500"/> Registrar Visita a {showVisitLogModal.name}</h3><button type="button" onClick={() => setShowVisitLogModal(null)} className="p-2 -mr-2"><X className="w-5 h-5 text-gray-400"/></button></div>
                         <div className="p-4 space-y-4 overflow-y-auto">
@@ -412,7 +427,7 @@ export const WorkerDashboard: React.FC = () => {
             )}
             
             {showIncidentModal && (
-                <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setShowIncidentModal(false)}>
+                <div className="fixed inset-0 z-[10001] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setShowIncidentModal(false)}>
                     <form onSubmit={handleSaveIncident} className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-xl shadow-2xl flex flex-col animate-in slide-in-from-bottom-10 overflow-hidden" onClick={e => e.stopPropagation()}>
                         <div className="p-4 bg-gray-50 border-b flex justify-between items-center"><h3 className="font-bold flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-red-500"/> Reportar Incidencia</h3><button type="button" onClick={() => setShowIncidentModal(false)} className="p-2 -mr-2"><X className="w-5 h-5 text-gray-400"/></button></div>
                         <div className="p-4 space-y-4 overflow-y-auto"><select required className="w-full p-2 border rounded text-sm" value={newIncident.propertyId} onChange={e => setNewIncident({...newIncident, propertyId: e.target.value})}><option value="">Seleccionar Propiedad*</option>{properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}</select><input required type="text" placeholder="Título Incidencia*" className="w-full p-2 border rounded text-sm" value={newIncident.title} onChange={e => setNewIncident({...newIncident, title: e.target.value})} /><textarea placeholder="Descripción detallada..." className="w-full p-2 border rounded text-sm h-24" value={newIncident.description} onChange={e => setNewIncident({...newIncident, description: e.target.value})}></textarea><select className="w-full p-2 border rounded text-sm" value={newIncident.priority} onChange={e => setNewIncident({...newIncident, priority: e.target.value as any})}><option value="Baja">Baja</option><option value="Media">Media</option><option value="Alta">Alta</option></select></div>
@@ -425,7 +440,7 @@ export const WorkerDashboard: React.FC = () => {
             )}
             
             {showCandidateModal && (
-                <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setShowCandidateModal(false)}>
+                <div className="fixed inset-0 z-[10001] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setShowCandidateModal(false)}>
                     <form onSubmit={handleSendCandidate} className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-xl shadow-2xl flex flex-col animate-in slide-in-from-bottom-10 overflow-hidden" onClick={e => e.stopPropagation()}>
                         <div className="p-4 bg-gray-50 border-b flex justify-between items-center"><h3 className="font-bold flex items-center gap-2"><UserPlus className="w-5 h-5 text-green-600"/> Enviar Candidato</h3><button type="button" onClick={() => setShowCandidateModal(false)} className="p-2 -mr-2"><X className="w-5 h-5 text-gray-400"/></button></div>
                         <div className="p-4 space-y-4 overflow-y-auto max-h-[70vh]"><div><label className="text-xs font-bold text-gray-500 block mb-1">Propiedad*</label><select required className="w-full p-2 border rounded text-sm" value={newCandidate.propertyId} onChange={e => setNewCandidate({...newCandidate, propertyId: e.target.value, roomId: ''})}><option value="">Seleccionar...</option>{properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}</select></div><div><label className="text-xs font-bold text-gray-500 block mb-1">Habitación*</label><select required disabled={!newCandidate.propertyId} className="w-full p-2 border rounded text-sm" value={newCandidate.roomId} onChange={e => setNewCandidate({...newCandidate, roomId: e.target.value})}><option value="">Seleccionar...</option>{properties.find(p => p.id === newCandidate.propertyId)?.rooms.map(r => <option key={r.id} value={r.id}>{r.name} ({r.status})</option>)}</select></div><div><label className="text-xs font-bold text-gray-500 block mb-1">Nombre Candidato*</label><input required type="text" className="w-full p-2 border rounded text-sm" value={newCandidate.candidateName} onChange={e => setNewCandidate({...newCandidate, candidateName: e.target.value})} /></div><div className="grid grid-cols-2 gap-4"><div><label className="text-xs font-bold text-gray-500 block mb-1">Teléfono</label><input type="tel" className="w-full p-2 border rounded text-sm" value={newCandidate.candidatePhone} onChange={e => setNewCandidate({...newCandidate, candidatePhone: e.target.value})}/></div><div><label className="text-xs font-bold text-gray-500 block mb-1">Email</label><input type="email" className="w-full p-2 border rounded text-sm" value={newCandidate.candidateEmail} onChange={e => setNewCandidate({...newCandidate, candidateEmail: e.target.value})}/></div></div><div><label className="text-xs font-bold text-gray-500 block mb-1">Info Adicional</label><textarea className="w-full p-2 border rounded text-sm h-20" value={newCandidate.additionalInfo} onChange={e => setNewCandidate({...newCandidate, additionalInfo: e.target.value})} /></div></div>

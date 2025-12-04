@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { db } from '../../firebase';
@@ -8,7 +9,7 @@ import { Property, Room } from '../../data/rooms';
 import { ClipboardList, Home, CheckCircle, Clock, AlertCircle, MapPin, Search, Calendar, Wrench, Plus, X, AlertTriangle, ChevronLeft, Loader2, WifiOff, Monitor, Tv, Lock, Sun, Bed, Layout, Image as ImageIcon, UserPlus, Send, Users, UserX, UserCheck, ChevronRight, Eye } from 'lucide-react';
 import { ImageLightbox } from '../ImageLightbox';
 
-// Priority Badge Helper
+// Priority Badge Helper (Inner Badge)
 const getPriorityBadge = (p: string) => {
     switch(p) {
         case 'Alta': return 'bg-red-100 text-red-700 border-red-200';
@@ -18,13 +19,36 @@ const getPriorityBadge = (p: string) => {
     }
 };
 
+// Helper para estilos del contenedor principal según prioridad
+const getTaskContainerStyles = (task: Task) => {
+    // Si está completada, estilo apagado genérico
+    if (task.status === 'Completada') return 'border border-gray-200 opacity-50 bg-gray-50';
+
+    switch (task.priority) {
+        case 'Alta':
+            // ALERTA: Borde rojo, sombra roja y animación de pulso constante
+            return 'border-2 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.2)] animate-[pulse_2s_cubic-bezier(0.4,0,0.6,1)_infinite] z-10';
+        
+        case 'Media':
+            // CORTE: Borde lateral amarillo marcado, movimiento rápido y seco (duration-75)
+            return 'border-l-4 border-l-yellow-400 border-y border-r border-gray-200 hover:-translate-y-0.5 transition-transform duration-75 ease-linear';
+        
+        case 'Baja':
+            // BAJA SENSACIÓN: Opacidad reducida, desaturado, transición muy lenta (duration-700)
+            return 'border border-green-100 opacity-60 grayscale-[0.3] hover:opacity-100 hover:grayscale-0 transition-all duration-700 ease-in-out hover:shadow-sm';
+        
+        default:
+            return 'border border-gray-200';
+    }
+};
+
 interface TaskCardProps {
     task: Task;
     onStatusChange: (taskId: string, newStatus: TaskStatus) => void;
 }
 
 const TaskCard: React.FC<TaskCardProps> = ({ task, onStatusChange }) => (
-    <div className={`bg-white p-4 rounded-xl border shadow-sm active:scale-[0.98] transition-transform duration-100 relative ${task.category === 'Mantenimiento' ? 'border-l-4 border-l-red-400 border-y-gray-200 border-r-gray-200' : 'border-gray-200'}`}>
+    <div className={`bg-white p-4 rounded-xl shadow-sm relative ${getTaskContainerStyles(task)}`}>
         <div className="flex justify-between items-start mb-2">
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider ${getPriorityBadge(task.priority)}`}>
                 {task.priority}
@@ -40,7 +64,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onStatusChange }) => (
         
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pt-2 border-t border-gray-50 gap-2">
             {task.dueDate && (
-                <div className={`flex items-center gap-1 text-[10px] font-medium ${new Date(task.dueDate) < new Date() && task.status !== 'Completada' ? 'text-red-500' : 'text-gray-400'}`}>
+                <div className={`flex items-center gap-1 text-[10px] font-medium ${new Date(task.dueDate) < new Date() && task.status !== 'Completada' ? 'text-red-500 font-bold' : 'text-gray-400'}`}>
                     <Calendar className="w-3 h-3" />
                     {new Date(task.dueDate).toLocaleDateString()}
                 </div>
@@ -48,17 +72,17 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onStatusChange }) => (
             
             <div className="flex gap-2 ml-auto w-full sm:w-auto">
                 {task.status !== 'En Curso' && task.status !== 'Completada' && (
-                    <button onClick={() => onStatusChange(task.id, 'En Curso')} className="w-full sm:w-auto flex-1 flex items-center justify-center gap-1 bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-blue-100 active:bg-blue-100">
+                    <button onClick={() => onStatusChange(task.id, 'En Curso')} className="w-full sm:w-auto flex-1 flex items-center justify-center gap-1 bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-blue-100 active:bg-blue-100 hover:bg-blue-100 transition-colors">
                         <Clock className="w-3 h-3" /> Empezar
                     </button>
                 )}
                 {task.status !== 'Completada' && (
-                    <button onClick={() => onStatusChange(task.id, 'Completada')} className="w-full sm:w-auto flex-1 flex items-center justify-center gap-1 bg-green-50 text-green-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-green-100 active:bg-green-100">
+                    <button onClick={() => onStatusChange(task.id, 'Completada')} className="w-full sm:w-auto flex-1 flex items-center justify-center gap-1 bg-green-50 text-green-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-green-100 active:bg-green-100 hover:bg-green-100 transition-colors">
                         <CheckCircle className="w-3 h-3" /> Hecho
                     </button>
                 )}
                  {task.status === 'En Curso' && (
-                     <button onClick={() => onStatusChange(task.id, 'Pendiente')} className="p-1.5 text-gray-400 bg-gray-100 rounded-lg">
+                     <button onClick={() => onStatusChange(task.id, 'Pendiente')} className="p-1.5 text-gray-400 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
                          <X className="w-4 h-4" />
                      </button>
                 )}
@@ -354,8 +378,8 @@ export const WorkerDashboard: React.FC = () => {
     if (!workerName) return <div className="h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-rentia-blue"/></div>;
 
     return (
-        <div className="min-h-screen bg-gray-50 font-sans">
-            <div className="max-w-6xl mx-auto p-4 md:p-6 pb-28">
+        <div className="min-h-[100dvh] bg-gray-50 font-sans">
+            <div className="max-w-6xl mx-auto p-4 md:p-6 pb-32">
                 <header className="mb-6">
                     <h1 className="text-xl md:text-2xl font-bold text-rentia-black font-display">
                         Hola, {workerName} <span className="text-xl">🛠️</span>

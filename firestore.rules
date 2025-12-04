@@ -20,8 +20,7 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
-    // Verifica el rol. 
-    // MEJORA: Es robusto si el campo 'active' no existe (asume true).
+    // Verifica el rol y si la cuenta está activa
     function hasRole(role) {
       let user = getUserData();
       return isAuthenticated() && 
@@ -47,11 +46,10 @@ service cloud.firestore {
     // --- REGLAS POR COLECCIÓN ---
 
     // 1. USUARIOS (USERS)
-    // Importante: Permitir lectura a authenticated para que getUserData() funcione en el cliente si es necesario
     match /users/{userId} {
       allow read: if isSelf(userId) || isStaffOrWorker();
-      allow create: if isStaff(); // Solo staff crea usuarios
-      allow update: if isStaff() || isSelf(userId); // Uno mismo puede actualizar datos básicos
+      allow create: if isStaff(); // Solo staff crea usuarios desde el panel
+      allow update: if isStaff() || isSelf(userId);
       allow delete: if isStaff();
     }
 
@@ -94,7 +92,7 @@ service cloud.firestore {
     // 7. BUZÓN SOCIAL (SOCIAL_INBOX)
     match /social_inbox/{msgId} {
       allow read: if isStaff();
-      allow create: if true; // Permitir entrada desde web (formularios públicos simulados) o Staff
+      allow create: if true; // Permitir entrada anónima o autenticada desde la web
       allow update, delete: if isStaff();
     }
 
@@ -113,7 +111,7 @@ service cloud.firestore {
     match /candidate_pipeline/{candidateId} {
       allow read: if isStaffOrWorker();
       allow create: if isStaffOrWorker();
-      allow update: if isStaff(); // Solo Staff aprueba/rechaza
+      allow update: if isStaff(); // Solo Staff aprueba/rechaza definitivamente
       allow delete: if isStaff();
     }
 
@@ -124,7 +122,7 @@ service cloud.firestore {
       allow update, delete: if isStaff();
     }
 
-    // Bloqueo por defecto
+    // Bloqueo por defecto para cualquier otra colección no definida
     match /{document=**} {
       allow read, write: if false;
     }

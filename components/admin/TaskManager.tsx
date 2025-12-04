@@ -3,12 +3,12 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { db } from '../../firebase';
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy } from 'firebase/firestore';
 import { StaffMember, Task, TaskPriority, TaskStatus, TaskCategory, TaskBoard } from '../../types';
-import { Plus, Calendar, AlertTriangle, CheckCircle, Trash2, Edit2, X, Filter, List, Kanban, Save, Loader2, Wifi, WifiOff, Layout, FolderPlus, Folder, LayoutTemplate, Menu } from 'lucide-react';
+import { Plus, Calendar, AlertTriangle, CheckCircle, Trash2, Edit2, X, Filter, List, Kanban, Save, Loader2, Wifi, WifiOff, Layout, FolderPlus, Folder, LayoutTemplate, Menu, Search, Clock } from 'lucide-react';
 
 const STAFF_MEMBERS: StaffMember[] = ['Pol', 'Sandra', 'Víctor', 'Ayoub', 'Hugo', 'Colaboradores'];
 const PRIORITIES: TaskPriority[] = ['Alta', 'Media', 'Baja'];
 const STATUSES: TaskStatus[] = ['Pendiente', 'En Curso', 'Completada', 'Bloqueada'];
-const CATEGORIES: TaskCategory[] = ['Gestión', 'Marketing', 'Legal', 'Operaciones', 'Reformas', 'Contabilidad'];
+const CATEGORIES: TaskCategory[] = ['Gestión', 'Marketing', 'Legal', 'Operaciones', 'Reformas', 'Contabilidad', 'Mantenimiento'];
 
 const getPriorityColor = (p: TaskPriority) => {
     switch(p) {
@@ -19,8 +19,85 @@ const getPriorityColor = (p: TaskPriority) => {
     }
 };
 
+// Helper para estilos del contenedor principal de la tarjeta según prioridad (Igual que WorkerDashboard)
+const getCardStyles = (task: Task) => {
+    // Si está completada, estilo apagado genérico
+    if (task.status === 'Completada') return 'border border-gray-200 opacity-50 bg-gray-50';
+
+    switch (task.priority) {
+        case 'Alta':
+            // ALERTA: Borde rojo, sombra roja y animación de pulso constante
+            return 'border-2 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.2)] animate-[pulse_2s_cubic-bezier(0.4,0,0.6,1)_infinite] z-10';
+        
+        case 'Media':
+            // CORTE: Borde lateral amarillo marcado, movimiento rápido y seco (duration-75)
+            return 'border-l-4 border-l-yellow-400 border-y border-r border-gray-200 hover:-translate-y-0.5 transition-transform duration-75 ease-linear';
+        
+        case 'Baja':
+            // BAJA SENSACIÓN: Opacidad reducida, desaturado, transición muy lenta (duration-700)
+            return 'border border-green-100 opacity-60 grayscale-[0.3] hover:opacity-100 hover:grayscale-0 transition-all duration-700 ease-in-out hover:shadow-sm';
+        
+        default:
+            return 'border border-gray-200 hover:-translate-y-1 transition-all duration-300';
+    }
+};
+
+// Componente de Cronómetro Sutil
+const TaskTimer: React.FC<{ dateStr: string }> = ({ dateStr }) => {
+    const [timeLeft, setTimeLeft] = useState('');
+    const [isUrgent, setIsUrgent] = useState(false);
+    const [isExpired, setIsExpired] = useState(false);
+
+    useEffect(() => {
+        const calculateTime = () => {
+            const now = new Date();
+            const target = new Date(dateStr);
+            // Asumimos el final del día de la fecha límite
+            target.setHours(23, 59, 59, 999);
+
+            const diff = target.getTime() - now.getTime();
+
+            if (diff <= 0) {
+                setIsExpired(true);
+                setTimeLeft('Exp');
+                return;
+            }
+
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+            if (days > 0) {
+                setTimeLeft(`${days}d ${hours}h`);
+                setIsUrgent(days < 2);
+            } else {
+                setTimeLeft(`${hours}h ${minutes}m ${seconds}s`);
+                setIsUrgent(true);
+            }
+        };
+
+        calculateTime();
+        const timer = setInterval(calculateTime, 1000); // Actualizar cada segundo
+        return () => clearInterval(timer);
+    }, [dateStr]);
+
+    if (!timeLeft) return null;
+
+    return (
+        <span className={`ml-1.5 text-[9px] font-mono px-1.5 py-0.5 rounded flex items-center gap-1 ${
+            isExpired ? 'bg-red-100 text-red-700 border border-red-200' :
+            isUrgent ? 'bg-orange-50 text-orange-600 border border-orange-100' : 
+            'bg-gray-100 text-gray-500 border border-gray-200'
+        }`}>
+            <Clock className="w-2 h-2" />
+            {timeLeft}
+        </span>
+    );
+};
+
 const TaskCard: React.FC<{ task: Task, onEdit: (t: Task) => void, onDelete: (id: string) => Promise<void> | void }> = ({ task, onEdit, onDelete }) => (
-    <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 group relative flex flex-col gap-2 hover:-translate-y-1">
+    <div className={`bg-white p-4 rounded-lg shadow-sm group relative flex flex-col gap-2 ${getCardStyles(task)}`}>
         <div className="flex justify-between items-start">
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider ${getPriorityColor(task.priority)}`}>
                 {task.priority}
@@ -44,9 +121,10 @@ const TaskCard: React.FC<{ task: Task, onEdit: (t: Task) => void, onDelete: (id:
                 <span>{task.assignee}</span>
             </div>
             {task.dueDate && (
-                <div className={`flex items-center gap-1 ${new Date(task.dueDate) < new Date() && task.status !== 'Completada' ? 'text-red-500 font-bold' : ''}`}>
-                    <Calendar className="w-3 h-3" />
+                <div className={`flex items-center ${new Date(task.dueDate) < new Date() && task.status !== 'Completada' ? 'text-red-500 font-bold' : ''}`}>
+                    <Calendar className="w-3 h-3 mr-1" />
                     {new Date(task.dueDate).toLocaleDateString()}
+                    {task.status !== 'Completada' && <TaskTimer dateStr={task.dueDate} />}
                 </div>
             )}
         </div>
@@ -67,6 +145,7 @@ export const TaskManager: React.FC = () => {
     const [showMobileSidebar, setShowMobileSidebar] = useState(false);
 
     // Filters
+    const [searchTerm, setSearchTerm] = useState('');
     const [filterAssignee, setFilterAssignee] = useState<StaffMember | 'All'>('All');
     const [filterPriority, setFilterPriority] = useState<TaskPriority | 'All'>('All');
 
@@ -157,11 +236,19 @@ export const TaskManager: React.FC = () => {
             
             if (taskBoardId !== currentBoardId) return false;
 
+            // Search Filter
+            const term = searchTerm.toLowerCase();
+            const matchesSearch = t.title.toLowerCase().includes(term) || 
+                                  t.description.toLowerCase().includes(term) ||
+                                  t.assignee.toLowerCase().includes(term);
+            
+            if (!matchesSearch) return false;
+
             if (filterAssignee !== 'All' && t.assignee !== filterAssignee) return false;
             if (filterPriority !== 'All' && t.priority !== filterPriority) return false;
             return true;
         });
-    }, [tasks, filterAssignee, filterPriority, selectedBoardId, boards]);
+    }, [tasks, filterAssignee, filterPriority, selectedBoardId, boards, searchTerm]);
 
     const stats = useMemo(() => {
         return {
@@ -273,7 +360,7 @@ export const TaskManager: React.FC = () => {
     };
 
     return (
-        <div className="bg-gray-50 min-h-screen flex h-full relative overflow-hidden">
+        <div className="bg-gray-50 h-full flex flex-col relative overflow-hidden">
             
             {/* MOBILE OVERLAY */}
             {showMobileSidebar && (
@@ -351,7 +438,7 @@ export const TaskManager: React.FC = () => {
             <div className="flex-grow flex flex-col h-full overflow-hidden w-full relative">
                 
                 {/* Header / Stats */}
-                <div className="bg-white border-b border-gray-200 p-4 md:p-6">
+                <div className="bg-white border-b border-gray-200 p-4 md:p-6 shrink-0">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
                         <div className="flex items-center gap-3 w-full md:w-auto">
                             <button 
@@ -414,6 +501,17 @@ export const TaskManager: React.FC = () => {
                         </div>
 
                         <div className="flex gap-2 items-center w-full sm:w-auto overflow-x-auto no-scrollbar pb-2 sm:pb-0">
+                            <div className="relative">
+                                <input 
+                                    type="text" 
+                                    placeholder="Buscar tarea..." 
+                                    className="pl-8 pr-3 py-2 bg-white border border-gray-200 rounded-lg text-xs md:text-sm outline-none focus:ring-2 focus:ring-rentia-blue w-32 sm:w-48 transition-all"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                                <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                            </div>
+                            <div className="h-6 w-px bg-gray-200 mx-1 hidden sm:block"></div>
                             <Filter className="w-4 h-4 text-gray-400 flex-shrink-0" />
                             <select 
                                 className="bg-white border border-gray-200 text-xs md:text-sm rounded-lg p-2 focus:ring-2 focus:ring-rentia-blue outline-none"
@@ -453,7 +551,7 @@ export const TaskManager: React.FC = () => {
                                             {filteredTasks.filter(t => t.status === status).length}
                                         </span>
                                     </div>
-                                    <div className="space-y-3 md:flex-grow md:overflow-y-auto pr-1 custom-scrollbar">
+                                    <div className="space-y-3 md:flex-grow md:overflow-y-auto pr-1 custom-scrollbar pb-10 md:pb-0">
                                         {filteredTasks.filter(t => t.status === status).map(task => (
                                             <TaskCard key={task.id} task={task} onEdit={openEditTask} onDelete={handleDeleteTask} />
                                         ))}
@@ -467,7 +565,7 @@ export const TaskManager: React.FC = () => {
                             ))}
                         </div>
                     ) : (
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden min-w-full overflow-x-auto">
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden min-w-full overflow-x-auto mb-20 md:mb-0">
                             <table className="w-full text-left text-sm">
                                 <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs">
                                     <tr>

@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { db } from '../../firebase';
 import { collection, getDocs, doc, updateDoc, writeBatch, setDoc, deleteDoc, query, where } from 'firebase/firestore';
 import { properties as staticProperties, Property, Room } from '../../data/rooms';
-import { Save, RefreshCw, Home, CheckCircle, ChevronDown, ChevronRight, Building, Plus, Trash2, X, MapPin, ExternalLink, Fan, Wind, Image as ImageIcon, FileText, Settings, Bed, Bath, Layout, Tv, Eye, PlayCircle, Monitor, Sun, Lock, User, AlertCircle, Hammer } from 'lucide-react';
+import { Save, RefreshCw, Home, CheckCircle, ChevronDown, ChevronRight, Building, Plus, Trash2, X, MapPin, ExternalLink, Fan, Wind, Image as ImageIcon, FileText, Settings, Bed, Bath, Layout, Tv, Eye, PlayCircle, Monitor, Sun, Lock, User, AlertCircle, Hammer, Percent, DollarSign } from 'lucide-react';
 import { ImageUploader } from './ImageUploader';
 import { ContractManager } from './ContractManager';
 import { Contract } from '../../types';
@@ -498,6 +499,42 @@ export const RoomManager: React.FC = () => {
                                     {expandedRoomSettings === room.id && (
                                         <div className="p-4 bg-gray-50 border-t border-gray-100 animate-in slide-in-from-top-1">
                                             
+                                            {/* Commission Settings - NUEVO */}
+                                            <div className="mb-4 bg-green-50/50 p-3 rounded-lg border border-green-100">
+                                                <h5 className="text-xs font-bold text-green-700 uppercase mb-2 flex items-center gap-1"><DollarSign className="w-3 h-3"/> Configuración de Comisión</h5>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label className="text-[10px] font-bold text-gray-400 block mb-1">Tipo de Comisión</label>
+                                                        <select 
+                                                            className="w-full p-2 border rounded text-xs bg-white"
+                                                            value={room.commissionType || 'percentage'}
+                                                            onChange={(e) => handleRoomChange(prop.id, room.id, 'commissionType', e.target.value)}
+                                                        >
+                                                            <option value="percentage">Porcentaje (%)</option>
+                                                            <option value="fixed">Fijo (€)</option>
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[10px] font-bold text-gray-400 block mb-1">
+                                                            Valor {room.commissionType === 'fixed' ? '(€)' : '(%)'} 
+                                                            {room.commissionType !== 'fixed' && <span className="text-[9px] text-gray-400 ml-1">+ IVA</span>}
+                                                        </label>
+                                                        <div className="relative">
+                                                            <input 
+                                                                type="number" 
+                                                                className="w-full p-2 pl-8 border rounded text-xs font-bold" 
+                                                                value={room.commissionValue || ''}
+                                                                onChange={(e) => handleRoomChange(prop.id, room.id, 'commissionValue', Number(e.target.value))}
+                                                                placeholder={room.commissionType === 'fixed' ? '50' : '10'}
+                                                            />
+                                                            <span className="absolute left-2 top-2 text-gray-400">
+                                                                {room.commissionType === 'fixed' ? <DollarSign className="w-3 h-3"/> : <Percent className="w-3 h-3"/>}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
                                             {/* Feature Toggles */}
                                             <div className="mb-4">
                                                 <h5 className="text-xs font-bold text-gray-500 uppercase mb-2">Equipamiento Extra</h5>

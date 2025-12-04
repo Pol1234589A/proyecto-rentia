@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { blogPosts, BlogPost } from '../data/blogData';
 import { Clock, Calendar, ChevronRight, Search, List, ArrowLeft, Tag, TrendingUp, KeyRound, Users, Zap, FileText } from 'lucide-react';
-import { useLanguage } from '../../contexts/LanguageContext';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export const BlogView: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');

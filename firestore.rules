@@ -126,6 +126,13 @@ service cloud.firestore {
       allow update, delete: if isStaff();
     }
 
+    // 12. NOTICIAS INTERNAS (INTERNAL_NEWS)
+    // Visible para todos los trabajadores, editable solo por Staff
+    match /internal_news/{newsId} {
+      allow read: if isStaffOrWorker();
+      allow write: if isStaff();
+    }
+
     // Bloqueo por defecto para cualquier otra colección no definida
     match /{document=**} {
       allow read, write: if false;

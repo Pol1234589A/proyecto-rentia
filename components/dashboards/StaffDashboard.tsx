@@ -16,6 +16,7 @@ import { VisitsLog } from '../admin/tools/VisitsLog';
 import { CandidateManager } from '../admin/tools/CandidateManager';
 import { AccountingPanel } from '../admin/tools/AccountingPanel';
 import { SuppliesPanel } from '../admin/tools/SuppliesPanel';
+import { NewsManager } from '../admin/NewsManager'; // Importado
 import { db } from '../../firebase';
 import { collection, onSnapshot, addDoc, query, where, orderBy, serverTimestamp } from 'firebase/firestore';
 import { properties as staticProperties } from '../../data/rooms';
@@ -454,6 +455,7 @@ export const StaffDashboard: React.FC = () => {
             case 'tools': return (
                 <SubSectionWrapper title="Herramientas Admin">
                     <div className="space-y-4">
+                        <NewsManager /> {/* NEW: News Manager for Mobile */}
                         <UserCreator />
                         <FileAnalyzer />
                         <ProfitCalculator />
@@ -559,6 +561,7 @@ export const StaffDashboard: React.FC = () => {
             
             {activeTab === 'tools' && ( 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in slide-in-from-bottom-4 duration-300">
+                    <NewsManager /> {/* NEW: Added News Manager here */}
                     <FeedGenerator />
                     <UserCreator />
                     <FileAnalyzer />

@@ -2,6 +2,7 @@
 
 
 
+
 export interface Financials {
   purchasePrice: number;
   itpPercent?: number; // New: Transfer Tax Percentage
@@ -168,4 +169,15 @@ export interface RoomVisit {
     outcome: VisitOutcome;
     comments: string;
     commission: number;
+}
+
+// --- NEW TYPE FOR INTERNAL NEWS ---
+export interface InternalNews {
+    id: string;
+    title: string;
+    content: string;
+    priority: 'Alta' | 'Normal' | 'Info';
+    createdAt: any;
+    author: string;
+    active: boolean;
 }

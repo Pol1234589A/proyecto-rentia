@@ -2,11 +2,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { db } from '../../firebase';
-import { collection, query, where, onSnapshot, updateDoc, doc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, updateDoc, doc, addDoc, serverTimestamp, orderBy, limit } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
-import { Task, TaskStatus, Candidate, CandidateStatus, VisitOutcome, RoomVisit } from '../../types';
+import { Task, TaskStatus, Candidate, CandidateStatus, VisitOutcome, RoomVisit, InternalNews } from '../../types';
 import { Property, Room } from '../../data/rooms';
-import { ClipboardList, Home, CheckCircle, Clock, AlertCircle, MapPin, Search, Calendar, Wrench, Plus, X, AlertTriangle, ChevronLeft, Loader2, WifiOff, Monitor, Tv, Lock, Sun, Bed, Layout, Image as ImageIcon, UserPlus, Send, Users, UserX, UserCheck, ChevronRight, Eye } from 'lucide-react';
+import { ClipboardList, Home, CheckCircle, Clock, AlertCircle, MapPin, Search, Calendar, Wrench, Plus, X, AlertTriangle, ChevronLeft, Loader2, WifiOff, Monitor, Tv, Lock, Sun, Bed, Layout, Image as ImageIcon, UserPlus, Send, Users, UserX, UserCheck, ChevronRight, Eye, Megaphone, Bell } from 'lucide-react';
 import { ImageLightbox } from '../ImageLightbox';
 
 // Priority Badge Helper (Inner Badge)
@@ -26,20 +26,66 @@ const getTaskContainerStyles = (task: Task) => {
 
     switch (task.priority) {
         case 'Alta':
-            // ALERTA: Borde rojo, sombra roja y animación de pulso constante
             return 'border-2 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.2)] animate-[pulse_2s_cubic-bezier(0.4,0,0.6,1)_infinite] z-10';
-        
         case 'Media':
-            // CORTE: Borde lateral amarillo marcado, movimiento rápido y seco (duration-75)
             return 'border-l-4 border-l-yellow-400 border-y border-r border-gray-200 hover:-translate-y-0.5 transition-transform duration-75 ease-linear';
-        
         case 'Baja':
-            // BAJA SENSACIÓN: Opacidad reducida, desaturado, transición muy lenta (duration-700)
             return 'border border-green-100 opacity-60 grayscale-[0.3] hover:opacity-100 hover:grayscale-0 transition-all duration-700 ease-in-out hover:shadow-sm';
-        
         default:
             return 'border border-gray-200';
     }
+};
+
+const NewsBanner: React.FC = () => {
+    const [news, setNews] = useState<InternalNews[]>([]);
+
+    useEffect(() => {
+        // Solo las 3 más recientes
+        const q = query(collection(db, "internal_news"), orderBy("createdAt", "desc"), limit(3));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const list: InternalNews[] = [];
+            snapshot.forEach((doc) => {
+                list.push({ ...doc.data(), id: doc.id } as InternalNews);
+            });
+            setNews(list);
+        });
+        return () => unsubscribe();
+    }, []);
+
+    if (news.length === 0) return null;
+
+    return (
+        <div className="mb-6 space-y-3 animate-in slide-in-from-top-4">
+            {news.map(item => (
+                <div 
+                    key={item.id} 
+                    className={`rounded-xl p-4 border flex items-start gap-4 shadow-sm ${
+                        item.priority === 'Alta' 
+                        ? 'bg-red-50 border-red-200 text-red-900' 
+                        : item.priority === 'Normal' 
+                        ? 'bg-blue-50 border-blue-200 text-blue-900'
+                        : 'bg-gray-50 border-gray-200 text-gray-800'
+                    }`}
+                >
+                    <div className={`p-2 rounded-full flex-shrink-0 ${
+                        item.priority === 'Alta' ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-white text-blue-600 shadow-sm'
+                    }`}>
+                        {item.priority === 'Alta' ? <AlertTriangle className="w-5 h-5"/> : <Megaphone className="w-5 h-5"/>}
+                    </div>
+                    <div>
+                        <h4 className="font-bold text-sm mb-1 flex items-center gap-2">
+                            {item.title}
+                            {item.priority === 'Alta' && <span className="text-[10px] bg-red-600 text-white px-2 py-0.5 rounded-full uppercase tracking-wide">Urgente</span>}
+                        </h4>
+                        <p className="text-xs opacity-90 whitespace-pre-wrap leading-relaxed">{item.content}</p>
+                        <p className="text-[10px] mt-2 opacity-60 flex items-center gap-1">
+                            <Clock className="w-3 h-3"/> {item.createdAt?.toDate().toLocaleDateString()} - {item.author}
+                        </p>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
 };
 
 interface TaskCardProps {
@@ -301,6 +347,9 @@ export const WorkerDashboard: React.FC = () => {
         switch (activeTab) {
             case 'tasks': return (
                 <div className="space-y-4">
+                    {/* NEWS BANNER */}
+                    <NewsBanner />
+
                     {/* SCROLLABLE FILTER CONTAINER */}
                     <div className="flex bg-gray-100 p-1 rounded-lg overflow-x-auto no-scrollbar gap-1">
                         {(['Pendiente', 'En Curso', 'Completada', 'Bloqueada'] as TaskStatus[]).map(status => (

@@ -1,10 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
-import { Users, Building, AlertCircle, CheckCircle, BarChart3, RefreshCw, LayoutDashboard, Calculator, Briefcase, Wrench, Plus, ArrowUpRight, ArrowDownRight, Search, FileText, Trash2, Save, X, DollarSign, Calendar as CalendarIcon, Filter, Download, Pencil, ChevronLeft, ChevronRight, PieChart, Landmark, ChevronDown, Wallet, CreditCard, Clock, Zap, Droplets, Flame, Wifi, Settings, Receipt, Split, Info, MessageCircle, Share2, ClipboardList, UserCheck, Mail, Phone, ArrowRight, UserPlus, Archive, Send, Home, DoorOpen, Menu, Grid, Footprints, MapPin, Percent, Quote, Sparkles, Activity } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Users, Building, AlertCircle, CheckCircle, BarChart3, RefreshCw, LayoutDashboard, Calculator, Briefcase, Wrench, Plus, ArrowUpRight, ArrowDownRight, Search, FileText, Trash2, Save, X, DollarSign, Calendar as CalendarIcon, Filter, Download, Pencil, ChevronLeft, ChevronRight, PieChart, Landmark, ChevronDown, Wallet, CreditCard, Clock, Zap, Droplets, Flame, Wifi, Settings, Receipt, Split, Info, MessageCircle, Share2, ClipboardList, UserCheck, Mail, Phone, ArrowRight, UserPlus, Archive, Send, Home, DoorOpen, Menu, Grid, Footprints, MapPin, Percent, Quote, Sparkles, Activity, Ban, ShieldAlert } from 'lucide-react';
 import { UserCreator } from '../admin/UserCreator';
 import { FileAnalyzer } from '../admin/FileAnalyzer';
 import { RoomManager } from '../admin/RoomManager';
 import { SalesCRM } from '../admin/SalesCRM';
+import { OpportunityManager } from '../admin/OpportunityManager';
 import { ProfitCalculator } from '../admin/ProfitCalculator';
 import { FeedGenerator } from '../admin/FeedGenerator';
 import { ContractManager } from '../admin/ContractManager';
@@ -17,149 +19,35 @@ import { CandidateManager } from '../admin/tools/CandidateManager';
 import { AccountingPanel } from '../admin/tools/AccountingPanel';
 import { SuppliesPanel } from '../admin/tools/SuppliesPanel';
 import { NewsManager } from '../admin/NewsManager';
-import { SalesTracker } from '../admin/SalesTracker'; // IMPORTED
+import { SalesTracker } from '../admin/SalesTracker';
+import { BlacklistManager } from '../admin/tools/BlacklistManager';
 import { db } from '../../firebase';
 import { collection, onSnapshot, addDoc, query, where, orderBy, serverTimestamp } from 'firebase/firestore';
 import { properties as staticProperties } from '../../data/rooms';
 import { useAuth } from '../../contexts/AuthContext';
 
+// ... (KEEP CONSTANTS: MOTIVATIONAL_QUOTES, PRIORITIES, ETC. UNCHANGED) ...
 const MOTIVATIONAL_QUOTES = [
-    // ... (Mantener citas existentes) ...
     "El único modo de hacer un gran trabajo es amar lo que haces. – Steve Jobs",
     "El éxito es la suma de pequeños esfuerzos repetidos día tras día. – Robert Collier",
     "No busques el momento perfecto, solo busca el momento y hazlo perfecto.",
-    "La excelencia no es un acto, es un hábito. – Aristóteles",
-    "Tu actitud, no tu aptitud, determinará tu altitud. – Zig Ziglar",
-    "Si puedes soñarlo, puedes hacerlo. – Walt Disney",
-    "El fracaso es la oportunidad de empezar de nuevo, con más inteligencia. – Henry Ford",
-    "La calidad significa hacer lo correcto cuando nadie está mirando. – Henry Ford",
-    "Cree que puedes y casi lo habrás logrado. – Theodore Roosevelt",
-    "No cuentes los días, haz que los días cuenten. – Muhammad Ali",
-    "El secreto para salir adelante es comenzar. – Mark Twain",
-    "La disciplina es el puente entre metas y logros. – Jim Rohn",
-    "Trabajar duro por algo que no nos importa se llama estrés. Trabajar duro por algo que amamos se llama pasión.",
-    "El éxito no se logra sólo con cualidades especiales. Es sobre todo un trabajo de constancia, de método y de organización.",
-    "Un cliente satisfecho es la mejor estrategia de negocio de todas. – Michael LeBoeuf",
-    "La mejor forma de predecir el futuro es crearlo. – Peter Drucker",
-    "La confianza en sí mismo es el primer secreto del éxito. – Ralph Waldo Emerson",
-    "No te detengas cuando estés cansado. Detente cuando hayas terminado.",
-    "El talento gana partidos, pero el trabajo en equipo y la inteligencia ganan campeonatos. – Michael Jordan",
-    "La motivación es lo que te pone en marcha. El hábito es lo que hace que sigas. – Jim Ryun",
-    "Si no te gusta algo, cámbialo. Si no puedes cambiarlo, cambia tu actitud. – Maya Angelou",
-    "La suerte tiene lugar cuando la preparación se encuentra con la oportunidad. – Séneca",
-    "Hazlo con pasión o no lo hagas.",
-    "La única forma de hacer un buen trabajo es amando lo que haces.",
-    "Nunca es demasiado tarde para ser lo que podrías haber sido. – George Eliot",
-    "El éxito es ir de fracaso en fracaso sin perder el entusiasmo. – Winston Churchill",
-    "La persistencia puede cambiar el fracaso en un logro extraordinario. – Matt Biondi",
-    "Mantén tu cara siempre hacia la luz del sol y las sombras caerán detrás de ti. – Walt Whitman",
-    "Lo que haces hoy puede mejorar todos tus mañanas. – Ralph Marston",
-    "La creatividad es la inteligencia divirtiéndose. – Albert Einstein",
-    "Nunca soñé con el éxito. Trabajé para llegar a él. – Estée Lauder",
-    "El optimismo es la fe que conduce al logro. Nada puede hacerse sin esperanza y confianza. – Helen Keller",
-    "Siempre parece imposible hasta que se hace. – Nelson Mandela",
-    "No esperes. El tiempo nunca será el justo. – Napoleon Hill",
-    "Conviértete en la persona que atraiga los resultados que buscas. – Jim Cathcart",
-    "No juzgues cada día por la cosecha que recoges, sino por las semillas que plantas. – Robert Louis Stevenson",
-    "El éxito depende del esfuerzo. – Sófocles",
-    "Hacer lo mejor en este momento nos pone en la mejor posición para el siguiente momento. – Oprah Winfrey",
-    "La verdadera oportunidad de éxito reside en la persona, no en el trabajo.",
-    "Cada problema es un regalo: sin problemas no creceríamos. – Tony Robbins",
-    "El fracaso no es lo opuesto al éxito, es parte del éxito.",
-    "Si no estás dispuesto a arriesgar lo inusual, tendrás que conformarte con lo ordinario. – Jim Rohn",
-    "El éxito no es la clave de la felicidad. La felicidad es la clave del éxito.",
-    "La gente exitosa y no exitosa no varían mucho en sus habilidades. Varían en sus deseos de alcanzar su potencial. – John Maxwell",
-    "Si haces lo que siempre has hecho, obtendrás lo que siempre has conseguido. – Tony Robbins",
-    "La acción es la clave fundamental de todo éxito. – Pablo Picasso",
-    "Da siempre lo mejor de ti. Lo que plantes ahora, lo cosecharás más tarde. – Og Mandino",
-    "La paciencia, la persistencia y el sudor hacen una combinación invencible para el éxito. – Napoleon Hill",
-    "El único lugar donde el éxito viene antes que el trabajo es en el diccionario. – Vidal Sassoon",
-    "No tengas miedo de renunciar a lo bueno para ir a por lo grandioso. – John D. Rockefeller",
-    "El éxito suele llegar a aquellos que están demasiado ocupados para buscarlo. – Henry David Thoreau",
-    "En medio de la dificultad reside la oportunidad. – Albert Einstein",
-    "Lo único imposible es aquello que no intentas.",
-    "Tus clientes más insatisfechos son tu mayor fuente de aprendizaje. – Bill Gates",
-    "Calidad es más importante que cantidad. Un 'home run' es mucho mejor que dos dobles. – Steve Jobs",
-    "La innovación distingue a los líderes de los seguidores. – Steve Jobs",
-    "El trabajo en equipo hace que el sueño funcione.",
-    "Solos podemos hacer poco, juntos podemos hacer mucho. – Helen Keller",
-    "El servicio al cliente no es un departamento, es una actitud.",
-    "Cada interacción es una oportunidad para causar una impresión positiva.",
-    "Sé el cambio que quieres ver en el mundo. – Mahatma Gandhi",
-    "Lo que consigues al alcanzar tus metas no es tan importante como en lo que te conviertes.",
-    "No mires el reloj; haz lo que él hace. Sigue adelante. – Sam Levenson",
-    "La diferencia entre lo ordinario y lo extraordinario es ese pequeño extra.",
-    "El éxito es caer nueve veces y levantarse diez. – Bon Jovi",
-    "Todo logro empieza con la decisión de intentarlo.",
-    "Las oportunidades no pasan, las creas tú. – Chris Grosser",
-    "Trabaja en silencio, que el éxito haga todo el ruido.",
-    "La mejor venganza es el éxito masivo. – Frank Sinatra",
-    "No levantes la voz, mejora tu argumento.",
-    "El conocimiento es poder. – Francis Bacon",
-    "La educación es el arma más poderosa que puedes usar para cambiar el mundo. – Nelson Mandela",
-    "Si quieres ir rápido, ve solo. Si quieres ir lejos, ve acompañado.",
-    "Ninguno de nosotros es tan bueno como todos nosotros juntos. – Ray Kroc",
-    "La actitud es una pequeña cosa que hace una gran diferencia. – Winston Churchill",
-    "El éxito no se mide en dinero, sino en la diferencia que marcas en las personas.",
-    "Liderazgo es la capacidad de transformar la visión en realidad. – Warren Bennis",
-    "La gestión eficaz es poner primero lo primero.",
-    "Eficiencia es hacer las cosas bien; eficacia es hacer las cosas correctas. – Peter Drucker",
-    "Una meta sin un plan es solo un deseo.",
-    "Convierte los muros que aparecen en tu vida en peldaños hacia tus objetivos.",
-    "El riesgo más grande es no tomar ninguno.",
-    "Haz de cada día tu obra maestra. – John Wooden",
-    "El entusiasmo mueve el mundo. – Arthur Balfour",
-    "La cortesía es el aceite que lubrica las relaciones humanas.",
-    "Escuchar es tan importante como hablar.",
-    "La sonrisa es la llave que abre muchas puertas.",
-    "Pequeños detalles hacen grandes diferencias en la experiencia del cliente.",
-    "Organización es lo que haces antes de hacer algo, para que cuando lo hagas, no se complique.",
-    "La claridad lleva al poder.",
-    "Enfócate en la solución, no en el problema.",
-    "Sé proactivo, no reactivo.",
-    "El valor de una idea radica en el uso de la misma. – Thomas Edison",
-    "La simplicidad es la máxima sofisticación. – Leonardo da Vinci",
-    "El tiempo es el recurso más valioso; úsalo sabiamente.",
-    "Aprende de ayer, vive para hoy, espera para mañana.",
-    "Tu trabajo va a llenar gran parte de tu vida, la única forma de estar realmente satisfecho es hacer lo que creas es un gran trabajo.",
-    "No se trata de tener tiempo, se trata de sacar tiempo.",
     "La excelencia es un viaje, no un destino."
 ];
 
-const MotivationalBanner: React.FC = () => {
-    // ... (Keep existing component) ...
-    const [quoteIndex, setQuoteIndex] = useState(Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length));
-    const [fade, setFade] = useState(true);
+const MotivationalBanner = () => {
+    const [quote, setQuote] = useState('');
 
     useEffect(() => {
-        const interval = setInterval(() => {
-            setFade(false);
-            setTimeout(() => {
-                setQuoteIndex((prev) => (prev + 1) % MOTIVATIONAL_QUOTES.length);
-                setFade(true);
-            }, 500); 
-        }, 15000); 
-
-        return () => clearInterval(interval);
+        const randomQuote = MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)];
+        setQuote(randomQuote);
     }, []);
 
     return (
-        <div className="bg-gradient-to-r from-slate-900 to-rentia-blue rounded-xl p-6 shadow-lg text-white mb-6 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-white/10 transition-colors duration-700"></div>
-            <div className="absolute bottom-0 left-0 w-32 h-32 bg-rentia-gold/20 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
-            <div className="relative z-10 flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
-                <div className="hidden md:flex p-3 bg-white/10 rounded-full backdrop-blur-sm border border-white/20 shadow-inner">
-                    <Quote className="w-8 h-8 text-rentia-gold fill-current" />
-                </div>
-                <div className="flex-1 min-h-[60px] flex items-center justify-center md:justify-start">
-                    <p className={`text-lg md:text-xl font-medium font-display leading-relaxed transition-opacity duration-500 ease-in-out ${fade ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
-                        "{MOTIVATIONAL_QUOTES[quoteIndex]}"
-                    </p>
-                </div>
-                <div className="hidden md:block">
-                    <Sparkles className="w-6 h-6 text-rentia-gold opacity-50 animate-pulse" />
-                </div>
+        <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white p-4 rounded-xl shadow-lg mb-6 flex items-center gap-3 animate-in fade-in slide-in-from-top-4">
+            <div className="bg-white/20 p-2 rounded-full">
+                <Quote className="w-5 h-5 text-white" />
             </div>
+            <p className="text-sm font-medium italic opacity-90">"{quote}"</p>
         </div>
     );
 };
@@ -167,12 +55,10 @@ const MotivationalBanner: React.FC = () => {
 export const StaffDashboard: React.FC = () => {
   const { currentUser } = useAuth();
 
-  // Added 'sales_tracker' to types
-  const [activeTab, setActiveTab] = useState<'overview' | 'real_estate' | 'accounting' | 'tools' | 'contracts' | 'calendar' | 'supplies' | 'calculator' | 'social' | 'tasks' | 'visits' | 'sales_tracker'>('overview');
-  const [activeMobileTab, setActiveMobileTab] = useState<'overview' | 'tasks' | 'candidates' | 'properties' | 'menu' | 'accounting' | 'supplies' | 'calendar' | 'contracts' | 'social' | 'calculator' | 'tools' | 'visits' | 'sales_tracker'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'real_estate' | 'accounting' | 'tools' | 'contracts' | 'calendar' | 'supplies' | 'calculator' | 'social' | 'tasks' | 'visits' | 'sales_tracker' | 'blacklist'>('overview');
+  const [activeMobileTab, setActiveMobileTab] = useState<'overview' | 'tasks' | 'candidates' | 'properties' | 'menu' | 'accounting' | 'supplies' | 'calendar' | 'contracts' | 'social' | 'calculator' | 'tools' | 'visits' | 'sales_tracker' | 'blacklist'>('overview');
   const [mobilePropertyView, setMobilePropertyView] = useState<'rent' | 'sale'>('rent');
 
-  // ... (Keep existing state and effects for stats, properties, etc.) ...
   const [stats, setStats] = useState({
     totalRooms: 0,
     occupancyRate: 0,
@@ -192,7 +78,6 @@ export const StaffDashboard: React.FC = () => {
   const [newCandidate, setNewCandidate] = useState({ propertyId: '', roomId: '', candidateName: '', additionalInfo: '', candidatePhone: '', candidateEmail: '' });
 
   useEffect(() => {
-    // ... (Keep existing Firebase listeners) ...
     const unsubscribeProps = onSnapshot(collection(db, "properties"), (snapshot) => {
       let totalRoomsCount = 0;
       let occupiedCount = 0;
@@ -281,7 +166,6 @@ export const StaffDashboard: React.FC = () => {
   }, []);
 
   const handleSendCandidate = async (e: React.FormEvent) => {
-    // ... (Keep existing logic) ...
     e.preventDefault();
     if (!newCandidate.propertyId || !newCandidate.roomId || !newCandidate.candidateName) {
         return alert("Completa todos los campos: propiedad, habitación y nombre.");
@@ -306,11 +190,12 @@ export const StaffDashboard: React.FC = () => {
     }
   };
 
-    // Added Sales Tracker to Desktop Toolbar
+    // Updated Tools List
     const desktopTools = [
         { id: 'tasks', label: 'Tareas', icon: <ClipboardList className="w-4 h-4" /> },
         { id: 'real_estate', label: 'Inmobiliaria', icon: <Building className="w-4 h-4" /> },
-        { id: 'sales_tracker', label: 'Seguimiento Ventas', icon: <Activity className="w-4 h-4" /> }, // NEW
+        { id: 'sales_tracker', label: 'Ventas', icon: <Activity className="w-4 h-4" /> },
+        { id: 'blacklist', label: 'Gestión Riesgos', icon: <ShieldAlert className="w-4 h-4 text-red-500" /> }, 
         { id: 'contracts', label: 'Contratos', icon: <FileText className="w-4 h-4" /> },
         { id: 'supplies', label: 'Suministros', icon: <Zap className="w-4 h-4" /> },
         { id: 'social', label: 'Mensajería', icon: <MessageCircle className="w-4 h-4" /> },
@@ -318,32 +203,32 @@ export const StaffDashboard: React.FC = () => {
         { id: 'accounting', label: 'Contabilidad', icon: <Calculator className="w-4 h-4" /> },
         { id: 'calendar', label: 'Calendario', icon: <CalendarIcon className="w-4 h-4" /> },
         { id: 'visits', label: 'Visitas', icon: <Footprints className="w-4 h-4" /> }, 
-        { id: 'tools', label: 'Herramientas', icon: <Wrench className="w-4 h-4" /> },
+        { id: 'tools', label: 'Admin', icon: <Wrench className="w-4 h-4" /> },
     ];
 
     const mobileMenuOptions = [
-        { id: 'sales_tracker', label: 'Seguimiento', icon: <Activity className="w-6 h-6"/>, color: 'bg-indigo-100 text-indigo-600' }, // NEW
+        { id: 'sales_tracker', label: 'Ventas', icon: <Activity className="w-6 h-6"/>, color: 'bg-indigo-100 text-indigo-600' },
+        { id: 'blacklist', label: 'Riesgos', icon: <ShieldAlert className="w-6 h-6"/>, color: 'bg-red-100 text-red-600' }, 
         { id: 'accounting', label: 'Contabilidad', icon: <Calculator className="w-6 h-6"/>, color: 'bg-blue-100 text-blue-600' },
         { id: 'supplies', label: 'Suministros', icon: <Zap className="w-6 h-6"/>, color: 'bg-yellow-100 text-yellow-600' },
         { id: 'calendar', label: 'Calendario', icon: <CalendarIcon className="w-6 h-6"/>, color: 'bg-green-100 text-green-600' },
         { id: 'visits', label: 'Visitas', icon: <Footprints className="w-6 h-6"/>, color: 'bg-red-100 text-red-600' },
         { id: 'contracts', label: 'Contratos', icon: <FileText className="w-6 h-6"/>, color: 'bg-purple-100 text-purple-600' },
         { id: 'social', label: 'Mensajería', icon: <MessageCircle className="w-6 h-6"/>, color: 'bg-pink-100 text-pink-600' },
-        { id: 'calculator', label: 'Calc. Inversión', icon: <Split className="w-6 h-6"/>, color: 'bg-orange-100 text-orange-600' },
+        { id: 'calculator', label: 'Inversión', icon: <Split className="w-6 h-6"/>, color: 'bg-orange-100 text-orange-600' },
         { id: 'tools', label: 'Herramientas', icon: <Wrench className="w-6 h-6"/>, color: 'bg-gray-100 text-gray-600' },
     ];
 
     const renderMobileContent = () => {
-        // ... (Existing wrapper code) ...
         const SubSectionWrapper = ({ title, children }: { title: string, children?: React.ReactNode }) => (
             <div className="animate-in slide-in-from-right-4 duration-300 h-full flex flex-col">
-                <div className="flex items-center gap-3 mb-4 sticky top-0 bg-gray-100 py-2 z-10">
+                <div className="flex items-center gap-3 mb-4 sticky top-0 bg-gray-100 py-2 z-10 px-4">
                     <button onClick={() => setActiveMobileTab('menu')} className="p-2 bg-white rounded-full shadow-sm">
                         <ChevronLeft className="w-5 h-5 text-gray-600"/>
                     </button>
                     <h2 className="text-lg font-bold text-gray-800">{title}</h2>
                 </div>
-                <div className="flex-grow overflow-y-auto pb-24">
+                <div className="flex-grow overflow-y-auto pb-24 px-2">
                     {children}
                 </div>
             </div>
@@ -351,7 +236,6 @@ export const StaffDashboard: React.FC = () => {
 
         switch (activeMobileTab) {
             case 'overview': return (
-                // ... (Existing overview code) ...
                 <div className="animate-in slide-in-from-bottom-4 duration-300 space-y-4 h-full overflow-y-auto pb-24 px-4 pt-4">
                     <MotivationalBanner />
                     {pendingCandidatesCount > 0 && (
@@ -388,31 +272,31 @@ export const StaffDashboard: React.FC = () => {
             case 'tasks': return <div className="animate-in fade-in h-full overflow-hidden"><TaskManager /></div>;
             case 'candidates': return <div className="animate-in fade-in h-full overflow-y-auto pb-24"><CandidateManager /></div>;
             case 'properties': return (
-                // ... (Existing properties code) ...
                 <div className="flex flex-col h-full">
                     <div className="flex p-2 bg-gray-100 gap-2 shrink-0 rounded-lg mb-2">
                         <button onClick={() => setMobilePropertyView('rent')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${mobilePropertyView === 'rent' ? 'bg-white shadow text-rentia-blue' : 'text-gray-500 hover:text-gray-700'}`}>Alquiler</button>
                         <button onClick={() => setMobilePropertyView('sale')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${mobilePropertyView === 'sale' ? 'bg-white shadow text-rentia-blue' : 'text-gray-500 hover:text-gray-700'}`}>Venta (CRM)</button>
                     </div>
                     <div className="flex-grow overflow-y-auto pb-24">
-                        {mobilePropertyView === 'rent' ? <RoomManager /> : <SalesCRM />}
+                        {mobilePropertyView === 'rent' ? <RoomManager /> : <SalesCRM /> }
                     </div>
                 </div>
             );
             case 'menu': return (
-                <div className="animate-in slide-in-from-bottom-4 p-2 h-full overflow-y-auto pb-24">
+                <div className="animate-in slide-in-from-bottom-4 p-4 h-full overflow-y-auto pb-24">
                     <h2 className="text-lg font-bold text-gray-800 mb-4 px-2">Más Herramientas</h2>
                     <div className="grid grid-cols-2 gap-4">
                         {mobileMenuOptions.map(opt => (
                             <button key={opt.id} onClick={() => setActiveMobileTab(opt.id as any)} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center justify-center gap-3 hover:bg-gray-50 active:scale-95 transition-all aspect-square">
                                 <div className={`p-3 rounded-full ${opt.color}`}>{opt.icon}</div>
-                                <span className="font-bold text-gray-700 text-sm">{opt.label}</span>
+                                <span className="font-bold text-gray-700 text-sm text-center leading-tight">{opt.label}</span>
                             </button>
                         ))}
                     </div>
                 </div>
             );
-            case 'sales_tracker': return <SubSectionWrapper title="Seguimiento Ventas"><SalesTracker /></SubSectionWrapper>; // NEW
+            case 'blacklist': return <SubSectionWrapper title="Gestión de Riesgos"><BlacklistManager /></SubSectionWrapper>; 
+            case 'sales_tracker': return <SubSectionWrapper title="Seguimiento Ventas"><SalesTracker /></SubSectionWrapper>;
             case 'visits': return <SubSectionWrapper title="Visitas"><VisitsLog /></SubSectionWrapper>;
             case 'accounting': return <SubSectionWrapper title="Contabilidad"><AccountingPanel /></SubSectionWrapper>;
             case 'calendar': return <SubSectionWrapper title="Calendario"><CalendarManager /></SubSectionWrapper>;
@@ -424,6 +308,8 @@ export const StaffDashboard: React.FC = () => {
                 <SubSectionWrapper title="Herramientas Admin">
                     <div className="space-y-4">
                         <NewsManager /> 
+                        <FeedGenerator />
+                        <OpportunityManager />
                         <UserCreator />
                         <FileAnalyzer />
                         <ProfitCalculator />
@@ -469,7 +355,7 @@ export const StaffDashboard: React.FC = () => {
             {activeTab === 'overview' && ( 
                 <div className="animate-in slide-in-from-bottom-4 duration-300">
                     <MotivationalBanner />
-                    {/* ... (Existing stats grid) ... */}
+                    {/* Stats Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 mb-8">
                         <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-500 relative overflow-hidden"><span className="text-xs text-gray-500 uppercase font-bold">Total Habitaciones</span><div className="flex justify-between items-end mt-2"><span className="text-3xl font-bold text-gray-800">{loadingStats ? '-' : stats.totalRooms}</span><Building className="w-6 h-6 text-blue-100 absolute right-4 top-4 transform scale-150" /></div></div>
                         <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-green-500 relative overflow-hidden"><span className="text-xs text-gray-500 uppercase font-bold">Ocupación Actual</span><div className="flex justify-between items-end mt-2"><span className={`text-3xl font-bold ${stats.occupancyRate > 90 ? 'text-green-600' : 'text-gray-800'}`}>{loadingStats ? '-' : `${stats.occupancyRate}%`}</span><Users className="w-6 h-6 text-green-100 absolute right-4 top-4 transform scale-150" /></div></div>
@@ -480,7 +366,7 @@ export const StaffDashboard: React.FC = () => {
                         </div>
                         <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-gray-500 relative overflow-hidden"><span className="text-xs text-gray-500 uppercase font-bold">Balance Total (Caja)</span><div className="flex justify-between items-end mt-2"><span className={`text-3xl font-bold ${totalRealBalance >= 0 ? 'text-gray-800' : 'text-red-600'}`}>{totalRealBalance.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}<span className="text-sm font-medium ml-1">€</span></span><Landmark className="w-6 h-6 text-gray-100 absolute right-4 top-4 transform scale-150" /></div></div>
                     </div>
-                    {/* ... (Existing candidate alerts) ... */}
+                    {/* Candidate Alerts */}
                     {pendingCandidatesCount > 0 && (
                         <div 
                             className="bg-orange-50 border border-orange-200 rounded-lg p-6 mb-8 flex items-center justify-between shadow-sm cursor-pointer hover:bg-orange-100 transition-colors"
@@ -507,12 +393,14 @@ export const StaffDashboard: React.FC = () => {
             {activeTab === 'visits' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><VisitsLog /></div>}
             {activeTab === 'supplies' && <div className="animate-in slide-in-from-bottom-4 duration-300"><SuppliesPanel properties={propertiesList} /></div>}
             {activeTab === 'accounting' && <div className="animate-in slide-in-from-bottom-4 duration-300"><AccountingPanel /></div>}
-            {activeTab === 'sales_tracker' && <div className="animate-in slide-in-from-bottom-4 duration-300"><SalesTracker /></div>} 
+            {activeTab === 'sales_tracker' && <div className="animate-in slide-in-from-bottom-4 duration-300"><SalesTracker /></div>}
+            {activeTab === 'blacklist' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><BlacklistManager /></div>} 
             
             {activeTab === 'tools' && ( 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in slide-in-from-bottom-4 duration-300">
                     <NewsManager /> 
                     <FeedGenerator />
+                    <OpportunityManager />
                     <UserCreator />
                     <FileAnalyzer />
                     <ProfitCalculator />
@@ -520,21 +408,31 @@ export const StaffDashboard: React.FC = () => {
             )}
         </div>
         
-        {/* ... (Mobile navigation retained) ... */}
-        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] grid grid-cols-5 z-50">
-            <button onClick={() => setActiveMobileTab('overview')} className={`py-2 flex flex-col items-center justify-center gap-1 transition-colors ${activeMobileTab === 'overview' ? 'text-rentia-blue' : 'text-gray-400'}`}><BarChart3 className="w-5 h-5"/><span className="text-[10px] font-bold">Resumen</span></button>
-            <button onClick={() => setActiveMobileTab('tasks')} className={`py-2 flex flex-col items-center justify-center gap-1 transition-colors ${activeMobileTab === 'tasks' ? 'text-rentia-blue' : 'text-gray-400'}`}><ClipboardList className="w-5 h-5"/><span className="text-[10px] font-bold">Tareas</span></button>
-            <button onClick={() => setActiveMobileTab('candidates')} className={`py-2 flex flex-col items-center justify-center gap-1 transition-colors ${activeMobileTab === 'candidates' ? 'text-rentia-blue' : 'text-gray-400'}`}><UserCheck className="w-5 h-5"/><span className="text-[10px] font-bold">Candidatos</span></button>
-            <button onClick={() => setActiveMobileTab('properties')} className={`py-2 flex flex-col items-center justify-center gap-1 transition-colors ${activeMobileTab === 'properties' ? 'text-rentia-blue' : 'text-gray-400'}`}><Home className="w-5 h-5"/><span className="text-[10px] font-bold">Inmuebles</span></button>
-            <button onClick={() => setActiveMobileTab('menu')} className={`py-2 flex flex-col items-center justify-center gap-1 transition-colors ${activeMobileTab === 'menu' ? 'text-rentia-blue' : 'text-gray-400'}`}><Grid className="w-5 h-5"/><span className="text-[10px] font-bold">Más</span></button>
+        {/* MOBILE NAVIGATION BAR */}
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] grid grid-cols-4 z-50 md:hidden h-16">
+            <button onClick={() => setActiveMobileTab('overview')} className={`flex flex-col items-center justify-center gap-1 transition-colors ${activeMobileTab === 'overview' ? 'text-rentia-blue' : 'text-gray-400'}`}>
+                <BarChart3 className="w-5 h-5" />
+                <span className="text-[9px] font-bold">Resumen</span>
+            </button>
+            <button onClick={() => setActiveMobileTab('tasks')} className={`flex flex-col items-center justify-center gap-1 transition-colors ${activeMobileTab === 'tasks' ? 'text-rentia-blue' : 'text-gray-400'}`}>
+                <ClipboardList className="w-5 h-5" />
+                <span className="text-[9px] font-bold">Tareas</span>
+            </button>
+            <button onClick={() => setActiveMobileTab('candidates')} className={`flex flex-col items-center justify-center gap-1 transition-colors ${activeMobileTab === 'candidates' ? 'text-rentia-blue' : 'text-gray-400'}`}>
+                <UserCheck className="w-5 h-5" />
+                <span className="text-[9px] font-bold">Candidatos</span>
+            </button>
+            <button onClick={() => setActiveMobileTab('menu')} className={`flex flex-col items-center justify-center gap-1 transition-colors ${activeMobileTab === 'menu' ? 'text-rentia-blue' : 'text-gray-400'}`}>
+                <Menu className="w-5 h-5" />
+                <span className="text-[9px] font-bold">Menú</span>
+            </button>
         </div>
 
-        {/* ... (Candidate Modal retained) ... */}
-        {showCandidateModal && ( 
-            <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setShowCandidateModal(false)}>
-                {/* ... (Modal Form content retained) ... */}
+        {/* ... (Candidate Modal code) ... */}
+        {showCandidateModal && createPortal(
+            <div className="fixed inset-0 z-[10001] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setShowCandidateModal(false)}>
+                {/* ... (Modal content) ... */}
                 <form onSubmit={handleSendCandidate} className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-xl shadow-2xl flex flex-col animate-in slide-in-from-bottom-10 overflow-hidden" onClick={e => e.stopPropagation()}>
-                    {/* ... (Existing fields) ... */}
                     <div className="p-4 bg-gray-50 border-b flex justify-between items-center">
                         <h3 className="font-bold flex items-center gap-2"><UserPlus className="w-5 h-5 text-green-600"/> Enviar Candidato</h3>
                         <button type="button" onClick={() => setShowCandidateModal(false)} className="p-2 -mr-2"><X className="w-5 h-5 text-gray-400"/></button>
@@ -573,7 +471,8 @@ export const StaffDashboard: React.FC = () => {
                         <button type="submit" className="bg-green-600 text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-green-700 shadow-md flex items-center gap-2"><Send className="w-4 h-4"/> Enviar a Pipeline</button>
                     </div>
                 </form>
-            </div> 
+            </div>,
+            document.body
         )}
       </div>
     </div>

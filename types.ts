@@ -1,8 +1,4 @@
 
-
-
-
-
 export interface Financials {
   purchasePrice: number;
   itpPercent?: number; // New: Transfer Tax Percentage
@@ -138,7 +134,7 @@ export interface Task {
 
 // --- NEW TYPES FOR CANDIDATE PIPELINE ---
 
-export type CandidateStatus = 'pending_review' | 'approved' | 'rejected' | 'archived';
+export type CandidateStatus = 'pending_review' | 'approved' | 'rejected' | 'archived' | 'rented';
 
 export interface Candidate {
     id: string;
@@ -153,6 +149,11 @@ export interface Candidate {
     submittedBy: string;
     submittedAt: any; // Firestore Timestamp
     status: CandidateStatus;
+    
+    // New fields for closure
+    closureReason?: string; // Por qué se rechazó o archivó (ej: "Encontró otro piso")
+    assignedRoomId?: string; // ID de la habitación si finalmente alquiló
+    assignedDate?: any;
 }
 
 // --- NEW TYPES FOR ROOM VISITS ---

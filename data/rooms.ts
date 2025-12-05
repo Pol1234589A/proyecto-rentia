@@ -28,6 +28,7 @@ export interface Room {
 
 export interface Property {
   id: string;
+  ownerId?: string; // ID del usuario propietario (Firebase UID)
   address: string;
   city: string;
   floor?: string; // Nuevo campo: Planta

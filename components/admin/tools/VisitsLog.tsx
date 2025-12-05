@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { db } from '../../../firebase';
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
-import { Footprints, CheckCircle, X, Clock, DoorOpen, DollarSign } from 'lucide-react';
+import { collection, query, orderBy, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
+import { Footprints, CheckCircle, X, Clock, DoorOpen, DollarSign, Trash2 } from 'lucide-react';
 import { VisitOutcome } from '../../../types';
+import { useAuth } from '../../../contexts/AuthContext';
 
 export interface VisitRecord {
     id: string;
@@ -19,10 +20,15 @@ export interface VisitRecord {
 }
 
 export const VisitsLog: React.FC = () => {
+    const { userRole } = useAuth();
     const [visits, setVisits] = useState<VisitRecord[]>([]);
     const [loading, setLoading] = useState(true);
     const [filterWorker, setFilterWorker] = useState<string>('all');
     const [filterOutcome, setFilterOutcome] = useState<string>('all');
+
+    // SEGURIDAD UI: Solo Staff real (no propietarios) puede borrar.
+    // 'agency' se considera staff limitado, 'admin' y 'staff' tienen poder total.
+    const isStaff = userRole === 'staff' || userRole === 'admin' || userRole === 'agency';
 
     useEffect(() => {
         const q = query(collection(db, "room_visits"), orderBy("visitDate", "desc"));
@@ -36,6 +42,19 @@ export const VisitsLog: React.FC = () => {
         });
         return () => unsubscribe();
     }, []);
+
+    const handleDeleteVisit = async (visitId: string) => {
+        if (!isStaff) return; // Doble check en cliente
+        
+        if (confirm("¿Estás seguro de eliminar esta visita del registro?")) {
+            try {
+                await deleteDoc(doc(db, "room_visits", visitId));
+            } catch (error) {
+                console.error("Error deleting visit:", error);
+                alert("Error al eliminar la visita. Verifica tus permisos.");
+            }
+        }
+    };
 
     const filteredVisits = useMemo(() => {
         return visits.filter(v => {
@@ -108,6 +127,7 @@ export const VisitsLog: React.FC = () => {
                                         <th className="p-4">Resultado</th>
                                         <th className="p-4">Comentarios</th>
                                         <th className="p-4 text-right">Comisión</th>
+                                        {isStaff && <th className="p-4 text-center">Acción</th>}
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
@@ -139,6 +159,17 @@ export const VisitsLog: React.FC = () => {
                                             <td className="p-4 text-right font-mono font-bold text-gray-700">
                                                 {visit.commission && visit.commission > 0 ? `${visit.commission}€` : '-'}
                                             </td>
+                                            {isStaff && (
+                                                <td className="p-4 text-center">
+                                                    <button 
+                                                        onClick={() => handleDeleteVisit(visit.id)}
+                                                        className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                                                        title="Eliminar Visita"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </td>
+                                            )}
                                         </tr>
                                     ))}
                                 </tbody>
@@ -148,8 +179,16 @@ export const VisitsLog: React.FC = () => {
                         {/* Mobile Card View */}
                         <div className="md:hidden space-y-3">
                             {filteredVisits.map(visit => (
-                                <div key={visit.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-                                    <div className="flex justify-between items-start mb-2">
+                                <div key={visit.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 relative group">
+                                    {isStaff && (
+                                        <button 
+                                            onClick={() => handleDeleteVisit(visit.id)}
+                                            className="absolute top-3 right-3 p-1.5 text-gray-300 hover:text-red-500 rounded-full transition-colors"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    )}
+                                    <div className="flex justify-between items-start mb-2 pr-8">
                                         <div className="flex items-center gap-2">
                                             <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold">
                                                 {visit.workerName.charAt(0)}
@@ -161,6 +200,8 @@ export const VisitsLog: React.FC = () => {
                                                 </p>
                                             </div>
                                         </div>
+                                    </div>
+                                    <div className="flex items-center justify-between mb-2">
                                         {getOutcomeBadge(visit.outcome)}
                                     </div>
                                     

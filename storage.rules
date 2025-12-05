@@ -1,0 +1,55 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // --- FUNCIONES DE AYUDA ---
+
+    // Obtiene el rol del usuario directamente desde la colección 'users' de Firestore
+    // Esto asegura que solo personal autorizado pueda subir archivos, incluso si el usuario está autenticado en Firebase Auth.
+    function getRole() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    // Verifica si el usuario tiene permisos de Staff/Admin
+    function isStaff() {
+      return request.auth != null && (getRole() == 'staff' || getRole() == 'admin' || getRole() == 'agency');
+    }
+
+    // Verifica si es miembro del equipo (incluye workers para subir fotos de visitas/perfil)
+    function isTeam() {
+      return request.auth != null && (getRole() == 'staff' || getRole() == 'admin' || getRole() == 'agency' || getRole() == 'worker');
+    }
+
+    // --- REGLAS POR CARPETA ---
+
+    // Oportunidades e Inmuebles: Público lectura, Staff/Team escritura
+    match /opportunities/{allPaths=**} {
+      allow read: if true;
+      allow write: if isStaff();
+    }
+    
+    match /properties/{allPaths=**} {
+      allow read: if true;
+      allow write: if isTeam(); // Workers pueden subir fotos de pisos
+    }
+
+    // Feeds XML: Público lectura, Staff escritura
+    match /feeds/{allPaths=**} {
+      allow read: if true;
+      allow write: if isStaff();
+    }
+
+    // Documentación Privada (Contratos, DNI, etc.)
+    // Estructura: /contracts/{userId}/{filename}
+    match /contracts/{userId}/{allPaths=**} {
+      allow read: if request.auth != null && (request.auth.uid == userId || isStaff());
+      allow write: if isStaff();
+    }
+
+    // Regla por defecto para seguridad (Bloquear todo lo demás)
+    match /{allPaths=**} {
+      allow read: if isStaff();
+      allow write: if isStaff();
+    }
+  }
+}

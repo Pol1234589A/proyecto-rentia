@@ -27,8 +27,8 @@ export const VisitsLog: React.FC = () => {
     const [filterOutcome, setFilterOutcome] = useState<string>('all');
 
     // SEGURIDAD UI: Solo Staff real (no propietarios) puede borrar.
-    // 'agency' se considera staff limitado, 'admin' y 'staff' tienen poder total.
-    const isStaff = userRole === 'staff' || userRole === 'admin' || userRole === 'agency';
+    // 'agency' se considera staff limitado, 'staff' tiene poder total.
+    const isStaff = userRole === 'staff' || userRole === 'agency';
 
     useEffect(() => {
         const q = query(collection(db, "room_visits"), orderBy("visitDate", "desc"));

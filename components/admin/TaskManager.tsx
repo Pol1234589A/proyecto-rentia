@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { db } from '../../firebase';
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy } from 'firebase/firestore';
 import { StaffMember, Task, TaskPriority, TaskStatus, TaskCategory, TaskBoard } from '../../types';
-import { Plus, Calendar, AlertTriangle, CheckCircle, Trash2, Edit2, X, Filter, List, Kanban, Save, Loader2, Wifi, WifiOff, Layout, FolderPlus, Folder, LayoutTemplate, Menu, Search, Clock } from 'lucide-react';
+import { Plus, Calendar, AlertTriangle, CheckCircle, Trash2, Edit2, X, Filter, List, Kanban, Save, Loader2, Wifi, WifiOff, Layout, FolderPlus, Folder, LayoutTemplate, Menu, Search, Clock, ChevronDown } from 'lucide-react';
 
 const STAFF_MEMBERS: StaffMember[] = ['Pol', 'Sandra', 'Víctor', 'Ayoub', 'Hugo', 'Colaboradores'];
 const PRIORITIES: TaskPriority[] = ['Alta', 'Media', 'Baja'];
@@ -86,7 +86,8 @@ const TaskTimer: React.FC<{ dateStr: string }> = ({ dateStr }) => {
     );
 };
 
-const TaskCard: React.FC<{ task: Task, onEdit: (t: Task) => void, onDelete: (id: string) => Promise<void> | void }> = ({ task, onEdit, onDelete }) => (
+// Componente de Tarjeta para vista Kanban
+const KanbanCard: React.FC<{ task: Task, onEdit: (t: Task) => void, onDelete: (id: string) => Promise<void> | void }> = ({ task, onEdit, onDelete }) => (
     <div className={`bg-white p-4 rounded-lg shadow-sm group relative flex flex-col gap-2 ${getCardStyles(task)}`}>
         <div className="flex justify-between items-start">
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider ${getPriorityColor(task.priority)}`}>
@@ -117,6 +118,48 @@ const TaskCard: React.FC<{ task: Task, onEdit: (t: Task) => void, onDelete: (id:
                     {task.status !== 'Completada' && <TaskTimer dateStr={task.dueDate} />}
                 </div>
             )}
+        </div>
+    </div>
+);
+
+// Componente de Tarjeta para vista Lista Móvil
+const MobileListCard: React.FC<{ task: Task, onEdit: (t: Task) => void, onDelete: (id: string) => Promise<void> | void }> = ({ task, onEdit, onDelete }) => (
+    <div className={`p-4 bg-white rounded-lg shadow-sm border border-gray-200 ${task.status === 'Completada' ? 'opacity-70 bg-gray-50' : ''}`}>
+        <div className="flex justify-between items-start mb-2">
+            <h4 className="font-bold text-gray-900 text-sm leading-snug pr-2">{task.title}</h4>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase flex-shrink-0 ${getPriorityColor(task.priority)}`}>
+                {task.priority}
+            </span>
+        </div>
+        
+        <p className="text-xs text-gray-600 mb-3 line-clamp-2">{task.description}</p>
+        
+        <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t border-gray-100">
+            <div className="flex items-center gap-3">
+                <span className="flex items-center gap-1">
+                    <div className="w-5 h-5 rounded-full bg-rentia-blue text-white flex items-center justify-center font-bold text-[10px]">
+                        {task.assignee.charAt(0)}
+                    </div>
+                    {task.assignee}
+                </span>
+                <span className="font-medium bg-gray-100 px-2 py-0.5 rounded">{task.status || 'Pendiente'}</span>
+            </div>
+            
+            {task.dueDate && (
+                <div className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3" /> 
+                    {new Date(task.dueDate).toLocaleDateString()}
+                </div>
+            )}
+        </div>
+        
+        <div className="flex justify-end gap-4 mt-3 pt-2 border-t border-gray-50">
+            <button onClick={() => onEdit(task)} className="text-blue-600 text-xs font-bold flex items-center gap-1 hover:underline">
+                <Edit2 className="w-3 h-3"/> Editar
+            </button>
+            <button onClick={() => onDelete(task.id)} className="text-red-600 text-xs font-bold flex items-center gap-1 hover:underline">
+                <Trash2 className="w-3 h-3"/> Borrar
+            </button>
         </div>
     </div>
 );
@@ -167,11 +210,10 @@ export const TaskManager: React.FC = () => {
             const loadedTasks: Task[] = [];
             snapshot.forEach((doc) => {
                 const data = doc.data();
-                // Normalización de datos críticos
                 loadedTasks.push({ 
                     ...data, 
                     id: doc.id,
-                    status: data.status || 'Pendiente' // Asegurar status por defecto
+                    status: data.status || 'Pendiente' 
                 } as Task);
             });
             setTasks(loadedTasks);
@@ -191,7 +233,6 @@ export const TaskManager: React.FC = () => {
         }
     }, [boards, selectedBoardId]);
 
-    // Filtrado en cada renderizado (sin useMemo) para evitar bugs de caché visual
     const filteredTasks = tasks.filter(t => {
         const effectiveBoardId = selectedBoardId || (boards.length > 0 ? boards[0].id : 'default');
         const taskBoardId = t.boardId || (boards.length > 0 ? boards[0].id : 'default');
@@ -217,8 +258,6 @@ export const TaskManager: React.FC = () => {
         completed: filteredTasks.filter(t => t.status === 'Completada').length
     };
 
-    // Agrupar tableros
-    // Aunque filteredTasks no usa useMemo, groupedBoards sí puede usarlo ya que boards cambia poco
     const groupedBoards = React.useMemo(() => {
         const groups: Record<string, TaskBoard[]> = {};
         boards.forEach(b => {
@@ -305,6 +344,7 @@ export const TaskManager: React.FC = () => {
         <div className="bg-gray-50 h-full flex flex-col relative overflow-hidden">
             {showMobileSidebar && <div className="absolute inset-0 bg-black/50 z-20 md:hidden" onClick={() => setShowMobileSidebar(false)} />}
 
+            {/* Sidebar Tableros */}
             <div className={`w-64 bg-white border-r border-gray-200 flex-shrink-0 flex flex-col h-full absolute md:relative z-30 transition-transform duration-300 shadow-xl md:shadow-none ${showMobileSidebar ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
                 <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                     <h3 className="font-bold text-gray-700 flex items-center gap-2">
@@ -334,8 +374,10 @@ export const TaskManager: React.FC = () => {
                 </div>
             </div>
 
+            {/* Main Content */}
             <div className="flex-grow flex flex-col h-full overflow-hidden w-full relative">
                 <div className="bg-white border-b border-gray-200 p-4 md:p-6 shrink-0">
+                    {/* Header Controls */}
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
                         <div className="flex items-center gap-3 w-full md:w-auto">
                             <button onClick={() => setShowMobileSidebar(true)} className="md:hidden p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-lg"><Menu className="w-6 h-6" /></button>
@@ -356,6 +398,7 @@ export const TaskManager: React.FC = () => {
                         </div>
                     </div>
 
+                    {/* Stats & Filters */}
                     <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
                         <div className="flex gap-2 overflow-x-auto no-scrollbar w-full sm:w-auto pb-2 sm:pb-0">
                             <div className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-blue-100 flex items-center gap-2 whitespace-nowrap"><span className="text-base">{stats.total}</span> Tareas</div>
@@ -384,15 +427,16 @@ export const TaskManager: React.FC = () => {
                                         <span className="bg-white text-gray-600 text-[10px] font-bold px-2 py-0.5 rounded-full border border-gray-200 shadow-sm">{filteredTasks.filter(t => (t.status || 'Pendiente') === status).length}</span>
                                     </div>
                                     <div className="space-y-3 md:flex-grow md:overflow-y-auto pr-1 custom-scrollbar pb-10 md:pb-0">
-                                        {filteredTasks.filter(t => (t.status || 'Pendiente') === status).map(task => (<TaskCard key={task.id} task={task} onEdit={openEditTask} onDelete={handleDeleteTask} />))}
+                                        {filteredTasks.filter(t => (t.status || 'Pendiente') === status).map(task => (<KanbanCard key={task.id} task={task} onEdit={openEditTask} onDelete={handleDeleteTask} />))}
                                         {filteredTasks.filter(t => (t.status || 'Pendiente') === status).length === 0 && <div className="text-center py-8 border-2 border-dashed border-gray-200 rounded-lg text-gray-400 text-xs bg-white/50">Vacío</div>}
                                     </div>
                                 </div>
                             ))}
                         </div>
                     ) : (
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden min-w-full overflow-x-auto mb-20 md:mb-0">
-                            <table className="w-full text-left text-sm">
+                        <div className="bg-white md:rounded-xl md:shadow-sm md:border border-gray-200 overflow-hidden min-w-full overflow-x-auto mb-20 md:mb-0">
+                            {/* Desktop Table */}
+                            <table className="w-full text-left text-sm hidden md:table">
                                 <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs"><tr><th className="p-4">Tarea</th><th className="p-4">Responsable</th><th className="p-4">Fecha Límite</th><th className="p-4">Prioridad</th><th className="p-4">Estado</th><th className="p-4 text-right">Acciones</th></tr></thead>
                                 <tbody className="divide-y divide-gray-100">
                                     {filteredTasks.map(t => (
@@ -408,6 +452,14 @@ export const TaskManager: React.FC = () => {
                                     {filteredTasks.length === 0 && <tr><td colSpan={6} className="p-8 text-center text-gray-400">No hay tareas en esta vista.</td></tr>}
                                 </tbody>
                             </table>
+
+                            {/* Mobile List View (Cards Stack) */}
+                            <div className="md:hidden flex flex-col gap-3 bg-gray-50 p-2">
+                                {filteredTasks.map(t => (
+                                    <MobileListCard key={t.id} task={t} onEdit={openEditTask} onDelete={handleDeleteTask} />
+                                ))}
+                                {filteredTasks.length === 0 && <div className="p-8 text-center text-gray-400 text-sm border-2 border-dashed border-gray-200 rounded-lg">No hay tareas en esta vista.</div>}
+                            </div>
                         </div>
                     )}
                 </div>

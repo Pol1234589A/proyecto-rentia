@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Users, Building, AlertCircle, CheckCircle, BarChart3, RefreshCw, LayoutDashboard, Calculator, Briefcase, Wrench, Plus, ArrowUpRight, ArrowDownRight, Search, FileText, Trash2, Save, X, DollarSign, Calendar as CalendarIcon, Filter, Download, Pencil, ChevronLeft, ChevronRight, PieChart, Landmark, ChevronDown, Wallet, CreditCard, Clock, Zap, Droplets, Flame, Wifi, Settings, Receipt, Split, Info, MessageCircle, Share2, ClipboardList, UserCheck, Mail, Phone, ArrowRight, UserPlus, Archive, Send, Home, DoorOpen, Menu, Grid, Footprints, MapPin, Percent, Quote, Sparkles } from 'lucide-react';
+import { Users, Building, AlertCircle, CheckCircle, BarChart3, RefreshCw, LayoutDashboard, Calculator, Briefcase, Wrench, Plus, ArrowUpRight, ArrowDownRight, Search, FileText, Trash2, Save, X, DollarSign, Calendar as CalendarIcon, Filter, Download, Pencil, ChevronLeft, ChevronRight, PieChart, Landmark, ChevronDown, Wallet, CreditCard, Clock, Zap, Droplets, Flame, Wifi, Settings, Receipt, Split, Info, MessageCircle, Share2, ClipboardList, UserCheck, Mail, Phone, ArrowRight, UserPlus, Archive, Send, Home, DoorOpen, Menu, Grid, Footprints, MapPin, Percent, Quote, Sparkles, Activity } from 'lucide-react';
 import { UserCreator } from '../admin/UserCreator';
 import { FileAnalyzer } from '../admin/FileAnalyzer';
 import { RoomManager } from '../admin/RoomManager';
@@ -16,13 +16,15 @@ import { VisitsLog } from '../admin/tools/VisitsLog';
 import { CandidateManager } from '../admin/tools/CandidateManager';
 import { AccountingPanel } from '../admin/tools/AccountingPanel';
 import { SuppliesPanel } from '../admin/tools/SuppliesPanel';
-import { NewsManager } from '../admin/NewsManager'; // Importado
+import { NewsManager } from '../admin/NewsManager';
+import { SalesTracker } from '../admin/SalesTracker'; // IMPORTED
 import { db } from '../../firebase';
 import { collection, onSnapshot, addDoc, query, where, orderBy, serverTimestamp } from 'firebase/firestore';
 import { properties as staticProperties } from '../../data/rooms';
 import { useAuth } from '../../contexts/AuthContext';
 
 const MOTIVATIONAL_QUOTES = [
+    // ... (Mantener citas existentes) ...
     "El único modo de hacer un gran trabajo es amar lo que haces. – Steve Jobs",
     "El éxito es la suma de pequeños esfuerzos repetidos día tras día. – Robert Collier",
     "No busques el momento perfecto, solo busca el momento y hazlo perfecto.",
@@ -125,6 +127,7 @@ const MOTIVATIONAL_QUOTES = [
 ];
 
 const MotivationalBanner: React.FC = () => {
+    // ... (Keep existing component) ...
     const [quoteIndex, setQuoteIndex] = useState(Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length));
     const [fade, setFade] = useState(true);
 
@@ -134,31 +137,25 @@ const MotivationalBanner: React.FC = () => {
             setTimeout(() => {
                 setQuoteIndex((prev) => (prev + 1) % MOTIVATIONAL_QUOTES.length);
                 setFade(true);
-            }, 500); // Tiempo para el fade out antes de cambiar
-        }, 15000); // Cambiar cada 15 segundos
+            }, 500); 
+        }, 15000); 
 
         return () => clearInterval(interval);
     }, []);
 
     return (
         <div className="bg-gradient-to-r from-slate-900 to-rentia-blue rounded-xl p-6 shadow-lg text-white mb-6 relative overflow-hidden group">
-            {/* Background decoration */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-white/10 transition-colors duration-700"></div>
             <div className="absolute bottom-0 left-0 w-32 h-32 bg-rentia-gold/20 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
-            
             <div className="relative z-10 flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
                 <div className="hidden md:flex p-3 bg-white/10 rounded-full backdrop-blur-sm border border-white/20 shadow-inner">
                     <Quote className="w-8 h-8 text-rentia-gold fill-current" />
                 </div>
-                
                 <div className="flex-1 min-h-[60px] flex items-center justify-center md:justify-start">
-                    <p 
-                        className={`text-lg md:text-xl font-medium font-display leading-relaxed transition-opacity duration-500 ease-in-out ${fade ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
-                    >
+                    <p className={`text-lg md:text-xl font-medium font-display leading-relaxed transition-opacity duration-500 ease-in-out ${fade ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
                         "{MOTIVATIONAL_QUOTES[quoteIndex]}"
                     </p>
                 </div>
-
                 <div className="hidden md:block">
                     <Sparkles className="w-6 h-6 text-rentia-gold opacity-50 animate-pulse" />
                 </div>
@@ -170,10 +167,12 @@ const MotivationalBanner: React.FC = () => {
 export const StaffDashboard: React.FC = () => {
   const { currentUser } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'real_estate' | 'accounting' | 'tools' | 'contracts' | 'calendar' | 'supplies' | 'calculator' | 'social' | 'tasks' | 'visits'>('overview');
-  const [activeMobileTab, setActiveMobileTab] = useState<'overview' | 'tasks' | 'candidates' | 'properties' | 'menu' | 'accounting' | 'supplies' | 'calendar' | 'contracts' | 'social' | 'calculator' | 'tools' | 'visits'>('overview');
+  // Added 'sales_tracker' to types
+  const [activeTab, setActiveTab] = useState<'overview' | 'real_estate' | 'accounting' | 'tools' | 'contracts' | 'calendar' | 'supplies' | 'calculator' | 'social' | 'tasks' | 'visits' | 'sales_tracker'>('overview');
+  const [activeMobileTab, setActiveMobileTab] = useState<'overview' | 'tasks' | 'candidates' | 'properties' | 'menu' | 'accounting' | 'supplies' | 'calendar' | 'contracts' | 'social' | 'calculator' | 'tools' | 'visits' | 'sales_tracker'>('overview');
   const [mobilePropertyView, setMobilePropertyView] = useState<'rent' | 'sale'>('rent');
 
+  // ... (Keep existing state and effects for stats, properties, etc.) ...
   const [stats, setStats] = useState({
     totalRooms: 0,
     occupancyRate: 0,
@@ -186,15 +185,14 @@ export const StaffDashboard: React.FC = () => {
   const [loadingStats, setLoadingStats] = useState(true);
   const [pendingCandidatesCount, setPendingCandidatesCount] = useState(0);
   const [propertiesList, setPropertiesList] = useState<any[]>([]);
-  const [selectedPropId, setSelectedPropId] = useState<string>(''); // For calculator pre-selection
-  const [totalRealBalance, setTotalRealBalance] = useState(0); // Only for overview card
+  const [selectedPropId, setSelectedPropId] = useState<string>(''); 
+  const [totalRealBalance, setTotalRealBalance] = useState(0);
 
   const [showCandidateModal, setShowCandidateModal] = useState(false);
   const [newCandidate, setNewCandidate] = useState({ propertyId: '', roomId: '', candidateName: '', additionalInfo: '', candidatePhone: '', candidateEmail: '' });
 
-  // --- LOAD DATA EFFECTS ---
   useEffect(() => {
-    // 1. Properties & Stats
+    // ... (Keep existing Firebase listeners) ...
     const unsubscribeProps = onSnapshot(collection(db, "properties"), (snapshot) => {
       let totalRoomsCount = 0;
       let occupiedCount = 0;
@@ -263,7 +261,6 @@ export const StaffDashboard: React.FC = () => {
       setLoadingStats(false);
     });
 
-    // 2. Overview Balance (Lightweight listener)
     const qAccounting = query(collection(db, "accounting"));
     const unsubscribeAccounting = onSnapshot(qAccounting, (snapshot) => {
         let balance = 0;
@@ -275,7 +272,6 @@ export const StaffDashboard: React.FC = () => {
         setTotalRealBalance(balance);
     });
     
-    // 3. Pending Candidates Count
     const qPending = query(collection(db, "candidate_pipeline"), where("status", "==", "pending_review"));
     const unsubPending = onSnapshot(qPending, (snap) => {
         setPendingCandidatesCount(snap.size);
@@ -285,6 +281,7 @@ export const StaffDashboard: React.FC = () => {
   }, []);
 
   const handleSendCandidate = async (e: React.FormEvent) => {
+    // ... (Keep existing logic) ...
     e.preventDefault();
     if (!newCandidate.propertyId || !newCandidate.roomId || !newCandidate.candidateName) {
         return alert("Completa todos los campos: propiedad, habitación y nombre.");
@@ -309,9 +306,11 @@ export const StaffDashboard: React.FC = () => {
     }
   };
 
+    // Added Sales Tracker to Desktop Toolbar
     const desktopTools = [
         { id: 'tasks', label: 'Tareas', icon: <ClipboardList className="w-4 h-4" /> },
         { id: 'real_estate', label: 'Inmobiliaria', icon: <Building className="w-4 h-4" /> },
+        { id: 'sales_tracker', label: 'Seguimiento Ventas', icon: <Activity className="w-4 h-4" /> }, // NEW
         { id: 'contracts', label: 'Contratos', icon: <FileText className="w-4 h-4" /> },
         { id: 'supplies', label: 'Suministros', icon: <Zap className="w-4 h-4" /> },
         { id: 'social', label: 'Mensajería', icon: <MessageCircle className="w-4 h-4" /> },
@@ -323,6 +322,7 @@ export const StaffDashboard: React.FC = () => {
     ];
 
     const mobileMenuOptions = [
+        { id: 'sales_tracker', label: 'Seguimiento', icon: <Activity className="w-6 h-6"/>, color: 'bg-indigo-100 text-indigo-600' }, // NEW
         { id: 'accounting', label: 'Contabilidad', icon: <Calculator className="w-6 h-6"/>, color: 'bg-blue-100 text-blue-600' },
         { id: 'supplies', label: 'Suministros', icon: <Zap className="w-6 h-6"/>, color: 'bg-yellow-100 text-yellow-600' },
         { id: 'calendar', label: 'Calendario', icon: <CalendarIcon className="w-6 h-6"/>, color: 'bg-green-100 text-green-600' },
@@ -334,7 +334,7 @@ export const StaffDashboard: React.FC = () => {
     ];
 
     const renderMobileContent = () => {
-        // Wrapper for mobile sub-pages
+        // ... (Existing wrapper code) ...
         const SubSectionWrapper = ({ title, children }: { title: string, children?: React.ReactNode }) => (
             <div className="animate-in slide-in-from-right-4 duration-300 h-full flex flex-col">
                 <div className="flex items-center gap-3 mb-4 sticky top-0 bg-gray-100 py-2 z-10">
@@ -351,25 +351,17 @@ export const StaffDashboard: React.FC = () => {
 
         switch (activeMobileTab) {
             case 'overview': return (
+                // ... (Existing overview code) ...
                 <div className="animate-in slide-in-from-bottom-4 duration-300 space-y-4 h-full overflow-y-auto pb-24 px-4 pt-4">
-                    {/* Motivational Quote for Mobile */}
                     <MotivationalBanner />
-
                     {pendingCandidatesCount > 0 && (
                         <div 
                             className="bg-orange-50 border border-orange-200 rounded-lg p-4 flex items-center justify-between shadow-sm cursor-pointer"
-                            onClick={() => {
-                                setActiveMobileTab('candidates');
-                            }}
+                            onClick={() => { setActiveMobileTab('candidates'); }}
                         >
                             <div className="flex items-center gap-3">
-                                <div className="bg-orange-100 p-2 rounded-full text-orange-600">
-                                    <UserCheck className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <h4 className="font-bold text-orange-800 text-sm">Candidatos Pendientes</h4>
-                                    <p className="text-xs text-orange-700">Requieren tu aprobación</p>
-                                </div>
+                                <div className="bg-orange-100 p-2 rounded-full text-orange-600"><UserCheck className="w-5 h-5" /></div>
+                                <div><h4 className="font-bold text-orange-800 text-sm">Candidatos Pendientes</h4><p className="text-xs text-orange-700">Requieren tu aprobación</p></div>
                             </div>
                             <span className="bg-orange-600 text-white font-bold text-lg px-3 py-1 rounded-full">{pendingCandidatesCount}</span>
                         </div>
@@ -394,57 +386,33 @@ export const StaffDashboard: React.FC = () => {
                 </div>
             );
             case 'tasks': return <div className="animate-in fade-in h-full overflow-hidden"><TaskManager /></div>;
-            case 'candidates': return (
-                <div className="animate-in fade-in h-full overflow-y-auto pb-24">
-                    <CandidateManager />
-                </div>
-            );
+            case 'candidates': return <div className="animate-in fade-in h-full overflow-y-auto pb-24"><CandidateManager /></div>;
             case 'properties': return (
+                // ... (Existing properties code) ...
                 <div className="flex flex-col h-full">
                     <div className="flex p-2 bg-gray-100 gap-2 shrink-0 rounded-lg mb-2">
-                        <button 
-                            onClick={() => setMobilePropertyView('rent')}
-                            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${mobilePropertyView === 'rent' ? 'bg-white shadow text-rentia-blue' : 'text-gray-500 hover:text-gray-700'}`}
-                        >
-                            Alquiler
-                        </button>
-                        <button 
-                            onClick={() => setMobilePropertyView('sale')}
-                            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${mobilePropertyView === 'sale' ? 'bg-white shadow text-rentia-blue' : 'text-gray-500 hover:text-gray-700'}`}
-                        >
-                            Venta (CRM)
-                        </button>
+                        <button onClick={() => setMobilePropertyView('rent')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${mobilePropertyView === 'rent' ? 'bg-white shadow text-rentia-blue' : 'text-gray-500 hover:text-gray-700'}`}>Alquiler</button>
+                        <button onClick={() => setMobilePropertyView('sale')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${mobilePropertyView === 'sale' ? 'bg-white shadow text-rentia-blue' : 'text-gray-500 hover:text-gray-700'}`}>Venta (CRM)</button>
                     </div>
                     <div className="flex-grow overflow-y-auto pb-24">
-                        {mobilePropertyView === 'rent' ? (
-                            <RoomManager />
-                        ) : (
-                            <SalesCRM />
-                        )}
+                        {mobilePropertyView === 'rent' ? <RoomManager /> : <SalesCRM />}
                     </div>
                 </div>
             );
-            
             case 'menu': return (
                 <div className="animate-in slide-in-from-bottom-4 p-2 h-full overflow-y-auto pb-24">
                     <h2 className="text-lg font-bold text-gray-800 mb-4 px-2">Más Herramientas</h2>
                     <div className="grid grid-cols-2 gap-4">
                         {mobileMenuOptions.map(opt => (
-                            <button 
-                                key={opt.id}
-                                onClick={() => setActiveMobileTab(opt.id as any)}
-                                className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center justify-center gap-3 hover:bg-gray-50 active:scale-95 transition-all aspect-square"
-                            >
-                                <div className={`p-3 rounded-full ${opt.color}`}>
-                                    {opt.icon}
-                                </div>
+                            <button key={opt.id} onClick={() => setActiveMobileTab(opt.id as any)} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center justify-center gap-3 hover:bg-gray-50 active:scale-95 transition-all aspect-square">
+                                <div className={`p-3 rounded-full ${opt.color}`}>{opt.icon}</div>
                                 <span className="font-bold text-gray-700 text-sm">{opt.label}</span>
                             </button>
                         ))}
                     </div>
                 </div>
             );
-
+            case 'sales_tracker': return <SubSectionWrapper title="Seguimiento Ventas"><SalesTracker /></SubSectionWrapper>; // NEW
             case 'visits': return <SubSectionWrapper title="Visitas"><VisitsLog /></SubSectionWrapper>;
             case 'accounting': return <SubSectionWrapper title="Contabilidad"><AccountingPanel /></SubSectionWrapper>;
             case 'calendar': return <SubSectionWrapper title="Calendario"><CalendarManager /></SubSectionWrapper>;
@@ -455,7 +423,7 @@ export const StaffDashboard: React.FC = () => {
             case 'tools': return (
                 <SubSectionWrapper title="Herramientas Admin">
                     <div className="space-y-4">
-                        <NewsManager /> {/* NEW: News Manager for Mobile */}
+                        <NewsManager /> 
                         <UserCreator />
                         <FileAnalyzer />
                         <ProfitCalculator />
@@ -465,7 +433,6 @@ export const StaffDashboard: React.FC = () => {
         }
     };
   
-    // MAIN RENDER (Desktop)
   return (
     <div className="min-h-screen bg-gray-100 p-0 sm:p-4 md:p-6 animate-in fade-in">
       <div className="max-w-7xl mx-auto">
@@ -501,51 +468,33 @@ export const StaffDashboard: React.FC = () => {
             {/* DESKTOP CONTENT RENDER */}
             {activeTab === 'overview' && ( 
                 <div className="animate-in slide-in-from-bottom-4 duration-300">
-                    
-                    {/* MOTIVATIONAL QUOTE WIDGET */}
                     <MotivationalBanner />
-
+                    {/* ... (Existing stats grid) ... */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 mb-8">
                         <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-500 relative overflow-hidden"><span className="text-xs text-gray-500 uppercase font-bold">Total Habitaciones</span><div className="flex justify-between items-end mt-2"><span className="text-3xl font-bold text-gray-800">{loadingStats ? '-' : stats.totalRooms}</span><Building className="w-6 h-6 text-blue-100 absolute right-4 top-4 transform scale-150" /></div></div>
                         <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-green-500 relative overflow-hidden"><span className="text-xs text-gray-500 uppercase font-bold">Ocupación Actual</span><div className="flex justify-between items-end mt-2"><span className={`text-3xl font-bold ${stats.occupancyRate > 90 ? 'text-green-600' : 'text-gray-800'}`}>{loadingStats ? '-' : `${stats.occupancyRate}%`}</span><Users className="w-6 h-6 text-green-100 absolute right-4 top-4 transform scale-150" /></div></div>
                         <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-orange-500 relative overflow-hidden"><span className="text-xs text-gray-500 uppercase font-bold">Habitaciones Vacías</span><div className="flex justify-between items-end mt-2"><span className="text-3xl font-bold text-orange-600">{loadingStats ? '-' : stats.vacantRooms}</span><DoorOpen className="w-6 h-6 text-orange-100 absolute right-4 top-4 transform scale-150" /></div></div>
-                        
                         <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-purple-500 relative overflow-hidden">
                             <span className="text-xs text-gray-500 uppercase font-bold flex items-center gap-1"><DollarSign className="w-3 h-3 text-purple-500"/> Comisión Mensual (Est)</span>
-                            <div className="flex justify-between items-end mt-2">
-                                <span className="text-3xl font-bold text-purple-700">
-                                    {loadingStats ? '-' : stats.estimatedCommission.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}€
-                                </span>
-                                <Landmark className="w-6 h-6 text-purple-100 absolute right-4 top-4 transform scale-150" />
-                            </div>
+                            <div className="flex justify-between items-end mt-2"><span className="text-3xl font-bold text-purple-700">{loadingStats ? '-' : stats.estimatedCommission.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}€</span><Landmark className="w-6 h-6 text-purple-100 absolute right-4 top-4 transform scale-150" /></div>
                         </div>
-
                         <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-gray-500 relative overflow-hidden"><span className="text-xs text-gray-500 uppercase font-bold">Balance Total (Caja)</span><div className="flex justify-between items-end mt-2"><span className={`text-3xl font-bold ${totalRealBalance >= 0 ? 'text-gray-800' : 'text-red-600'}`}>{totalRealBalance.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}<span className="text-sm font-medium ml-1">€</span></span><Landmark className="w-6 h-6 text-gray-100 absolute right-4 top-4 transform scale-150" /></div></div>
                     </div>
+                    {/* ... (Existing candidate alerts) ... */}
                     {pendingCandidatesCount > 0 && (
                         <div 
                             className="bg-orange-50 border border-orange-200 rounded-lg p-6 mb-8 flex items-center justify-between shadow-sm cursor-pointer hover:bg-orange-100 transition-colors"
-                            onClick={() => {
-                                const element = document.getElementById('candidate-manager');
-                                if (element) element.scrollIntoView({ behavior: 'smooth' });
-                            }}
+                            onClick={() => { const element = document.getElementById('candidate-manager'); if (element) element.scrollIntoView({ behavior: 'smooth' }); }}
                         >
                             <div className="flex items-center gap-4">
-                                <div className="bg-white p-3 rounded-full text-orange-600 shadow-sm border border-orange-100">
-                                    <UserCheck className="w-8 h-8" />
-                                </div>
-                                <div>
-                                    <h4 className="font-bold text-orange-900 text-xl">Tienes {pendingCandidatesCount} candidatos pendientes de revisión</h4>
-                                    <p className="text-sm text-orange-700">Haz clic aquí para ir al gestor y aprobarlos o rechazarlos.</p>
-                                </div>
+                                <div className="bg-white p-3 rounded-full text-orange-600 shadow-sm border border-orange-100"><UserCheck className="w-8 h-8" /></div>
+                                <div><h4 className="font-bold text-orange-900 text-xl">Tienes {pendingCandidatesCount} candidatos pendientes de revisión</h4><p className="text-sm text-orange-700">Haz clic aquí para ir al gestor y aprobarlos o rechazarlos.</p></div>
                             </div>
                             <ArrowRight className="w-6 h-6 text-orange-400" />
                         </div>
                     )}
                     <button onClick={() => setShowCandidateModal(true)} className="w-full bg-green-50 text-green-700 px-6 py-4 rounded-lg font-bold hover:bg-green-100 transition-colors items-center gap-2 border border-green-200 text-left flex justify-between shadow-sm mb-8"><div className="flex items-center gap-3"><UserPlus className="w-5 h-5"/><span>Enviar Nuevo Candidato al Pipeline</span></div><ArrowRight className="w-5 h-5"/></button>
-                    <div id="candidate-manager" className="mt-8">
-                        <CandidateManager />
-                    </div>
+                    <div id="candidate-manager" className="mt-8"><CandidateManager /></div>
                 </div>
             )}
             
@@ -558,10 +507,11 @@ export const StaffDashboard: React.FC = () => {
             {activeTab === 'visits' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><VisitsLog /></div>}
             {activeTab === 'supplies' && <div className="animate-in slide-in-from-bottom-4 duration-300"><SuppliesPanel properties={propertiesList} /></div>}
             {activeTab === 'accounting' && <div className="animate-in slide-in-from-bottom-4 duration-300"><AccountingPanel /></div>}
+            {activeTab === 'sales_tracker' && <div className="animate-in slide-in-from-bottom-4 duration-300"><SalesTracker /></div>} 
             
             {activeTab === 'tools' && ( 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in slide-in-from-bottom-4 duration-300">
-                    <NewsManager /> {/* NEW: Added News Manager here */}
+                    <NewsManager /> 
                     <FeedGenerator />
                     <UserCreator />
                     <FileAnalyzer />
@@ -570,7 +520,7 @@ export const StaffDashboard: React.FC = () => {
             )}
         </div>
         
-        {/* --- MOBILE BOTTOM NAVIGATION --- */}
+        {/* ... (Mobile navigation retained) ... */}
         <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] grid grid-cols-5 z-50">
             <button onClick={() => setActiveMobileTab('overview')} className={`py-2 flex flex-col items-center justify-center gap-1 transition-colors ${activeMobileTab === 'overview' ? 'text-rentia-blue' : 'text-gray-400'}`}><BarChart3 className="w-5 h-5"/><span className="text-[10px] font-bold">Resumen</span></button>
             <button onClick={() => setActiveMobileTab('tasks')} className={`py-2 flex flex-col items-center justify-center gap-1 transition-colors ${activeMobileTab === 'tasks' ? 'text-rentia-blue' : 'text-gray-400'}`}><ClipboardList className="w-5 h-5"/><span className="text-[10px] font-bold">Tareas</span></button>
@@ -579,10 +529,12 @@ export const StaffDashboard: React.FC = () => {
             <button onClick={() => setActiveMobileTab('menu')} className={`py-2 flex flex-col items-center justify-center gap-1 transition-colors ${activeMobileTab === 'menu' ? 'text-rentia-blue' : 'text-gray-400'}`}><Grid className="w-5 h-5"/><span className="text-[10px] font-bold">Más</span></button>
         </div>
 
-        {/* --- MODAL PARA CANDIDATOS (RETAINED) --- */}
+        {/* ... (Candidate Modal retained) ... */}
         {showCandidateModal && ( 
             <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setShowCandidateModal(false)}>
+                {/* ... (Modal Form content retained) ... */}
                 <form onSubmit={handleSendCandidate} className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-xl shadow-2xl flex flex-col animate-in slide-in-from-bottom-10 overflow-hidden" onClick={e => e.stopPropagation()}>
+                    {/* ... (Existing fields) ... */}
                     <div className="p-4 bg-gray-50 border-b flex justify-between items-center">
                         <h3 className="font-bold flex items-center gap-2"><UserPlus className="w-5 h-5 text-green-600"/> Enviar Candidato</h3>
                         <button type="button" onClick={() => setShowCandidateModal(false)} className="p-2 -mr-2"><X className="w-5 h-5 text-gray-400"/></button>

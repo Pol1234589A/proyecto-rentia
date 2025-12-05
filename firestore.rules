@@ -133,6 +133,12 @@ service cloud.firestore {
       allow write: if isStaff();
     }
 
+    // 13. TRACKING VENTAS (SALES_TRACKER)
+    // Registro de ofertas y publicaciones. Solo Staff.
+    match /sales_tracker/{activityId} {
+      allow read, write: if isStaff();
+    }
+
     // Bloqueo por defecto para cualquier otra colección no definida
     match /{document=**} {
       allow read, write: if false;

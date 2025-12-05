@@ -6,7 +6,7 @@ import { collection, query, where, onSnapshot, updateDoc, doc, addDoc, serverTim
 import { useAuth } from '../../contexts/AuthContext';
 import { Task, TaskStatus, Candidate, CandidateStatus, VisitOutcome, RoomVisit, InternalNews } from '../../types';
 import { Property, Room } from '../../data/rooms';
-import { ClipboardList, Home, CheckCircle, Clock, AlertCircle, MapPin, Search, Calendar, Wrench, Plus, X, AlertTriangle, ChevronLeft, Loader2, WifiOff, Monitor, Tv, Lock, Sun, Bed, Layout, Image as ImageIcon, UserPlus, Send, Users, UserX, UserCheck, ChevronRight, Eye, Megaphone, Bell } from 'lucide-react';
+import { ClipboardList, Home, CheckCircle, Clock, AlertCircle, MapPin, Search, Calendar, Wrench, Plus, X, AlertTriangle, ChevronLeft, Loader2, WifiOff, Monitor, Tv, Lock, Sun, Bed, Layout, Image as ImageIcon, UserPlus, Send, Users, UserX, UserCheck, ChevronRight, Eye, Megaphone, Bell, ChevronDown } from 'lucide-react';
 import { ImageLightbox } from '../ImageLightbox';
 
 // Priority Badge Helper (Inner Badge)
@@ -94,8 +94,8 @@ interface TaskCardProps {
 }
 
 const TaskCard: React.FC<TaskCardProps> = ({ task, onStatusChange }) => (
-    <div className={`bg-white p-4 rounded-xl shadow-sm relative ${getTaskContainerStyles(task)}`}>
-        <div className="flex justify-between items-start mb-2">
+    <div className={`bg-white p-4 rounded-xl shadow-sm relative transition-all duration-300 ${getTaskContainerStyles(task)}`}>
+        <div className="flex justify-between items-start mb-3">
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider ${getPriorityBadge(task.priority)}`}>
                 {task.priority}
             </span>
@@ -106,9 +106,9 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onStatusChange }) => (
         </div>
         
         <h4 className="font-bold text-gray-800 text-sm mb-2 leading-snug break-words">{task.title}</h4>
-        <p className="text-xs text-gray-500 line-clamp-3 mb-3 whitespace-pre-line bg-gray-50 p-2 rounded border border-gray-100">{task.description}</p>
+        <p className="text-xs text-gray-500 mb-4 whitespace-pre-line bg-gray-50 p-3 rounded border border-gray-100">{task.description}</p>
         
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pt-2 border-t border-gray-50 gap-2">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pt-3 border-t border-gray-50 gap-3">
             {task.dueDate && (
                 <div className={`flex items-center gap-1 text-[10px] font-medium ${new Date(task.dueDate) < new Date() && task.status !== 'Completada' ? 'text-red-500 font-bold' : 'text-gray-400'}`}>
                     <Calendar className="w-3 h-3" />
@@ -116,19 +116,19 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onStatusChange }) => (
                 </div>
             )}
             
-            <div className="flex gap-2 ml-auto w-full sm:w-auto">
+            <div className="flex gap-2 w-full sm:w-auto">
                 {task.status !== 'En Curso' && task.status !== 'Completada' && (
-                    <button onClick={() => onStatusChange(task.id, 'En Curso')} className="w-full sm:w-auto flex-1 flex items-center justify-center gap-1 bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-blue-100 active:bg-blue-100 hover:bg-blue-100 transition-colors">
+                    <button onClick={() => onStatusChange(task.id, 'En Curso')} className="flex-1 sm:flex-none flex items-center justify-center gap-1 bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-blue-700 shadow-sm active:scale-95 transition-all">
                         <Clock className="w-3 h-3" /> Empezar
                     </button>
                 )}
                 {task.status !== 'Completada' && (
-                    <button onClick={() => onStatusChange(task.id, 'Completada')} className="w-full sm:w-auto flex-1 flex items-center justify-center gap-1 bg-green-50 text-green-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-green-100 active:bg-green-100 hover:bg-green-100 transition-colors">
+                    <button onClick={() => onStatusChange(task.id, 'Completada')} className="flex-1 sm:flex-none flex items-center justify-center gap-1 bg-green-50 text-green-700 px-4 py-2 rounded-lg text-xs font-bold border border-green-100 hover:bg-green-100 active:scale-95 transition-all">
                         <CheckCircle className="w-3 h-3" /> Hecho
                     </button>
                 )}
                  {task.status === 'En Curso' && (
-                     <button onClick={() => onStatusChange(task.id, 'Pendiente')} className="p-1.5 text-gray-400 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                     <button onClick={() => onStatusChange(task.id, 'Pendiente')} className="p-2 text-gray-400 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
                          <X className="w-4 h-4" />
                      </button>
                 )}
@@ -156,8 +156,9 @@ export const WorkerDashboard: React.FC = () => {
     const [lightboxIndex, setLightboxIndex] = useState(0);
     const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
-    const [taskFilter, setTaskFilter] = useState<TaskStatus>('Pendiente');
+    // Filter states
     const [candidateFilter, setCandidateFilter] = useState<CandidateStatus>('pending_review');
+    const [showCompletedTasks, setShowCompletedTasks] = useState(false);
 
     const [newIncident, setNewIncident] = useState({
         propertyId: '', roomId: 'common', title: '', description: '', priority: 'Media' as 'Alta' | 'Media' | 'Baja'
@@ -186,7 +187,6 @@ export const WorkerDashboard: React.FC = () => {
         setLoading(true);
         setError(null);
         
-        // ESTRATEGIA ROBUSTA: Cargar todas y filtrar en cliente para evitar errores de índice o permisos de 'where'
         const qTasks = query(collection(db, "tasks"));
         const unsubTasks = onSnapshot(qTasks, snapshot => {
             const allTasks: Task[] = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Task));
@@ -214,11 +214,9 @@ export const WorkerDashboard: React.FC = () => {
             setProperties(propsList);
         });
         
-        // ESTRATEGIA ROBUSTA: Filtrar por 'where' pero quitar 'orderBy' para evitar índice compuesto
         const qCandidates = query(collection(db, "candidate_pipeline"), where("submittedBy", "==", workerName));
         const unsubCandidates = onSnapshot(qCandidates, snapshot => {
             const candidatesList: Candidate[] = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Candidate));
-            // Ordenar en cliente
             candidatesList.sort((a, b) => {
                 const timeA = a.submittedAt?.toMillis ? a.submittedAt.toMillis() : 0;
                 const timeB = b.submittedAt?.toMillis ? b.submittedAt.toMillis() : 0;
@@ -275,7 +273,6 @@ export const WorkerDashboard: React.FC = () => {
         }
         
         const prop = properties.find(p => p.id === newCandidate.propertyId);
-        // SAFETY: Handle undefined rooms
         const room = prop?.rooms?.find(r => r.id === newCandidate.roomId);
 
         try {
@@ -296,7 +293,6 @@ export const WorkerDashboard: React.FC = () => {
         }
     };
 
-    // NEW: Handle Save Visit
     const handleSaveVisit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!showVisitLogModal || !selectedProperty) return;
@@ -345,29 +341,75 @@ export const WorkerDashboard: React.FC = () => {
 
     const renderContent = () => {
         switch (activeTab) {
-            case 'tasks': return (
-                <div className="space-y-4">
-                    {/* NEWS BANNER */}
-                    <NewsBanner />
+            case 'tasks': {
+                const inProgress = tasksByStatus['En Curso'] || [];
+                const pending = tasksByStatus['Pendiente'] || [];
+                const completed = tasksByStatus['Completada'] || [];
+                const blocked = tasksByStatus['Bloqueada'] || [];
+                
+                // Priorizar pendientes por urgencia
+                const priorityOrder = { 'Alta': 0, 'Media': 1, 'Baja': 2 };
+                pending.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
 
-                    {/* SCROLLABLE FILTER CONTAINER */}
-                    <div className="flex bg-gray-100 p-1 rounded-lg overflow-x-auto no-scrollbar gap-1">
-                        {(['Pendiente', 'En Curso', 'Completada', 'Bloqueada'] as TaskStatus[]).map(status => (
-                            <button 
-                                key={status} 
-                                onClick={() => setTaskFilter(status)} 
-                                className={`flex-shrink-0 px-4 py-2 text-xs font-bold rounded-md transition-all whitespace-nowrap ${taskFilter === status ? 'bg-white shadow text-gray-800' : 'text-gray-500 hover:text-gray-700'}`}
-                            >
-                                {status} ({tasksByStatus[status]?.length || 0})
-                            </button>
-                        ))}
+                return (
+                    <div className="space-y-6 pb-8">
+                        <NewsBanner />
+
+                        {loading && <Loader2 className="w-6 h-6 animate-spin text-rentia-blue mx-auto mt-8"/>}
+
+                        {!loading && myTasks.length === 0 && (
+                            <div className="text-center py-12 text-gray-400 border-2 border-dashed rounded-xl">
+                                <ClipboardList className="w-12 h-12 mx-auto mb-2 opacity-30" />
+                                <p>No tienes tareas asignadas.</p>
+                            </div>
+                        )}
+
+                        {/* SECTION: IN PROGRESS */}
+                        {inProgress.length > 0 && (
+                            <div className="animate-in fade-in slide-in-from-left-2">
+                                <h3 className="text-xs font-bold text-blue-800 uppercase tracking-wide mb-3 flex items-center gap-2 px-1">
+                                    <Clock className="w-4 h-4 animate-pulse" /> En Curso ({inProgress.length})
+                                </h3>
+                                <div className="space-y-3">
+                                    {inProgress.map(task => <TaskCard key={task.id} task={task} onStatusChange={handleStatusChange} />)}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* SECTION: PENDING */}
+                        {pending.length > 0 && (
+                            <div className="animate-in fade-in slide-in-from-left-2 delay-100">
+                                <h3 className="text-xs font-bold text-gray-600 uppercase tracking-wide mb-3 flex items-center gap-2 px-1 border-t border-gray-200 pt-4 mt-4">
+                                    <ClipboardList className="w-4 h-4" /> Pendientes ({pending.length})
+                                </h3>
+                                <div className="space-y-3">
+                                    {pending.map(task => <TaskCard key={task.id} task={task} onStatusChange={handleStatusChange} />)}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* SECTION: COMPLETED / BLOCKED */}
+                        {(completed.length > 0 || blocked.length > 0) && (
+                            <div className="pt-6 border-t border-gray-200">
+                                <button 
+                                    onClick={() => setShowCompletedTasks(!showCompletedTasks)}
+                                    className="w-full py-3 flex items-center justify-between text-gray-500 text-sm font-bold bg-white border border-gray-200 rounded-xl px-4 hover:bg-gray-50 transition-colors shadow-sm"
+                                >
+                                    <span className="flex items-center gap-2"><CheckCircle className="w-4 h-4"/> Historial Completado ({completed.length + blocked.length})</span>
+                                    <ChevronDown className={`w-4 h-4 transition-transform ${showCompletedTasks ? 'rotate-180' : ''}`} />
+                                </button>
+                                
+                                {showCompletedTasks && (
+                                    <div className="space-y-3 mt-4 animate-in slide-in-from-top-2">
+                                        {blocked.map(t => <TaskCard key={t.id} task={t} onStatusChange={handleStatusChange} />)}
+                                        {completed.map(t => <TaskCard key={t.id} task={t} onStatusChange={handleStatusChange} />)}
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
-                    {loading ? <Loader2 className="w-6 h-6 animate-spin text-rentia-blue mx-auto mt-8"/> :
-                     (tasksByStatus[taskFilter] && tasksByStatus[taskFilter].length > 0) ? tasksByStatus[taskFilter].map(task => <TaskCard key={task.id} task={task} onStatusChange={handleStatusChange} />)
-                     : <div className="text-center py-10 text-gray-400 text-sm">No hay tareas {taskFilter.toLowerCase()}s.</div>
-                    }
-                </div>
-            );
+                );
+            }
             case 'candidates': return (
                 <div className="space-y-4">
                     <div className="flex bg-gray-100 p-1 rounded-lg overflow-x-auto no-scrollbar gap-1">
@@ -397,7 +439,6 @@ export const WorkerDashboard: React.FC = () => {
                     </div>
                     {filteredProperties.length === 0 ? <div className="text-center py-12 text-gray-400 border-2 border-dashed border-gray-200 rounded-xl"><Home className="w-12 h-12 mx-auto mb-2 opacity-30" /><p>No se encontraron propiedades.</p></div> : 
                     filteredProperties.map((prop) => {
-                        // SAFETY: Check for undefined rooms array
                         const rooms = prop.rooms || [];
                         const availCount = rooms.filter(r => r.status === 'available').length;
                         return (

@@ -9,17 +9,17 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Verifica si el usuario actúa sobre su propio documento
+    // Verifica si el usuario actúa sobre su propio documento (ID usuario == ID auth)
     function isSelf(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // Obtiene los datos del usuario actual desde la DB
+    // Obtiene los datos del usuario actual desde la DB para verificar roles
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
-    // Verifica rol específico
+    // Verifica rol específico y que la cuenta esté activa
     function hasRole(role) {
       let userData = getUserData();
       return isAuthenticated() && 
@@ -34,7 +34,7 @@ service cloud.firestore {
       return hasRole('staff') || hasRole('admin') || hasRole('agency');
     }
 
-    // WORKER: Trabajadores de campo / Comerciales
+    // WORKER: Trabajadores de campo / Comerciales / Mantenimiento
     function isWorker() {
       return hasRole('worker');
     }
@@ -50,7 +50,7 @@ service cloud.firestore {
 
     // --- 3. LÓGICA DE PROPIEDAD (SEGURIDAD DE DATOS) ---
     
-    // Verifica si la propiedad referenciada pertenece al usuario actual
+    // Verifica si la propiedad referenciada pertenece al usuario actual (para Owners)
     function propertyBelongsToOwner(propertyId) {
        return get(/databases/$(database)/documents/properties/$(propertyId)).data.ownerId == request.auth.uid;
     }
@@ -58,33 +58,51 @@ service cloud.firestore {
     // --- 4. REGLAS POR COLECCIÓN ---
 
     // USUARIOS
-    // Seguridad Crítica: Un usuario no puede modificar su propio 'role', 'active' o 'createdBy'.
+    // - Lectura: Autenticados (necesario para verificar perfil al hacer login)
+    // - Escritura: Solo Staff puede crear/borrar. 
+    // - Actualización: Staff o el propio usuario (pero sin tocar permisos críticos)
     match /users/{userId} {
-      allow read: if isAuthenticated(); // Necesario para AuthContext y verificar roles
-      allow create: if isStaff();       // Solo Staff crea usuarios nuevos
+      allow read: if isAuthenticated(); 
+      allow create: if isStaff();       
       allow update: if isStaff() || (isSelf(userId) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'active', 'createdBy'])); 
       allow delete: if isStaff();
     }
 
     // PROPIEDADES (INVENTARIO)
+    // - Lectura pública (Catálogo web)
+    // - Escritura restringida a Staff
     match /properties/{propertyId} {
-      allow read: if true; // Catálogo público
+      allow read: if true; 
       allow write: if isStaff();
     }
 
     // OPORTUNIDADES (INVERSIÓN)
+    // - Lectura pública (Landing page)
+    // - Escritura restringida a Staff
     match /opportunities/{opportunityId} {
-      allow read: if true; // Público
+      allow read: if true; 
       allow write: if isStaff();
+    }
+    
+    // SOLICITUDES DE OPORTUNIDAD (FORMULARIO COLABORADORES - GDPR)
+    // - Creación pública (Formulario web sin login): allow create: if true
+    // - Lectura/Edición/Borrado: SOLO STAFF (Backoffice). Protege los datos personales.
+    match /opportunity_requests/{requestId} {
+      allow create: if true; 
+      allow read, update, delete: if isStaff();
     }
 
     // ENCARGOS DE COMPRA (DEMANDAS)
+    // - Lectura pública (Sección Brokers)
+    // - Escritura Staff
     match /buyer_requests/{requestId} {
-      allow read: if true; // Público en sección Brokers
+      allow read: if true; 
       allow write: if isStaff();
     }
 
     // CONTRATOS
+    // - Lectura: Staff + Dueño implicado + Inquilino implicado
+    // - Escritura: Staff
     match /contracts/{contractId} {
       allow read: if isStaff() 
         || (isAuthenticated() && resource.data.ownerId == request.auth.uid)
@@ -93,6 +111,7 @@ service cloud.firestore {
     }
 
     // TAREAS Y TABLEROS (GESTIÓN INTERNA)
+    // - Acceso total para todo el equipo interno
     match /tasks/{taskId} {
       allow read, write: if isTeam();
     }
@@ -106,25 +125,31 @@ service cloud.firestore {
     }
 
     // CONTABILIDAD (SENSIBLE)
+    // - Solo Staff
     match /accounting/{transactionId} {
-      allow read, write: if isStaff(); // Solo Staff/Admin
+      allow read, write: if isStaff();
     }
 
     // REGISTRO DE SUMINISTROS
+    // - Lectura: Staff + Dueño de la propiedad
+    // - Escritura: Staff
     match /supply_records/{recordId} {
       allow read: if isStaff() || (isOwner() && propertyBelongsToOwner(resource.data.propertyId));
       allow write: if isStaff();
     }
 
     // PIPELINE DE CANDIDATOS
+    // - Lectura/Creación/Edición: Equipo completo (Workers envían candidatos)
+    // - Borrado: Solo Staff (Gerencia)
     match /candidate_pipeline/{candidateId} {
-      allow read: if isTeam();
-      allow create: if isTeam();
-      allow update: if isTeam();
+      allow read, create, update: if isTeam();
       allow delete: if isStaff();
     }
 
     // REGISTRO DE VISITAS
+    // - Lectura: Equipo + Dueño
+    // - Creación: Equipo (Workers registran visitas)
+    // - Modificación: Solo Staff
     match /room_visits/{visitId} {
       allow read: if isTeam() || (isOwner() && propertyBelongsToOwner(resource.data.propertyId));
       allow create: if isTeam();
@@ -137,17 +162,20 @@ service cloud.firestore {
       allow write: if isStaff();
     }
 
-    // TRACKING DE VENTAS
+    // TRACKING DE VENTAS (CRM)
     match /sales_tracker/{activityId} {
       allow read, write: if isStaff();
     }
 
     // BLACKLIST / INCIDENCIAS (MUY SENSIBLE)
+    // - Solo Staff
     match /tenant_blacklist/{entryId} {
-      allow read, write: if isStaff(); // Solo Staff
+      allow read, write: if isStaff(); 
     }
 
     // MENSAJES WEB (CONTACTO)
+    // - Creación pública
+    // - Lectura Staff
     match /web_messages/{msgId} {
       allow create: if true;
       allow read, update, delete: if isStaff();

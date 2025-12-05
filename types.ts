@@ -182,3 +182,97 @@ export interface InternalNews {
     author: string;
     active: boolean;
 }
+
+// --- NEW TYPES FOR OPPORTUNITY REQUESTS (COLLABORATORS) ---
+
+export const ITP_RATES: Record<string, number> = {
+    'Andalucía': 7,
+    'Aragón': 8,
+    'Asturias': 8,
+    'Baleares': 8, // Variable, base 8
+    'Canarias': 6.5,
+    'Cantabria': 10,
+    'Castilla-La Mancha': 9,
+    'Castilla y León': 8,
+    'Cataluña': 10,
+    'Ceuta': 6,
+    'Comunidad Valenciana': 10,
+    'Extremadura': 8,
+    'Galicia': 10,
+    'La Rioja': 7,
+    'Madrid': 6,
+    'Melilla': 6,
+    'Murcia': 8,
+    'Navarra': 6,
+    'País Vasco': 4, // Vizcaya/Álava variable, Gipuzkoa 4
+};
+
+export type AssetType = 'Vivienda' | 'Piso' | 'Casa independiente' | 'Edificio completo' | 'Pack de viviendas' | 'Habitación';
+export type AssetState = 'Obra nueva' | 'Buen estado' | 'Reformado' | 'Para reformar' | 'Ruina';
+export type RentalStatus = 'Sin alquilar' | 'Alquilada completa' | 'Alquilada por habitaciones';
+
+export interface AssetSubmission {
+    id: string; // Temporary UI ID
+    type: AssetType;
+    title: string;
+    province: string;
+    region: string; // Comunidad Autónoma
+    municipality: string;
+    address: string;
+    zone: string;
+    yearBuilt: number;
+    state: AssetState;
+    
+    // Económicos
+    ibi: number;
+    otherTaxes: number;
+    communityFees: number;
+    itpPercent: number;
+    price: number;
+    
+    // Specs
+    builtMeters: number;
+    usefulMeters: number;
+    rooms: number;
+    baths: number;
+    hasTerrace: boolean;
+    hasElevator: boolean;
+    hasParking: boolean;
+    hasStorage: boolean;
+    energyCertificate: string; // "A"-"G" or "Pending"
+    
+    // Alquiler
+    rentalStatus: RentalStatus;
+    isRented?: boolean;
+    currentRent?: number; // Mensual total
+    contractDate?: string;
+    rentedRoomsCount?: number;
+    
+    // Fotos
+    images: string[];
+    documents: string[]; // URLs
+}
+
+export interface OpportunityRequest {
+    id: string;
+    collaborator: {
+        name: string;
+        phone: string;
+        email: string;
+        relation: 'propietario' | 'mediador' | 'agencia' | 'amigo' | 'otro';
+    };
+    assets: AssetSubmission[];
+    packPrice?: number; // Si es un pack
+    isBuilding?: boolean;
+    buildingDetails?: {
+        totalUnits: number;
+        totalLocals: number;
+        floors: number;
+        cadastralRef: string;
+        occupation: string;
+    };
+    status: 'new' | 'reviewing' | 'approved' | 'rejected';
+    createdAt: any;
+    gdprAccepted: boolean;
+    dataPolicyAccepted: boolean;
+}

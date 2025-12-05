@@ -1,11 +1,12 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { brokerRequests as staticRequests, BrokerRequest, RequestTag } from '../data/brokerRequests';
-import { Briefcase, Search, MapPin, FileText, MessageCircle, ArrowRight, Building2, ShieldCheck, Filter, X, AlertCircle, Handshake, Crown, Star, Network } from 'lucide-react';
+import { Briefcase, Search, MapPin, FileText, MessageCircle, ArrowRight, Building2, ShieldCheck, Filter, X, AlertCircle, Handshake, Crown, Star, Network, PlusCircle, SearchCheck } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { ModalType } from './LegalModals';
 import { db } from '../firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
+import { PropertySubmissionForm } from './collaborators/PropertySubmissionForm';
 
 interface BrokerViewProps {
     openLegalModal?: (type: ModalType) => void;
@@ -13,6 +14,7 @@ interface BrokerViewProps {
 
 export const BrokerView: React.FC<BrokerViewProps> = ({ openLegalModal }) => {
   const { t } = useLanguage();
+  const [activeTab, setActiveTab] = useState<'requests' | 'submission'>('requests');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterLocation, setFilterLocation] = useState('');
   const [filterTag, setFilterTag] = useState<RequestTag | 'all'>('all');
@@ -129,8 +131,31 @@ export const BrokerView: React.FC<BrokerViewProps> = ({ openLegalModal }) => {
         </div>
       </section>
 
-      {/* Intro Box */}
-      <section className="container mx-auto px-4 -mt-8 relative z-10 mb-8">
+      {/* Main Tab Navigation */}
+      <section className="container mx-auto px-4 -mt-8 relative z-20 mb-8">
+          <div className="flex justify-center">
+              <div className="bg-white p-1.5 rounded-xl shadow-lg border border-gray-200 inline-flex">
+                  <button 
+                    onClick={() => setActiveTab('requests')}
+                    className={`px-6 py-3 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${activeTab === 'requests' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'}`}
+                  >
+                      <SearchCheck className="w-4 h-4" />
+                      Demandas de Inversión
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('submission')}
+                    className={`px-6 py-3 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${activeTab === 'submission' ? 'bg-rentia-blue text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'}`}
+                  >
+                      <PlusCircle className="w-4 h-4" />
+                      Proponer Colaboración
+                  </button>
+              </div>
+          </div>
+      </section>
+
+      {/* Intro Box (Only in requests mode) */}
+      {activeTab === 'requests' && (
+      <section className="container mx-auto px-4 mb-8">
           <div className="bg-white p-6 md:p-8 rounded-xl shadow-lg border-l-4 border-rentia-gold max-w-4xl mx-auto">
               <div className="flex items-start gap-4">
                   <div className="p-3 bg-yellow-50 rounded-full text-rentia-gold hidden md:block">
@@ -138,17 +163,25 @@ export const BrokerView: React.FC<BrokerViewProps> = ({ openLegalModal }) => {
                   </div>
                   <div>
                       <h3 className="text-xl font-bold text-rentia-black mb-2">{t('brokers.intro.title')}</h3>
-                      <p className="text-gray-600 leading-relaxed">
+                      <p className="text-gray-600 leading-relaxed mb-4">
                           {t('brokers.intro.text')}
                       </p>
+                      <button onClick={() => setActiveTab('submission')} className="text-rentia-blue font-bold text-sm hover:underline flex items-center gap-1">
+                          Tengo un inmueble que encaja <ArrowRight className="w-4 h-4"/>
+                      </button>
                   </div>
               </div>
           </div>
       </section>
+      )}
 
       {/* Main Content Section */}
       <section className="container mx-auto px-4 pb-20 max-w-6xl">
           
+          {activeTab === 'submission' ? (
+              <PropertySubmissionForm onBack={() => setActiveTab('requests')} />
+          ) : (
+          <>
           {/* Filters Bar */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
               <div className="flex flex-col gap-4">
@@ -400,6 +433,8 @@ export const BrokerView: React.FC<BrokerViewProps> = ({ openLegalModal }) => {
                   </p>
               </div>
           </div>
+          </>
+          )}
       </section>
 
       {/* Direct Contact */}

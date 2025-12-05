@@ -16,7 +16,7 @@ import { TenantDashboard } from './components/dashboards/TenantDashboard';
 import { BrokerDashboardInternal } from './components/dashboards/BrokerDashboard';
 import { StaffDashboard } from './components/dashboards/StaffDashboard';
 import { AgencyDashboard } from './components/dashboards/AgencyDashboard';
-import { WorkerDashboard } from './components/dashboards/WorkerDashboard'; // Importamos el nuevo dashboard
+import { WorkerDashboard } from './components/dashboards/WorkerDashboard'; 
 import { LegalModals, ModalType } from './components/LegalModals';
 import { CollaborationBanner } from './components/CollaborationBanner';
 import { OpportunityCard } from './components/OpportunityCard'; 
@@ -29,9 +29,8 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { db } from './firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
 
-// ... (Rest of imports and types definitions remain same until AppContent) ...
 // Type alias
-type ViewType = 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts' | 'blog' | 'brokers' | 'intranet' | 'landing';
+type ViewType = 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts' | 'blog' | 'brokers' | 'intranet' | 'landing' | 'submission';
 
 // Mapping Hash paths
 const PATH_MAP: Record<string, ViewType> = {
@@ -59,7 +58,8 @@ const VIEW_TO_HASH: Record<ViewType, string> = {
   'blog': '#/blog',
   'brokers': '#/colaboradores',
   'intranet': '#/intranet',
-  'landing': '#/landing'
+  'landing': '#/landing',
+  'submission': '#/colaboradores' // Redirige a brokers si se intenta acceder
 };
 
 function AppContent() {
@@ -88,7 +88,6 @@ function AppContent() {
         if (combinedOpps.length > 0) {
             setOpportunities(combinedOpps);
         } else {
-            console.log("No data available, showing static only.");
             setOpportunities(staticOpportunities);
         }
     }, (error) => {
@@ -98,13 +97,13 @@ function AppContent() {
     return () => unsubscribe();
   }, []);
 
-  // Initialize view based on Hash on first load and listen to changes
+  // Initialize view based on Hash
   useEffect(() => {
     const handleHashChange = () => {
         let hash = window.location.hash || '#/';
         const [baseHash, query] = hash.split('?');
 
-        // Soporte para detalles en vista normal o landing
+        // Soporte para detalles
         if (baseHash === '#/oportunidades' || baseHash === '#/landing') {
             if (query) {
                 const params = new URLSearchParams(query);
@@ -133,31 +132,6 @@ function AppContent() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, [userRole, opportunities]); 
 
-  // SEO Management System
-  useEffect(() => {
-    let title = "RentiaRoom | Gestión, Inversión y Alquiler en Murcia";
-    let description = "Expertos en gestión integral de alquiler por habitaciones y oportunidades de inversión inmobiliaria en Murcia. Rentabilidad garantizada y gestión 360.";
-    
-    switch (view) {
-      case 'home':
-        title = "RentiaRoom Murcia | Gestión de Pisos y Alquiler por Habitaciones";
-        description = "Transformamos tu propiedad en una inversión rentable. Nos encargamos de la gestión integral, alquiler por habitaciones y optimización de ingresos.";
-        break;
-      case 'landing':
-        title = "Inversión Rentable Murcia | Catálogo RentiaRoom";
-        description = "Oportunidades exclusivas de inversión inmobiliaria en Murcia. Alta rentabilidad, gestión integral y activos analizados.";
-        break;
-      // ... (Resto de casos igual)
-      default:
-        break;
-    }
-
-    document.title = title;
-    const metaDescription = document.querySelector('meta[name="description"]');
-    if (metaDescription) metaDescription.setAttribute('content', description);
-
-  }, [selectedId, view, opportunities]);
-
   const handleNavigate = (newView: ViewType) => {
     window.location.hash = VIEW_TO_HASH[newView];
   };
@@ -178,7 +152,6 @@ function AppContent() {
     const currentIndex = opportunities.findIndex(o => o.id === selectedId);
     if (currentIndex < opportunities.length - 1) {
       const nextId = opportunities[currentIndex + 1].id;
-      // Mantener contexto de Landing si estamos ahí
       if (view === 'landing') {
           window.location.hash = `#/landing?opp=${nextId}`;
       } else {
@@ -203,7 +176,6 @@ function AppContent() {
 
   // Lógica de renderizado
   const renderContent = () => {
-    // Si hay oportunidad seleccionada (detalle), se renderiza en ambos modos (web normal o landing)
     if (selectedOpportunity) {
       return (
         <DetailView 
@@ -218,7 +190,6 @@ function AppContent() {
       );
     }
 
-    // Modo Landing Page
     if (view === 'landing') {
         return (
             <LandingView 
@@ -228,7 +199,6 @@ function AppContent() {
         );
     }
 
-    // Vistas Normales de la Web
     switch (view) {
       case 'home': return <HomeView onNavigate={handleNavigate} />;
       case 'services': return <ServicesView />;
@@ -238,6 +208,7 @@ function AppContent() {
       case 'discounts': return <DiscountsView />;
       case 'blog': return <BlogView />;
       case 'brokers': return <BrokerView openLegalModal={openLegalModal} />;
+      case 'submission': return <BrokerView openLegalModal={openLegalModal} />; // Fallback a Brokers
       
       case 'intranet':
         if (userRole === 'owner') return <OwnerDashboard />;
@@ -245,14 +216,13 @@ function AppContent() {
         if (userRole === 'broker') return <BrokerDashboardInternal />;
         if (userRole === 'agency') return <AgencyDashboard />;
         if (userRole === 'staff') return <StaffDashboard />;
-        if (userRole === 'worker') return <WorkerDashboard />; // Renderizado del nuevo Dashboard
+        if (userRole === 'worker') return <WorkerDashboard />;
         return <div className="min-h-screen flex items-center justify-center">Cargando perfil...</div>;
 
       case 'list':
         return (
           <>
             <section className="relative py-20 md:py-24 bg-rentia-black overflow-hidden">
-              {/* ... (Hero existente se mantiene) ... */}
               <div className="absolute inset-0 w-full h-full z-0">
                   <img 
                       src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1600&q=80" 
@@ -290,7 +260,6 @@ function AppContent() {
                   </div>
               ) : (
                   <div className="flex flex-col items-center justify-center text-center py-12 px-4">
-                     {/* ... (Empty state existente) ... */}
                      <div className="bg-blue-50 p-6 rounded-full mb-6">
                         <Bell className="w-12 h-12 text-rentia-blue" />
                      </div>
@@ -325,19 +294,19 @@ function AppContent() {
 
   return (
     <div className="min-h-screen flex flex-col font-sans">
-      {/* Ocultar Header Global si es vista Landing */}
+      {/* Header Global */}
       {view !== 'landing' && <Header onNavigate={handleNavigate} />}
 
       <main className="flex-grow bg-[#f9f9f9] relative z-0">
         {renderContent()}
       </main>
 
-      {/* Ocultar WhatsApp si es landing O si es el dashboard de Worker O Staff */}
+      {/* WhatsApp Button */}
       {view !== 'landing' && !(view === 'intranet' && (userRole === 'worker' || userRole === 'staff')) && <WhatsAppButton />}
 
       <LegalModals activeModal={activeLegalModal} onClose={() => setActiveLegalModal(null)} />
 
-      {/* Ocultar Footer Global si es vista Landing */}
+      {/* Footer Global */}
       {view !== 'landing' && <Footer onNavigate={handleNavigate} openLegalModal={openLegalModal} />}
     </div>
   );

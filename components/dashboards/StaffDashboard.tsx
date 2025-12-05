@@ -1,12 +1,12 @@
-
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Users, Building, AlertCircle, CheckCircle, BarChart3, RefreshCw, LayoutDashboard, Calculator, Briefcase, Wrench, Plus, ArrowUpRight, ArrowDownRight, Search, FileText, Trash2, Save, X, DollarSign, Calendar as CalendarIcon, Filter, Download, Pencil, ChevronLeft, ChevronRight, PieChart, Landmark, ChevronDown, Wallet, CreditCard, Clock, Zap, Droplets, Flame, Wifi, Settings, Receipt, Split, Info, MessageCircle, Share2, ClipboardList, UserCheck, Mail, Phone, ArrowRight, UserPlus, Archive, Send, Home, DoorOpen, Menu, Grid, Footprints, MapPin, Percent, Quote, Sparkles, Activity, Ban, ShieldAlert } from 'lucide-react';
+import { Users, Building, AlertCircle, CheckCircle, BarChart3, RefreshCw, LayoutDashboard, Calculator, Briefcase, Wrench, Plus, ArrowUpRight, ArrowDownRight, Search, FileText, Trash2, Save, X, DollarSign, Calendar as CalendarIcon, Filter, Download, Pencil, ChevronLeft, ChevronRight, PieChart, Landmark, ChevronDown, Wallet, CreditCard, Clock, Zap, Droplets, Flame, Wifi, Settings, Receipt, Split, Info, MessageCircle, Share2, ClipboardList, UserCheck, Mail, Phone, ArrowRight, UserPlus, Archive, Send, Home, DoorOpen, Menu, Grid, Footprints, MapPin, Percent, Quote, Sparkles, Activity, Ban, ShieldAlert, Inbox } from 'lucide-react';
 import { UserCreator } from '../admin/UserCreator';
 import { FileAnalyzer } from '../admin/FileAnalyzer';
 import { RoomManager } from '../admin/RoomManager';
 import { SalesCRM } from '../admin/SalesCRM';
 import { OpportunityManager } from '../admin/OpportunityManager';
+import { OpportunityRequestManager } from '../admin/OpportunityRequestManager'; // Nuevo Import
 import { ProfitCalculator } from '../admin/ProfitCalculator';
 import { FeedGenerator } from '../admin/FeedGenerator';
 import { ContractManager } from '../admin/ContractManager';
@@ -26,7 +26,7 @@ import { collection, onSnapshot, addDoc, query, where, orderBy, serverTimestamp 
 import { properties as staticProperties } from '../../data/rooms';
 import { useAuth } from '../../contexts/AuthContext';
 
-// ... (KEEP CONSTANTS: MOTIVATIONAL_QUOTES, PRIORITIES, ETC. UNCHANGED) ...
+// ... (Resto del código existente: MOTIVATIONAL_QUOTES, Banner, etc.) ...
 const MOTIVATIONAL_QUOTES = [
     "El único modo de hacer un gran trabajo es amar lo que haces. – Steve Jobs",
     "El éxito es la suma de pequeños esfuerzos repetidos día tras día. – Robert Collier",
@@ -55,10 +55,11 @@ const MotivationalBanner = () => {
 export const StaffDashboard: React.FC = () => {
   const { currentUser } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'real_estate' | 'accounting' | 'tools' | 'contracts' | 'calendar' | 'supplies' | 'calculator' | 'social' | 'tasks' | 'visits' | 'sales_tracker' | 'blacklist'>('overview');
-  const [activeMobileTab, setActiveMobileTab] = useState<'overview' | 'tasks' | 'candidates' | 'properties' | 'menu' | 'accounting' | 'supplies' | 'calendar' | 'contracts' | 'social' | 'calculator' | 'tools' | 'visits' | 'sales_tracker' | 'blacklist'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'real_estate' | 'accounting' | 'tools' | 'contracts' | 'calendar' | 'supplies' | 'calculator' | 'social' | 'tasks' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests'>('overview');
+  const [activeMobileTab, setActiveMobileTab] = useState<'overview' | 'tasks' | 'candidates' | 'properties' | 'menu' | 'accounting' | 'supplies' | 'calendar' | 'contracts' | 'social' | 'calculator' | 'tools' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests'>('overview');
   const [mobilePropertyView, setMobilePropertyView] = useState<'rent' | 'sale'>('rent');
 
+  // ... (Stats Logic kept identical) ...
   const [stats, setStats] = useState({
     totalRooms: 0,
     occupancyRate: 0,
@@ -70,6 +71,7 @@ export const StaffDashboard: React.FC = () => {
   
   const [loadingStats, setLoadingStats] = useState(true);
   const [pendingCandidatesCount, setPendingCandidatesCount] = useState(0);
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0); // Nuevo contador
   const [propertiesList, setPropertiesList] = useState<any[]>([]);
   const [selectedPropId, setSelectedPropId] = useState<string>(''); 
   const [totalRealBalance, setTotalRealBalance] = useState(0);
@@ -78,7 +80,9 @@ export const StaffDashboard: React.FC = () => {
   const [newCandidate, setNewCandidate] = useState({ propertyId: '', roomId: '', candidateName: '', additionalInfo: '', candidatePhone: '', candidateEmail: '' });
 
   useEffect(() => {
+    // ... (Existing Props Snapshot) ...
     const unsubscribeProps = onSnapshot(collection(db, "properties"), (snapshot) => {
+      // ... same logic ...
       let totalRoomsCount = 0;
       let occupiedCount = 0;
       let revenueCount = 0;
@@ -132,7 +136,6 @@ export const StaffDashboard: React.FC = () => {
 
       allProps.sort((a,b) => a.address.localeCompare(b.address));
       setPropertiesList(allProps);
-      
       if (!selectedPropId && allProps.length > 0) setSelectedPropId(allProps[0].id);
 
       setStats({
@@ -162,38 +165,49 @@ export const StaffDashboard: React.FC = () => {
         setPendingCandidatesCount(snap.size);
     });
 
-    return () => { unsubscribeProps(); unsubscribeAccounting(); unsubPending(); };
+    // Nueva suscripción para Solicitudes de Colaboradores
+    const qRequests = query(collection(db, "opportunity_requests"), where("status", "==", "new"));
+    const unsubRequests = onSnapshot(qRequests, (snap) => {
+        setPendingRequestsCount(snap.size);
+    });
+
+    return () => { unsubscribeProps(); unsubscribeAccounting(); unsubPending(); unsubRequests(); };
   }, []);
 
   const handleSendCandidate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newCandidate.propertyId || !newCandidate.roomId || !newCandidate.candidateName) {
-        return alert("Completa todos los campos: propiedad, habitación y nombre.");
-    }
-    const prop = propertiesList.find(p => p.id === newCandidate.propertyId);
-    const room = prop?.rooms.find((r:any) => r.id === newCandidate.roomId);
-    try {
-        await addDoc(collection(db, "candidate_pipeline"), {
-            ...newCandidate,
-            propertyName: prop?.address || 'N/A',
-            roomName: room?.name || 'N/A',
-            submittedBy: currentUser?.displayName || 'Staff',
-            submittedAt: serverTimestamp(),
-            status: 'pending_review'
-        });
-        setShowCandidateModal(false);
-        setNewCandidate({ propertyId: '', roomId: '', candidateName: '', additionalInfo: '', candidatePhone: '', candidateEmail: '' });
-        alert('Candidato enviado a filtrado correctamente.');
-    } catch (error) {
-        console.error(error);
-        alert('Error al enviar candidato.');
-    }
+      // ... Same Logic ...
+      e.preventDefault();
+      // MODIFICADO: roomId ya no es obligatorio
+      if (!newCandidate.propertyId || !newCandidate.candidateName) {
+          return alert("Completa los campos obligatorios: propiedad y nombre.");
+      }
+      const prop = propertiesList.find(p => p.id === newCandidate.propertyId);
+      const room = prop?.rooms.find((r:any) => r.id === newCandidate.roomId);
+      
+      try {
+          await addDoc(collection(db, "candidate_pipeline"), {
+              ...newCandidate,
+              propertyName: prop?.address || 'N/A',
+              // Si no selecciona habitación, pone 'General / A definir'
+              roomName: room?.name || 'General / A definir', 
+              submittedBy: currentUser?.displayName || 'Staff',
+              submittedAt: serverTimestamp(),
+              status: 'pending_review'
+          });
+          setShowCandidateModal(false);
+          setNewCandidate({ propertyId: '', roomId: '', candidateName: '', additionalInfo: '', candidatePhone: '', candidateEmail: '' });
+          alert('Candidato enviado a filtrado correctamente.');
+      } catch (error) {
+          console.error(error);
+          alert('Error al enviar candidato.');
+      }
   };
 
     // Updated Tools List
     const desktopTools = [
         { id: 'tasks', label: 'Tareas', icon: <ClipboardList className="w-4 h-4" /> },
         { id: 'real_estate', label: 'Inmobiliaria', icon: <Building className="w-4 h-4" /> },
+        { id: 'requests', label: 'Solicitudes', icon: <Inbox className="w-4 h-4" />, count: pendingRequestsCount }, // New Tool
         { id: 'sales_tracker', label: 'Ventas', icon: <Activity className="w-4 h-4" /> },
         { id: 'blacklist', label: 'Gestión Riesgos', icon: <ShieldAlert className="w-4 h-4 text-red-500" /> }, 
         { id: 'contracts', label: 'Contratos', icon: <FileText className="w-4 h-4" /> },
@@ -207,6 +221,7 @@ export const StaffDashboard: React.FC = () => {
     ];
 
     const mobileMenuOptions = [
+        { id: 'requests', label: 'Solicitudes', icon: <Inbox className="w-6 h-6"/>, color: 'bg-green-100 text-green-600', count: pendingRequestsCount }, // New
         { id: 'sales_tracker', label: 'Ventas', icon: <Activity className="w-6 h-6"/>, color: 'bg-indigo-100 text-indigo-600' },
         { id: 'blacklist', label: 'Riesgos', icon: <ShieldAlert className="w-6 h-6"/>, color: 'bg-red-100 text-red-600' }, 
         { id: 'accounting', label: 'Contabilidad', icon: <Calculator className="w-6 h-6"/>, color: 'bg-blue-100 text-blue-600' },
@@ -220,6 +235,7 @@ export const StaffDashboard: React.FC = () => {
     ];
 
     const renderMobileContent = () => {
+        // ... (Wrappers kept as is) ...
         const SubSectionWrapper = ({ title, children }: { title: string, children?: React.ReactNode }) => (
             <div className="animate-in slide-in-from-right-4 duration-300 h-full flex flex-col">
                 <div className="flex items-center gap-3 mb-4 sticky top-0 bg-gray-100 py-2 z-10 px-4">
@@ -250,6 +266,21 @@ export const StaffDashboard: React.FC = () => {
                             <span className="bg-orange-600 text-white font-bold text-lg px-3 py-1 rounded-full">{pendingCandidatesCount}</span>
                         </div>
                     )}
+                    {/* Alerta de Solicitudes */}
+                    {pendingRequestsCount > 0 && (
+                        <div 
+                            className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between shadow-sm cursor-pointer"
+                            onClick={() => { setActiveMobileTab('requests'); }}
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="bg-blue-100 p-2 rounded-full text-blue-600"><Inbox className="w-5 h-5" /></div>
+                                <div><h4 className="font-bold text-blue-800 text-sm">Nuevas Oportunidades</h4><p className="text-xs text-blue-700">Solicitudes de colaboradores</p></div>
+                            </div>
+                            <span className="bg-blue-600 text-white font-bold text-lg px-3 py-1 rounded-full">{pendingRequestsCount}</span>
+                        </div>
+                    )}
+                    
+                    {/* ... (Rest of overview content) ... */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="bg-white p-4 rounded-lg shadow-sm border"><span className="text-xs text-gray-500 uppercase font-bold">Total Habs</span><span className="text-2xl font-bold text-gray-800 block mt-1">{loadingStats ? '-' : stats.totalRooms}</span></div>
                         <div className="bg-white p-4 rounded-lg shadow-sm border"><span className="text-xs text-gray-500 uppercase font-bold">Ocupación</span><span className={`text-2xl font-bold block mt-1 ${stats.occupancyRate > 90 ? 'text-green-600' : 'text-gray-800'}`}>{loadingStats ? '-' : `${stats.occupancyRate}%`}</span></div>
@@ -287,15 +318,17 @@ export const StaffDashboard: React.FC = () => {
                     <h2 className="text-lg font-bold text-gray-800 mb-4 px-2">Más Herramientas</h2>
                     <div className="grid grid-cols-2 gap-4">
                         {mobileMenuOptions.map(opt => (
-                            <button key={opt.id} onClick={() => setActiveMobileTab(opt.id as any)} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center justify-center gap-3 hover:bg-gray-50 active:scale-95 transition-all aspect-square">
+                            <button key={opt.id} onClick={() => setActiveMobileTab(opt.id as any)} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center justify-center gap-3 hover:bg-gray-50 active:scale-95 transition-all aspect-square relative">
                                 <div className={`p-3 rounded-full ${opt.color}`}>{opt.icon}</div>
                                 <span className="font-bold text-gray-700 text-sm text-center leading-tight">{opt.label}</span>
+                                {opt.count && opt.count > 0 && <span className="absolute top-2 right-2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{opt.count}</span>}
                             </button>
                         ))}
                     </div>
                 </div>
             );
             case 'blacklist': return <SubSectionWrapper title="Gestión de Riesgos"><BlacklistManager /></SubSectionWrapper>; 
+            case 'requests': return <SubSectionWrapper title="Solicitudes Colaboradores"><OpportunityRequestManager /></SubSectionWrapper>; // New Mobile
             case 'sales_tracker': return <SubSectionWrapper title="Seguimiento Ventas"><SalesTracker /></SubSectionWrapper>;
             case 'visits': return <SubSectionWrapper title="Visitas"><VisitsLog /></SubSectionWrapper>;
             case 'accounting': return <SubSectionWrapper title="Contabilidad"><AccountingPanel /></SubSectionWrapper>;
@@ -338,8 +371,9 @@ export const StaffDashboard: React.FC = () => {
                  <BarChart3 className="w-3.5 h-3.5" /> Resumen
              </button>
              {desktopTools.map(tool => (
-                 <button key={tool.id} onClick={() => setActiveTab(tool.id as any)} className={`px-2 py-1.5 rounded-md text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap ${activeTab === tool.id ? 'bg-white text-rentia-blue shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                 <button key={tool.id} onClick={() => setActiveTab(tool.id as any)} className={`relative px-2 py-1.5 rounded-md text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap ${activeTab === tool.id ? 'bg-white text-rentia-blue shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
                      {tool.icon} {tool.label}
+                     {tool.count ? <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] w-4 h-4 flex items-center justify-center rounded-full">{tool.count}</span> : null}
                  </button>
              ))}
           </div>
@@ -357,6 +391,7 @@ export const StaffDashboard: React.FC = () => {
                     <MotivationalBanner />
                     {/* Stats Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+                        {/* ... Stats cards ... */}
                         <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-500 relative overflow-hidden"><span className="text-xs text-gray-500 uppercase font-bold">Total Habitaciones</span><div className="flex justify-between items-end mt-2"><span className="text-3xl font-bold text-gray-800">{loadingStats ? '-' : stats.totalRooms}</span><Building className="w-6 h-6 text-blue-100 absolute right-4 top-4 transform scale-150" /></div></div>
                         <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-green-500 relative overflow-hidden"><span className="text-xs text-gray-500 uppercase font-bold">Ocupación Actual</span><div className="flex justify-between items-end mt-2"><span className={`text-3xl font-bold ${stats.occupancyRate > 90 ? 'text-green-600' : 'text-gray-800'}`}>{loadingStats ? '-' : `${stats.occupancyRate}%`}</span><Users className="w-6 h-6 text-green-100 absolute right-4 top-4 transform scale-150" /></div></div>
                         <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-orange-500 relative overflow-hidden"><span className="text-xs text-gray-500 uppercase font-bold">Habitaciones Vacías</span><div className="flex justify-between items-end mt-2"><span className="text-3xl font-bold text-orange-600">{loadingStats ? '-' : stats.vacantRooms}</span><DoorOpen className="w-6 h-6 text-orange-100 absolute right-4 top-4 transform scale-150" /></div></div>
@@ -366,19 +401,34 @@ export const StaffDashboard: React.FC = () => {
                         </div>
                         <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-gray-500 relative overflow-hidden"><span className="text-xs text-gray-500 uppercase font-bold">Balance Total (Caja)</span><div className="flex justify-between items-end mt-2"><span className={`text-3xl font-bold ${totalRealBalance >= 0 ? 'text-gray-800' : 'text-red-600'}`}>{totalRealBalance.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}<span className="text-sm font-medium ml-1">€</span></span><Landmark className="w-6 h-6 text-gray-100 absolute right-4 top-4 transform scale-150" /></div></div>
                     </div>
-                    {/* Candidate Alerts */}
-                    {pendingCandidatesCount > 0 && (
-                        <div 
-                            className="bg-orange-50 border border-orange-200 rounded-lg p-6 mb-8 flex items-center justify-between shadow-sm cursor-pointer hover:bg-orange-100 transition-colors"
-                            onClick={() => { const element = document.getElementById('candidate-manager'); if (element) element.scrollIntoView({ behavior: 'smooth' }); }}
-                        >
-                            <div className="flex items-center gap-4">
-                                <div className="bg-white p-3 rounded-full text-orange-600 shadow-sm border border-orange-100"><UserCheck className="w-8 h-8" /></div>
-                                <div><h4 className="font-bold text-orange-900 text-xl">Tienes {pendingCandidatesCount} candidatos pendientes de revisión</h4><p className="text-sm text-orange-700">Haz clic aquí para ir al gestor y aprobarlos o rechazarlos.</p></div>
+                    {/* Alerts */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        {pendingCandidatesCount > 0 && (
+                            <div 
+                                className="bg-orange-50 border border-orange-200 rounded-lg p-6 flex items-center justify-between shadow-sm cursor-pointer hover:bg-orange-100 transition-colors"
+                                onClick={() => { const element = document.getElementById('candidate-manager'); if (element) element.scrollIntoView({ behavior: 'smooth' }); }}
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div className="bg-white p-3 rounded-full text-orange-600 shadow-sm border border-orange-100"><UserCheck className="w-8 h-8" /></div>
+                                    <div><h4 className="font-bold text-orange-900 text-xl">{pendingCandidatesCount} Candidatos</h4><p className="text-sm text-orange-700">Pendientes de revisión</p></div>
+                                </div>
+                                <ArrowRight className="w-6 h-6 text-orange-400" />
                             </div>
-                            <ArrowRight className="w-6 h-6 text-orange-400" />
-                        </div>
-                    )}
+                        )}
+                        {pendingRequestsCount > 0 && (
+                            <div 
+                                className="bg-blue-50 border border-blue-200 rounded-lg p-6 flex items-center justify-between shadow-sm cursor-pointer hover:bg-blue-100 transition-colors"
+                                onClick={() => setActiveTab('requests')}
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div className="bg-white p-3 rounded-full text-blue-600 shadow-sm border border-blue-100"><Inbox className="w-8 h-8" /></div>
+                                    <div><h4 className="font-bold text-blue-900 text-xl">{pendingRequestsCount} Solicitudes</h4><p className="text-sm text-blue-700">Nuevas oportunidades recibidas</p></div>
+                                </div>
+                                <ArrowRight className="w-6 h-6 text-blue-400" />
+                            </div>
+                        )}
+                    </div>
+
                     <button onClick={() => setShowCandidateModal(true)} className="w-full bg-green-50 text-green-700 px-6 py-4 rounded-lg font-bold hover:bg-green-100 transition-colors items-center gap-2 border border-green-200 text-left flex justify-between shadow-sm mb-8"><div className="flex items-center gap-3"><UserPlus className="w-5 h-5"/><span>Enviar Nuevo Candidato al Pipeline</span></div><ArrowRight className="w-5 h-5"/></button>
                     <div id="candidate-manager" className="mt-8"><CandidateManager /></div>
                 </div>
@@ -395,6 +445,7 @@ export const StaffDashboard: React.FC = () => {
             {activeTab === 'accounting' && <div className="animate-in slide-in-from-bottom-4 duration-300"><AccountingPanel /></div>}
             {activeTab === 'sales_tracker' && <div className="animate-in slide-in-from-bottom-4 duration-300"><SalesTracker /></div>}
             {activeTab === 'blacklist' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><BlacklistManager /></div>} 
+            {activeTab === 'requests' && <div className="animate-in slide-in-from-bottom-4 duration-300"><OpportunityRequestManager /></div>}
             
             {activeTab === 'tools' && ( 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in slide-in-from-bottom-4 duration-300">
@@ -428,10 +479,10 @@ export const StaffDashboard: React.FC = () => {
             </button>
         </div>
 
-        {/* ... (Candidate Modal code) ... */}
+        {/* ... (Candidate Modal kept as is) ... */}
         {showCandidateModal && createPortal(
+            // ... (Modal Content)
             <div className="fixed inset-0 z-[10001] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setShowCandidateModal(false)}>
-                {/* ... (Modal content) ... */}
                 <form onSubmit={handleSendCandidate} className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-xl shadow-2xl flex flex-col animate-in slide-in-from-bottom-10 overflow-hidden" onClick={e => e.stopPropagation()}>
                     <div className="p-4 bg-gray-50 border-b flex justify-between items-center">
                         <h3 className="font-bold flex items-center gap-2"><UserPlus className="w-5 h-5 text-green-600"/> Enviar Candidato</h3>
@@ -444,8 +495,8 @@ export const StaffDashboard: React.FC = () => {
                                 <select required className="w-full p-2 border rounded text-sm" value={newCandidate.propertyId} onChange={e => setNewCandidate({...newCandidate, propertyId: e.target.value, roomId: ''})}><option value="">Seleccionar...</option>{propertiesList.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}</select>
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Habitación *</label>
-                                <select required disabled={!newCandidate.propertyId} className="w-full p-2 border rounded text-sm" value={newCandidate.roomId} onChange={e => setNewCandidate({...newCandidate, roomId: e.target.value})}><option value="">Seleccionar...</option>{propertiesList.find(p => p.id === newCandidate.propertyId)?.rooms.map((r:any) => <option key={r.id} value={r.id}>{r.name} ({r.status})</option>)}</select>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Habitación</label>
+                                <select disabled={!newCandidate.propertyId} className="w-full p-2 border rounded text-sm" value={newCandidate.roomId} onChange={e => setNewCandidate({...newCandidate, roomId: e.target.value})}><option value="">Seleccionar...</option>{propertiesList.find(p => p.id === newCandidate.propertyId)?.rooms.map((r:any) => <option key={r.id} value={r.id}>{r.name} ({r.status})</option>)}</select>
                             </div>
                         </div>
                         <div>

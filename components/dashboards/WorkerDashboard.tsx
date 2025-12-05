@@ -6,8 +6,19 @@ import { collection, query, where, onSnapshot, updateDoc, doc, addDoc, serverTim
 import { useAuth } from '../../contexts/AuthContext';
 import { Task, TaskStatus, Candidate, CandidateStatus, VisitOutcome, RoomVisit, InternalNews } from '../../types';
 import { Property, Room } from '../../data/rooms';
-import { ClipboardList, Home, CheckCircle, Clock, AlertCircle, MapPin, Search, Calendar, Wrench, Plus, X, AlertTriangle, ChevronLeft, Loader2, WifiOff, Monitor, Tv, Lock, Sun, Bed, Layout, Image as ImageIcon, UserPlus, Send, Users, UserX, UserCheck, ChevronRight, Eye, Megaphone, Bell, ChevronDown } from 'lucide-react';
+import { ClipboardList, Home, CheckCircle, Clock, AlertCircle, MapPin, Search, Calendar, Wrench, Plus, X, AlertTriangle, ChevronLeft, Loader2, WifiOff, Monitor, Tv, Lock, Sun, Bed, Layout, Image as ImageIcon, UserPlus, Send, Users, UserX, UserCheck, ChevronRight, Eye, Megaphone, Bell, ChevronDown, Sparkles, Trophy } from 'lucide-react';
 import { ImageLightbox } from '../ImageLightbox';
+
+// Mensajes de celebración aleatorios
+const CELEBRATION_MESSAGES = [
+    "¡Excelente trabajo! 🚀",
+    "¡Una tarea menos! Sigue así 💪",
+    "¡Imparable! Gran esfuerzo 🌟",
+    "Tarea completada con éxito ✨",
+    "¡Fantástico! A por la siguiente 🔥",
+    "¡Productividad al máximo! 🚀",
+    "¡Bien hecho! Equipo Rentia 💙"
+];
 
 // Priority Badge Helper (Inner Badge)
 const getPriorityBadge = (p: string) => {
@@ -156,6 +167,9 @@ export const WorkerDashboard: React.FC = () => {
     const [lightboxIndex, setLightboxIndex] = useState(0);
     const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
+    // Estado para mensaje de celebración
+    const [celebrationMessage, setCelebrationMessage] = useState<string | null>(null);
+
     // Filter states
     const [candidateFilter, setCandidateFilter] = useState<CandidateStatus>('pending_review');
     const [showCompletedTasks, setShowCompletedTasks] = useState(false);
@@ -245,6 +259,13 @@ export const WorkerDashboard: React.FC = () => {
 
     const handleStatusChange = async (taskId: string, newStatus: TaskStatus) => {
         await updateDoc(doc(db, "tasks", taskId), { status: newStatus });
+        
+        // Disparar celebración si se completa
+        if (newStatus === 'Completada') {
+            const randomMsg = CELEBRATION_MESSAGES[Math.floor(Math.random() * CELEBRATION_MESSAGES.length)];
+            setCelebrationMessage(randomMsg);
+            setTimeout(() => setCelebrationMessage(null), 3500);
+        }
     };
 
     const handleSaveIncident = async (e: React.FormEvent) => {
@@ -268,8 +289,9 @@ export const WorkerDashboard: React.FC = () => {
     
     const handleSendCandidate = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newCandidate.propertyId || !newCandidate.roomId || !newCandidate.candidateName) {
-            return alert("Completa todos los campos: propiedad, habitación y nombre.");
+        // roomId ya no es obligatorio
+        if (!newCandidate.propertyId || !newCandidate.candidateName) {
+            return alert("Completa los campos obligatorios: propiedad y nombre.");
         }
         
         const prop = properties.find(p => p.id === newCandidate.propertyId);
@@ -279,7 +301,7 @@ export const WorkerDashboard: React.FC = () => {
             await addDoc(collection(db, "candidate_pipeline"), {
                 ...newCandidate,
                 propertyName: prop?.address || 'N/A',
-                roomName: room?.name || 'N/A',
+                roomName: room?.name || 'General / A definir', // Fallback si no selecciona habitación
                 submittedBy: workerName,
                 submittedAt: serverTimestamp(),
                 status: 'pending_review'
@@ -469,6 +491,18 @@ export const WorkerDashboard: React.FC = () => {
 
     return (
         <div className="min-h-[100dvh] bg-gray-50 font-sans">
+            {/* CELEBRATION TOAST */}
+            {celebrationMessage && createPortal(
+                <div className="fixed top-24 left-1/2 transform -translate-x-1/2 z-[10000] animate-in slide-in-from-top-4 fade-in duration-300 pointer-events-none">
+                    <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 border-2 border-white/20 backdrop-blur-md">
+                        <Sparkles className="w-5 h-5 text-yellow-300 animate-pulse fill-current" />
+                        <span className="font-bold text-sm md:text-base tracking-wide text-shadow-sm">{celebrationMessage}</span>
+                        <Trophy className="w-5 h-5 text-yellow-300" />
+                    </div>
+                </div>,
+                document.body
+            )}
+
             <div className="max-w-6xl mx-auto p-4 md:p-6 pb-32">
                 <header className="mb-6">
                     <h1 className="text-xl md:text-2xl font-bold text-rentia-black font-display">
@@ -574,7 +608,7 @@ export const WorkerDashboard: React.FC = () => {
                 <div className="fixed inset-0 z-[10001] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setShowCandidateModal(false)}>
                     <form onSubmit={handleSendCandidate} className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-xl shadow-2xl flex flex-col animate-in slide-in-from-bottom-10 overflow-hidden" onClick={e => e.stopPropagation()}>
                         <div className="p-4 bg-gray-50 border-b flex justify-between items-center"><h3 className="font-bold flex items-center gap-2"><UserPlus className="w-5 h-5 text-green-600"/> Enviar Candidato</h3><button type="button" onClick={() => setShowCandidateModal(false)} className="p-2 -mr-2"><X className="w-5 h-5 text-gray-400"/></button></div>
-                        <div className="p-4 space-y-4 overflow-y-auto max-h-[70vh]"><div><label className="text-xs font-bold text-gray-500 block mb-1">Propiedad*</label><select required className="w-full p-2 border rounded text-sm" value={newCandidate.propertyId} onChange={e => setNewCandidate({...newCandidate, propertyId: e.target.value, roomId: ''})}><option value="">Seleccionar...</option>{properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}</select></div><div><label className="text-xs font-bold text-gray-500 block mb-1">Habitación*</label><select required disabled={!newCandidate.propertyId} className="w-full p-2 border rounded text-sm" value={newCandidate.roomId} onChange={e => setNewCandidate({...newCandidate, roomId: e.target.value})}><option value="">Seleccionar...</option>{/* SAFETY: Handle undefined rooms */}{properties.find(p => p.id === newCandidate.propertyId)?.rooms?.map(r => <option key={r.id} value={r.id}>{r.name} ({r.status})</option>)}</select></div><div><label className="text-xs font-bold text-gray-500 block mb-1">Nombre Candidato*</label><input required type="text" className="w-full p-2 border rounded text-sm" value={newCandidate.candidateName} onChange={e => setNewCandidate({...newCandidate, candidateName: e.target.value})} /></div><div className="grid grid-cols-2 gap-4"><div><label className="text-xs font-bold text-gray-500 block mb-1">Teléfono</label><input type="tel" className="w-full p-2 border rounded text-sm" value={newCandidate.candidatePhone} onChange={e => setNewCandidate({...newCandidate, candidatePhone: e.target.value})}/></div><div><label className="text-xs font-bold text-gray-500 block mb-1">Email</label><input type="email" className="w-full p-2 border rounded text-sm" value={newCandidate.candidateEmail} onChange={e => setNewCandidate({...newCandidate, candidateEmail: e.target.value})}/></div></div><div><label className="text-xs font-bold text-gray-500 block mb-1">Info Adicional</label><textarea className="w-full p-2 border rounded text-sm h-20" value={newCandidate.additionalInfo} onChange={e => setNewCandidate({...newCandidate, additionalInfo: e.target.value})} /></div></div>
+                        <div className="p-4 space-y-4 overflow-y-auto max-h-[70vh]"><div><label className="text-xs font-bold text-gray-500 block mb-1">Propiedad*</label><select required className="w-full p-2 border rounded text-sm" value={newCandidate.propertyId} onChange={e => setNewCandidate({...newCandidate, propertyId: e.target.value, roomId: ''})}><option value="">Seleccionar...</option>{properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}</select></div><div><label className="text-xs font-bold text-gray-500 block mb-1">Habitación</label><select disabled={!newCandidate.propertyId} className="w-full p-2 border rounded text-sm" value={newCandidate.roomId} onChange={e => setNewCandidate({...newCandidate, roomId: e.target.value})}><option value="">Seleccionar...</option>{/* SAFETY: Handle undefined rooms */}{properties.find(p => p.id === newCandidate.propertyId)?.rooms?.map(r => <option key={r.id} value={r.id}>{r.name} ({r.status})</option>)}</select></div><div><label className="text-xs font-bold text-gray-500 block mb-1">Nombre Candidato*</label><input required type="text" className="w-full p-2 border rounded text-sm" value={newCandidate.candidateName} onChange={e => setNewCandidate({...newCandidate, candidateName: e.target.value})} /></div><div className="grid grid-cols-2 gap-4"><div><label className="text-xs font-bold text-gray-500 block mb-1">Teléfono</label><input type="tel" className="w-full p-2 border rounded text-sm" value={newCandidate.candidatePhone} onChange={e => setNewCandidate({...newCandidate, candidatePhone: e.target.value})}/></div><div><label className="text-xs font-bold text-gray-500 block mb-1">Email</label><input type="email" className="w-full p-2 border rounded text-sm" value={newCandidate.candidateEmail} onChange={e => setNewCandidate({...newCandidate, candidateEmail: e.target.value})}/></div></div><div><label className="text-xs font-bold text-gray-500 block mb-1">Info Adicional</label><textarea className="w-full p-2 border rounded text-sm h-20" value={newCandidate.additionalInfo} onChange={e => setNewCandidate({...newCandidate, additionalInfo: e.target.value})} /></div></div>
                         <div className="p-4 bg-gray-50 border-t flex gap-2">
                            <button type="button" onClick={() => setShowCandidateModal(false)} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-bold hover:bg-gray-200">Cancelar</button>
                            <button type="submit" className="flex-1 bg-green-600 text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-green-700"><Send className="w-4 h-4"/> Enviar a Oficina</button>

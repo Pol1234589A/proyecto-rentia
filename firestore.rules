@@ -54,7 +54,6 @@ service cloud.firestore {
       allow create: if isStaff();       
       
       // Permitir que el usuario edite su propio perfil (ej. firmar GDPR)
-      // Bloqueamos cambio de rol y estado activo para evitar escalada de privilegios
       allow update: if isStaff() || (
         isSelf(userId) && 
         (!request.resource.data.diff(resource.data).affectedKeys().has('role')) &&
@@ -71,6 +70,7 @@ service cloud.firestore {
 
     match /property_documents/{docId} {
       allow read: if isStaff() || (isOwner() && propertyBelongsToOwner(resource.data.propertyId));
+      // Permitir crear si el usuario es dueño de la propiedad indicada en el documento
       allow create: if isStaff() || (isOwner() && propertyBelongsToOwner(request.resource.data.propertyId));
       allow update, delete: if isStaff();
     }
@@ -112,7 +112,8 @@ service cloud.firestore {
     }
 
     match /adjustments/{adjustmentId} {
-      allow read: if isStaff() || (isOwner() && propertyBelongsToOwner(resource.data.propertyId));
+      // Propietarios pueden leer sus ajustes si coinciden con su ID de propiedad o ownerId directo
+      allow read: if isStaff() || (isOwner() && resource.data.ownerId == request.auth.uid);
       allow write: if isStaff();
     }
 
@@ -131,7 +132,6 @@ service cloud.firestore {
 
     match /candidate_pipeline/{candidateId} {
       allow read: if isTeam() || (isOwner() && propertyBelongsToOwner(resource.data.propertyId));
-      // VALIDACIÓN: Es obligatorio que exista el campo 'submittedBy' al crear
       allow create: if isTeam() && (request.resource.data.submittedBy != null);
       allow update: if isTeam();
       allow delete: if isStaff();

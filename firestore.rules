@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -51,7 +52,19 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if true; 
       allow create: if isStaff();       
-      allow update: if isStaff() || (isSelf(userId)); 
+      
+      // ACTUALIZACIÓN DE SEGURIDAD:
+      // El usuario puede editar su perfil, PERO NO puede modificar/borrar el campo 'gdpr' si ya está firmado.
+      // Esto garantiza la integridad legal del consentimiento.
+      allow update: if isStaff() || (
+        isSelf(userId) && (
+          // Permitir si no se toca el campo gdpr
+          !request.resource.data.diff(resource.data).affectedKeys().has('gdpr') ||
+          // O permitir si es la primera vez que se firma (antes era null o false)
+          (resource.data.gdpr.signed == false || !("gdpr" in resource.data))
+        )
+      );
+      
       allow delete: if isStaff();
     }
 

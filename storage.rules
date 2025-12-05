@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
@@ -14,6 +15,10 @@ service firebase.storage {
 
     function isTeam() {
       return request.auth != null && (getRole() == 'staff' || getRole() == 'admin' || getRole() == 'agency' || getRole() == 'worker');
+    }
+    
+    function isOwner() {
+      return request.auth != null && getRole() == 'owner';
     }
 
     // --- REGLAS POR CARPETA ---
@@ -47,11 +52,28 @@ service firebase.storage {
     }
     
     // SOLICITUDES PUBLICAS DE COLABORADORES (FORMULARIO WEB)
-    // Permite subida pública (o autenticada anónima) para el formulario de captación.
-    // Solo Staff puede leer/descargar estos archivos. Protege planos, notas simples, etc.
     match /requests/{requestId}/{allPaths=**} {
       allow read: if isStaff();
       allow write: if true; 
+    }
+
+    // --- NUEVAS REGLAS PARA AREA PROPIETARIO ---
+
+    // Firmas RGPD: Cada usuario escribe en su carpeta
+    match /signatures/{userId}/{allPaths=**} {
+      allow read: if isStaff() || (request.auth != null && request.auth.uid == userId);
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Facturas y Documentos: Propietarios pueden subir
+    match /invoices/{propertyId}/{allPaths=**} {
+      allow read: if isStaff() || isOwner();
+      allow write: if isStaff() || isOwner();
+    }
+
+    match /documents/{propertyId}/{allPaths=**} {
+      allow read: if isStaff() || isOwner();
+      allow write: if isStaff() || isOwner();
     }
 
     // Regla por defecto: Bloqueo total

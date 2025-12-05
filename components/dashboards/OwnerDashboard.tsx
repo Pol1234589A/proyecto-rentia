@@ -283,18 +283,27 @@ export const OwnerDashboard: React.FC = () => {
       if (!currentUser) return;
       setSigning(true);
       try {
-          const storageRef = ref(storage, `signatures/${currentUser.uid}_gdpr_${Date.now()}.png`);
+          // Cambiado para coincidir con la nueva regla de seguridad: signatures/{userId}/...
+          const storageRef = ref(storage, `signatures/${currentUser.uid}/${Date.now()}_gdpr.png`);
           await uploadBytes(storageRef, blob);
           const url = await getDownloadURL(storageRef);
 
-          const ipReq = await fetch('https://api.ipify.org?format=json');
-          const ipRes = await ipReq.json();
+          let ip = 'unknown';
+          try {
+            const ipReq = await fetch('https://api.ipify.org?format=json');
+            if (ipReq.ok) {
+                const ipRes = await ipReq.json();
+                ip = ipRes.ip;
+            }
+          } catch (ipError) {
+            console.warn("Could not fetch IP for signature log", ipError);
+          }
 
           await updateDoc(doc(db, "users", currentUser.uid), {
               gdpr: {
                   signed: true,
                   signedAt: serverTimestamp(),
-                  ip: ipRes.ip,
+                  ip: ip,
                   signatureUrl: url,
                   documentVersion: 'v1.0-2025'
               }
@@ -303,8 +312,8 @@ export const OwnerDashboard: React.FC = () => {
           setIsGdprOpen(false);
           alert("Documento firmado y registrado legalmente. Gracias.");
       } catch (e) {
-          console.error(e);
-          alert("Error al procesar la firma. Inténtelo de nuevo.");
+          console.error("Signature Error:", e);
+          alert("Error al procesar la firma. Por favor inténtalo de nuevo.");
       } finally {
           setSigning(false);
       }

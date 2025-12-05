@@ -66,27 +66,27 @@ export const PropertySubmissionForm: React.FC<Props> = ({ onBack }) => {
     const [tempRequestId] = useState(`REQ_${Date.now()}_${Math.floor(Math.random()*1000)}`);
 
     const updateAsset = (index: number, field: keyof AssetSubmission, value: any) => {
-        const newAssets = [...assets];
-        newAssets[index] = { ...newAssets[index], [field]: value };
-        
-        // Auto-update ITP if region changes
-        if (field === 'region') {
-            const newRate = ITP_RATES[value as string] || 8;
-            newAssets[index].itpPercent = newRate;
-        }
-        
-        setAssets(newAssets);
+        setAssets(prevAssets => {
+            const newAssets = [...prevAssets];
+            newAssets[index] = { ...newAssets[index], [field]: value };
+            
+            // Auto-update ITP if region changes
+            if (field === 'region') {
+                const newRate = ITP_RATES[value as string] || 8;
+                newAssets[index].itpPercent = newRate;
+            }
+            return newAssets;
+        });
     };
 
     const addAsset = () => {
-        setAssets([...assets, { ...initialAsset, id: Date.now().toString() }]);
+        setAssets(prev => [...prev, { ...initialAsset, id: Date.now().toString() }]);
         setActiveAssetIndex(assets.length);
     };
 
     const removeAsset = (index: number) => {
         if (assets.length === 1) return;
-        const newAssets = assets.filter((_, i) => i !== index);
-        setAssets(newAssets);
+        setAssets(prev => prev.filter((_, i) => i !== index));
         setActiveAssetIndex(Math.max(0, index - 1));
     };
 
@@ -94,7 +94,6 @@ export const PropertySubmissionForm: React.FC<Props> = ({ onBack }) => {
         if (asset.price === 0) return 0;
         let annualRent = 0;
         if (asset.rentalStatus === 'Alquilada completa') annualRent = (asset.currentRent || 0) * 12;
-        // Logic for room rental calculation could be added here if fields were more detailed
         return ((annualRent / asset.price) * 100).toFixed(2);
     };
 
@@ -279,6 +278,7 @@ export const PropertySubmissionForm: React.FC<Props> = ({ onBack }) => {
                                     </div>
                                 </div>
 
+                                {/* ... (Resto de inputs se mantienen igual) ... */}
                                 <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide mb-4 border-b border-slate-200 pb-2">Ubicación & Legal</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                                     <div className="md:col-span-2">
@@ -383,16 +383,31 @@ export const PropertySubmissionForm: React.FC<Props> = ({ onBack }) => {
                                         folder={`requests/${tempRequestId}/${assets[activeAssetIndex].id}`} 
                                         label="Subir Fotos (Múltiple)"
                                         onUploadComplete={(url) => {
-                                            const currentImages = assets[activeAssetIndex].images || [];
-                                            updateAsset(activeAssetIndex, 'images', [...currentImages, url]);
+                                            // FIX: Usar functional state update para evitar "stale closure"
+                                            setAssets(prevAssets => {
+                                                const newAssets = [...prevAssets];
+                                                // Acceder al activo correcto usando el índice (que es estable en este contexto)
+                                                const targetAsset = newAssets[activeAssetIndex];
+                                                const currentImages = targetAsset.images || [];
+                                                
+                                                // Evitar duplicados (opcional pero recomendado)
+                                                if (!currentImages.includes(url)) {
+                                                    newAssets[activeAssetIndex] = {
+                                                        ...targetAsset,
+                                                        images: [...currentImages, url]
+                                                    };
+                                                }
+                                                return newAssets;
+                                            });
                                         }}
-                                        onlyFirebase={true} // FORZADO A FIREBASE
+                                        onlyFirebase={true} 
                                     />
                                     <div className="flex flex-wrap gap-2 mt-4">
                                         {assets[activeAssetIndex].images.map((img, idx) => (
                                             <div key={idx} className="w-20 h-20 relative rounded-lg overflow-hidden border group">
                                                 <img src={img} className="w-full h-full object-cover" alt="Preview"/>
                                                 <button type="button" onClick={() => {
+                                                    // Aquí removeAsset usa setState directamente, así que es seguro
                                                     const newImages = assets[activeAssetIndex].images.filter((_, i) => i !== idx);
                                                     updateAsset(activeAssetIndex, 'images', newImages);
                                                 }} className="absolute top-0 right-0 bg-red-500 text-white p-1 opacity-0 group-hover:opacity-100 transition-opacity">

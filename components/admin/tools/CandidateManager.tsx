@@ -2,10 +2,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { db } from '../../../firebase';
 import { collection, onSnapshot, updateDoc, doc, query, orderBy, getDocs, serverTimestamp } from 'firebase/firestore';
-import { Candidate, CandidateStatus } from '../../../types';
+import { Candidate, CandidateStatus, StaffMember } from '../../../types';
 import { Property, Room } from '../../../data/rooms';
-import { UserCheck, Search, Phone, X, CheckCircle, AlertCircle, Loader2, Mail, Calendar, Filter, Archive, Key, Eye, HelpCircle, FileText } from 'lucide-react';
+import { UserCheck, Search, Phone, X, CheckCircle, AlertCircle, Loader2, Mail, Calendar, Filter, Archive, Key, Eye, HelpCircle, FileText, UserPlus } from 'lucide-react';
 import { SensitiveDataDisplay } from '../../common/SecurityComponents';
+
+const STAFF_MEMBERS: StaffMember[] = ['Pol', 'Sandra', 'Víctor', 'Ayoub', 'Hugo', 'Colaboradores'];
 
 export const CandidateManager: React.FC = () => {
     const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -18,10 +20,11 @@ export const CandidateManager: React.FC = () => {
 
     // Modales de Acción
     const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
-    const [modalMode, setModalMode] = useState<'details' | 'archive' | 'rent' | null>(null);
+    const [modalMode, setModalMode] = useState<'details' | 'archive' | 'rent' | 'assign' | null>(null);
     
     // Estados para formularios de modales
     const [archiveReason, setArchiveReason] = useState('');
+    const [assignee, setAssignee] = useState<StaffMember | ''>('');
     const [rentSelection, setRentSelection] = useState({ propertyId: '', roomId: '' });
 
     useEffect(() => {
@@ -53,22 +56,40 @@ export const CandidateManager: React.FC = () => {
         setTimeout(() => setNotification(null), 3000);
     };
 
-    // Cambiar estado simple (Pendiente <-> Aprobado <-> Rechazado)
-    const handleUpdateStatus = async (id: string, status: CandidateStatus) => {
+    // Rechazar
+    const handleReject = async (id: string) => {
         setProcessingId(id);
         try {
-            const docRef = doc(db, "candidate_pipeline", id);
-            await updateDoc(docRef, { status: status });
-            showNotification('success', `Estado actualizado a ${status}.`);
+            await updateDoc(doc(db, "candidate_pipeline", id), { status: 'rejected' });
+            showNotification('success', "Candidato rechazado.");
         } catch (error) {
-            console.error("Error:", error);
-            showNotification('error', "Error al actualizar estado.");
+            showNotification('error', "Error al rechazar.");
         } finally {
             setProcessingId(null);
         }
     };
 
-    // ARCHIVAR: Candidato aprobado que no entra finalmente
+    // APROBAR Y ASIGNAR VISITA
+    const handleApproveAndAssign = async () => {
+        if (!selectedCandidate || !assignee) return alert("Debes asignar la visita a alguien.");
+        setProcessingId(selectedCandidate.id);
+        try {
+            await updateDoc(doc(db, "candidate_pipeline", selectedCandidate.id), { 
+                status: 'approved',
+                assignedTo: assignee // Nuevo campo para WorkerDashboard
+            });
+            showNotification('success', `Aprobado y asignado a ${assignee}.`);
+            setModalMode(null);
+            setAssignee('');
+        } catch (error) {
+            console.error(error);
+            showNotification('error', "Error al aprobar.");
+        } finally {
+            setProcessingId(null);
+        }
+    };
+
+    // ARCHIVAR
     const handleArchiveCandidate = async () => {
         if (!selectedCandidate || !archiveReason) return alert("Debes indicar un motivo.");
         setProcessingId(selectedCandidate.id);
@@ -88,7 +109,7 @@ export const CandidateManager: React.FC = () => {
         }
     };
 
-    // ALQUILAR: Asignar a habitación y cerrar proceso
+    // ALQUILAR
     const handleRentCandidate = async () => {
         if (!selectedCandidate || !rentSelection.propertyId || !rentSelection.roomId) return alert("Selecciona propiedad y habitación.");
         setProcessingId(selectedCandidate.id);
@@ -98,7 +119,7 @@ export const CandidateManager: React.FC = () => {
                 status: 'rented',
                 assignedRoomId: rentSelection.roomId,
                 assignedDate: serverTimestamp(),
-                propertyId: rentSelection.propertyId // Actualizamos si cambió respecto al lead inicial
+                propertyId: rentSelection.propertyId 
             });
 
             // 2. Actualizar Habitación a 'occupied'
@@ -135,7 +156,7 @@ export const CandidateManager: React.FC = () => {
             }
             
             if (activeTab === 'pending') return c.status === 'pending_review';
-            if (activeTab === 'approved') return c.status === 'approved'; // Solo mostramos los aprobados activos aquí
+            if (activeTab === 'approved') return c.status === 'approved'; 
             if (activeTab === 'rejected') return c.status === 'rejected' || c.status === 'archived' || c.status === 'rented';
             return false;
         });
@@ -190,6 +211,13 @@ export const CandidateManager: React.FC = () => {
                                 <span className="text-gray-300">|</span>
                                 <span>{c.roomName}</span>
                             </div>
+
+                            {/* Mostrar quién tiene asignada la visita si está aprobado */}
+                            {c.status === 'approved' && c.assignedTo && (
+                                <div className="text-xs text-blue-700 bg-blue-50 px-2 py-1 rounded w-fit mb-3 border border-blue-100">
+                                    <strong>Visita Asignada a:</strong> {c.assignedTo}
+                                </div>
+                            )}
                             
                             {/* Mostrar motivo si está archivado/rechazado */}
                             {(c.status === 'archived' || c.status === 'rejected') && c.closureReason && (
@@ -203,10 +231,14 @@ export const CandidateManager: React.FC = () => {
                             {/* ACCIONES PENDIENTES */}
                             {c.status === 'pending_review' && (
                                 <>
-                                    <button onClick={() => handleUpdateStatus(c.id, 'approved')} disabled={!!processingId} className="flex-1 md:flex-none bg-green-600 hover:bg-green-700 text-white px-4 py-2 text-xs font-bold rounded-lg shadow-sm flex justify-center items-center gap-2">
+                                    <button 
+                                        onClick={() => { setSelectedCandidate(c); setModalMode('assign'); }} 
+                                        disabled={!!processingId} 
+                                        className="flex-1 md:flex-none bg-green-600 hover:bg-green-700 text-white px-4 py-2 text-xs font-bold rounded-lg shadow-sm flex justify-center items-center gap-2"
+                                    >
                                         <CheckCircle className="w-4 h-4" /> Aprobar
                                     </button>
-                                    <button onClick={() => handleUpdateStatus(c.id, 'rejected')} disabled={!!processingId} className="flex-1 md:flex-none bg-white hover:bg-red-50 text-red-600 border border-red-200 px-4 py-2 text-xs font-bold rounded-lg flex justify-center items-center gap-2">
+                                    <button onClick={() => handleReject(c.id)} disabled={!!processingId} className="flex-1 md:flex-none bg-white hover:bg-red-50 text-red-600 border border-red-200 px-4 py-2 text-xs font-bold rounded-lg flex justify-center items-center gap-2">
                                         <X className="w-4 h-4" /> Rechazar
                                     </button>
                                 </>
@@ -323,6 +355,12 @@ export const CandidateManager: React.FC = () => {
                                 <span className="block text-xs font-bold text-gray-400 uppercase">Captado por</span>
                                 <span>{selectedCandidate.submittedBy}</span>
                             </div>
+                            {selectedCandidate.sourcePlatform && (
+                                <div className="col-span-2">
+                                    <span className="block text-xs font-bold text-gray-400 uppercase">Plataforma Origen</span>
+                                    <span>{selectedCandidate.sourcePlatform}</span>
+                                </div>
+                            )}
                         </div>
 
                         {selectedCandidate.additionalInfo && (
@@ -351,7 +389,45 @@ export const CandidateManager: React.FC = () => {
             </div>
         )}
 
-        {/* 2. Modal Archivar (Motivo) */}
+        {/* 2. Modal Asignar Visita (APROBACIÓN) */}
+        {modalMode === 'assign' && selectedCandidate && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95">
+                    <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
+                        <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                            <UserPlus className="w-5 h-5 text-green-600"/> Asignar Visita
+                        </h3>
+                        <button onClick={() => setModalMode(null)}><X className="w-5 h-5 text-gray-400"/></button>
+                    </div>
+                    <div className="p-6 space-y-4">
+                        <p className="text-sm text-gray-600">
+                            Vas a aprobar a <strong>{selectedCandidate.candidateName}</strong>. ¿Quién realizará la visita comercial?
+                        </p>
+                        
+                        <div>
+                            <label className="text-xs font-bold text-gray-500 uppercase block mb-1">Asignar a:</label>
+                            <select 
+                                className="w-full p-2 border rounded-lg text-sm bg-white focus:border-green-500 outline-none"
+                                value={assignee}
+                                onChange={(e) => setAssignee(e.target.value as any)}
+                            >
+                                <option value="">Seleccionar...</option>
+                                {STAFF_MEMBERS.map(staff => (
+                                    <option key={staff} value={staff}>{staff}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="flex justify-end gap-2 pt-2">
+                            <button onClick={() => setModalMode(null)} className="px-4 py-2 text-gray-500 font-bold text-sm hover:bg-gray-100 rounded-lg">Cancelar</button>
+                            <button onClick={handleApproveAndAssign} disabled={!assignee} className="px-4 py-2 bg-green-600 text-white rounded-lg font-bold text-sm shadow-md disabled:opacity-50 hover:bg-green-700">Confirmar & Aprobar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {/* 3. Modal Archivar (Motivo) */}
         {modalMode === 'archive' && selectedCandidate && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
                 <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95">
@@ -373,7 +449,7 @@ export const CandidateManager: React.FC = () => {
             </div>
         )}
 
-        {/* 3. Modal Alquilar (Selección Habitación) */}
+        {/* 4. Modal Alquilar (Selección Habitación) */}
         {modalMode === 'rent' && selectedCandidate && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
                 <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95">

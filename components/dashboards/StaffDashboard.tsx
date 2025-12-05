@@ -1,12 +1,13 @@
+
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Users, Building, AlertCircle, CheckCircle, BarChart3, RefreshCw, LayoutDashboard, Calculator, Briefcase, Wrench, Plus, ArrowUpRight, ArrowDownRight, Search, FileText, Trash2, Save, X, DollarSign, Calendar as CalendarIcon, Filter, Download, Pencil, ChevronLeft, ChevronRight, PieChart, Landmark, ChevronDown, Wallet, CreditCard, Clock, Zap, Droplets, Flame, Wifi, Settings, Receipt, Split, Info, MessageCircle, Share2, ClipboardList, UserCheck, Mail, Phone, ArrowRight, UserPlus, Archive, Send, Home, DoorOpen, Menu, Grid, Footprints, MapPin, Percent, Quote, Sparkles, Activity, Ban, ShieldAlert, Inbox } from 'lucide-react';
+import { Users, Building, AlertCircle, CheckCircle, BarChart3, RefreshCw, LayoutDashboard, Calculator, Briefcase, Wrench, Plus, ArrowUpRight, ArrowDownRight, Search, FileText, Trash2, Save, X, DollarSign, Calendar as CalendarIcon, Filter, Download, Pencil, ChevronLeft, ChevronRight, PieChart, Landmark, ChevronDown, Wallet, CreditCard, Clock, Zap, Droplets, Flame, Wifi, Settings, Receipt, Split, Info, MessageCircle, Share2, ClipboardList, UserCheck, Mail, Phone, ArrowRight, UserPlus, Archive, Send, Home, DoorOpen, Menu, Grid, Footprints, MapPin, Percent, Quote, Sparkles, Activity, Ban, ShieldAlert, Inbox, Globe } from 'lucide-react';
 import { UserCreator } from '../admin/UserCreator';
 import { FileAnalyzer } from '../admin/FileAnalyzer';
 import { RoomManager } from '../admin/RoomManager';
 import { SalesCRM } from '../admin/SalesCRM';
 import { OpportunityManager } from '../admin/OpportunityManager';
-import { OpportunityRequestManager } from '../admin/OpportunityRequestManager'; // Nuevo Import
+import { OpportunityRequestManager } from '../admin/OpportunityRequestManager';
 import { ProfitCalculator } from '../admin/ProfitCalculator';
 import { FeedGenerator } from '../admin/FeedGenerator';
 import { ContractManager } from '../admin/ContractManager';
@@ -71,13 +72,21 @@ export const StaffDashboard: React.FC = () => {
   
   const [loadingStats, setLoadingStats] = useState(true);
   const [pendingCandidatesCount, setPendingCandidatesCount] = useState(0);
-  const [pendingRequestsCount, setPendingRequestsCount] = useState(0); // Nuevo contador
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0); 
   const [propertiesList, setPropertiesList] = useState<any[]>([]);
   const [selectedPropId, setSelectedPropId] = useState<string>(''); 
   const [totalRealBalance, setTotalRealBalance] = useState(0);
 
   const [showCandidateModal, setShowCandidateModal] = useState(false);
-  const [newCandidate, setNewCandidate] = useState({ propertyId: '', roomId: '', candidateName: '', additionalInfo: '', candidatePhone: '', candidateEmail: '' });
+  const [newCandidate, setNewCandidate] = useState({ 
+      propertyId: '', 
+      roomId: '', 
+      candidateName: '', 
+      additionalInfo: '', 
+      candidatePhone: '', 
+      candidateEmail: '',
+      sourcePlatform: '' // Nuevo campo
+  });
 
   useEffect(() => {
     // ... (Existing Props Snapshot) ...
@@ -165,7 +174,6 @@ export const StaffDashboard: React.FC = () => {
         setPendingCandidatesCount(snap.size);
     });
 
-    // Nueva suscripción para Solicitudes de Colaboradores
     const qRequests = query(collection(db, "opportunity_requests"), where("status", "==", "new"));
     const unsubRequests = onSnapshot(qRequests, (snap) => {
         setPendingRequestsCount(snap.size);
@@ -175,9 +183,8 @@ export const StaffDashboard: React.FC = () => {
   }, []);
 
   const handleSendCandidate = async (e: React.FormEvent) => {
-      // ... Same Logic ...
       e.preventDefault();
-      // MODIFICADO: roomId ya no es obligatorio
+      // roomId ya no es obligatorio
       if (!newCandidate.propertyId || !newCandidate.candidateName) {
           return alert("Completa los campos obligatorios: propiedad y nombre.");
       }
@@ -190,12 +197,12 @@ export const StaffDashboard: React.FC = () => {
               propertyName: prop?.address || 'N/A',
               // Si no selecciona habitación, pone 'General / A definir'
               roomName: room?.name || 'General / A definir', 
-              submittedBy: currentUser?.displayName || 'Staff',
+              submittedBy: currentUser?.displayName || 'Staff', // Obligatorio y automático
               submittedAt: serverTimestamp(),
               status: 'pending_review'
           });
           setShowCandidateModal(false);
-          setNewCandidate({ propertyId: '', roomId: '', candidateName: '', additionalInfo: '', candidatePhone: '', candidateEmail: '' });
+          setNewCandidate({ propertyId: '', roomId: '', candidateName: '', additionalInfo: '', candidatePhone: '', candidateEmail: '', sourcePlatform: '' });
           alert('Candidato enviado a filtrado correctamente.');
       } catch (error) {
           console.error(error);
@@ -207,7 +214,7 @@ export const StaffDashboard: React.FC = () => {
     const desktopTools = [
         { id: 'tasks', label: 'Tareas', icon: <ClipboardList className="w-4 h-4" /> },
         { id: 'real_estate', label: 'Inmobiliaria', icon: <Building className="w-4 h-4" /> },
-        { id: 'requests', label: 'Solicitudes', icon: <Inbox className="w-4 h-4" />, count: pendingRequestsCount }, // New Tool
+        { id: 'requests', label: 'Solicitudes', icon: <Inbox className="w-4 h-4" />, count: pendingRequestsCount }, 
         { id: 'sales_tracker', label: 'Ventas', icon: <Activity className="w-4 h-4" /> },
         { id: 'blacklist', label: 'Gestión Riesgos', icon: <ShieldAlert className="w-4 h-4 text-red-500" /> }, 
         { id: 'contracts', label: 'Contratos', icon: <FileText className="w-4 h-4" /> },
@@ -221,7 +228,7 @@ export const StaffDashboard: React.FC = () => {
     ];
 
     const mobileMenuOptions = [
-        { id: 'requests', label: 'Solicitudes', icon: <Inbox className="w-6 h-6"/>, color: 'bg-green-100 text-green-600', count: pendingRequestsCount }, // New
+        { id: 'requests', label: 'Solicitudes', icon: <Inbox className="w-6 h-6"/>, color: 'bg-green-100 text-green-600', count: pendingRequestsCount }, 
         { id: 'sales_tracker', label: 'Ventas', icon: <Activity className="w-6 h-6"/>, color: 'bg-indigo-100 text-indigo-600' },
         { id: 'blacklist', label: 'Riesgos', icon: <ShieldAlert className="w-6 h-6"/>, color: 'bg-red-100 text-red-600' }, 
         { id: 'accounting', label: 'Contabilidad', icon: <Calculator className="w-6 h-6"/>, color: 'bg-blue-100 text-blue-600' },
@@ -253,6 +260,7 @@ export const StaffDashboard: React.FC = () => {
         switch (activeMobileTab) {
             case 'overview': return (
                 <div className="animate-in slide-in-from-bottom-4 duration-300 space-y-4 h-full overflow-y-auto pb-24 px-4 pt-4">
+                    {/* ... (Existing overview content) ... */}
                     <MotivationalBanner />
                     {pendingCandidatesCount > 0 && (
                         <div 
@@ -280,7 +288,6 @@ export const StaffDashboard: React.FC = () => {
                         </div>
                     )}
                     
-                    {/* ... (Rest of overview content) ... */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="bg-white p-4 rounded-lg shadow-sm border"><span className="text-xs text-gray-500 uppercase font-bold">Total Habs</span><span className="text-2xl font-bold text-gray-800 block mt-1">{loadingStats ? '-' : stats.totalRooms}</span></div>
                         <div className="bg-white p-4 rounded-lg shadow-sm border"><span className="text-xs text-gray-500 uppercase font-bold">Ocupación</span><span className={`text-2xl font-bold block mt-1 ${stats.occupancyRate > 90 ? 'text-green-600' : 'text-gray-800'}`}>{loadingStats ? '-' : `${stats.occupancyRate}%`}</span></div>
@@ -313,6 +320,7 @@ export const StaffDashboard: React.FC = () => {
                     </div>
                 </div>
             );
+            // ... (Resto de casos del menú móvil igual)
             case 'menu': return (
                 <div className="animate-in slide-in-from-bottom-4 p-4 h-full overflow-y-auto pb-24">
                     <h2 className="text-lg font-bold text-gray-800 mb-4 px-2">Más Herramientas</h2>
@@ -328,7 +336,7 @@ export const StaffDashboard: React.FC = () => {
                 </div>
             );
             case 'blacklist': return <SubSectionWrapper title="Gestión de Riesgos"><BlacklistManager /></SubSectionWrapper>; 
-            case 'requests': return <SubSectionWrapper title="Solicitudes Colaboradores"><OpportunityRequestManager /></SubSectionWrapper>; // New Mobile
+            case 'requests': return <SubSectionWrapper title="Solicitudes Colaboradores"><OpportunityRequestManager /></SubSectionWrapper>; 
             case 'sales_tracker': return <SubSectionWrapper title="Seguimiento Ventas"><SalesTracker /></SubSectionWrapper>;
             case 'visits': return <SubSectionWrapper title="Visitas"><VisitsLog /></SubSectionWrapper>;
             case 'accounting': return <SubSectionWrapper title="Contabilidad"><AccountingPanel /></SubSectionWrapper>;
@@ -479,9 +487,8 @@ export const StaffDashboard: React.FC = () => {
             </button>
         </div>
 
-        {/* ... (Candidate Modal kept as is) ... */}
+        {/* ... (Candidate Modal UPDATE) ... */}
         {showCandidateModal && createPortal(
-            // ... (Modal Content)
             <div className="fixed inset-0 z-[10001] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setShowCandidateModal(false)}>
                 <form onSubmit={handleSendCandidate} className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-xl shadow-2xl flex flex-col animate-in slide-in-from-bottom-10 overflow-hidden" onClick={e => e.stopPropagation()}>
                     <div className="p-4 bg-gray-50 border-b flex justify-between items-center">
@@ -489,14 +496,20 @@ export const StaffDashboard: React.FC = () => {
                         <button type="button" onClick={() => setShowCandidateModal(false)} className="p-2 -mr-2"><X className="w-5 h-5 text-gray-400"/></button>
                     </div>
                     <div className="p-4 space-y-4 overflow-y-auto max-h-[70vh]">
+                        {/* Captador (ReadOnly) */}
+                        <div className="bg-blue-50 p-2 rounded-lg border border-blue-100 flex items-center gap-2 text-xs text-blue-800">
+                            <Info className="w-4 h-4" />
+                            <span>Captado por: <strong>{currentUser?.displayName || 'Desconocido'}</strong></span>
+                        </div>
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Propiedad *</label>
                                 <select required className="w-full p-2 border rounded text-sm" value={newCandidate.propertyId} onChange={e => setNewCandidate({...newCandidate, propertyId: e.target.value, roomId: ''})}><option value="">Seleccionar...</option>{propertiesList.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}</select>
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Habitación</label>
-                                <select disabled={!newCandidate.propertyId} className="w-full p-2 border rounded text-sm" value={newCandidate.roomId} onChange={e => setNewCandidate({...newCandidate, roomId: e.target.value})}><option value="">Seleccionar...</option>{propertiesList.find(p => p.id === newCandidate.propertyId)?.rooms.map((r:any) => <option key={r.id} value={r.id}>{r.name} ({r.status})</option>)}</select>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Habitación (Opcional)</label>
+                                <select disabled={!newCandidate.propertyId} className="w-full p-2 border rounded text-sm" value={newCandidate.roomId} onChange={e => setNewCandidate({...newCandidate, roomId: e.target.value})}><option value="">General / A definir</option>{propertiesList.find(p => p.id === newCandidate.propertyId)?.rooms.map((r:any) => <option key={r.id} value={r.id}>{r.name} ({r.status})</option>)}</select>
                             </div>
                         </div>
                         <div>
@@ -512,6 +525,11 @@ export const StaffDashboard: React.FC = () => {
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Email</label>
                                 <input type="email" className="w-full p-2 border rounded text-sm" value={newCandidate.candidateEmail} onChange={e => setNewCandidate({...newCandidate, candidateEmail: e.target.value})} />
                             </div>
+                        </div>
+                        {/* Nuevo campo Plataforma */}
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1 flex items-center gap-1"><Globe className="w-3 h-3"/> Plataforma de Origen</label>
+                            <input type="text" className="w-full p-2 border rounded text-sm" placeholder="Ej: Idealista, Facebook, Referido..." value={newCandidate.sourcePlatform} onChange={e => setNewCandidate({...newCandidate, sourcePlatform: e.target.value})} />
                         </div>
                         <div>
                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Info Adicional</label>

@@ -53,16 +53,12 @@ service cloud.firestore {
       allow read: if true; 
       allow create: if isStaff();       
       
-      // ACTUALIZACIÓN DE SEGURIDAD:
-      // El usuario puede editar su perfil, PERO NO puede modificar/borrar el campo 'gdpr' si ya está firmado.
-      // Esto garantiza la integridad legal del consentimiento.
+      // Permitir que el usuario edite su propio perfil (ej. firmar GDPR)
+      // Bloqueamos cambio de rol y estado activo para evitar escalada de privilegios
       allow update: if isStaff() || (
-        isSelf(userId) && (
-          // Permitir si no se toca el campo gdpr
-          !request.resource.data.diff(resource.data).affectedKeys().has('gdpr') ||
-          // O permitir si es la primera vez que se firma (antes era null o false)
-          (resource.data.gdpr.signed == false || !("gdpr" in resource.data))
-        )
+        isSelf(userId) && 
+        (!request.resource.data.diff(resource.data).affectedKeys().has('role')) &&
+        (!request.resource.data.diff(resource.data).affectedKeys().has('active'))
       );
       
       allow delete: if isStaff();
@@ -135,7 +131,9 @@ service cloud.firestore {
 
     match /candidate_pipeline/{candidateId} {
       allow read: if isTeam() || (isOwner() && propertyBelongsToOwner(resource.data.propertyId));
-      allow create, update: if isTeam();
+      // VALIDACIÓN: Es obligatorio que exista el campo 'submittedBy' al crear
+      allow create: if isTeam() && (request.resource.data.submittedBy != null);
+      allow update: if isTeam();
       allow delete: if isStaff();
     }
 

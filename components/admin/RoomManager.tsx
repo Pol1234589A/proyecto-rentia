@@ -143,7 +143,6 @@ export const RoomManager: React.FC = () => {
       setProperties(prev => prev.map(p => p.id === propId ? { ...p, [field]: value } : p));
   };
 
-  // --- LOGICA DE LIMPIEZA ---
   const handleCleaningChange = (propId: string, field: keyof CleaningConfig, value: any) => {
       setProperties(prev => prev.map(p => {
           if (p.id !== propId) return p;
@@ -171,6 +170,27 @@ export const RoomManager: React.FC = () => {
               rooms: p.rooms.map(r => r.id === roomId ? { ...r, [field]: value } : r)
           };
       }));
+  };
+
+  // Función específica para añadir imágenes a una habitación de forma segura (sin closures obsoletos)
+  const addRoomImage = (propId: string, roomId: string, url: string) => {
+      setProperties(prevProperties => {
+          return prevProperties.map(p => {
+              if (p.id !== propId) return p;
+              return {
+                  ...p,
+                  rooms: p.rooms.map(r => {
+                      if (r.id !== roomId) return r;
+                      const currentImages = r.images || [];
+                      // Evitar duplicados
+                      if (!currentImages.includes(url)) {
+                          return { ...r, images: [...currentImages, url] };
+                      }
+                      return r;
+                  })
+              };
+          });
+      });
   };
 
   const handleRoomFeatureToggle = (propId: string, roomId: string, feature: string) => {
@@ -528,10 +548,7 @@ export const RoomManager: React.FC = () => {
                                                         <ImageUploader 
                                                             folder={`rooms/${room.id}`} 
                                                             compact 
-                                                            onUploadComplete={(url) => {
-                                                                const currentImages = room.images || [];
-                                                                handleRoomChange(prop.id, room.id, 'images', [...currentImages, url]);
-                                                            }} 
+                                                            onUploadComplete={(url) => addRoomImage(prop.id, room.id, url)} 
                                                         />
                                                     </div>
                                                 </div>

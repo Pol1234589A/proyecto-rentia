@@ -207,14 +207,11 @@ export const WorkerDashboard: React.FC = () => {
         setLoading(true);
         setError(null);
         
+        // 1. Tareas
         const qTasks = query(collection(db, "tasks"));
         const unsubTasks = onSnapshot(qTasks, snapshot => {
             const allTasks: Task[] = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Task));
-            
-            // Filtrar por asignado en memoria
             const tasksList = allTasks.filter(t => t.assignee === workerName);
-            
-            // Ordenar en cliente
             tasksList.sort((a, b) => {
                 const dateA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
                 const dateB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
@@ -228,24 +225,45 @@ export const WorkerDashboard: React.FC = () => {
             setLoading(false); 
         });
 
+        // 2. Propiedades
         const unsubProps = onSnapshot(collection(db, "properties"), snapshot => {
             const propsList: Property[] = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Property));
             propsList.sort((a,b) => a.address.localeCompare(b.address));
             setProperties(propsList);
         });
         
-        const qCandidates = query(collection(db, "candidate_pipeline"), where("submittedBy", "==", workerName));
-        const unsubCandidates = onSnapshot(qCandidates, snapshot => {
-            const candidatesList: Candidate[] = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Candidate));
-            candidatesList.sort((a, b) => {
+        // 3. Candidatos (SubmittedBy OR AssignedTo)
+        // Como Firebase no permite OR fácilmente, escuchamos dos queries y combinamos
+        const qSubmitted = query(collection(db, "candidate_pipeline"), where("submittedBy", "==", workerName));
+        const qAssigned = query(collection(db, "candidate_pipeline"), where("assignedTo", "==", workerName));
+
+        const unsubSubmitted = onSnapshot(qSubmitted, snapshot => {
+            updateCandidates(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Candidate)), 'submitted');
+        });
+        const unsubAssigned = onSnapshot(qAssigned, snapshot => {
+            updateCandidates(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Candidate)), 'assigned');
+        });
+
+        let submittedCandidates: Candidate[] = [];
+        let assignedCandidates: Candidate[] = [];
+
+        const updateCandidates = (list: Candidate[], source: 'submitted' | 'assigned') => {
+            if (source === 'submitted') submittedCandidates = list;
+            else assignedCandidates = list;
+
+            // Merge and dedup
+            const all = [...submittedCandidates, ...assignedCandidates];
+            const unique = Array.from(new Map(all.map(item => [item.id, item])).values());
+            
+            unique.sort((a, b) => {
                 const timeA = a.submittedAt?.toMillis ? a.submittedAt.toMillis() : 0;
                 const timeB = b.submittedAt?.toMillis ? b.submittedAt.toMillis() : 0;
                 return timeB - timeA;
             });
-            setMyCandidates(candidatesList);
-        });
+            setMyCandidates(unique);
+        };
 
-        return () => { unsubTasks(); unsubProps(); unsubCandidates(); };
+        return () => { unsubTasks(); unsubProps(); unsubSubmitted(); unsubAssigned(); };
     }, [workerName]);
     
     const tasksByStatus = useMemo(() => {
@@ -307,7 +325,7 @@ export const WorkerDashboard: React.FC = () => {
             await addDoc(collection(db, "candidate_pipeline"), {
                 ...newCandidate,
                 propertyName: prop?.address || 'N/A',
-                roomName: room?.name || 'General / A definir', // Fallback si no selecciona habitación
+                roomName: room?.name || 'General / A definir', 
                 submittedBy: workerName,
                 submittedAt: serverTimestamp(),
                 status: 'pending_review'
@@ -481,9 +499,20 @@ export const WorkerDashboard: React.FC = () => {
                         ))}
                     </div>
                     {(candidatesByStatus[candidateFilter] && candidatesByStatus[candidateFilter].length > 0) ? candidatesByStatus[candidateFilter].map(c => (
-                        <div key={c.id} className="bg-white border p-3 rounded-lg text-xs shadow-sm">
-                            <p className="font-bold text-sm text-gray-800">{c.candidateName}</p>
-                            <p className="text-gray-500 text-xs">{c.propertyName} - {c.roomName}</p>
+                        <div key={c.id} className="bg-white border p-3 rounded-lg text-xs shadow-sm relative overflow-hidden">
+                            {/* Indicador de Asignación */}
+                            {c.assignedTo === workerName && (
+                                <div className="absolute top-0 right-0 bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-bl-lg border-b border-l border-blue-200">
+                                    ¡Asignado para Visita!
+                                </div>
+                            )}
+                            <p className="font-bold text-sm text-gray-800 mt-1">{c.candidateName}</p>
+                            <p className="text-gray-500 text-xs flex items-center gap-1 mt-1">
+                                <Home className="w-3 h-3" /> {c.propertyName}
+                            </p>
+                            <p className="text-gray-400 text-[10px] mt-1 italic">
+                                {c.roomName}
+                            </p>
                         </div>
                     )) : <div className="text-center py-10 text-gray-400 text-sm">No hay perfiles.</div>}
                 </div>
@@ -693,7 +722,6 @@ export const WorkerDashboard: React.FC = () => {
                         <a href={selectedProperty.googleMapsLink} target="_blank" rel="noreferrer" className="p-2 text-gray-500"><MapPin className="w-5 h-5"/></a>
                     </div>
                     <div className="flex-grow overflow-y-auto p-4 space-y-4 bg-gray-50 pb-20">
-                        {/* SAFETY: Check for undefined rooms array */}
                         {(selectedProperty.rooms || []).map(room => (
                             <div key={room.id} className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
                                 <div className="flex justify-between items-start mb-2">
@@ -754,7 +782,7 @@ export const WorkerDashboard: React.FC = () => {
                 <div className="fixed inset-0 z-[10001] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setShowCandidateModal(false)}>
                     <form onSubmit={handleSendCandidate} className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-xl shadow-2xl flex flex-col animate-in slide-in-from-bottom-10 overflow-hidden" onClick={e => e.stopPropagation()}>
                         <div className="p-4 bg-gray-50 border-b flex justify-between items-center"><h3 className="font-bold flex items-center gap-2"><UserPlus className="w-5 h-5 text-green-600"/> Enviar Candidato</h3><button type="button" onClick={() => setShowCandidateModal(false)} className="p-2 -mr-2"><X className="w-5 h-5 text-gray-400"/></button></div>
-                        <div className="p-4 space-y-4 overflow-y-auto max-h-[70vh]"><div><label className="text-xs font-bold text-gray-500 block mb-1">Propiedad*</label><select required className="w-full p-2 border rounded text-sm" value={newCandidate.propertyId} onChange={e => setNewCandidate({...newCandidate, propertyId: e.target.value, roomId: ''})}><option value="">Seleccionar...</option>{properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}</select></div><div><label className="text-xs font-bold text-gray-500 block mb-1">Habitación</label><select disabled={!newCandidate.propertyId} className="w-full p-2 border rounded text-sm" value={newCandidate.roomId} onChange={e => setNewCandidate({...newCandidate, roomId: e.target.value})}><option value="">Seleccionar...</option>{/* SAFETY: Handle undefined rooms */}{properties.find(p => p.id === newCandidate.propertyId)?.rooms?.map(r => <option key={r.id} value={r.id}>{r.name} ({r.status})</option>)}</select></div><div><label className="text-xs font-bold text-gray-500 block mb-1">Nombre Candidato*</label><input required type="text" className="w-full p-2 border rounded text-sm" value={newCandidate.candidateName} onChange={e => setNewCandidate({...newCandidate, candidateName: e.target.value})} /></div><div className="grid grid-cols-2 gap-4"><div><label className="text-xs font-bold text-gray-500 block mb-1">Teléfono</label><input type="tel" className="w-full p-2 border rounded text-sm" value={newCandidate.candidatePhone} onChange={e => setNewCandidate({...newCandidate, candidatePhone: e.target.value})}/></div><div><label className="text-xs font-bold text-gray-500 block mb-1">Email</label><input type="email" className="w-full p-2 border rounded text-sm" value={newCandidate.candidateEmail} onChange={e => setNewCandidate({...newCandidate, candidateEmail: e.target.value})}/></div></div><div><label className="text-xs font-bold text-gray-500 block mb-1">Info Adicional</label><textarea className="w-full p-2 border rounded text-sm h-20" value={newCandidate.additionalInfo} onChange={e => setNewCandidate({...newCandidate, additionalInfo: e.target.value})} /></div></div>
+                        <div className="p-4 space-y-4 overflow-y-auto max-h-[70vh]"><div><label className="text-xs font-bold text-gray-500 block mb-1">Propiedad*</label><select required className="w-full p-2 border rounded text-sm" value={newCandidate.propertyId} onChange={e => setNewCandidate({...newCandidate, propertyId: e.target.value, roomId: ''})}><option value="">Seleccionar...</option>{properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}</select></div><div><label className="text-xs font-bold text-gray-500 block mb-1">Habitación (Opcional)</label><select disabled={!newCandidate.propertyId} className="w-full p-2 border rounded text-sm" value={newCandidate.roomId} onChange={e => setNewCandidate({...newCandidate, roomId: e.target.value})}><option value="">Seleccionar...</option>{/* SAFETY: Handle undefined rooms */}{properties.find(p => p.id === newCandidate.propertyId)?.rooms?.map(r => <option key={r.id} value={r.id}>{r.name} ({r.status})</option>)}</select></div><div><label className="text-xs font-bold text-gray-500 block mb-1">Nombre Candidato*</label><input required type="text" className="w-full p-2 border rounded text-sm" value={newCandidate.candidateName} onChange={e => setNewCandidate({...newCandidate, candidateName: e.target.value})} /></div><div className="grid grid-cols-2 gap-4"><div><label className="text-xs font-bold text-gray-500 block mb-1">Teléfono</label><input type="tel" className="w-full p-2 border rounded text-sm" value={newCandidate.candidatePhone} onChange={e => setNewCandidate({...newCandidate, candidatePhone: e.target.value})}/></div><div><label className="text-xs font-bold text-gray-500 block mb-1">Email</label><input type="email" className="w-full p-2 border rounded text-sm" value={newCandidate.candidateEmail} onChange={e => setNewCandidate({...newCandidate, candidateEmail: e.target.value})}/></div></div><div><label className="text-xs font-bold text-gray-500 block mb-1">Info Adicional</label><textarea className="w-full p-2 border rounded text-sm h-20" value={newCandidate.additionalInfo} onChange={e => setNewCandidate({...newCandidate, additionalInfo: e.target.value})} /></div></div>
                         <div className="p-4 bg-gray-50 border-t flex gap-2">
                            <button type="button" onClick={() => setShowCandidateModal(false)} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-bold hover:bg-gray-200">Cancelar</button>
                            <button type="submit" className="flex-1 bg-green-600 text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-green-700"><Send className="w-4 h-4"/> Enviar a Oficina</button>

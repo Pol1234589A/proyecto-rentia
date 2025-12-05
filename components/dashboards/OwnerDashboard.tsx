@@ -15,7 +15,32 @@ const SignaturePad: React.FC<{ onSave: (blob: Blob) => void }> = ({ onSave }) =>
     const [isDrawing, setIsDrawing] = useState(false);
     const [hasDrawn, setHasDrawn] = useState(false);
 
+    // Función auxiliar para obtener coordenadas precisas relativas al canvas
+    // Maneja tanto ratón como táctil
+    const getCoordinates = (e: React.MouseEvent | React.TouchEvent | MouseEvent | TouchEvent, canvas: HTMLCanvasElement) => {
+        const rect = canvas.getBoundingClientRect();
+        let clientX, clientY;
+        
+        if ('touches' in e && e.touches.length > 0) {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        } else if ('clientX' in e) {
+            clientX = (e as React.MouseEvent).clientX;
+            clientY = (e as React.MouseEvent).clientY;
+        } else {
+            return { offsetX: 0, offsetY: 0 };
+        }
+        
+        return {
+            offsetX: clientX - rect.left,
+            offsetY: clientY - rect.top
+        };
+    };
+
     const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
+        // CRÍTICO: Prevenir el scroll en dispositivos táctiles al empezar a firmar
+        if (e.cancelable) e.preventDefault();
+        
         setIsDrawing(true);
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -24,7 +49,8 @@ const SignaturePad: React.FC<{ onSave: (blob: Blob) => void }> = ({ onSave }) =>
         
         ctx.lineWidth = 2;
         ctx.lineCap = 'round';
-        ctx.strokeStyle = '#000';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = '#000000';
         
         const { offsetX, offsetY } = getCoordinates(e, canvas);
         ctx.beginPath();
@@ -32,6 +58,9 @@ const SignaturePad: React.FC<{ onSave: (blob: Blob) => void }> = ({ onSave }) =>
     };
 
     const draw = (e: React.MouseEvent | React.TouchEvent) => {
+        // CRÍTICO: Prevenir el scroll mientras se mueve el dedo
+        if (e.cancelable) e.preventDefault();
+
         if (!isDrawing) return;
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -44,28 +73,14 @@ const SignaturePad: React.FC<{ onSave: (blob: Blob) => void }> = ({ onSave }) =>
         setHasDrawn(true);
     };
 
-    const stopDrawing = () => {
+    const stopDrawing = (e: React.MouseEvent | React.TouchEvent) => {
+        if (e.cancelable) e.preventDefault();
+        
         setIsDrawing(false);
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
         if (ctx) ctx.closePath();
-    };
-
-    const getCoordinates = (e: React.MouseEvent | React.TouchEvent, canvas: HTMLCanvasElement) => {
-        const rect = canvas.getBoundingClientRect();
-        let clientX, clientY;
-        if ('touches' in e) {
-            clientX = e.touches[0].clientX;
-            clientY = e.touches[0].clientY;
-        } else {
-            clientX = (e as React.MouseEvent).clientX;
-            clientY = (e as React.MouseEvent).clientY;
-        }
-        return {
-            offsetX: clientX - rect.left,
-            offsetY: clientY - rect.top
-        };
     };
 
     const clear = () => {
@@ -85,12 +100,13 @@ const SignaturePad: React.FC<{ onSave: (blob: Blob) => void }> = ({ onSave }) =>
     };
 
     return (
-        <div className="border border-gray-300 rounded-lg p-2 bg-white">
+        <div className="border border-gray-300 rounded-lg p-2 bg-white select-none">
             <canvas
                 ref={canvasRef}
                 width={500}
                 height={200}
-                className="w-full h-40 border border-dashed border-gray-200 rounded cursor-crosshair touch-none"
+                // 'touch-none' es crucial para que el navegador no intente hacer scroll/zoom
+                className="w-full h-40 border border-dashed border-gray-200 rounded cursor-crosshair touch-none bg-white"
                 onMouseDown={startDrawing}
                 onMouseMove={draw}
                 onMouseUp={stopDrawing}
@@ -100,8 +116,8 @@ const SignaturePad: React.FC<{ onSave: (blob: Blob) => void }> = ({ onSave }) =>
                 onTouchEnd={stopDrawing}
             />
             <div className="flex justify-between mt-2">
-                <button type="button" onClick={clear} className="text-xs text-red-500 hover:underline">Borrar y Repetir</button>
-                <button type="button" onClick={save} disabled={!hasDrawn} className="bg-rentia-blue text-white px-4 py-1 rounded text-xs font-bold disabled:opacity-50">Confirmar Firma</button>
+                <button type="button" onClick={clear} className="text-xs text-red-500 hover:underline px-2 py-1">Borrar y Repetir</button>
+                <button type="button" onClick={save} disabled={!hasDrawn} className="bg-rentia-blue text-white px-6 py-2 rounded text-xs font-bold disabled:opacity-50 hover:bg-blue-700 transition-colors">Confirmar Firma</button>
             </div>
         </div>
     );
@@ -115,11 +131,6 @@ export const OwnerDashboard: React.FC = () => {
   // Data
   const [userData, setUserData] = useState<UserProfile | null>(null);
   const [properties, setProperties] = useState<Property[]>([]);
-  const [visits, setVisits] = useState<VisitRecord[]>([]);
-  const [candidates, setCandidates] = useState<Candidate[]>([]);
-  const [activeContracts, setActiveContracts] = useState<Contract[]>([]);
-  const [incidents, setIncidents] = useState<Task[]>([]);
-  const [adjustments, setAdjustments] = useState<OwnerAdjustment[]>([]);
   const [uploadedDocs, setUploadedDocs] = useState<PropertyDocument[]>([]);
   const [uploadedInvoices, setUploadedInvoices] = useState<SupplyInvoice[]>([]);
 
@@ -283,7 +294,6 @@ export const OwnerDashboard: React.FC = () => {
       if (!currentUser) return;
       setSigning(true);
       try {
-          // Cambiado para coincidir con la nueva regla de seguridad: signatures/{userId}/...
           const storageRef = ref(storage, `signatures/${currentUser.uid}/${Date.now()}_gdpr.png`);
           await uploadBytes(storageRef, blob);
           const url = await getDownloadURL(storageRef);
@@ -310,10 +320,12 @@ export const OwnerDashboard: React.FC = () => {
           });
 
           setIsGdprOpen(false);
+          // Refrescar estado local para cerrar banner rojo inmediatamente
+          setUserData(prev => prev ? { ...prev, gdpr: { ...prev.gdpr, signed: true } as any } : null);
           alert("Documento firmado y registrado legalmente. Gracias.");
-      } catch (e) {
+      } catch (e: any) {
           console.error("Signature Error:", e);
-          alert("Error al procesar la firma. Por favor inténtalo de nuevo.");
+          alert(`Error al procesar la firma: ${e.code || e.message || 'Error desconocido'}. Inténtalo de nuevo.`);
       } finally {
           setSigning(false);
       }

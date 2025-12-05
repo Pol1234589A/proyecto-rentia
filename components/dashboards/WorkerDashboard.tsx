@@ -5,8 +5,8 @@ import { db } from '../../firebase';
 import { collection, query, where, onSnapshot, updateDoc, doc, addDoc, serverTimestamp, orderBy, limit } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
 import { Task, TaskStatus, Candidate, CandidateStatus, VisitOutcome, RoomVisit, InternalNews } from '../../types';
-import { Property, Room } from '../../data/rooms';
-import { ClipboardList, Home, CheckCircle, Clock, AlertCircle, MapPin, Search, Calendar, Wrench, Plus, X, AlertTriangle, ChevronLeft, Loader2, WifiOff, Monitor, Tv, Lock, Sun, Bed, Layout, Image as ImageIcon, UserPlus, Send, Users, UserX, UserCheck, ChevronRight, Eye, Megaphone, Bell, ChevronDown, Sparkles, Trophy } from 'lucide-react';
+import { Property, Room, CleaningConfig } from '../../data/rooms';
+import { ClipboardList, Home, CheckCircle, Clock, AlertCircle, MapPin, Search, Calendar, Wrench, Plus, X, AlertTriangle, ChevronLeft, Loader2, WifiOff, Monitor, Tv, Lock, Sun, Bed, Layout, Image as ImageIcon, UserPlus, Send, Users, UserX, UserCheck, ChevronRight, Eye, Megaphone, Bell, ChevronDown, Sparkles, Trophy, Euro, Save } from 'lucide-react';
 import { ImageLightbox } from '../ImageLightbox';
 
 // Mensajes de celebración aleatorios
@@ -150,7 +150,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onStatusChange }) => (
 
 export const WorkerDashboard: React.FC = () => {
     const { currentUser } = useAuth();
-    const [activeTab, setActiveTab] = useState<'tasks' | 'candidates' | 'rooms'>('tasks');
+    const [activeTab, setActiveTab] = useState<'tasks' | 'candidates' | 'rooms' | 'cleaning'>('tasks');
     
     const [workerName, setWorkerName] = useState<string>('');
     const [myTasks, setMyTasks] = useState<Task[]>([]);
@@ -188,6 +188,12 @@ export const WorkerDashboard: React.FC = () => {
         outcome: 'pending' as VisitOutcome,
         comments: '',
         commission: 0
+    });
+
+    // NEW: Cleaning Config State (Local editing)
+    const [editingCleaningPropId, setEditingCleaningPropId] = useState<string | null>(null);
+    const [cleaningConfigForm, setCleaningConfigForm] = useState<CleaningConfig>({
+        enabled: false, days: [], hours: '', costPerHour: 10, included: false
     });
 
     useEffect(() => {
@@ -340,6 +346,35 @@ export const WorkerDashboard: React.FC = () => {
         }
     };
 
+    // --- CLEANING MANAGEMENT LOGIC ---
+    const startEditingCleaning = (prop: Property) => {
+        setEditingCleaningPropId(prop.id);
+        setCleaningConfigForm(prop.cleaningConfig || { enabled: false, days: [], hours: '', costPerHour: 10, included: false });
+    };
+
+    const handleCleaningSave = async () => {
+        if (!editingCleaningPropId) return;
+        try {
+            await updateDoc(doc(db, "properties", editingCleaningPropId), {
+                cleaningConfig: cleaningConfigForm
+            });
+            setEditingCleaningPropId(null);
+            // No alert needed, realtime update will show change
+        } catch (e) {
+            console.error(e);
+            alert("Error al guardar configuración de limpieza.");
+        }
+    };
+
+    const toggleCleaningDay = (day: string) => {
+        setCleaningConfigForm(prev => {
+            const newDays = prev.days.includes(day)
+                ? prev.days.filter(d => d !== day)
+                : [...prev.days, day];
+            return { ...prev, days: newDays };
+        });
+    };
+
     const filteredProperties = useMemo(() => {
         return properties.filter(p => 
             p.address.toLowerCase().includes(roomSearch.toLowerCase()) || 
@@ -484,6 +519,113 @@ export const WorkerDashboard: React.FC = () => {
                     })}
                 </div>
             );
+            case 'cleaning': return (
+                <div className="space-y-6">
+                    <h3 className="font-bold text-lg text-indigo-900 flex items-center gap-2">
+                        <Sparkles className="w-5 h-5 text-indigo-600" /> Configuración de Limpieza
+                    </h3>
+                    
+                    <div className="space-y-4">
+                        {properties.map(prop => (
+                            <div key={prop.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                                <div className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gray-50 border-b border-gray-100 gap-2">
+                                    <div>
+                                        <h4 className="font-bold text-gray-800 text-sm">{prop.address}</h4>
+                                        <p className="text-xs text-gray-500">{prop.city}</p>
+                                    </div>
+                                    <button 
+                                        onClick={() => editingCleaningPropId === prop.id ? setEditingCleaningPropId(null) : startEditingCleaning(prop)}
+                                        className="text-xs bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg font-bold border border-indigo-100 hover:bg-indigo-100 transition-colors"
+                                    >
+                                        {editingCleaningPropId === prop.id ? 'Cerrar' : 'Configurar'}
+                                    </button>
+                                </div>
+
+                                {/* EDITING MODE */}
+                                {editingCleaningPropId === prop.id ? (
+                                    <div className="p-4 bg-indigo-50/50 animate-in slide-in-from-top-2">
+                                        <div className="flex flex-wrap items-center gap-4 mb-4">
+                                            <label className="flex items-center gap-2 cursor-pointer bg-white px-3 py-1.5 rounded border border-indigo-200">
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={cleaningConfigForm.enabled} 
+                                                    onChange={(e) => setCleaningConfigForm({...cleaningConfigForm, enabled: e.target.checked})}
+                                                    className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                                                />
+                                                <span className="text-xs font-bold text-indigo-700">Activar Servicio</span>
+                                            </label>
+                                            
+                                            {cleaningConfigForm.enabled && (
+                                                <>
+                                                    <div className="flex items-center gap-1 bg-white px-2 py-1 rounded border border-indigo-200">
+                                                        <Clock className="w-3 h-3 text-indigo-400" />
+                                                        <input 
+                                                            type="text" 
+                                                            placeholder="Horario (10:00 - 13:00)" 
+                                                            className="text-xs border-none focus:ring-0 w-32 p-0"
+                                                            value={cleaningConfigForm.hours}
+                                                            onChange={(e) => setCleaningConfigForm({...cleaningConfigForm, hours: e.target.value})}
+                                                        />
+                                                    </div>
+                                                    <div className="flex items-center gap-1 bg-white px-2 py-1 rounded border border-indigo-200">
+                                                        <Euro className="w-3 h-3 text-indigo-400" />
+                                                        <input 
+                                                            type="number" 
+                                                            placeholder="Coste/Hora" 
+                                                            className="text-xs border-none focus:ring-0 w-20 p-0"
+                                                            value={cleaningConfigForm.costPerHour}
+                                                            onChange={(e) => setCleaningConfigForm({...cleaningConfigForm, costPerHour: Number(e.target.value)})}
+                                                        />
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+
+                                        {cleaningConfigForm.enabled && (
+                                            <div className="flex flex-wrap gap-2 mb-4">
+                                                {['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(day => (
+                                                    <button
+                                                        key={day}
+                                                        onClick={() => toggleCleaningDay(day)}
+                                                        className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${
+                                                            cleaningConfigForm.days.includes(day)
+                                                            ? 'bg-indigo-600 text-white shadow-sm'
+                                                            : 'bg-white text-gray-500 border border-indigo-100 hover:border-indigo-300'
+                                                        }`}
+                                                    >
+                                                        {day}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        <div className="flex justify-end">
+                                            <button 
+                                                onClick={handleCleaningSave}
+                                                className="bg-indigo-600 text-white px-4 py-2 rounded text-xs font-bold flex items-center gap-2 hover:bg-indigo-700 shadow-sm"
+                                            >
+                                                <Save className="w-3 h-3"/> Guardar Configuración
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    /* READ ONLY PREVIEW */
+                                    <div className="p-4 flex gap-4 text-xs text-gray-600">
+                                        {prop.cleaningConfig?.enabled ? (
+                                            <>
+                                                <div className="flex items-center gap-1"><Calendar className="w-3 h-3 text-indigo-400"/> {prop.cleaningConfig.days.join(', ')}</div>
+                                                <div className="flex items-center gap-1"><Clock className="w-3 h-3 text-indigo-400"/> {prop.cleaningConfig.hours}</div>
+                                            </>
+                                        ) : (
+                                            <span className="text-gray-400 italic">Sin servicio activo</span>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
         }
     }
 
@@ -522,7 +664,7 @@ export const WorkerDashboard: React.FC = () => {
                 </div>
 
                 {/* Bottom Navigation */}
-                <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] grid grid-cols-3 z-50">
+                <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] grid grid-cols-4 z-50">
                     <button onClick={() => setActiveTab('tasks')} className={`py-3 flex flex-col items-center justify-center gap-1 transition-colors ${activeTab === 'tasks' ? 'text-rentia-blue' : 'text-gray-400'}`}>
                         <ClipboardList className="w-6 h-6" />
                         <span className="text-[10px] font-bold">Tareas</span>
@@ -534,6 +676,10 @@ export const WorkerDashboard: React.FC = () => {
                     <button onClick={() => setActiveTab('rooms')} className={`py-3 flex flex-col items-center justify-center gap-1 transition-colors ${activeTab === 'rooms' ? 'text-rentia-blue' : 'text-gray-400'}`}>
                         <Home className="w-6 h-6" />
                         <span className="text-[10px] font-bold">Catálogo</span>
+                    </button>
+                    <button onClick={() => setActiveTab('cleaning')} className={`py-3 flex flex-col items-center justify-center gap-1 transition-colors ${activeTab === 'cleaning' ? 'text-rentia-blue' : 'text-gray-400'}`}>
+                        <Sparkles className="w-6 h-6" />
+                        <span className="text-[10px] font-bold">Limpieza</span>
                     </button>
                 </div>
             </div>

@@ -386,6 +386,7 @@ export const PropertySubmissionForm: React.FC<Props> = ({ onBack }) => {
                                             const currentImages = assets[activeAssetIndex].images || [];
                                             updateAsset(activeAssetIndex, 'images', [...currentImages, url]);
                                         }}
+                                        onlyFirebase={true} // FORZADO A FIREBASE
                                     />
                                     <div className="flex flex-wrap gap-2 mt-4">
                                         {assets[activeAssetIndex].images.map((img, idx) => (

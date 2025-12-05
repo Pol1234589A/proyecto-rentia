@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
-import { getAuth, createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { doc, setDoc, getDocs, collection, writeBatch, serverTimestamp } from "firebase/firestore";
-import { db } from '../../firebase';
-import { UserPlus, Save, AlertCircle, CheckCircle, Loader2, Home, Check } from 'lucide-react';
+import { getAuth, createUserWithEmailAndPassword, updateProfile, signOut } from "firebase/auth";
+import { initializeApp, deleteApp } from "firebase/app";
+import { doc, getDocs, collection, writeBatch, serverTimestamp } from "firebase/firestore";
+import { db, firebaseConfig } from '../../firebase';
+import { UserPlus, Save, AlertCircle, CheckCircle, Loader2, Home, Check, KeyRound, RefreshCw } from 'lucide-react';
 import { UserRole } from '../../contexts/AuthContext';
 import { GDPRCheckbox } from '../common/SecurityComponents';
 import { Property } from '../../data/rooms';
@@ -50,6 +51,15 @@ export const UserCreator: React.FC = () => {
       );
   };
 
+  const generateStrongPassword = () => {
+      const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+      let pass = "";
+      for (let i = 0; i < 12; i++) {
+          pass += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      setPassword(pass);
+  };
+
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!gdprAccepted) {
@@ -60,19 +70,25 @@ export const UserCreator: React.FC = () => {
     setLoading(true);
     setMessage(null);
 
-    // Guardar referencia al auth actual (el admin logueado)
-    const auth = getAuth();
-    const currentAdmin = auth.currentUser;
+    // Guardar referencia al auth actual (el admin logueado) para obtener su UID
+    const currentAdminAuth = getAuth();
+    const currentAdminId = currentAdminAuth.currentUser?.uid || 'system';
+
+    // --- TRUCO PARA NO CERRAR SESIÓN ---
+    // Inicializamos una app secundaria de Firebase solo para crear el usuario
+    // Esto evita que el Auth principal cambie de usuario
+    const secondaryApp = initializeApp(firebaseConfig, "SecondaryApp");
+    const secondaryAuth = getAuth(secondaryApp);
 
     try {
-      // 1. Crear usuario en Authentication (Esto cambiará el currentUser temporalmente)
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      // 1. Crear usuario en la instancia secundaria
+      const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, password);
       const newUser = userCredential.user;
 
       // Actualizar Display Name
       await updateProfile(newUser, { displayName: name });
 
-      // 2. Preparar escritura en lote (Batch)
+      // 2. Preparar escritura en lote (Batch) usando la DB principal
       const batch = writeBatch(db);
 
       // A) Referencia al documento del usuario
@@ -87,7 +103,7 @@ export const UserCreator: React.FC = () => {
         bankAccount: bankAccount,
         createdAt: serverTimestamp(),
         active: true,
-        createdBy: currentAdmin?.uid || 'system'
+        createdBy: currentAdminId
       });
 
       // B) Si es propietario y ha seleccionado pisos, actualizamos las propiedades
@@ -99,8 +115,12 @@ export const UserCreator: React.FC = () => {
           });
       }
 
-      // 3. Ejecutar todo
+      // 3. Ejecutar todo en Firestore
       await batch.commit();
+
+      // 4. Cerrar sesión en la app secundaria y eliminarla para limpiar memoria
+      await signOut(secondaryAuth);
+      await deleteApp(secondaryApp);
 
       setMessage({ type: 'success', text: `Usuario ${name} creado correctamente con rol ${role.toUpperCase()}.` });
       
@@ -115,24 +135,15 @@ export const UserCreator: React.FC = () => {
       setGdprAccepted(false);
       setSelectedPropertyIds([]);
 
-      // IMPORTANTE: Firebase Auth loguea automáticamente al nuevo usuario.
-      // Debemos volver a la sesión del administrador original si es posible, 
-      // o avisar que se ha cambiado de sesión. 
-      // En una app real de admin, se suele usar Cloud Functions para crear usuarios sin desloguear al admin.
-      // Como estamos en cliente, haremos un "hack" simple: aviso.
-      // NOTA: Para no complicar el flujo aquí, asumimos que el admin tendrá que reloguearse o 
-      // idealmente usar una segunda instancia de AuthApp, pero por ahora mostramos éxito.
-      
-      // Intentar restaurar sesión no es posible sin credenciales del admin. 
-      // Lo ideal es avisar:
-      // alert("Usuario creado. Nota: Al crear un usuario desde el cliente, la sesión cambia al nuevo usuario. Debes volver a entrar como Admin.");
-
     } catch (error: any) {
       console.error("Error creando usuario:", error);
       let errorMsg = "Error al crear usuario.";
       if (error.code === 'auth/email-already-in-use') errorMsg = "El email ya está registrado.";
       if (error.code === 'auth/weak-password') errorMsg = "La contraseña es muy débil (mín 6 caracteres).";
       setMessage({ type: 'error', text: errorMsg });
+      
+      // Limpiar app secundaria si falló
+      await deleteApp(secondaryApp).catch(() => {}); 
     } finally {
       setLoading(false);
     }
@@ -188,7 +199,25 @@ export const UserCreator: React.FC = () => {
                 </div>
                 <div>
                     <label className="block text-xs font-bold text-gray-500 mb-1.5">Contraseña *</label>
-                    <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-2.5 border border-gray-200 rounded-lg text-sm focus:border-rentia-blue outline-none" placeholder="Mínimo 6 caracteres" />
+                    <div className="relative">
+                        <input 
+                            type="text" 
+                            required 
+                            value={password} 
+                            onChange={(e) => setPassword(e.target.value)} 
+                            className="w-full p-2.5 pr-10 border border-gray-200 rounded-lg text-sm focus:border-rentia-blue outline-none font-mono" 
+                            placeholder="Mínimo 6 caracteres" 
+                        />
+                        <button 
+                            type="button"
+                            onClick={generateStrongPassword}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-rentia-blue"
+                            title="Generar contraseña segura"
+                        >
+                            <RefreshCw className="w-4 h-4" />
+                        </button>
+                    </div>
+                    <p className="text-[10px] text-gray-400 mt-1">Usa el generador para evitar alertas de seguridad.</p>
                 </div>
               </div>
           </div>

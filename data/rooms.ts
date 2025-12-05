@@ -1,56 +1,61 @@
 
 export interface Room {
   id: string;
-  name: string; // "H1", "H2", etc.
+  name: string; 
   price: number;
   status: 'available' | 'occupied' | 'reserved';
-  availableFrom?: string; // Formato DD/MM/YYYY o 'Inmediata'
+  availableFrom?: string; 
   targetProfile?: 'students' | 'workers' | 'both';
-  expenses: string; // "Gastos fijos aparte" o "Se reparten los gastos"
+  expenses: string; 
   hasAirConditioning?: boolean;
-  hasFan?: boolean; // Nuevo campo: Ventilador
-  specialStatus?: 'new' | 'renovation'; // 'new' = Recién lanzado, 'renovation' = En reformas
-  images?: string[]; // URLs de fotos específicas de la habitación
-  video?: string;    // URL del video (YouTube, etc)
+  hasFan?: boolean; 
+  specialStatus?: 'new' | 'renovation'; 
+  images?: string[]; 
+  video?: string;    
   notes?: string;
-  driveUrl?: string; // Enlace carpeta drive específico si existe
+  driveUrl?: string; 
   
-  // CAMPOS DE OPTIMIZACIÓN (OPCIONALES)
-  sqm?: number; // Metros cuadrados
-  bedType?: 'single' | 'double' | 'king' | 'sofa'; // Tipo de cama
-  features?: string[]; // ['balcony', 'smart_tv', 'lock', 'desk', 'closet', 'exterior']
-  description?: string; // Descripción detallada específica de la habitación
+  sqm?: number; 
+  bedType?: 'single' | 'double' | 'king' | 'sofa'; 
+  features?: string[]; 
+  description?: string; 
 
-  // CAMPOS DE COMISIÓN (NUEVO)
-  commissionType?: 'percentage' | 'fixed'; // Porcentaje sobre renta o Cantidad fija
-  commissionValue?: number; // El valor (ej: 10 para 10%, o 50 para 50€)
+  commissionType?: 'percentage' | 'fixed'; 
+  commissionValue?: number; 
 }
 
 export interface CleaningConfig {
     enabled: boolean;
-    days: string[]; // ['Lunes', 'Miércoles']
-    hours: string; // '10:00 - 13:00'
+    days: string[]; 
+    hours: string; 
     costPerHour: number;
-    included: boolean; // Si está incluido en el precio o se paga aparte
+    included: boolean; 
 }
 
 export interface Property {
   id: string;
-  ownerId?: string; // ID del usuario propietario (Firebase UID)
+  ownerId?: string; 
   address: string;
   city: string;
-  floor?: string; // Nuevo campo: Planta
-  image: string; // Portada del piso
-  bathrooms?: number; // Nuevo campo: Baños de la vivienda
+  floor?: string; 
+  image: string; 
+  bathrooms?: number; 
   googleMapsLink: string;
-  driveLink?: string; // Nuevo campo para carpeta Drive
-  transferDay?: number; // Día del mes en que se hace la transferencia al propietario
+  driveLink?: string; 
+  transferDay?: number; 
   rooms: Room[];
   suppliesConfig?: {
       type: 'fixed' | 'shared';
       fixedAmount?: number;
   };
   cleaningConfig?: CleaningConfig;
+  
+  // NEW: Community Information
+  communityInfo?: {
+      presidentPhone?: string;
+      adminCompany?: string;
+      adminContact?: string;
+  };
 }
 
 // Función auxiliar para generar enlace de maps
@@ -58,6 +63,7 @@ const getMapsLink = (address: string) =>
   `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
 
 export const properties: Property[] = [
+  // ... (Existing properties data kept as is) ...
   {
     id: 'VELAZQ12',
     address: 'Calle Pintor Velázquez, 12',

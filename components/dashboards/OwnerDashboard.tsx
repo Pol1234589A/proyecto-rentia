@@ -1,35 +1,152 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { db, auth } from '../../firebase';
-import { collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
+import { db, auth, storage } from '../../firebase';
+import { collection, query, where, getDocs, onSnapshot, doc, updateDoc, addDoc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { updatePassword } from 'firebase/auth';
-import { Property, Room } from '../../data/rooms';
-import { Contract, Candidate, Task, OwnerAdjustment } from '../../types';
+import { Property } from '../../data/rooms';
+import { Contract, Candidate, Task, OwnerAdjustment, PropertyDocument, SupplyInvoice, UserProfile } from '../../types';
 import { VisitRecord } from '../admin/tools/VisitsLog';
-import { Home, Users, Wallet, Footprints, Clock, CheckCircle, X, DollarSign, Calendar, TrendingUp, AlertCircle, Loader2, Lock, Shield, Key, UserCheck, FileText, XCircle, Search, Image as ImageIcon, MapPin, AlertTriangle, Lightbulb, User, Briefcase, Gift } from 'lucide-react';
+import { Home, Users, Wallet, Footprints, Clock, CheckCircle, X, DollarSign, Calendar, TrendingUp, AlertCircle, Loader2, Lock, Shield, Key, UserCheck, FileText, XCircle, Search, Image as ImageIcon, MapPin, AlertTriangle, Lightbulb, User, Briefcase, Gift, Upload, ExternalLink, Building, Zap, Save, PenTool, Check, FileCheck, ArrowRight } from 'lucide-react';
+
+const SignaturePad: React.FC<{ onSave: (blob: Blob) => void }> = ({ onSave }) => {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [isDrawing, setIsDrawing] = useState(false);
+    const [hasDrawn, setHasDrawn] = useState(false);
+
+    const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
+        setIsDrawing(true);
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = '#000';
+        
+        const { offsetX, offsetY } = getCoordinates(e, canvas);
+        ctx.beginPath();
+        ctx.moveTo(offsetX, offsetY);
+    };
+
+    const draw = (e: React.MouseEvent | React.TouchEvent) => {
+        if (!isDrawing) return;
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        
+        const { offsetX, offsetY } = getCoordinates(e, canvas);
+        ctx.lineTo(offsetX, offsetY);
+        ctx.stroke();
+        setHasDrawn(true);
+    };
+
+    const stopDrawing = () => {
+        setIsDrawing(false);
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (ctx) ctx.closePath();
+    };
+
+    const getCoordinates = (e: React.MouseEvent | React.TouchEvent, canvas: HTMLCanvasElement) => {
+        const rect = canvas.getBoundingClientRect();
+        let clientX, clientY;
+        if ('touches' in e) {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        } else {
+            clientX = (e as React.MouseEvent).clientX;
+            clientY = (e as React.MouseEvent).clientY;
+        }
+        return {
+            offsetX: clientX - rect.left,
+            offsetY: clientY - rect.top
+        };
+    };
+
+    const clear = () => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+        setHasDrawn(false);
+    };
+
+    const save = () => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        canvas.toBlob((blob) => {
+            if (blob) onSave(blob);
+        }, 'image/png');
+    };
+
+    return (
+        <div className="border border-gray-300 rounded-lg p-2 bg-white">
+            <canvas
+                ref={canvasRef}
+                width={500}
+                height={200}
+                className="w-full h-40 border border-dashed border-gray-200 rounded cursor-crosshair touch-none"
+                onMouseDown={startDrawing}
+                onMouseMove={draw}
+                onMouseUp={stopDrawing}
+                onMouseLeave={stopDrawing}
+                onTouchStart={startDrawing}
+                onTouchMove={draw}
+                onTouchEnd={stopDrawing}
+            />
+            <div className="flex justify-between mt-2">
+                <button type="button" onClick={clear} className="text-xs text-red-500 hover:underline">Borrar y Repetir</button>
+                <button type="button" onClick={save} disabled={!hasDrawn} className="bg-rentia-blue text-white px-4 py-1 rounded text-xs font-bold disabled:opacity-50">Confirmar Firma</button>
+            </div>
+        </div>
+    );
+};
 
 export const OwnerDashboard: React.FC = () => {
   const { currentUser, isSimulated } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'visits' | 'candidates' | 'incidents' | 'tenants' | 'financials' | 'security'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'profile' | 'docs' | 'invoices' | 'financials' | 'security'>('overview');
   
   // Data
+  const [userData, setUserData] = useState<UserProfile | null>(null);
   const [properties, setProperties] = useState<Property[]>([]);
   const [visits, setVisits] = useState<VisitRecord[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [activeContracts, setActiveContracts] = useState<Contract[]>([]);
-  const [incidents, setIncidents] = useState<Task[]>([]); // Tasks usadas como incidencias
-  const [adjustments, setAdjustments] = useState<OwnerAdjustment[]>([]); // Ajustes y Descuentos
+  const [incidents, setIncidents] = useState<Task[]>([]);
+  const [adjustments, setAdjustments] = useState<OwnerAdjustment[]>([]);
+  const [uploadedDocs, setUploadedDocs] = useState<PropertyDocument[]>([]);
+  const [uploadedInvoices, setUploadedInvoices] = useState<SupplyInvoice[]>([]);
 
-  // Password Change State
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [passwordMsg, setPasswordMsg] = useState<{ type: 'success' | 'error', text: string } | null>(null);
-  const [changingPass, setChangingPass] = useState(false);
+  // Forms
+  const [profileForm, setProfileForm] = useState<Partial<UserProfile>>({});
+  const [communityForm, setCommunityForm] = useState({ presidentPhone: '', adminCompany: '', adminContact: '' });
+  const [invoiceForm, setInvoiceForm] = useState({ type: 'luz', periodStart: '', periodEnd: '', amount: '' });
+  const [invoiceFile, setInvoiceFile] = useState<File | null>(null);
+  const [docFile, setDocFile] = useState<File | null>(null);
+  const [docType, setDocType] = useState('escritura');
+  const [selectedPropertyId, setSelectedPropertyId] = useState('');
 
-  // Month Selector for Financials
-  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
+  // UI States
+  const [isGdprOpen, setIsGdprOpen] = useState(false);
+  const [gdprStep, setGdprStep] = useState(1);
+  const [signing, setSigning] = useState(false);
+
+  // Financial Stats (Derived)
+  const stats = useMemo(() => {
+      let totalGross = 0;
+      properties.forEach(p => {
+          p.rooms.forEach(r => {
+              if (r.status === 'occupied') totalGross += r.price;
+          });
+      });
+      return { grossIncome: totalGross };
+  }, [properties]);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -38,67 +155,48 @@ export const OwnerDashboard: React.FC = () => {
       try {
         setLoading(true);
         
-        // 1. Get Properties for this owner
+        // 0. User Profile
+        const userRef = doc(db, "users", currentUser.uid);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+            const data = userSnap.data() as UserProfile;
+            setUserData(data);
+            setProfileForm(data);
+            if (!data.gdpr?.signed) setIsGdprOpen(true);
+        }
+
+        // 1. Properties
         const propsQuery = query(collection(db, "properties"), where("ownerId", "==", currentUser.uid));
         const propsSnap = await getDocs(propsQuery);
-        
         const ownerProperties: Property[] = [];
-        propsSnap.forEach(doc => {
-            ownerProperties.push({ ...doc.data(), id: doc.id } as Property);
-        });
-        // Ordenar propiedades por dirección
+        propsSnap.forEach(doc => ownerProperties.push({ ...doc.data(), id: doc.id } as Property));
         ownerProperties.sort((a,b) => a.address.localeCompare(b.address));
         setProperties(ownerProperties);
+        if (ownerProperties.length > 0) {
+            setSelectedPropertyId(ownerProperties[0].id);
+            if (ownerProperties[0].communityInfo) setCommunityForm(ownerProperties[0].communityInfo as any);
+        }
 
         const propIds = ownerProperties.map(p => p.id);
 
         if (propIds.length > 0) {
-            // 2. Get Visits for these properties
-            const visitsQuery = query(collection(db, "room_visits"), where("propertyId", "in", propIds));
-            const visitsSnap = await getDocs(visitsQuery);
-            const visitsList: VisitRecord[] = [];
-            visitsSnap.forEach(doc => visitsList.push({ ...doc.data(), id: doc.id } as VisitRecord));
-            visitsList.sort((a,b) => (b.visitDate?.seconds || 0) - (a.visitDate?.seconds || 0));
-            setVisits(visitsList);
+            // New: Documents
+            const docsQuery = query(collection(db, "property_documents"), where("propertyId", "in", propIds));
+            const docsSnap = await getDocs(docsQuery);
+            const dList: PropertyDocument[] = [];
+            docsSnap.forEach(d => dList.push({ ...d.data(), id: d.id } as PropertyDocument));
+            setUploadedDocs(dList);
 
-            // 3. Get Candidates (Pipeline) for these properties
-            const candidatesQuery = query(collection(db, "candidate_pipeline"), where("propertyId", "in", propIds));
-            const candidatesSnap = await getDocs(candidatesQuery);
-            const candidatesList: Candidate[] = [];
-            candidatesSnap.forEach(doc => candidatesList.push({ ...doc.data(), id: doc.id } as Candidate));
-            // Ordenar por fecha reciente
-            candidatesList.sort((a,b) => (b.submittedAt?.seconds || 0) - (a.submittedAt?.seconds || 0));
-            setCandidates(candidatesList);
-
-            // 4. Get Contracts for these properties
-            const contractsQuery = query(collection(db, "contracts"), where("propertyId", "in", propIds), where("status", "==", "active"));
-            const contractsSnap = await getDocs(contractsQuery);
-            const contractsList: Contract[] = [];
-            contractsSnap.forEach(doc => contractsList.push({ ...doc.data(), id: doc.id } as Contract));
-            setActiveContracts(contractsList);
-
-            // 5. Get Incidents (Tasks) for these properties
-            const incidentsQuery = query(collection(db, "tasks"), where("propertyId", "in", propIds));
-            const incidentsSnap = await getDocs(incidentsQuery);
-            const incidentsList: Task[] = [];
-            incidentsSnap.forEach(doc => incidentsList.push({ ...doc.data(), id: doc.id } as Task));
-            incidentsList.sort((a,b) => {
-                const dateA = a.createdAt ? new Date(a.createdAt.seconds * 1000).getTime() : 0;
-                const dateB = b.createdAt ? new Date(b.createdAt.seconds * 1000).getTime() : 0;
-                return dateB - dateA;
-            });
-            setIncidents(incidentsList);
-
-            // 6. Get Adjustments
-            const adjQuery = query(collection(db, "adjustments"), where("ownerId", "==", currentUser.uid));
-            const adjSnap = await getDocs(adjQuery);
-            const adjList: OwnerAdjustment[] = [];
-            adjSnap.forEach(doc => adjList.push({ ...doc.data(), id: doc.id } as OwnerAdjustment));
-            setAdjustments(adjList);
+            // New: Invoices
+            const invQuery = query(collection(db, "supply_invoices"), where("propertyId", "in", propIds));
+            const invSnap = await getDocs(invQuery);
+            const iList: SupplyInvoice[] = [];
+            invSnap.forEach(d => iList.push({ ...d.data(), id: d.id } as SupplyInvoice));
+            setUploadedInvoices(iList);
         }
 
       } catch (error) {
-        console.error("Error fetching owner data:", error);
+        console.error("Error fetching data:", error);
       } finally {
         setLoading(false);
       }
@@ -107,661 +205,397 @@ export const OwnerDashboard: React.FC = () => {
     fetchData();
   }, [currentUser]);
 
-  // --- HELPER: Parse cleaning hours ---
-  const calculateCleaningCost = (prop: Property): number => {
-      if (!prop.cleaningConfig || !prop.cleaningConfig.enabled) return 0;
-      
-      const { days, hours, costPerHour } = prop.cleaningConfig;
-      if (!days || days.length === 0 || !costPerHour) return 0;
-
-      // Parse hours string "10:00 - 13:00" -> 3 hours
-      let duration = 0;
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!currentUser) return;
       try {
-          const [startStr, endStr] = hours.split('-').map(s => s.trim());
-          const [startH, startM] = startStr.split(':').map(Number);
-          const [endH, endM] = endStr.split(':').map(Number);
-          
-          const startDate = new Date(0, 0, 0, startH, startM);
-          const endDate = new Date(0, 0, 0, endH, endM);
-          
-          duration = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60);
+          await updateDoc(doc(db, "users", currentUser.uid), profileForm);
+          alert("Perfil actualizado correctamente.");
       } catch (e) {
-          duration = 0;
+          alert("Error al actualizar perfil.");
       }
-
-      if (duration <= 0) return 0;
-
-      const weeklyHours = duration * days.length;
-      // Promedio mensual (4.33 semanas/mes)
-      return Math.round(weeklyHours * costPerHour * 4.33); 
   };
 
-  // --- STATS CALCULATION ---
-  const stats = useMemo(() => {
-      let totalRooms = 0;
-      let occupiedRooms = 0;
-      let monthlyGross = 0;
-      let monthlyNet = 0;
+  const handleUpdateCommunity = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!selectedPropertyId) return;
+      try {
+          await updateDoc(doc(db, "properties", selectedPropertyId), {
+              communityInfo: communityForm
+          });
+          alert("Información de comunidad guardada.");
+      } catch (e) {
+          alert("Error al guardar información.");
+      }
+  };
 
-      properties.forEach(prop => {
-          totalRooms += prop.rooms.length;
-          let propGross = 0;
-          let propFees = 0;
+  const handleUploadInvoice = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!invoiceFile || !selectedPropertyId) return alert("Falta archivo o propiedad");
+      
+      try {
+          const storageRef = ref(storage, `invoices/${selectedPropertyId}/${Date.now()}_${invoiceFile.name}`);
+          await uploadBytes(storageRef, invoiceFile);
+          const url = await getDownloadURL(storageRef);
 
-          prop.rooms.forEach(room => {
-              if (room.status === 'occupied') {
-                  occupiedRooms++;
-                  const contract = activeContracts.find(c => c.roomId === room.id);
-                  const rent = contract ? contract.rentAmount : room.price; 
-                  propGross += rent;
+          await addDoc(collection(db, "supply_invoices"), {
+              propertyId: selectedPropertyId,
+              ...invoiceForm,
+              amount: Number(invoiceForm.amount),
+              fileUrl: url,
+              uploadedAt: serverTimestamp(),
+              status: 'pending'
+          });
+          
+          alert("Factura subida correctamente.");
+          setInvoiceFile(null);
+          setInvoiceForm({ type: 'luz', periodStart: '', periodEnd: '', amount: '' });
+      } catch (e) {
+          console.error(e);
+          alert("Error al subir factura.");
+      }
+  };
 
-                  let fee = 0;
-                  if (room.commissionType === 'fixed') {
-                      fee = room.commissionValue || 0;
-                  } else {
-                      const pct = room.commissionValue || 10;
-                      fee = (rent * pct) / 100;
-                  }
-                  propFees += fee * 1.21; // + IVA
+  const handleUploadDoc = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!docFile || !selectedPropertyId) return alert("Falta archivo o propiedad");
+
+      try {
+          const storageRef = ref(storage, `documents/${selectedPropertyId}/${Date.now()}_${docFile.name}`);
+          await uploadBytes(storageRef, docFile);
+          const url = await getDownloadURL(storageRef);
+
+          await addDoc(collection(db, "property_documents"), {
+              propertyId: selectedPropertyId,
+              name: docFile.name,
+              type: docType,
+              url: url,
+              uploadedAt: serverTimestamp()
+          });
+          alert("Documento subido.");
+          setDocFile(null);
+      } catch (e) {
+          alert("Error al subir documento.");
+      }
+  };
+
+  const handleGdprSign = async (blob: Blob) => {
+      if (!currentUser) return;
+      setSigning(true);
+      try {
+          const storageRef = ref(storage, `signatures/${currentUser.uid}_gdpr_${Date.now()}.png`);
+          await uploadBytes(storageRef, blob);
+          const url = await getDownloadURL(storageRef);
+
+          const ipReq = await fetch('https://api.ipify.org?format=json');
+          const ipRes = await ipReq.json();
+
+          await updateDoc(doc(db, "users", currentUser.uid), {
+              gdpr: {
+                  signed: true,
+                  signedAt: serverTimestamp(),
+                  ip: ipRes.ip,
+                  signatureUrl: url,
+                  documentVersion: 'v1.0-2025'
               }
           });
 
-          // Subtract Cleaning Cost
-          const cleaningCost = calculateCleaningCost(prop);
-          
-          monthlyGross += propGross;
-          monthlyNet += (propGross - propFees - cleaningCost);
-      });
-
-      return {
-          occupancy: totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0,
-          grossIncome: monthlyGross,
-          netIncome: monthlyNet,
-          rentiaFeeTotal: monthlyGross - monthlyNet // Rough estimate
-      };
-  }, [properties, activeContracts]);
-
-  // --- PASSWORD CHANGE HANDLER ---
-  const handleChangePassword = async (e: React.FormEvent) => {
-      e.preventDefault();
-      if (newPassword !== confirmPassword) {
-          setPasswordMsg({ type: 'error', text: 'Las contraseñas no coinciden.' });
-          return;
-      }
-      if (newPassword.length < 6) {
-          setPasswordMsg({ type: 'error', text: 'Mínimo 6 caracteres.' });
-          return;
-      }
-      if (isSimulated) {
-          setPasswordMsg({ type: 'error', text: 'No puedes cambiar la contraseña en modo "Login Maestro". Entra con la contraseña real del usuario.' });
-          return;
-      }
-
-      setChangingPass(true);
-      setPasswordMsg(null);
-
-      try {
-          if (auth.currentUser) {
-              await updatePassword(auth.currentUser, newPassword);
-              setPasswordMsg({ type: 'success', text: 'Contraseña actualizada correctamente.' });
-              setNewPassword('');
-              setConfirmPassword('');
-          } else {
-              setPasswordMsg({ type: 'error', text: 'No hay sesión activa.' });
-          }
-      } catch (error: any) {
-          console.error(error);
-          if (error.code === 'auth/requires-recent-login') {
-              setPasswordMsg({ type: 'error', text: 'Por seguridad, debes cerrar sesión y volver a entrar para cambiar la contraseña.' });
-          } else {
-              setPasswordMsg({ type: 'error', text: 'Error al cambiar contraseña.' });
-          }
+          setIsGdprOpen(false);
+          alert("Documento firmado y registrado legalmente. Gracias.");
+      } catch (e) {
+          console.error(e);
+          alert("Error al procesar la firma. Inténtelo de nuevo.");
       } finally {
-          setChangingPass(false);
+          setSigning(false);
       }
   };
 
-  // --- HELPERS ---
-  const getFirstName = (fullName: string) => fullName.split(' ')[0];
-
-  const getVisitBadge = (outcome: string) => {
-      switch(outcome) {
-          case 'successful': return <span className="inline-flex items-center gap-1 bg-green-100 text-green-800 text-[10px] font-bold px-2 py-0.5 rounded-full"><CheckCircle className="w-3 h-3"/> Exitosa</span>;
-          case 'unsuccessful': return <span className="inline-flex items-center gap-1 bg-red-100 text-red-800 text-[10px] font-bold px-2 py-0.5 rounded-full"><X className="w-3 h-3"/> No Exitosa</span>;
-          default: return <span className="inline-flex items-center gap-1 bg-yellow-100 text-yellow-800 text-[10px] font-bold px-2 py-0.5 rounded-full"><Clock className="w-3 h-3"/> Pendiente</span>;
-      }
-  };
-
-  const getCandidateStatus = (status: string) => {
-      switch(status) {
-          case 'pending_review': return { label: 'Analizando Solvencia...', style: 'bg-yellow-50 text-yellow-700 border-yellow-200', icon: <Search className="w-3 h-3"/> };
-          case 'approved': return { label: 'Perfil Apto (Filtro Superado)', style: 'bg-blue-50 text-blue-700 border-blue-200', icon: <CheckCircle className="w-3 h-3"/> };
-          case 'rejected': return { label: 'No Apto / Descartado', style: 'bg-red-50 text-red-700 border-red-200', icon: <XCircle className="w-3 h-3"/> };
-          case 'archived': return { label: 'Archivado (No seleccionado)', style: 'bg-gray-100 text-gray-600 border-gray-200', icon: <FileText className="w-3 h-3"/> };
-          case 'rented': return { label: '¡Seleccionado! (Firmado)', style: 'bg-green-100 text-green-800 border-green-200', icon: <Key className="w-3 h-3"/> };
-          default: return { label: status, style: 'bg-gray-50', icon: null };
-      }
-  };
-
-  if (loading) {
-      return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-rentia-blue"/></div>;
-  }
+  if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-rentia-blue"/></div>;
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8 animate-in fade-in">
       <div className="max-w-6xl mx-auto">
-        <header className="mb-8">
-          <h1 className="text-3xl font-bold text-rentia-black font-display">Portal del Propietario</h1>
-          <p className="text-gray-500">Bienvenido a tu área de gestión de activos.</p>
-          {isSimulated && (
-              <div className="mt-2 inline-flex items-center gap-2 bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-xs font-bold border border-yellow-200">
-                  <Shield className="w-4 h-4" /> Estás en modo "Login Maestro" (Vista de Administrador)
-              </div>
+        <header className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-rentia-black font-display">Área Privada Propietario</h1>
+            <p className="text-gray-500">Gestión integral de tus activos inmobiliarios.</p>
+          </div>
+          {userData?.gdpr?.signed ? (
+              <span className="flex items-center gap-1 text-green-600 bg-green-50 px-3 py-1 rounded-full text-xs font-bold border border-green-200">
+                  <CheckCircle className="w-3 h-3"/> RGPD Firmado
+              </span>
+          ) : (
+              <button onClick={() => setIsGdprOpen(true)} className="flex items-center gap-1 text-red-600 bg-red-50 px-3 py-1 rounded-full text-xs font-bold border border-red-200 animate-pulse">
+                  <AlertTriangle className="w-3 h-3"/> Pendiente Firma RGPD
+              </button>
           )}
         </header>
 
-        {/* SUMMARY CARDS */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <div className="flex items-center gap-3 mb-2">
-                    <div className="p-2 bg-blue-50 rounded-full text-rentia-blue"><Home className="w-5 h-5" /></div>
-                    <span className="text-sm font-bold text-gray-500 uppercase">Ocupación</span>
-                </div>
-                <p className="text-3xl font-bold text-gray-900">{stats.occupancy}%</p>
-                <p className="text-xs text-green-600 mt-1">Cartera activa</p>
-            </div>
-            
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <div className="flex items-center gap-3 mb-2">
-                    <div className="p-2 bg-green-50 rounded-full text-green-600"><DollarSign className="w-5 h-5" /></div>
-                    <span className="text-sm font-bold text-gray-500 uppercase">Ingresos Brutos (Mes)</span>
-                </div>
-                <p className="text-3xl font-bold text-gray-900">{stats.grossIncome.toLocaleString()} €</p>
-                <p className="text-xs text-gray-400 mt-1">Antes de honorarios y gastos</p>
-            </div>
-
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <div className="flex items-center gap-3 mb-2">
-                    <div className="p-2 bg-purple-50 rounded-full text-purple-600"><Wallet className="w-5 h-5" /></div>
-                    <span className="text-sm font-bold text-gray-500 uppercase">Neto Estimado</span>
-                </div>
-                <p className="text-3xl font-bold text-purple-700">{stats.netIncome.toLocaleString()} €</p>
-                <p className="text-xs text-gray-400 mt-1">Ingreso final proyectado</p>
-            </div>
+        <div className="flex gap-2 mb-6 overflow-x-auto pb-2 no-scrollbar bg-white p-2 rounded-xl shadow-sm w-fit border border-gray-100">
+            <button onClick={() => setActiveTab('overview')} className={`px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition-colors ${activeTab === 'overview' ? 'bg-rentia-black text-white' : 'text-gray-600 hover:bg-gray-50'}`}>Resumen</button>
+            <button onClick={() => setActiveTab('profile')} className={`px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition-colors flex items-center gap-2 ${activeTab === 'profile' ? 'bg-rentia-black text-white' : 'text-gray-600 hover:bg-gray-50'}`}><User className="w-4 h-4"/> Mi Perfil</button>
+            <button onClick={() => setActiveTab('docs')} className={`px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition-colors flex items-center gap-2 ${activeTab === 'docs' ? 'bg-rentia-black text-white' : 'text-gray-600 hover:bg-gray-50'}`}><FileText className="w-4 h-4"/> Documentación</button>
+            <button onClick={() => setActiveTab('invoices')} className={`px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition-colors flex items-center gap-2 ${activeTab === 'invoices' ? 'bg-rentia-black text-white' : 'text-gray-600 hover:bg-gray-50'}`}><Zap className="w-4 h-4"/> Suministros</button>
+            <button onClick={() => setActiveTab('financials')} className={`px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition-colors ${activeTab === 'financials' ? 'bg-rentia-black text-white' : 'text-gray-600 hover:bg-gray-50'}`}>Finanzas</button>
         </div>
 
-        {/* TABS NAVIGATION */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-2 no-scrollbar">
-            <button onClick={() => setActiveTab('overview')} className={`px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition-colors ${activeTab === 'overview' ? 'bg-rentia-black text-white' : 'bg-white text-gray-600 hover:bg-gray-100'}`}>Resumen</button>
-            <button onClick={() => setActiveTab('visits')} className={`px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition-colors ${activeTab === 'visits' ? 'bg-rentia-black text-white' : 'bg-white text-gray-600 hover:bg-gray-100'}`}>Visitas</button>
-            <button onClick={() => setActiveTab('candidates')} className={`px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition-colors flex items-center gap-2 ${activeTab === 'candidates' ? 'bg-rentia-black text-white' : 'bg-white text-gray-600 hover:bg-gray-100'}`}><UserCheck className="w-4 h-4"/> Candidatos</button>
-            <button onClick={() => setActiveTab('incidents')} className={`px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition-colors flex items-center gap-2 ${activeTab === 'incidents' ? 'bg-rentia-black text-white' : 'bg-white text-gray-600 hover:bg-gray-100'}`}><AlertTriangle className="w-4 h-4"/> Incidencias</button>
-            <button onClick={() => setActiveTab('tenants')} className={`px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition-colors ${activeTab === 'tenants' ? 'bg-rentia-black text-white' : 'bg-white text-gray-600 hover:bg-gray-100'}`}>Estado Inquilinos</button>
-            <button onClick={() => setActiveTab('financials')} className={`px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition-colors ${activeTab === 'financials' ? 'bg-rentia-black text-white' : 'bg-white text-gray-600 hover:bg-gray-100'}`}>Finanzas</button>
-            <button onClick={() => setActiveTab('security')} className={`px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition-colors flex items-center gap-2 ${activeTab === 'security' ? 'bg-rentia-black text-white' : 'bg-white text-gray-600 hover:bg-gray-100'}`}><Lock className="w-3 h-3" /> Seguridad</button>
-        </div>
-
-        {/* CONTENT */}
-        
-        {/* 1. VISITS LOG */}
-        {(activeTab === 'overview' || activeTab === 'visits') && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-8">
-                <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                    <h3 className="font-bold text-gray-800 flex items-center gap-2">
-                        <Footprints className="w-5 h-5 text-rentia-blue" /> Últimas Visitas
-                    </h3>
-                    <span className="text-xs bg-white border border-gray-200 px-2 py-1 rounded text-gray-500">{visits.length} registros</span>
+        {/* 1. OVERVIEW */}
+        {activeTab === 'overview' && (
+            <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                        <p className="text-xs text-gray-500 font-bold uppercase">Propiedades</p>
+                        <p className="text-3xl font-bold text-gray-900">{properties.length}</p>
+                    </div>
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                        <p className="text-xs text-gray-500 font-bold uppercase">Ingresos Mensuales</p>
+                        <p className="text-3xl font-bold text-green-600">{stats.grossIncome}€</p>
+                    </div>
                 </div>
-                <div className="overflow-x-auto">
-                    {visits.length === 0 ? (
-                        <div className="p-8 text-center text-gray-400 text-sm">No hay visitas registradas recientemente.</div>
-                    ) : (
-                        <table className="w-full text-left text-sm">
-                            <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs">
-                                <tr>
-                                    <th className="p-4">Fecha</th>
-                                    <th className="p-4">Comercial</th>
-                                    <th className="p-4">Inmueble</th>
-                                    <th className="p-4">Resultado</th>
-                                    <th className="p-4">Comentarios</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                {visits.map(v => (
-                                    <tr key={v.id} className="hover:bg-gray-50">
-                                        <td className="p-4 text-gray-600 whitespace-nowrap text-xs">
-                                            {v.visitDate?.toDate ? v.visitDate.toDate().toLocaleString() : 'N/A'}
-                                        </td>
-                                        <td className="p-4 font-medium">{v.workerName}</td>
-                                        <td className="p-4 text-gray-600">
-                                            <div className="font-bold text-gray-800 text-xs">{v.propertyName}</div>
-                                            <div className="text-[10px]">{v.roomName}</div>
-                                        </td>
-                                        <td className="p-4">{getVisitBadge(v.outcome)}</td>
-                                        <td className="p-4 text-gray-500 text-xs max-w-xs truncate" title={v.comments}>{v.comments || '-'}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    )}
-                </div>
-            </div>
-        )}
-
-        {/* 2. CANDIDATES */}
-        {activeTab === 'candidates' && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-8">
-                <div className="p-6 border-b border-gray-100 bg-gray-50">
-                    <h3 className="font-bold text-gray-800 flex items-center gap-2">
-                        <UserCheck className="w-5 h-5 text-rentia-blue" /> Candidatos & Estado del Filtrado
-                    </h3>
-                    <p className="text-xs text-gray-500 mt-1">Sigue el proceso de selección de inquilinos en tiempo real.</p>
-                </div>
-                
-                <div className="p-6 grid grid-cols-1 gap-4">
-                    {candidates.length === 0 ? (
-                        <div className="text-center py-12 text-gray-400 flex flex-col items-center">
-                            <Search className="w-12 h-12 opacity-20 mb-2"/>
-                            <p>No hay candidatos en proceso actualmente.</p>
+                {properties.map(p => (
+                    <div key={p.id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4">
+                        <div>
+                            <h3 className="font-bold text-lg">{p.address}</h3>
+                            <p className="text-sm text-gray-500">{p.city} • {p.rooms.length} Habitaciones</p>
                         </div>
-                    ) : (
-                        candidates.map(candidate => {
-                            const statusInfo = getCandidateStatus(candidate.status);
-                            return (
-                                <div key={candidate.id} className="border border-gray-200 rounded-xl p-4 flex flex-col md:flex-row gap-4 items-start bg-white shadow-sm hover:shadow-md transition-shadow">
-                                    <div className="flex-grow">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <h4 className="font-bold text-gray-800 text-lg">{getFirstName(candidate.candidateName)}</h4>
-                                            <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded">Perfil Oculto</span>
-                                        </div>
-                                        <div className="text-sm text-gray-600 mb-2">
-                                            <span className="font-bold">{candidate.propertyName}</span> • {candidate.roomName}
-                                        </div>
-                                        <div className="text-xs text-gray-500">
-                                            Registrado el: {candidate.submittedAt?.toDate ? candidate.submittedAt.toDate().toLocaleDateString() : 'N/A'}
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="w-full md:w-auto flex flex-col items-end gap-2">
-                                        <div className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase flex items-center gap-2 border ${statusInfo.style}`}>
-                                            {statusInfo.icon} {statusInfo.label}
-                                        </div>
-                                        {candidate.closureReason && (candidate.status === 'rejected' || candidate.status === 'archived') && (
-                                            <div className="text-xs text-red-600 bg-red-50 px-2 py-1 rounded max-w-xs text-right border border-red-100">
-                                                {candidate.closureReason}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            );
-                        })
-                    )}
-                </div>
-            </div>
-        )}
-
-        {/* 3. INCIDENTS & RECOMMENDATIONS (NEW) */}
-        {activeTab === 'incidents' && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-8">
-                <div className="p-6 border-b border-gray-100 bg-gray-50">
-                    <h3 className="font-bold text-gray-800 flex items-center gap-2">
-                        <AlertTriangle className="w-5 h-5 text-rentia-blue" /> Incidencias & Mejoras
-                    </h3>
-                    <p className="text-xs text-gray-500 mt-1">Estado de reparaciones y recomendaciones para aumentar el valor del activo.</p>
-                </div>
-                
-                <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {incidents.length === 0 ? (
-                        <div className="col-span-full text-center py-12 text-gray-400 flex flex-col items-center">
-                            <CheckCircle className="w-12 h-12 opacity-20 mb-2 text-green-500"/>
-                            <p>¡Todo en orden! No hay incidencias activas.</p>
-                        </div>
-                    ) : (
-                        incidents.map(task => {
-                            // Lógica de tipo: "Incidencia" si es Mantenimiento, "Mejora" si es Reformas/Otros
-                            const isMaintenance = task.category === 'Mantenimiento';
-                            const isImprovement = task.category === 'Reformas' || task.category === 'Operaciones';
-                            
-                            // Lógica de Origen (Visual): Asumimos que todo viene de Staff/Sistema a menos que se indique explícitamente
-                            const isTenantReport = task.title.toLowerCase().includes('inquilino') || task.description.toLowerCase().includes('reporta');
-
-                            return (
-                                <div key={task.id} className={`border rounded-xl p-5 flex flex-col gap-3 relative overflow-hidden ${task.status === 'Completada' ? 'opacity-60 bg-gray-50 border-gray-200' : 'bg-white shadow-sm hover:shadow-md transition-shadow'}`}>
-                                    {/* Color Stripe based on type */}
-                                    <div className={`absolute left-0 top-0 bottom-0 w-1 ${isMaintenance ? 'bg-red-500' : 'bg-blue-500'}`}></div>
-                                    
-                                    <div className="flex justify-between items-start pl-2">
-                                        <div className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded border flex items-center gap-1 ${isMaintenance ? 'bg-red-50 text-red-700 border-red-100' : 'bg-blue-50 text-blue-700 border-blue-100'}`}>
-                                            {isMaintenance ? <AlertTriangle className="w-3 h-3"/> : <Lightbulb className="w-3 h-3"/>}
-                                            {isMaintenance ? 'Incidencia' : 'Recomendación'}
-                                        </div>
-                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${task.status === 'Completada' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                                            {task.status || 'Pendiente'}
-                                        </span>
-                                    </div>
-
-                                    <div className="pl-2">
-                                        <h4 className="font-bold text-gray-800 text-sm leading-tight mb-1">{task.title}</h4>
-                                        <p className="text-xs text-gray-500 line-clamp-3 bg-gray-50 p-2 rounded border border-gray-100 italic">"{task.description}"</p>
-                                    </div>
-
-                                    <div className="mt-auto pl-2 pt-2 border-t border-gray-50 flex items-center justify-between text-xs text-gray-400">
-                                        <div className="flex items-center gap-1.5">
-                                            {isTenantReport ? (
-                                                <div className="flex items-center gap-1 text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded">
-                                                    <User className="w-3 h-3" /> Origen: Inquilino
-                                                </div>
-                                            ) : (
-                                                <div className="flex items-center gap-1 text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">
-                                                    <Briefcase className="w-3 h-3" /> Rentia Staff
-                                                </div>
-                                            )}
-                                        </div>
-                                        <span>{task.createdAt ? new Date(task.createdAt.seconds * 1000).toLocaleDateString() : ''}</span>
-                                    </div>
-                                </div>
-                            );
-                        })
-                    )}
-                </div>
-            </div>
-        )}
-
-        {/* 4. TENANTS STATUS - CARDS REDESIGN */}
-        {(activeTab === 'overview' || activeTab === 'tenants') && (
-            <div className="space-y-8">
-                {properties.map(prop => (
-                    <div key={prop.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                        <div className="bg-gray-50 p-4 border-b border-gray-100 flex items-center gap-2">
-                            <MapPin className="w-5 h-5 text-rentia-blue" />
-                            <h3 className="font-bold text-gray-800">{prop.address}</h3>
-                            <span className="text-xs text-gray-500">({prop.city})</span>
-                        </div>
-                        
-                        <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {prop.rooms.map(room => {
-                                const contract = activeContracts.find(c => c.roomId === room.id);
-                                const tenantName = contract ? getFirstName(contract.tenantName) : '---';
-                                const isOccupied = room.status === 'occupied';
-                                const suppliesType = prop.suppliesConfig?.type === 'fixed' ? 'Fijo' : 'A Repartir';
-                                const suppliesCost = prop.suppliesConfig?.type === 'fixed' ? `${prop.suppliesConfig.fixedAmount}€` : 'S/Factura';
-                                
-                                const roomImage = room.images && room.images.length > 0 ? room.images[0] : null;
-
-                                return (
-                                    <div key={room.id} className="border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow bg-white flex flex-col h-full">
-                                        {/* Room Image */}
-                                        <div className="h-40 bg-gray-100 relative group overflow-hidden">
-                                            {roomImage ? (
-                                                <img 
-                                                    src={roomImage} 
-                                                    alt={room.name} 
-                                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                                />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center text-gray-300 bg-gray-50">
-                                                    <ImageIcon className="w-12 h-12 opacity-50" />
-                                                </div>
-                                            )}
-                                            
-                                            <div className="absolute top-3 right-3">
-                                                <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide shadow-sm ${isOccupied ? 'bg-green-100 text-green-700' : 'bg-gray-800 text-white'}`}>
-                                                    {isOccupied ? 'Alquilada' : 'Disponible'}
-                                                </span>
-                                            </div>
-                                            
-                                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3 pt-8">
-                                                <h4 className="text-white font-bold text-lg">{room.name}</h4>
-                                            </div>
-                                        </div>
-
-                                        {/* Room Details */}
-                                        <div className="p-4 flex-grow flex flex-col justify-between">
-                                            <div className="space-y-3 mb-4">
-                                                <div className="flex justify-between items-center border-b border-gray-50 pb-2">
-                                                    <span className="text-xs text-gray-400 uppercase font-bold">Inquilino</span>
-                                                    <span className={`font-bold ${isOccupied ? 'text-gray-800' : 'text-gray-300'}`}>
-                                                        {isOccupied ? tenantName : 'Vacío'}
-                                                    </span>
-                                                </div>
-                                                <div className="flex justify-between items-center border-b border-gray-50 pb-2">
-                                                    <span className="text-xs text-gray-400 uppercase font-bold">Renta</span>
-                                                    <span className="font-mono font-bold text-rentia-blue">
-                                                        {isOccupied ? (contract?.rentAmount || room.price) : room.price} €
-                                                    </span>
-                                                </div>
-                                                <div className="flex justify-between items-center">
-                                                    <span className="text-xs text-gray-400 uppercase font-bold">Suministros</span>
-                                                    <span className="text-xs font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded">
-                                                        {suppliesType} ({suppliesCost})
-                                                    </span>
-                                                </div>
-                                            </div>
-
-                                            {isOccupied && contract && (
-                                                <div className="mt-auto pt-3 border-t border-gray-100 flex items-center justify-between text-[10px] text-gray-400">
-                                                    <span>Fin contrato:</span>
-                                                    <span className="font-bold text-gray-600">{new Date(contract.endDate).toLocaleDateString()}</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
+                        {p.driveLink && (
+                            <a href={p.driveLink} target="_blank" rel="noreferrer" className="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 hover:bg-blue-100 transition-colors border border-blue-200">
+                                <ExternalLink className="w-4 h-4" /> Carpeta Drive
+                            </a>
+                        )}
                     </div>
                 ))}
             </div>
         )}
 
-        {/* 5. FINANCIALS - ENHANCED WITH ADJUSTMENTS */}
-        {(activeTab === 'overview' || activeTab === 'financials') && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mt-8">
-                <div className="p-6 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
-                    <h3 className="font-bold text-gray-800 flex items-center gap-2">
-                        <TrendingUp className="w-5 h-5 text-rentia-blue" /> Liquidación Mensual
+        {/* 2. PROFILE TAB */}
+        {activeTab === 'profile' && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                    <h3 className="font-bold text-lg mb-6 flex items-center gap-2 border-b border-gray-100 pb-3">
+                        <UserCheck className="w-5 h-5 text-rentia-blue"/> Datos Personales
                     </h3>
-                    <input 
-                        type="month" 
-                        value={selectedMonth} 
-                        onChange={(e) => setSelectedMonth(e.target.value)} 
-                        className="bg-white border rounded px-2 py-1 text-xs font-bold text-gray-600 outline-none focus:ring-1 focus:ring-rentia-blue"
-                    />
-                </div>
-                <div className="p-6">
-                    <div className="bg-blue-50 p-4 rounded-lg mb-6 border border-blue-100 flex items-start gap-3">
-                        <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
-                        <div className="text-sm text-blue-800">
-                            <p className="font-bold mb-1">Nota sobre Liquidación</p>
-                            <p className="opacity-90">Este desglose incluye alquileres, deducción de honorarios, costes de limpieza fijos y cualquier ajuste extraordinario (reparaciones o bonificaciones) aplicado en el mes seleccionado.</p>
+                    <form onSubmit={handleUpdateProfile} className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nombre</label>
+                                <input type="text" className="w-full p-2 border rounded" value={profileForm.name} onChange={e => setProfileForm({...profileForm, name: e.target.value})} />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">DNI / NIE</label>
+                                <input type="text" className="w-full p-2 border rounded" value={profileForm.dni} onChange={e => setProfileForm({...profileForm, dni: e.target.value})} />
+                            </div>
                         </div>
-                    </div>
-
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm">
-                            <thead className="bg-gray-100 text-gray-600 font-bold uppercase text-xs">
-                                <tr>
-                                    <th className="p-3 rounded-l-lg">Concepto</th>
-                                    <th className="p-3 text-right text-green-700">Ingresos (+)</th>
-                                    <th className="p-3 text-right text-red-600">Gastos/Honorarios (-)</th>
-                                    <th className="p-3 text-right text-purple-600">Ajustes (+/-)</th>
-                                    <th className="p-3 text-right rounded-r-lg text-gray-900">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                {properties.map(prop => {
-                                    // Calcular datos por propiedad
-                                    const propAdjustments = adjustments.filter(adj => adj.propertyId === prop.id && adj.appliedToMonth === selectedMonth);
-                                    let propRent = 0;
-                                    let propFees = 0;
-                                    let cleaningCost = calculateCleaningCost(prop);
-                                    let totalAdj = 0;
-
-                                    prop.rooms.forEach(r => {
-                                        if (r.status === 'occupied') {
-                                            const c = activeContracts.find(con => con.roomId === r.id);
-                                            const rent = c ? c.rentAmount : r.price;
-                                            propRent += rent;
-                                            
-                                            // Fee calc
-                                            let fee = 0;
-                                            if (r.commissionType === 'fixed') fee = r.commissionValue || 0;
-                                            else fee = (rent * (r.commissionValue || 10)) / 100;
-                                            propFees += fee * 1.21;
-                                        }
-                                    });
-
-                                    propAdjustments.forEach(adj => {
-                                        if (adj.type === 'discount') totalAdj += adj.amount; // Positivo para el owner (le damos dinero o descontamos de nuestra comisión)
-                                        else totalAdj -= adj.amount; // Negativo (le cobramos algo extra)
-                                    });
-
-                                    const propNet = propRent - propFees - cleaningCost + totalAdj;
-                                    
-                                    // Formatear día de transferencia
-                                    const transferDayText = prop.transferDay ? `Día ${prop.transferDay}` : '-';
-
-                                    return (
-                                        <React.Fragment key={prop.id}>
-                                            <tr className="bg-gray-50/50">
-                                                <td colSpan={5} className="p-3 border-b border-gray-200">
-                                                    <div className="flex justify-between items-center">
-                                                        <span className="font-bold text-gray-800 text-xs uppercase tracking-wide">{prop.address}</span>
-                                                        <span className="text-[10px] font-normal text-gray-500 bg-white border border-gray-200 px-2 py-1 rounded flex items-center gap-1">
-                                                            <Calendar className="w-3 h-3" /> Transferencia Rentia: <strong>{transferDayText}</strong>
-                                                        </span>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                            
-                                            {/* Renta */}
-                                            <tr>
-                                                <td className="p-3 pl-6 text-gray-600">Alquiler Habitaciones</td>
-                                                <td className="p-3 text-right font-medium">{propRent.toFixed(2)} €</td>
-                                                <td className="p-3 text-right text-gray-300">-</td>
-                                                <td className="p-3 text-right text-gray-300">-</td>
-                                                <td className="p-3 text-right text-gray-300">-</td>
-                                            </tr>
-
-                                            {/* Honorarios */}
-                                            <tr>
-                                                <td className="p-3 pl-6 text-gray-600">Honorarios Gestión (IVA inc.)</td>
-                                                <td className="p-3 text-right text-gray-300">-</td>
-                                                <td className="p-3 text-right text-red-500">-{propFees.toFixed(2)} €</td>
-                                                <td className="p-3 text-right text-gray-300">-</td>
-                                                <td className="p-3 text-right text-gray-300">-</td>
-                                            </tr>
-
-                                            {/* Limpieza */}
-                                            {cleaningCost > 0 && (
-                                                <tr>
-                                                    <td className="p-3 pl-6 text-gray-600">Servicio Limpieza Mensual</td>
-                                                    <td className="p-3 text-right text-gray-300">-</td>
-                                                    <td className="p-3 text-right text-red-500">-{cleaningCost.toFixed(2)} €</td>
-                                                    <td className="p-3 text-right text-gray-300">-</td>
-                                                    <td className="p-3 text-right text-gray-300">-</td>
-                                                </tr>
-                                            )}
-
-                                            {/* Ajustes Individuales */}
-                                            {propAdjustments.map(adj => (
-                                                <tr key={adj.id}>
-                                                    <td className="p-3 pl-6 text-purple-700 flex items-center gap-2">
-                                                        <Gift className="w-3 h-3"/> {adj.concept}
-                                                    </td>
-                                                    <td className="p-3 text-right text-gray-300">-</td>
-                                                    <td className="p-3 text-right text-gray-300">-</td>
-                                                    <td className={`p-3 text-right font-bold ${adj.type === 'discount' ? 'text-green-600' : 'text-red-600'}`}>
-                                                        {adj.type === 'discount' ? '+' : '-'}{adj.amount.toFixed(2)} €
-                                                    </td>
-                                                    <td className="p-3 text-right text-gray-300">-</td>
-                                                </tr>
-                                            ))}
-
-                                            {/* Subtotal Propiedad */}
-                                            <tr className="border-t border-gray-200 bg-gray-50">
-                                                <td className="p-3 pl-6 font-bold text-gray-800 text-xs uppercase">Neto Propiedad</td>
-                                                <td className="p-3 text-right"></td>
-                                                <td className="p-3 text-right"></td>
-                                                <td className="p-3 text-right"></td>
-                                                <td className="p-3 text-right font-bold text-lg text-green-800">{propNet.toFixed(2)} €</td>
-                                            </tr>
-                                        </React.Fragment>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        )}
-
-        {/* 6. SECURITY (CAMBIAR CONTRASEÑA) */}
-        {activeTab === 'security' && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden max-w-lg mx-auto mt-8">
-                <div className="p-6 border-b border-gray-100 bg-gray-50">
-                    <h3 className="font-bold text-gray-800 flex items-center gap-2">
-                        <Lock className="w-5 h-5 text-rentia-blue" /> Seguridad de la Cuenta
-                    </h3>
-                    <p className="text-xs text-gray-500 mt-1">Actualiza tu contraseña de acceso.</p>
-                </div>
-                
-                <div className="p-6">
-                    {isSimulated && (
-                        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 p-4 rounded-lg text-sm mb-4">
-                            <strong>Aviso:</strong> Estás accediendo con la "Contraseña Maestra" o en modo Simulado. No es posible cambiar la contraseña desde aquí porque no tienes una sesión real autenticada. Debes cerrar sesión y entrar con la contraseña actual del usuario.
-                        </div>
-                    )}
-
-                    {passwordMsg && (
-                        <div className={`p-4 rounded-lg text-sm mb-4 border ${passwordMsg.type === 'success' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
-                            {passwordMsg.text}
-                        </div>
-                    )}
-
-                    <form onSubmit={handleChangePassword} className="space-y-4">
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nueva Contraseña</label>
-                            <div className="relative">
-                                <Key className="w-4 h-4 absolute left-3 top-3 text-gray-400"/>
-                                <input 
-                                    type="password" 
-                                    value={newPassword}
-                                    onChange={(e) => setNewPassword(e.target.value)}
-                                    disabled={isSimulated}
-                                    className="w-full pl-10 p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-rentia-blue outline-none disabled:bg-gray-100"
-                                    placeholder="Mínimo 6 caracteres"
-                                />
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Teléfono</label>
+                                <input type="text" className="w-full p-2 border rounded" value={profileForm.phone} onChange={e => setProfileForm({...profileForm, phone: e.target.value})} />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Email</label>
+                                <input type="email" className="w-full p-2 border rounded bg-gray-50" value={profileForm.email} disabled />
                             </div>
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Confirmar Contraseña</label>
-                            <div className="relative">
-                                <Key className="w-4 h-4 absolute left-3 top-3 text-gray-400"/>
-                                <input 
-                                    type="password" 
-                                    value={confirmPassword}
-                                    onChange={(e) => setConfirmPassword(e.target.value)}
-                                    disabled={isSimulated}
-                                    className="w-full pl-10 p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-rentia-blue outline-none disabled:bg-gray-100"
-                                    placeholder="Repite la nueva contraseña"
-                                />
-                            </div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Dirección Fiscal</label>
+                            <input type="text" className="w-full p-2 border rounded" value={profileForm.address} onChange={e => setProfileForm({...profileForm, address: e.target.value})} />
                         </div>
-                        <button 
-                            type="submit" 
-                            disabled={isSimulated || changingPass}
-                            className="w-full bg-rentia-black text-white font-bold py-3 rounded-xl hover:bg-gray-800 transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                        >
-                            {changingPass ? <Loader2 className="w-4 h-4 animate-spin"/> : <CheckCircle className="w-4 h-4"/>}
-                            Actualizar Contraseña
-                        </button>
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">IBAN (Pagos)</label>
+                            <input type="text" className="w-full p-2 border rounded font-mono" value={profileForm.bankAccount} onChange={e => setProfileForm({...profileForm, bankAccount: e.target.value})} />
+                        </div>
+                        <button type="submit" className="w-full bg-rentia-black text-white py-2 rounded-lg font-bold hover:bg-gray-800">Actualizar Datos</button>
+                    </form>
+                </div>
+
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                    <h3 className="font-bold text-lg mb-6 flex items-center gap-2 border-b border-gray-100 pb-3">
+                        <Building className="w-5 h-5 text-rentia-blue"/> Info Comunidad
+                    </h3>
+                    <div className="mb-4">
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Propiedad</label>
+                        <select className="w-full p-2 border rounded mb-4" value={selectedPropertyId} onChange={e => setSelectedPropertyId(e.target.value)}>
+                            {properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}
+                        </select>
+                    </div>
+                    <form onSubmit={handleUpdateCommunity} className="space-y-4">
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Teléfono Presidente</label>
+                            <input type="text" className="w-full p-2 border rounded" value={communityForm.presidentPhone} onChange={e => setCommunityForm({...communityForm, presidentPhone: e.target.value})} />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Empresa Administradora</label>
+                            <input type="text" className="w-full p-2 border rounded" value={communityForm.adminCompany} onChange={e => setCommunityForm({...communityForm, adminCompany: e.target.value})} />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Contacto Admin (Email/Tel)</label>
+                            <input type="text" className="w-full p-2 border rounded" value={communityForm.adminContact} onChange={e => setCommunityForm({...communityForm, adminContact: e.target.value})} />
+                        </div>
+                        <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded-lg font-bold hover:bg-blue-700">Guardar Info Comunidad</button>
                     </form>
                 </div>
             </div>
         )}
 
+        {/* 3. DOCUMENTATION TAB */}
+        {activeTab === 'docs' && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-1 bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                    <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Upload className="w-5 h-5"/> Subir Documento</h3>
+                    <form onSubmit={handleUploadDoc} className="space-y-4">
+                        <select className="w-full p-2 border rounded bg-white text-sm" value={selectedPropertyId} onChange={e => setSelectedPropertyId(e.target.value)}>
+                            {properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}
+                        </select>
+                        <select className="w-full p-2 border rounded bg-white text-sm" value={docType} onChange={e => setDocType(e.target.value)}>
+                            <option value="escritura">Escrituras</option>
+                            <option value="catastro">Ref. Catastral</option>
+                            <option value="certificado_energetico">Cert. Energético</option>
+                            <option value="plano">Planos</option>
+                            <option value="licencia">Licencia</option>
+                            <option value="reforma">Doc. Reforma</option>
+                            <option value="otro">Otro</option>
+                        </select>
+                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:bg-gray-50 relative">
+                            <input type="file" onChange={e => setDocFile(e.target.files?.[0] || null)} className="absolute inset-0 opacity-0 cursor-pointer" />
+                            <p className="text-xs text-gray-500">{docFile ? docFile.name : 'Click para seleccionar archivo (PDF/IMG)'}</p>
+                        </div>
+                        <button type="submit" className="w-full bg-rentia-black text-white py-2 rounded-lg font-bold text-sm">Subir Archivo</button>
+                    </form>
+                </div>
+                <div className="lg:col-span-2 space-y-3">
+                    <h3 className="font-bold text-lg mb-4">Documentos Archivados</h3>
+                    {uploadedDocs.length === 0 ? <p className="text-gray-400 text-sm italic">No hay documentos.</p> : uploadedDocs.map(doc => (
+                        <div key={doc.id} className="bg-white p-4 rounded-lg border border-gray-200 flex justify-between items-center hover:shadow-sm transition-shadow">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><FileText className="w-5 h-5"/></div>
+                                <div>
+                                    <p className="font-bold text-sm text-gray-800 capitalize">{doc.type.replace('_', ' ')}</p>
+                                    <p className="text-xs text-gray-500">{doc.name}</p>
+                                </div>
+                            </div>
+                            <a href={doc.url} target="_blank" rel="noreferrer" className="text-xs font-bold text-rentia-blue bg-blue-50 px-3 py-1.5 rounded hover:bg-blue-100">Ver / Descargar</a>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        )}
+
+        {/* 4. INVOICES TAB */}
+        {activeTab === 'invoices' && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-1 bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                    <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Zap className="w-5 h-5"/> Registrar Factura</h3>
+                    <form onSubmit={handleUploadInvoice} className="space-y-4">
+                        <select className="w-full p-2 border rounded bg-white text-sm" value={selectedPropertyId} onChange={e => setSelectedPropertyId(e.target.value)}>
+                            {properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}
+                        </select>
+                        <div className="grid grid-cols-2 gap-2">
+                            <select className="w-full p-2 border rounded bg-white text-sm" value={invoiceForm.type} onChange={e => setInvoiceForm({...invoiceForm, type: e.target.value})}>
+                                <option value="luz">Luz</option>
+                                <option value="agua">Agua</option>
+                                <option value="internet">Internet</option>
+                                <option value="gas">Gas</option>
+                                <option value="comunidad">Comunidad</option>
+                            </select>
+                            <input type="number" step="0.01" placeholder="Importe €" className="w-full p-2 border rounded text-sm" value={invoiceForm.amount} onChange={e => setInvoiceForm({...invoiceForm, amount: e.target.value})} />
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                            <div><label className="text-[10px] uppercase font-bold text-gray-400">Inicio</label><input type="date" className="w-full p-2 border rounded text-xs" value={invoiceForm.periodStart} onChange={e => setInvoiceForm({...invoiceForm, periodStart: e.target.value})} /></div>
+                            <div><label className="text-[10px] uppercase font-bold text-gray-400">Fin</label><input type="date" className="w-full p-2 border rounded text-xs" value={invoiceForm.periodEnd} onChange={e => setInvoiceForm({...invoiceForm, periodEnd: e.target.value})} /></div>
+                        </div>
+                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:bg-gray-50 relative">
+                            <input type="file" onChange={e => setInvoiceFile(e.target.files?.[0] || null)} className="absolute inset-0 opacity-0 cursor-pointer" />
+                            <p className="text-xs text-gray-500">{invoiceFile ? invoiceFile.name : 'Subir PDF Factura'}</p>
+                        </div>
+                        <button type="submit" className="w-full bg-green-600 text-white py-2 rounded-lg font-bold text-sm hover:bg-green-700">Registrar Gasto</button>
+                    </form>
+                </div>
+                <div className="lg:col-span-2 space-y-3">
+                    <h3 className="font-bold text-lg mb-4">Histórico Facturas Subidas</h3>
+                    {uploadedInvoices.length === 0 ? <p className="text-gray-400 text-sm italic">No hay facturas registradas.</p> : uploadedInvoices.map(inv => (
+                        <div key={inv.id} className="bg-white p-4 rounded-lg border border-gray-200 flex justify-between items-center hover:shadow-sm transition-shadow">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-yellow-50 text-yellow-600 rounded-lg"><DollarSign className="w-5 h-5"/></div>
+                                <div>
+                                    <p className="font-bold text-sm text-gray-800 capitalize">{inv.type} <span className="text-gray-400">|</span> {inv.amount}€</p>
+                                    <p className="text-xs text-gray-500">{inv.periodStart} - {inv.periodEnd}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${inv.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{inv.status}</span>
+                                {inv.fileUrl && <a href={inv.fileUrl} target="_blank" rel="noreferrer" className="text-gray-400 hover:text-rentia-blue"><ExternalLink className="w-4 h-4"/></a>}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        )}
+
       </div>
+
+      {/* GDPR MODAL */}
+      {isGdprOpen && (
+          <div className="fixed inset-0 z-[10000] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+              <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                  <div className="p-6 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
+                      <h2 className="text-xl font-bold text-rentia-black flex items-center gap-2"><Shield className="w-6 h-6 text-rentia-blue"/> Protección de Datos</h2>
+                      <div className="text-xs font-bold text-gray-400 uppercase tracking-wide">Paso {gdprStep}/2</div>
+                  </div>
+                  
+                  <div className="p-8 overflow-y-auto leading-relaxed text-gray-600 text-sm space-y-4">
+                      {gdprStep === 1 ? (
+                          <>
+                              <p className="font-bold text-gray-800">CONSENTIMIENTO EXPLÍCITO PARA EL TRATAMIENTO DE DATOS PERSONALES</p>
+                              <p>De conformidad con lo establecido en el Reglamento (UE) 2016/679 (RGPD) y la Ley Orgánica 3/2018 (LOPDGDD), RENTIA INVESTMENTS S.L. le informa que sus datos personales serán tratados con la finalidad de gestionar la relación contractual de administración de su propiedad inmobiliaria.</p>
+                              
+                              <h4 className="font-bold text-gray-800 mt-4">1. Responsable del Tratamiento</h4>
+                              <p>RENTIA INVESTMENTS S.L., con NIF B-75995308 y domicilio en C/ Brazal de Álamos, 7, 30130, Beniel, Murcia.</p>
+
+                              <h4 className="font-bold text-gray-800 mt-4">2. Finalidad y Legitimación</h4>
+                              <ul className="list-disc pl-5 space-y-1">
+                                  <li>Gestión administrativa, fiscal y contable de los alquileres.</li>
+                                  <li>Tramitación de incidencias, seguros y suministros.</li>
+                                  <li>Comunicación con inquilinos y administradores de fincas en su nombre.</li>
+                                  <li>La legitimación se basa en la ejecución del contrato de mandato de gestión.</li>
+                              </ul>
+
+                              <h4 className="font-bold text-gray-800 mt-4">3. Derechos</h4>
+                              <p>Usted tiene derecho a acceder, rectificar y suprimir los datos, así como otros derechos detallados en nuestra política de privacidad, dirigiéndose a info@rentiaroom.com.</p>
+                          </>
+                      ) : (
+                          <div className="space-y-6">
+                              <p>Por favor, firme en el recuadro para aceptar las condiciones y formalizar el tratamiento de sus datos. Esta firma tendrá plena validez legal para la gestión de su propiedad.</p>
+                              
+                              <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg text-xs text-yellow-800 flex gap-2">
+                                  <AlertCircle className="w-5 h-5 shrink-0"/>
+                                  <div>
+                                      <strong>Registro de Auditoría:</strong> Se registrará su dirección IP, fecha y hora como prueba de consentimiento. Se generará un certificado digital automáticamente.
+                                  </div>
+                              </div>
+
+                              <div>
+                                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Su Firma Digital</label>
+                                  <SignaturePad onSave={handleGdprSign} />
+                              </div>
+                          </div>
+                      )}
+                  </div>
+
+                  <div className="p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
+                      {gdprStep === 1 ? (
+                          <button onClick={() => setGdprStep(2)} className="bg-rentia-black text-white px-8 py-3 rounded-xl font-bold hover:bg-gray-800 transition-colors shadow-lg flex items-center gap-2">
+                              He leído y acepto <ArrowRight className="w-4 h-4"/>
+                          </button>
+                      ) : (
+                          <button disabled={true} className="text-xs text-gray-400 italic">
+                              {signing ? 'Generando certificado legal...' : 'Firme arriba para finalizar'}
+                          </button>
+                      )}
+                  </div>
+              </div>
+          </div>
+      )}
+
     </div>
   );
 };

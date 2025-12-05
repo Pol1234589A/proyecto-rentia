@@ -1,17 +1,17 @@
 
 export interface Financials {
   purchasePrice: number;
-  itpPercent?: number; // New: Transfer Tax Percentage
+  itpPercent?: number; 
   reformCost: number;
   furnitureCost: number;
-  notaryAndTaxes: number; // This can now be calculated or manual override
+  notaryAndTaxes: number; 
   totalInvestment: number;
-  monthlyRentProjected: number; // Room rental total
-  monthlyRentTraditional: number; // Traditional rental estimate
-  yearlyExpenses: number; // IBI, Community, Insurance
-  marketValue: number; // Estimated market value after reform
-  appreciationRate: number; // Estimated yearly appreciation percentage
-  agencyFees?: number; // Manual override for agency fees (base)
+  monthlyRentProjected: number; 
+  monthlyRentTraditional: number; 
+  yearlyExpenses: number; 
+  marketValue: number; 
+  appreciationRate: number; 
+  agencyFees?: number; 
 }
 
 export type OpportunityScenario = 'rent_rooms' | 'rent_traditional' | 'rent_both' | 'sale_living';
@@ -28,11 +28,8 @@ export interface Opportunity {
   images: string[];
   videos?: string[];
   driveFolder?: string;
-  
-  // New: Configuration fields
   scenario: OpportunityScenario;
   visibility: Visibility;
-  
   specs: {
     rooms: number;
     bathrooms: number;
@@ -40,23 +37,19 @@ export interface Opportunity {
     floor: string;
     hasElevator: boolean;
   };
-  
-  // New: Specific room pricing for calculations
   roomConfiguration?: {
     name: string;
     price: number;
   }[];
-
   financials: Financials;
   status: 'available' | 'reserved' | 'sold';
   tags: string[];
 }
 
-// --- NEW TYPES FOR CONTRACT MANAGEMENT ---
+// --- NEW TYPES FOR OWNER PORTAL ---
 
 export interface UserProfile {
-    id?: string; // Firebase UID
-    // Fix: Add 'guarantor' to the list of valid user roles to match its usage in the ContractManager.
+    id?: string; 
     role: 'owner' | 'tenant' | 'broker' | 'agency' | 'staff' | 'worker' | 'guarantor';
     name: string;
     email: string;
@@ -64,59 +57,79 @@ export interface UserProfile {
     dni?: string;
     address?: string; // Dirección fiscal
     bankAccount?: string; // IBAN
+    idDocumentUrl?: string; // URL imagen DNI
     createdAt?: string;
+    active?: boolean;
+    // GDPR Compliance
+    gdpr?: {
+        signed: boolean;
+        signedAt: any;
+        ip: string;
+        signatureUrl: string;
+        documentVersion: string;
+    };
+}
+
+export interface PropertyDocument {
+    id: string;
+    propertyId: string;
+    name: string;
+    type: 'escritura' | 'catastro' | 'certificado_energetico' | 'licencia' | 'plano' | 'reforma' | 'otro';
+    url: string;
+    uploadedAt: any;
+}
+
+export interface SupplyInvoice {
+    id: string;
+    propertyId: string;
+    type: 'luz' | 'agua' | 'gas' | 'internet' | 'comunidad' | 'basuras' | 'otro';
+    periodStart: string;
+    periodEnd: string;
+    amount: number;
+    fileUrl: string;
+    uploadedAt: any;
+    status: 'pending' | 'approved' | 'rejected';
 }
 
 export interface Contract {
     id?: string;
-    alias: string; // Nombre amigable del contrato
+    alias: string; 
     propertyId: string;
-    roomId: string; // ID de la habitación
+    roomId: string; 
     roomName: string;
-    
     ownerId: string;
     ownerName: string;
-    
     tenantId: string;
     tenantName: string;
-    
-    guarantorId?: string; // Avalista opcional
+    guarantorId?: string; 
     guarantorName?: string;
-
     startDate: string;
     endDate: string;
-    
     rentAmount: number;
     expensesType: 'fixed' | 'shared';
-    expensesAmount?: number; // Si es fijo
-    
+    expensesAmount?: number; 
     isProrated: boolean;
-    proratedAmount?: number; // Primer mes
-    
-    depositAmount: number; // Fianza legal
-    extraDeposit?: number; // Garantía adicional
-    
+    proratedAmount?: number; 
+    depositAmount: number; 
+    extraDeposit?: number; 
     status: 'active' | 'pending' | 'ended' | 'reserved';
     createdAt: any;
-    documents?: string[]; // URLs de PDFs generados
-    isExternal?: boolean; // Si es gestionado fuera (Rentger)
+    documents?: string[]; 
+    isExternal?: boolean; 
     externalRef?: string;
 }
 
-// --- OWNER ADJUSTMENTS (Discounts/Extras) ---
 export interface OwnerAdjustment {
     id: string;
     propertyId: string;
     propertyName: string;
     ownerId: string;
-    type: 'discount' | 'charge'; // Discount = dinero que LE REGALAMOS o DESCONTAMOS DE SU FACTURA (Positivo para él). Charge = Cargo extra.
+    type: 'discount' | 'charge'; 
     amount: number;
-    concept: string; // "Regalo navidad", "Compensación error", "Reparación urgente"
-    date: any; // Timestamp
-    appliedToMonth: string; // YYYY-MM
+    concept: string; 
+    date: any; 
+    appliedToMonth: string; 
 }
-
-// --- NEW TYPES FOR TASK MANAGER ---
 
 export type StaffMember = 'Pol' | 'Sandra' | 'Víctor' | 'Ayoub' | 'Hugo' | 'Colaboradores';
 export type TaskPriority = 'Alta' | 'Media' | 'Baja';
@@ -126,26 +139,24 @@ export type TaskCategory = 'Gestión' | 'Marketing' | 'Legal' | 'Operaciones' | 
 export interface TaskBoard {
     id: string;
     title: string;
-    group: string; // Para agrupar (ej: "Marketing", "Operaciones")
+    group: string; 
     createdAt: any;
 }
 
 export interface Task {
     id: string;
-    boardId?: string; // Link al tablero
+    boardId?: string; 
     title: string;
     description: string;
     assignee: StaffMember;
-    dueDate?: string; // ISO Date string
+    dueDate?: string; 
     priority: TaskPriority;
     status: TaskStatus;
     category: TaskCategory;
     subtasks?: { id: string; text: string; done: boolean }[];
-    googleEventId?: string; // Link to Google Calendar
+    googleEventId?: string; 
     createdAt: any;
 }
-
-// --- NEW TYPES FOR CANDIDATE PIPELINE ---
 
 export type CandidateStatus = 'pending_review' | 'approved' | 'rejected' | 'archived' | 'rented';
 
@@ -160,16 +171,13 @@ export interface Candidate {
     roomId: string;
     roomName: string;
     submittedBy: string;
-    submittedAt: any; // Firestore Timestamp
+    submittedAt: any; 
     status: CandidateStatus;
-    
-    // New fields for closure
-    closureReason?: string; // Por qué se rechazó o archivó (ej: "Encontró otro piso")
-    assignedRoomId?: string; // ID de la habitación si finalmente alquiló
+    closureReason?: string; 
+    assignedRoomId?: string; 
     assignedDate?: any;
 }
 
-// --- NEW TYPES FOR ROOM VISITS ---
 export type VisitOutcome = 'successful' | 'unsuccessful' | 'pending';
 
 export interface RoomVisit {
@@ -179,13 +187,12 @@ export interface RoomVisit {
     roomId: string;
     roomName: string;
     workerName: string;
-    visitDate: any; // Firestore Timestamp
+    visitDate: any; 
     outcome: VisitOutcome;
     comments: string;
     commission: number;
 }
 
-// --- NEW TYPE FOR INTERNAL NEWS ---
 export interface InternalNews {
     id: string;
     title: string;
@@ -196,13 +203,11 @@ export interface InternalNews {
     active: boolean;
 }
 
-// --- NEW TYPES FOR OPPORTUNITY REQUESTS (COLLABORATORS) ---
-
 export const ITP_RATES: Record<string, number> = {
     'Andalucía': 7,
     'Aragón': 8,
     'Asturias': 8,
-    'Baleares': 8, // Variable, base 8
+    'Baleares': 8, 
     'Canarias': 6.5,
     'Cantabria': 10,
     'Castilla-La Mancha': 9,
@@ -217,7 +222,7 @@ export const ITP_RATES: Record<string, number> = {
     'Melilla': 6,
     'Murcia': 8,
     'Navarra': 6,
-    'País Vasco': 4, // Vizcaya/Álava variable, Gipuzkoa 4
+    'País Vasco': 4, 
 };
 
 export type AssetType = 'Vivienda' | 'Piso' | 'Casa independiente' | 'Edificio completo' | 'Pack de viviendas' | 'Habitación';
@@ -225,25 +230,21 @@ export type AssetState = 'Obra nueva' | 'Buen estado' | 'Reformado' | 'Para refo
 export type RentalStatus = 'Sin alquilar' | 'Alquilada completa' | 'Alquilada por habitaciones';
 
 export interface AssetSubmission {
-    id: string; // Temporary UI ID
+    id: string; 
     type: AssetType;
     title: string;
     province: string;
-    region: string; // Comunidad Autónoma
+    region: string; 
     municipality: string;
     address: string;
     zone: string;
     yearBuilt: number;
     state: AssetState;
-    
-    // Económicos
     ibi: number;
     otherTaxes: number;
     communityFees: number;
     itpPercent: number;
     price: number;
-    
-    // Specs
     builtMeters: number;
     usefulMeters: number;
     rooms: number;
@@ -252,18 +253,14 @@ export interface AssetSubmission {
     hasElevator: boolean;
     hasParking: boolean;
     hasStorage: boolean;
-    energyCertificate: string; // "A"-"G" or "Pending"
-    
-    // Alquiler
+    energyCertificate: string; 
     rentalStatus: RentalStatus;
     isRented?: boolean;
-    currentRent?: number; // Mensual total
+    currentRent?: number; 
     contractDate?: string;
     rentedRoomsCount?: number;
-    
-    // Fotos
     images: string[];
-    documents: string[]; // URLs
+    documents: string[]; 
 }
 
 export interface OpportunityRequest {
@@ -275,7 +272,7 @@ export interface OpportunityRequest {
         relation: 'propietario' | 'mediador' | 'agencia' | 'amigo' | 'otro';
     };
     assets: AssetSubmission[];
-    packPrice?: number; // Si es un pack
+    packPrice?: number; 
     isBuilding?: boolean;
     buildingDetails?: {
         totalUnits: number;

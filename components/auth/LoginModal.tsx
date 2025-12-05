@@ -1,11 +1,9 @@
 
 import React, { useState } from 'react';
 import { X, Lock, User, KeyRound, AlertCircle, ArrowRight, ShieldCheck, Eye, EyeOff } from 'lucide-react';
-import { auth, db } from '../../firebase';
+import { auth } from '../../firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { collection, query, where, getDocs } from 'firebase/firestore';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { useAuth } from '../../contexts/AuthContext';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -19,9 +17,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { t } = useLanguage();
-  const { simulateLogin } = useAuth();
-
-  const MASTER_PASSWORD = "adminrentiaA!";
 
   if (!isOpen) return null;
 
@@ -31,55 +26,20 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
     setLoading(true);
 
     try {
-      // 1. INTENTO DE LOGIN REAL (PRIORITARIO)
-      // Intentamos autenticar con Firebase directamente. 
-      // Si la contraseña introducida es la correcta del usuario (aunque coincida con la maestra),
-      // obtendremos un token válido y permisos de escritura (Storage/Firestore) reales.
+      // Login directo contra Firebase Auth
       await signInWithEmailAndPassword(auth, email, password);
       onClose();
-      
     } catch (firebaseError: any) {
-      // 2. FALLBACK A MODO MAESTRO / SIMULADO
-      // Si el login real falla, comprobamos si la contraseña usada es la Maestra.
-      // Esto permite entrar a cuentas aunque no sepamos su contraseña real (Modo Lectura/Simulado).
-      
-      if (password === MASTER_PASSWORD) {
-          try {
-              // Buscamos al usuario en Firestore por su email para obtener sus datos
-              const q = query(collection(db, "users"), where("email", "==", email));
-              const querySnapshot = await getDocs(q);
-
-              if (!querySnapshot.empty) {
-                  const userDoc = querySnapshot.docs[0];
-                  const userData = userDoc.data();
-
-                  if (userData.active === false) {
-                      setError("Usuario desactivado.");
-                      setLoading(false);
-                      return;
-                  }
-
-                  // Login Simulado (Sin token real de Firebase, solo estado local)
-                  simulateLogin(userData.role, {
-                      uid: userDoc.id,
-                      email: userData.email,
-                      displayName: userData.name
-                  });
-                  
-                  onClose();
-                  setLoading(false);
-                  return;
-              }
-          } catch (simError) {
-              console.error("Error en simulación:", simError);
-          }
+      console.error("Login failed", firebaseError);
+      // Mensajes de error amigables
+      if (firebaseError.code === 'auth/invalid-credential' || firebaseError.code === 'auth/user-not-found' || firebaseError.code === 'auth/wrong-password') {
+          setError('Usuario o contraseña incorrectos.');
+      } else if (firebaseError.code === 'auth/too-many-requests') {
+          setError('Demasiados intentos fallidos. Inténtalo más tarde.');
+      } else {
+          setError('Error de acceso. Verifica tus credenciales.');
       }
-
-      // Si no es contraseña maestra ni login real, mostramos error
-      console.error("Login attempt failed", firebaseError);
-      setError('Credenciales no válidas o acceso denegado.');
     } finally {
-      // Solo quitamos loading si no hemos cerrado el modal (éxito)
       if (isOpen) setLoading(false);
     }
   };
@@ -88,29 +48,23 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-[10002] flex items-center justify-center p-4">
-      {/* Backdrop con Blur intenso y oscuro para resaltar el modal */}
+      {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity animate-in fade-in duration-500"
         onClick={onClose}
       ></div>
 
-      {/* Modal Card Flotante con diseño Glass/Premium */}
+      {/* Modal Card */}
       <div className="relative w-full max-w-[380px] animate-in zoom-in-95 slide-in-from-bottom-8 duration-500">
         
-        {/* Contenedor Principal con efecto cristal en bordes */}
         <div className="relative bg-white rounded-3xl shadow-2xl overflow-hidden ring-1 ring-white/50">
             
-            {/* Cabecera con degradado y elementos flotantes */}
+            {/* Cabecera */}
             <div className="relative bg-gradient-to-br from-[#0072CE] to-[#00509e] pt-12 pb-16 px-8 text-center overflow-hidden">
-                
-                {/* Decoración de fondo abstracta */}
                 <div className="absolute top-0 left-0 w-full h-full opacity-20">
                     <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] rotate-12"></div>
                 </div>
-                <div className="absolute top-[-20px] right-[-20px] w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
-                <div className="absolute bottom-[-20px] left-[-20px] w-32 h-32 bg-black/10 rounded-full blur-2xl"></div>
-
-                {/* Botón Cerrar Flotante */}
+                
                 <button 
                     onClick={onClose} 
                     className="absolute top-4 right-4 text-white/60 hover:text-white bg-black/10 hover:bg-black/20 rounded-full p-2 transition-all backdrop-blur-sm z-20"
@@ -118,7 +72,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                     <X className="w-4 h-4" />
                 </button>
 
-                {/* Icono Central "Glassmorphism" */}
                 <div className="relative z-10 mx-auto w-20 h-20 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mb-4 shadow-[0_8px_32px_0_rgba(0,0,0,0.2)] border border-white/30 ring-1 ring-white/20 transform rotate-3 hover:rotate-0 transition-transform duration-500">
                     <Lock className="w-9 h-9 text-white drop-shadow-md" />
                 </div>
@@ -129,7 +82,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                 </p>
             </div>
 
-            {/* Cuerpo del Formulario con superposición curva */}
+            {/* Formulario */}
             <div className="relative px-8 pt-10 pb-8 bg-white -mt-10 rounded-t-[2.5rem]">
                 
                 <form onSubmit={handleLogin} className="space-y-5">
@@ -194,12 +147,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                             disabled={loading}
                             className="w-full bg-[#1c1c1c] text-white font-bold py-4 rounded-xl hover:bg-black transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 transform active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed group relative overflow-hidden"
                         >
-                            <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
-                            
                             {loading ? (
                                 <span className="flex items-center gap-2 text-sm">
                                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                                    Verificando...
+                                    Accediendo...
                                 </span>
                             ) : (
                                 <>
@@ -221,13 +172,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                         </a>
                     </div>
                 </form>
-            </div>
-            
-            {/* Footer */}
-            <div className="bg-gray-50 py-3 text-center border-t border-gray-100/50">
-                <p className="text-[9px] text-gray-300 font-mono tracking-wider">
-                    RentiaRoom Secure Access • 256-bit Encrypted
-                </p>
             </div>
         </div>
       </div>

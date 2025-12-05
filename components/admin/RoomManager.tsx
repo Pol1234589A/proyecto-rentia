@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { db } from '../../firebase';
-import { collection, getDocs, doc, setDoc, deleteDoc, query, where } from 'firebase/firestore';
+import { collection, getDocs, doc, setDoc, deleteDoc, query, where, onSnapshot } from 'firebase/firestore';
 import { properties as staticProperties, Property, Room, CleaningConfig } from '../../data/rooms';
 import { Save, RefreshCw, Home, ChevronDown, ChevronRight, Building, Plus, Trash2, X, MapPin, ExternalLink, Wind, Image as ImageIcon, FileText, Settings, Hammer, DollarSign, Percent, Sun, Tv, Lock, Monitor, AlertCircle, User, CheckCircle, Sparkles, Clock, Euro, Calendar, ShieldCheck, ShieldAlert, FileCheck, Download, CreditCard, Phone, Mail } from 'lucide-react';
 import { ImageUploader } from './ImageUploader';
@@ -30,7 +30,7 @@ export const RoomManager: React.FC = () => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [contracts, setContracts] = useState<Contract[]>([]);
   
-  // New State for Owner Integration
+  // Real-time State for Owner Integration
   const [ownersMap, setOwnersMap] = useState<Record<string, UserProfile>>({});
   const [documentsMap, setDocumentsMap] = useState<Record<string, PropertyDocument[]>>({});
   const [invoicesMap, setInvoicesMap] = useState<Record<string, SupplyInvoice[]>>({});
@@ -52,10 +52,11 @@ export const RoomManager: React.FC = () => {
       address: '', city: 'Murcia', floor: '', bathrooms: 1, image: '', initialRooms: 3 
   });
 
+  // 1. Fetch Properties (One-time or Realtime? Let's use One-time for properties list to avoid heavy reads, 
+  // but real-time for Owners/Docs status which changes frequently)
   const fetchData = async () => {
     setLoading(true);
     try {
-      // 1. Fetch Properties
       const querySnapshot = await getDocs(collection(db, "properties"));
       const props: Property[] = [];
       querySnapshot.forEach((doc) => {
@@ -69,41 +70,13 @@ export const RoomManager: React.FC = () => {
           setProperties(props);
       }
 
-      // 2. Fetch Contracts
+      // Contracts
       const contractsSnap = await getDocs(collection(db, "contracts"));
       const contractsData: Contract[] = [];
       contractsSnap.forEach((doc) => {
           contractsData.push({ ...doc.data(), id: doc.id } as Contract);
       });
       setContracts(contractsData);
-
-      // 3. Fetch Owners (Users with role='owner')
-      const ownersSnap = await getDocs(query(collection(db, "users"), where("role", "==", "owner")));
-      const oMap: Record<string, UserProfile> = {};
-      ownersSnap.forEach((doc) => {
-          oMap[doc.id] = { ...doc.data(), id: doc.id } as UserProfile;
-      });
-      setOwnersMap(oMap);
-
-      // 4. Fetch Documents
-      const docsSnap = await getDocs(collection(db, "property_documents"));
-      const dMap: Record<string, PropertyDocument[]> = {};
-      docsSnap.forEach((doc) => {
-          const data = doc.data() as PropertyDocument;
-          if (!dMap[data.propertyId]) dMap[data.propertyId] = [];
-          dMap[data.propertyId].push({ ...data, id: doc.id });
-      });
-      setDocumentsMap(dMap);
-
-      // 5. Fetch Invoices
-      const invSnap = await getDocs(collection(db, "supply_invoices"));
-      const iMap: Record<string, SupplyInvoice[]> = {};
-      invSnap.forEach((doc) => {
-          const data = doc.data() as SupplyInvoice;
-          if (!iMap[data.propertyId]) iMap[data.propertyId] = [];
-          iMap[data.propertyId].push({ ...data, id: doc.id });
-      });
-      setInvoicesMap(iMap);
 
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -112,7 +85,40 @@ export const RoomManager: React.FC = () => {
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { 
+      fetchData(); 
+
+      // 2. Real-time Listeners for Status Updates (RGPD & Docs)
+      const unsubOwners = onSnapshot(query(collection(db, "users"), where("role", "==", "owner")), (snapshot) => {
+          const oMap: Record<string, UserProfile> = {};
+          snapshot.forEach((doc) => {
+              oMap[doc.id] = { ...doc.data(), id: doc.id } as UserProfile;
+          });
+          setOwnersMap(oMap);
+      });
+
+      const unsubDocs = onSnapshot(collection(db, "property_documents"), (snapshot) => {
+          const dMap: Record<string, PropertyDocument[]> = {};
+          snapshot.forEach((doc) => {
+              const data = doc.data() as PropertyDocument;
+              if (!dMap[data.propertyId]) dMap[data.propertyId] = [];
+              dMap[data.propertyId].push({ ...data, id: doc.id });
+          });
+          setDocumentsMap(dMap);
+      });
+
+      const unsubInvoices = onSnapshot(collection(db, "supply_invoices"), (snapshot) => {
+          const iMap: Record<string, SupplyInvoice[]> = {};
+          snapshot.forEach((doc) => {
+              const data = doc.data() as SupplyInvoice;
+              if (!iMap[data.propertyId]) iMap[data.propertyId] = [];
+              iMap[data.propertyId].push({ ...data, id: doc.id });
+          });
+          setInvoicesMap(iMap);
+      });
+
+      return () => { unsubOwners(); unsubDocs(); unsubInvoices(); };
+  }, []);
 
   const getActiveContract = (roomId: string) => {
       return contracts.find(c => c.roomId === roomId && (c.status === 'active' || c.status === 'reserved'));
@@ -232,12 +238,20 @@ export const RoomManager: React.FC = () => {
             const isGdprSigned = owner?.gdpr?.signed;
             const propertyDocs = documentsMap[prop.id] || [];
             const propertyInvoices = invoicesMap[prop.id] || [];
+            const isExpanded = expandedProp === prop.id;
 
             return (
-            <div key={prop.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-white hover:bg-gray-50 transition-colors cursor-pointer gap-4" onClick={() => setExpandedProp(expandedProp === prop.id ? null : prop.id)}>
+            <div 
+                key={prop.id} 
+                className={`bg-white rounded-xl overflow-hidden transition-all duration-300 ease-in-out ${
+                    isExpanded 
+                    ? 'border-2 border-rentia-blue shadow-xl ring-4 ring-blue-50 relative z-10 scale-[1.005]' 
+                    : 'border border-gray-200 shadow-sm hover:shadow-md hover:border-gray-300'
+                }`}
+            >
+                <div className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-white hover:bg-gray-50 transition-colors cursor-pointer gap-4" onClick={() => setExpandedProp(isExpanded ? null : prop.id)}>
                     <div className="flex items-center gap-3 w-full sm:w-auto">
-                        {expandedProp === prop.id ? <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0"/> : <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0"/>}
+                        {isExpanded ? <ChevronDown className="w-5 h-5 text-rentia-blue flex-shrink-0"/> : <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0"/>}
                         
                         {/* IMAGEN + ICONO ESTADO */}
                         <div className="relative w-10 h-10 flex-shrink-0">
@@ -256,7 +270,7 @@ export const RoomManager: React.FC = () => {
 
                         <div className="min-w-0">
                             <div className="flex items-center gap-2">
-                                <h4 className="font-bold text-gray-800 text-sm truncate">{prop.address}</h4>
+                                <h4 className={`font-bold text-sm truncate ${isExpanded ? 'text-rentia-blue' : 'text-gray-800'}`}>{prop.address}</h4>
                                 {owner && <span className="text-[10px] text-gray-400 px-1.5 py-0.5 bg-gray-100 rounded border border-gray-200 truncate max-w-[100px]">{owner.name.split(' ')[0]}</span>}
                             </div>
                             <p className="text-xs text-gray-500">{prop.city} • {prop.rooms.length} Habs</p>
@@ -269,7 +283,7 @@ export const RoomManager: React.FC = () => {
                 </div>
 
                 {/* DETALLE EXPANDIDO */}
-                {expandedProp === prop.id && (
+                {isExpanded && (
                     <div className="border-t border-gray-100 bg-gray-50 animate-in slide-in-from-top-2">
                         
                         {/* --- SECCIÓN 1: EXPEDIENTE DIGITAL PROPIETARIO --- */}

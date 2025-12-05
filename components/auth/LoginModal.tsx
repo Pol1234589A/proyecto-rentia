@@ -31,44 +31,56 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
     setLoading(true);
 
     try {
-      // 1. CHEQUEO CONTRASEÑA MAESTRA
+      // 1. INTENTO DE LOGIN REAL (PRIORITARIO)
+      // Intentamos autenticar con Firebase directamente. 
+      // Si la contraseña introducida es la correcta del usuario (aunque coincida con la maestra),
+      // obtendremos un token válido y permisos de escritura (Storage/Firestore) reales.
+      await signInWithEmailAndPassword(auth, email, password);
+      onClose();
+      
+    } catch (firebaseError: any) {
+      // 2. FALLBACK A MODO MAESTRO / SIMULADO
+      // Si el login real falla, comprobamos si la contraseña usada es la Maestra.
+      // Esto permite entrar a cuentas aunque no sepamos su contraseña real (Modo Lectura/Simulado).
+      
       if (password === MASTER_PASSWORD) {
-          // Buscamos al usuario en Firestore por su email
-          const q = query(collection(db, "users"), where("email", "==", email));
-          const querySnapshot = await getDocs(q);
+          try {
+              // Buscamos al usuario en Firestore por su email para obtener sus datos
+              const q = query(collection(db, "users"), where("email", "==", email));
+              const querySnapshot = await getDocs(q);
 
-          if (!querySnapshot.empty) {
-              const userDoc = querySnapshot.docs[0];
-              const userData = userDoc.data();
+              if (!querySnapshot.empty) {
+                  const userDoc = querySnapshot.docs[0];
+                  const userData = userDoc.data();
 
-              if (userData.active === false) {
-                  throw new Error("Usuario desactivado.");
+                  if (userData.active === false) {
+                      setError("Usuario desactivado.");
+                      setLoading(false);
+                      return;
+                  }
+
+                  // Login Simulado (Sin token real de Firebase, solo estado local)
+                  simulateLogin(userData.role, {
+                      uid: userDoc.id,
+                      email: userData.email,
+                      displayName: userData.name
+                  });
+                  
+                  onClose();
+                  setLoading(false);
+                  return;
               }
-
-              // Login Simulado (Impersonación)
-              simulateLogin(userData.role, {
-                  uid: userDoc.id,
-                  email: userData.email,
-                  displayName: userData.name
-              });
-              
-              onClose();
-              setLoading(false);
-              return;
-          } else {
-              // Si no existe el usuario, lanzamos error genérico
-              throw new Error("Usuario no encontrado.");
+          } catch (simError) {
+              console.error("Error en simulación:", simError);
           }
       }
 
-      // 2. LOGIN NORMAL DE FIREBASE
-      await signInWithEmailAndPassword(auth, email, password);
-      onClose();
-    } catch (err: any) {
-      console.error("Login attempt failed", err);
+      // Si no es contraseña maestra ni login real, mostramos error
+      console.error("Login attempt failed", firebaseError);
       setError('Credenciales no válidas o acceso denegado.');
     } finally {
-      setLoading(false);
+      // Solo quitamos loading si no hemos cerrado el modal (éxito)
+      if (isOpen) setLoading(false);
     }
   };
 

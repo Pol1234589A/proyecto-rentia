@@ -5,22 +5,22 @@ service cloud.firestore {
 
     // --- 1. FUNCIONES DE AYUDA (HELPERS) ---
 
-    // Verifica si el usuario está logueado en Firebase Auth
+    // Verifica autenticación básica
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    // Verifica si el usuario es el dueño del propio documento (para editar perfil)
+    // Verifica si el usuario actúa sobre su propio documento
     function isSelf(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // Obtiene los datos del usuario actual desde la colección 'users' para verificar rol
+    // Obtiene los datos del usuario actual para verificar su rol
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
-    // Verifica si el usuario tiene un rol específico y la cuenta está activa
+    // Verifica rol y estado activo
     function hasRole(role) {
       let userData = getUserData();
       return isAuthenticated() && 
@@ -28,128 +28,136 @@ service cloud.firestore {
              (!("active" in userData) || userData.active == true);
     }
 
-    // --- 2. DEFINICIÓN DE ROLES ---
+    // --- 2. DEFINICIÓN DE PERFILES ---
 
-    // STAFF: Acceso administrativo total (Gerencia, Admin, Oficina)
+    // STAFF: Gerencia, Admin, Agencia (Acceso total)
     function isStaff() {
       return hasRole('staff') || hasRole('admin') || hasRole('agency');
     }
 
-    // WORKER: Trabajadores de campo (Comerciales, Mantenimiento)
+    // WORKER: Trabajadores de campo / Comerciales
     function isWorker() {
       return hasRole('worker');
     }
 
-    // OWNER: Propietarios de inmuebles
-    function isOwner() {
-      return hasRole('owner');
-    }
-
-    // TEAM: Equipo operativo interno (Staff + Workers)
+    // TEAM: Equipo interno completo (Staff + Workers)
     function isTeam() {
       return isStaff() || isWorker();
     }
 
-    // --- 3. REGLAS POR COLECCIÓN ---
+    // ROLES EXTERNOS
+    function isOwner() { return hasRole('owner'); }
+    function isTenant() { return hasRole('tenant'); }
 
-    // USUARIOS: Staff gestiona todo. Usuarios se leen a sí mismos.
-    // Lectura abierta a autenticados para que los selectores de "Asignado a" funcionen.
+    // --- 3. LÓGICA DE PROPIEDAD (SEGURIDAD DE DATOS) ---
+    
+    // Verifica si la propiedad referenciada en un documento pertenece al usuario actual (Propietario)
+    function propertyBelongsToOwner(propertyId) {
+       return get(/databases/$(database)/documents/properties/$(propertyId)).data.ownerId == request.auth.uid;
+    }
+
+    // --- 4. REGLAS POR COLECCIÓN ---
+
+    // USUARIOS
     match /users/{userId} {
-      allow read: if isAuthenticated(); 
-      allow create: if isStaff(); 
-      allow update: if isStaff() || isSelf(userId); 
+      allow read: if isAuthenticated(); // Necesario para Selectores y AuthContext
+      allow create: if isStaff();       // Solo Staff crea usuarios
+      allow update: if isStaff() || isSelf(userId); // Staff edita a todos, Usuario se edita a sí mismo
       allow delete: if isStaff();
     }
 
-    // PROPIEDADES: Público lectura (Web), Staff escritura (Inventario)
+    // PROPIEDADES (INVENTARIO)
     match /properties/{propertyId} {
-      allow read: if true; 
-      allow write: if isStaff(); 
+      allow read: if true; // Catálogo público para la web
+      allow write: if isStaff(); // Staff gestiona inventario y asigna propietarios
     }
 
-    // OPORTUNIDADES (INVERSIÓN): Público lectura, Staff escritura
+    // OPORTUNIDADES (INVERSIÓN)
     match /opportunities/{opportunityId} {
-      allow read: if true;
+      allow read: if true; // Público para captación de inversores
       allow write: if isStaff();
     }
 
-    // ENCARGOS DE COMPRA (BROKERS): Público lectura, Staff escritura
+    // ENCARGOS DE COMPRA (DEMANDAS)
     match /buyer_requests/{requestId} {
-      allow read: if true;
+      allow read: if true; // Visible en área pública de Brokers
       allow write: if isStaff();
     }
 
-    // CONTRATOS: Staff total. Owners e Inquilinos solo ven los suyos.
+    // CONTRATOS
     match /contracts/{contractId} {
+      // Staff ve todo. Propietarios e Inquilinos solo ven SUS contratos.
       allow read: if isStaff() 
         || (isAuthenticated() && resource.data.ownerId == request.auth.uid)
         || (isAuthenticated() && resource.data.tenantId == request.auth.uid);
       allow write: if isStaff();
     }
 
-    // TAREAS: Equipo operativo (Staff + Workers)
+    // TAREAS Y TABLEROS (GESTIÓN INTERNA)
     match /tasks/{taskId} {
-      allow read, write: if isTeam();
+      allow read, write: if isTeam(); // Todo el equipo colabora
     }
     match /task_boards/{boardId} {
       allow read, write: if isTeam();
     }
 
-    // MENSAJERÍA SOCIAL (CRM): Equipo operativo
+    // MENSAJERÍA / CRM
     match /social_inbox/{msgId} {
       allow read, write: if isTeam();
     }
 
-    // CONTABILIDAD: Estrictamente Staff (Datos financieros sensibles)
+    // CONTABILIDAD (SENSIBLE)
     match /accounting/{transactionId} {
-      allow read, write: if isStaff();
+      allow read, write: if isStaff(); // Solo administración
     }
 
-    // SUMINISTROS: Staff gestiona. 
+    // REGISTRO DE SUMINISTROS
     match /supply_records/{recordId} {
-      allow read: if isStaff(); 
+      // Staff gestiona. Propietario ve SOLO las facturas de sus propiedades.
+      allow read: if isStaff() || (isOwner() && propertyBelongsToOwner(resource.data.propertyId));
       allow write: if isStaff();
     }
 
-    // CANDIDATOS (PIPELINE): Workers crean/mueven, Staff gestiona/borra
+    // PIPELINE DE CANDIDATOS
     match /candidate_pipeline/{candidateId} {
       allow read: if isTeam();
-      allow create: if isTeam(); 
-      allow update: if isTeam(); 
+      allow create: if isTeam(); // Workers envían candidatos
+      allow update: if isTeam(); // Workers mueven estados
       allow delete: if isStaff();
     }
 
-    // VISITAS (LOG): Workers crean, Owners leen (Dashboard), Staff gestiona
+    // REGISTRO DE VISITAS
     match /room_visits/{visitId} {
-      allow read: if isTeam() || isOwner(); 
-      allow create: if isTeam();
-      allow update: if isStaff(); 
-      allow delete: if isStaff(); 
+      // Staff y Workers ven visitas. 
+      // Propietario ve SOLO visitas a SUS propiedades (Transparencia).
+      allow read: if isTeam() || (isOwner() && propertyBelongsToOwner(resource.data.propertyId));
+      allow create: if isTeam(); // Workers registran visitas
+      allow update, delete: if isStaff(); // Solo Staff corrige/borra
     }
 
-    // NOTICIAS INTERNAS: Staff publica, Equipo lee
+    // NOTICIAS INTERNAS
     match /internal_news/{newsId} {
       allow read: if isTeam();
       allow write: if isStaff();
     }
 
-    // TRACKING VENTAS: Staff
+    // TRACKING DE VENTAS
     match /sales_tracker/{activityId} {
       allow read, write: if isStaff();
     }
 
-    // REGISTRO DE INCIDENCIAS/RIESGOS (Antigua Blacklist): Estrictamente Staff (RGPD)
+    // BLACKLIST / INCIDENCIAS (SENSIBLE)
     match /tenant_blacklist/{entryId} {
       allow read, write: if isStaff();
     }
 
-    // MENSAJES WEB (Formulario contacto): Cualquiera crea, solo Staff lee
+    // MENSAJES WEB (CONTACTO)
     match /web_messages/{msgId} {
-      allow create: if true; 
+      allow create: if true; // Cualquiera puede enviar mensaje
       allow read, update, delete: if isStaff();
     }
 
-    // Bloqueo por defecto para cualquier otra colección no definida (Seguridad por defecto)
+    // Bloqueo por defecto
     match /{document=**} {
       allow read, write: if false;
     }

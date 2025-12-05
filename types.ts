@@ -103,6 +103,19 @@ export interface Contract {
     externalRef?: string;
 }
 
+// --- OWNER ADJUSTMENTS (Discounts/Extras) ---
+export interface OwnerAdjustment {
+    id: string;
+    propertyId: string;
+    propertyName: string;
+    ownerId: string;
+    type: 'discount' | 'charge'; // Discount = dinero que LE REGALAMOS o DESCONTAMOS DE SU FACTURA (Positivo para él). Charge = Cargo extra.
+    amount: number;
+    concept: string; // "Regalo navidad", "Compensación error", "Reparación urgente"
+    date: any; // Timestamp
+    appliedToMonth: string; // YYYY-MM
+}
+
 // --- NEW TYPES FOR TASK MANAGER ---
 
 export type StaffMember = 'Pol' | 'Sandra' | 'Víctor' | 'Ayoub' | 'Hugo' | 'Colaboradores';

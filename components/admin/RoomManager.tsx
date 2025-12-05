@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../../firebase';
 import { collection, getDocs, doc, setDoc, deleteDoc } from 'firebase/firestore';
-import { properties as staticProperties, Property, Room } from '../../data/rooms';
-import { Save, RefreshCw, Home, ChevronDown, ChevronRight, Building, Plus, Trash2, X, MapPin, ExternalLink, Wind, Image as ImageIcon, FileText, Settings, Hammer, DollarSign, Percent, Sun, Tv, Lock, Monitor, AlertCircle, User, CheckCircle } from 'lucide-react';
+import { properties as staticProperties, Property, Room, CleaningConfig } from '../../data/rooms';
+import { Save, RefreshCw, Home, ChevronDown, ChevronRight, Building, Plus, Trash2, X, MapPin, ExternalLink, Wind, Image as ImageIcon, FileText, Settings, Hammer, DollarSign, Percent, Sun, Tv, Lock, Monitor, AlertCircle, User, CheckCircle, Sparkles, Clock, Euro, Calendar } from 'lucide-react';
 import { ImageUploader } from './ImageUploader';
 import { ContractManager } from './ContractManager';
 import { Contract } from '../../types';
@@ -139,8 +139,28 @@ export const RoomManager: React.FC = () => {
       }
   };
 
-  const handlePropertyFieldChange = (propId: string, field: keyof Property, value: string) => {
+  const handlePropertyFieldChange = (propId: string, field: keyof Property, value: any) => {
       setProperties(prev => prev.map(p => p.id === propId ? { ...p, [field]: value } : p));
+  };
+
+  // --- LOGICA DE LIMPIEZA ---
+  const handleCleaningChange = (propId: string, field: keyof CleaningConfig, value: any) => {
+      setProperties(prev => prev.map(p => {
+          if (p.id !== propId) return p;
+          const currentConfig = p.cleaningConfig || { enabled: false, days: [], hours: '', costPerHour: 10, included: false };
+          return { ...p, cleaningConfig: { ...currentConfig, [field]: value } };
+      }));
+  };
+
+  const toggleCleaningDay = (propId: string, day: string) => {
+      setProperties(prev => prev.map(p => {
+          if (p.id !== propId) return p;
+          const config = p.cleaningConfig || { enabled: true, days: [], hours: '', costPerHour: 10, included: false };
+          const newDays = config.days.includes(day) 
+              ? config.days.filter(d => d !== day)
+              : [...config.days, day];
+          return { ...p, cleaningConfig: { ...config, days: newDays } };
+      }));
   };
 
   const handleRoomChange = (propId: string, roomId: string, field: keyof Room, value: any) => {
@@ -284,9 +304,89 @@ export const RoomManager: React.FC = () => {
                                 <input value={prop.address} onChange={(e) => handlePropertyFieldChange(prop.id, 'address', e.target.value)} className="border p-2 rounded text-sm" placeholder="Dirección" />
                                 <input value={prop.floor} onChange={(e) => handlePropertyFieldChange(prop.id, 'floor', e.target.value)} className="border p-2 rounded text-sm" placeholder="Planta" />
                                 <input value={prop.googleMapsLink} onChange={(e) => handlePropertyFieldChange(prop.id, 'googleMapsLink', e.target.value)} className="border p-2 rounded text-sm" placeholder="Link Maps" />
+                                {/* Nuevo campo: Día de Transferencia */}
+                                <div className="relative">
+                                    <Calendar className="w-4 h-4 absolute left-2.5 top-2.5 text-gray-400"/>
+                                    <input 
+                                        type="number" 
+                                        min="1" 
+                                        max="31"
+                                        value={prop.transferDay || ''} 
+                                        onChange={(e) => handlePropertyFieldChange(prop.id, 'transferDay', Number(e.target.value))} 
+                                        className="border p-2 pl-9 rounded text-sm w-full" 
+                                        placeholder="Día Pago (1-31)" 
+                                        title="Día de transferencia al propietario"
+                                    />
+                                </div>
+                            </div>
+                            <div className="mb-4">
                                 <ImageUploader folder="properties" label="Portada" compact onUploadComplete={(url) => handlePropertyFieldChange(prop.id, 'image', url)} />
                             </div>
-                            <div className="flex justify-end">
+
+                            {/* SECCIÓN CONFIGURACIÓN LIMPIEZA */}
+                            <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-4 mt-4">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <Sparkles className="w-4 h-4 text-indigo-600" />
+                                    <h6 className="font-bold text-sm text-indigo-900">Servicio de Limpieza (App Inquilino)</h6>
+                                </div>
+                                
+                                <div className="flex flex-wrap items-center gap-4 mb-4">
+                                    <label className="flex items-center gap-2 cursor-pointer bg-white px-3 py-1.5 rounded border border-indigo-200">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={prop.cleaningConfig?.enabled || false} 
+                                            onChange={(e) => handleCleaningChange(prop.id, 'enabled', e.target.checked)}
+                                            className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                                        />
+                                        <span className="text-xs font-bold text-indigo-700">Activar Servicio</span>
+                                    </label>
+                                    
+                                    {prop.cleaningConfig?.enabled && (
+                                        <>
+                                            <div className="flex items-center gap-1 bg-white px-2 py-1 rounded border border-indigo-200">
+                                                <Clock className="w-3 h-3 text-indigo-400" />
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="Horario (10:00 - 13:00)" 
+                                                    className="text-xs border-none focus:ring-0 w-32 p-0"
+                                                    value={prop.cleaningConfig?.hours || ''}
+                                                    onChange={(e) => handleCleaningChange(prop.id, 'hours', e.target.value)}
+                                                />
+                                            </div>
+                                            <div className="flex items-center gap-1 bg-white px-2 py-1 rounded border border-indigo-200">
+                                                <Euro className="w-3 h-3 text-indigo-400" />
+                                                <input 
+                                                    type="number" 
+                                                    placeholder="Coste/Hora" 
+                                                    className="text-xs border-none focus:ring-0 w-20 p-0"
+                                                    value={prop.cleaningConfig?.costPerHour || ''}
+                                                    onChange={(e) => handleCleaningChange(prop.id, 'costPerHour', Number(e.target.value))}
+                                                />
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+
+                                {prop.cleaningConfig?.enabled && (
+                                    <div className="flex flex-wrap gap-2">
+                                        {['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(day => (
+                                            <button
+                                                key={day}
+                                                onClick={() => toggleCleaningDay(prop.id, day)}
+                                                className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${
+                                                    prop.cleaningConfig?.days.includes(day)
+                                                    ? 'bg-indigo-600 text-white shadow-sm'
+                                                    : 'bg-white text-gray-500 border border-indigo-100 hover:border-indigo-300'
+                                                }`}
+                                            >
+                                                {day}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="flex justify-end mt-4">
                                 <button onClick={() => handleSaveAll(prop.id)} className="bg-rentia-black text-white px-4 py-2 rounded text-xs font-bold flex items-center gap-2 hover:bg-gray-800"><Save className="w-3 h-3"/> Guardar Todo</button>
                             </div>
                         </div>

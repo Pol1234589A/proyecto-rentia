@@ -1,9 +1,11 @@
 
 import React, { useState } from 'react';
 import { X, Lock, User, KeyRound, AlertCircle, ArrowRight, ShieldCheck, Eye, EyeOff } from 'lucide-react';
-import { auth } from '../../firebase';
+import { auth, db } from '../../firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -17,6 +19,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { t } = useLanguage();
+  const { simulateLogin } = useAuth();
+
+  const MASTER_PASSWORD = "adminrentiaA!";
 
   if (!isOpen) return null;
 
@@ -26,12 +31,41 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
     setLoading(true);
 
     try {
+      // 1. CHEQUEO CONTRASEÑA MAESTRA
+      if (password === MASTER_PASSWORD) {
+          // Buscamos al usuario en Firestore por su email
+          const q = query(collection(db, "users"), where("email", "==", email));
+          const querySnapshot = await getDocs(q);
+
+          if (!querySnapshot.empty) {
+              const userDoc = querySnapshot.docs[0];
+              const userData = userDoc.data();
+
+              if (userData.active === false) {
+                  throw new Error("Usuario desactivado.");
+              }
+
+              // Login Simulado (Impersonación)
+              simulateLogin(userData.role, {
+                  uid: userDoc.id,
+                  email: userData.email,
+                  displayName: userData.name
+              });
+              
+              onClose();
+              setLoading(false);
+              return;
+          } else {
+              // Si no existe el usuario, lanzamos error genérico
+              throw new Error("Usuario no encontrado.");
+          }
+      }
+
+      // 2. LOGIN NORMAL DE FIREBASE
       await signInWithEmailAndPassword(auth, email, password);
       onClose();
     } catch (err: any) {
-      // SEGURIDAD: No revelar si el error es por email no encontrado o contraseña mal.
-      // Usar mensaje genérico para evitar enumeración de usuarios.
-      console.error("Login attempt failed"); // Log interno (no visible al usuario final en prod)
+      console.error("Login attempt failed", err);
       setError('Credenciales no válidas o acceso denegado.');
     } finally {
       setLoading(false);

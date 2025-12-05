@@ -58,51 +58,39 @@ service cloud.firestore {
     // --- 4. REGLAS POR COLECCIÓN ---
 
     // USUARIOS
-    // - Lectura: Autenticados (necesario para verificar perfil al hacer login)
-    // - Escritura: Solo Staff puede crear/borrar. 
-    // - Actualización: Staff o el propio usuario (pero sin tocar permisos críticos)
     match /users/{userId} {
-      allow read: if isAuthenticated(); 
+      allow read: if true; 
       allow create: if isStaff();       
       allow update: if isStaff() || (isSelf(userId) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'active', 'createdBy'])); 
       allow delete: if isStaff();
     }
 
     // PROPIEDADES (INVENTARIO)
-    // - Lectura pública (Catálogo web)
-    // - Escritura restringida a Staff
+    // El campo 'transferDay' se guarda aquí.
     match /properties/{propertyId} {
       allow read: if true; 
       allow write: if isStaff();
     }
 
     // OPORTUNIDADES (INVERSIÓN)
-    // - Lectura pública (Landing page)
-    // - Escritura restringida a Staff
     match /opportunities/{opportunityId} {
       allow read: if true; 
       allow write: if isStaff();
     }
     
-    // SOLICITUDES DE OPORTUNIDAD (FORMULARIO COLABORADORES - GDPR)
-    // - Creación pública (Formulario web sin login): allow create: if true
-    // - Lectura/Edición/Borrado: SOLO STAFF (Backoffice). Protege los datos personales.
+    // SOLICITUDES DE OPORTUNIDAD (FORMULARIO COLABORADORES)
     match /opportunity_requests/{requestId} {
       allow create: if true; 
       allow read, update, delete: if isStaff();
     }
 
     // ENCARGOS DE COMPRA (DEMANDAS)
-    // - Lectura pública (Sección Brokers)
-    // - Escritura Staff
     match /buyer_requests/{requestId} {
       allow read: if true; 
       allow write: if isStaff();
     }
 
     // CONTRATOS
-    // - Lectura: Staff + Dueño implicado + Inquilino implicado
-    // - Escritura: Staff
     match /contracts/{contractId} {
       allow read: if isStaff() 
         || (isAuthenticated() && resource.data.ownerId == request.auth.uid)
@@ -110,13 +98,19 @@ service cloud.firestore {
       allow write: if isStaff();
     }
 
-    // TAREAS Y TABLEROS (GESTIÓN INTERNA)
-    // - Acceso total para todo el equipo interno
+    // TAREAS Y TABLEROS (GESTIÓN DE INCIDENCIAS)
     match /tasks/{taskId} {
-      allow read, write: if isTeam();
+      allow read: if isTeam() || (isOwner() && propertyBelongsToOwner(resource.data.propertyId));
+      allow write: if isTeam();
     }
     match /task_boards/{boardId} {
       allow read, write: if isTeam();
+    }
+
+    // AJUSTES ECONOMICOS PROPIETARIOS (DESCUENTOS/EXTRAS)
+    match /adjustments/{adjustmentId} {
+      allow read: if isStaff() || (isOwner() && propertyBelongsToOwner(resource.data.propertyId));
+      allow write: if isStaff();
     }
 
     // MENSAJERÍA / CRM
@@ -125,31 +119,24 @@ service cloud.firestore {
     }
 
     // CONTABILIDAD (SENSIBLE)
-    // - Solo Staff
     match /accounting/{transactionId} {
       allow read, write: if isStaff();
     }
 
     // REGISTRO DE SUMINISTROS
-    // - Lectura: Staff + Dueño de la propiedad
-    // - Escritura: Staff
     match /supply_records/{recordId} {
       allow read: if isStaff() || (isOwner() && propertyBelongsToOwner(resource.data.propertyId));
       allow write: if isStaff();
     }
 
     // PIPELINE DE CANDIDATOS
-    // - Lectura/Creación/Edición: Equipo completo (Workers envían candidatos)
-    // - Borrado: Solo Staff (Gerencia)
     match /candidate_pipeline/{candidateId} {
-      allow read, create, update: if isTeam();
+      allow read: if isTeam() || (isOwner() && propertyBelongsToOwner(resource.data.propertyId));
+      allow create, update: if isTeam();
       allow delete: if isStaff();
     }
 
     // REGISTRO DE VISITAS
-    // - Lectura: Equipo + Dueño
-    // - Creación: Equipo (Workers registran visitas)
-    // - Modificación: Solo Staff
     match /room_visits/{visitId} {
       allow read: if isTeam() || (isOwner() && propertyBelongsToOwner(resource.data.propertyId));
       allow create: if isTeam();
@@ -168,20 +155,17 @@ service cloud.firestore {
     }
 
     // BLACKLIST / INCIDENCIAS (MUY SENSIBLE)
-    // - Solo Staff
     match /tenant_blacklist/{entryId} {
       allow read, write: if isStaff(); 
     }
 
     // MENSAJES WEB (CONTACTO)
-    // - Creación pública
-    // - Lectura Staff
     match /web_messages/{msgId} {
       allow create: if true;
       allow read, update, delete: if isStaff();
     }
 
-    // Bloqueo por defecto para cualquier otra colección no definida
+    // Bloqueo por defecto
     match /{document=**} {
       allow read, write: if false;
     }

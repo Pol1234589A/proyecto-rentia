@@ -26,6 +26,14 @@ export interface Room {
   commissionValue?: number; // El valor (ej: 10 para 10%, o 50 para 50€)
 }
 
+export interface CleaningConfig {
+    enabled: boolean;
+    days: string[]; // ['Lunes', 'Miércoles']
+    hours: string; // '10:00 - 13:00'
+    costPerHour: number;
+    included: boolean; // Si está incluido en el precio o se paga aparte
+}
+
 export interface Property {
   id: string;
   ownerId?: string; // ID del usuario propietario (Firebase UID)
@@ -36,11 +44,13 @@ export interface Property {
   bathrooms?: number; // Nuevo campo: Baños de la vivienda
   googleMapsLink: string;
   driveLink?: string; // Nuevo campo para carpeta Drive
+  transferDay?: number; // Día del mes en que se hace la transferencia al propietario
   rooms: Room[];
   suppliesConfig?: {
       type: 'fixed' | 'shared';
       fixedAmount?: number;
   };
+  cleaningConfig?: CleaningConfig;
 }
 
 // Función auxiliar para generar enlace de maps

@@ -11,8 +11,9 @@ interface AuthContextType {
   currentUser: User | null;
   userRole: UserRole;
   loading: boolean;
+  isSimulated: boolean; // Nuevo flag para saber si es login maestro
   logout: () => Promise<void>;
-  simulateLogin: (role: UserRole) => void; 
+  simulateLogin: (role: UserRole, customData?: { uid: string, email: string, displayName: string }) => void; 
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,9 +28,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userRole, setUserRole] = useState<UserRole>(null);
   const [loading, setLoading] = useState(true);
+  const [isSimulated, setIsSimulated] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      // Si estamos en modo simulado, no dejar que el listener de Auth real lo sobrescriba inmediatamente
+      if (isSimulated) {
+          setLoading(false);
+          return;
+      }
+
       setLoading(true);
 
       if (user) {
@@ -75,23 +83,52 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
 
     return unsubscribe;
-  }, []);
+  }, [isSimulated]);
 
   const logout = async () => {
-    await signOut(auth);
-    setUserRole(null);
-    setCurrentUser(null);
+    if (isSimulated) {
+        setIsSimulated(false);
+        setUserRole(null);
+        setCurrentUser(null);
+    } else {
+        await signOut(auth);
+        setUserRole(null);
+        setCurrentUser(null);
+    }
     window.location.hash = '#/';
   };
 
-  // Función DEMO para pruebas de interfaz sin backend
-  const simulateLogin = (role: UserRole) => {
+  // Función login simulado (o Maestro)
+  const simulateLogin = (role: UserRole, customData?: { uid: string, email: string, displayName: string }) => {
+    setIsSimulated(true);
     setUserRole(role);
-    setCurrentUser({ email: `demo.${role}@rentiaroom.com`, uid: 'demo-uid' } as User); 
+    
+    // Creamos un objeto similar a User de Firebase
+    const fakeUser = { 
+        email: customData?.email || `demo.${role}@rentiaroom.com`, 
+        uid: customData?.uid || 'demo-uid',
+        displayName: customData?.displayName || 'Usuario Simulado',
+        emailVerified: true,
+        isAnonymous: false,
+        metadata: {},
+        providerData: [],
+        refreshToken: '',
+        tenantId: null,
+        delete: async () => {},
+        getIdToken: async () => 'fake-token',
+        getIdTokenResult: async () => ({} as any),
+        reload: async () => {},
+        toJSON: () => ({}),
+        phoneNumber: null,
+        photoURL: null,
+        providerId: 'custom'
+    } as unknown as User;
+
+    setCurrentUser(fakeUser); 
   };
 
   return (
-    <AuthContext.Provider value={{ currentUser, userRole, loading, logout, simulateLogin }}>
+    <AuthContext.Provider value={{ currentUser, userRole, loading, isSimulated, logout, simulateLogin }}>
       {children}
     </AuthContext.Provider>
   );

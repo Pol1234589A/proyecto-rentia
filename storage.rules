@@ -3,83 +3,64 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     
-    // --- FUNCIONES DE AYUDA ---
-
-    function getRole() {
-      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role;
+    function isAuth() {
+      return request.auth != null;
     }
 
-    function isStaff() {
-      return request.auth != null && (getRole() == 'staff' || getRole() == 'admin' || getRole() == 'agency');
+    // 1. FIRMAS RGPD
+    match /signatures/{userId}/{allPaths=**} {
+      allow read: if isAuth();
+      allow write: if request.auth.uid == userId;
     }
 
-    function isTeam() {
-      return request.auth != null && (getRole() == 'staff' || getRole() == 'admin' || getRole() == 'agency' || getRole() == 'worker');
-    }
-    
-    function isOwner() {
-      return request.auth != null && getRole() == 'owner';
+    // 2. DOCUMENTOS Y FACTURAS PROPIEDADES
+    match /documents/{propertyId}/{allPaths=**} {
+      allow read: if isAuth();
+      allow write: if isAuth();
     }
 
-    // --- REGLAS POR CARPETA ---
+    match /invoices/{propertyId}/{allPaths=**} {
+      allow read: if isAuth();
+      allow write: if isAuth();
+    }
 
-    // Oportunidades e Inmuebles: Público lectura (para mostrar en web), Staff/Team escritura
+    // 3. FACTURAS DE TRABAJADORES
+    match /worker_invoices/{userId}/{allPaths=**} {
+      allow read, write: if isAuth();
+    }
+
+    // 4. IMÁGENES PÚBLICAS (Oportunidades, Propiedades, Habitaciones)
     match /opportunities/{allPaths=**} {
       allow read: if true;
-      allow write: if isStaff();
+      allow write: if isAuth(); 
     }
     
     match /properties/{allPaths=**} {
       allow read: if true;
-      allow write: if isTeam(); 
+      allow write: if isAuth();
     }
     
     match /rooms/{allPaths=**} {
       allow read: if true;
-      allow write: if isTeam(); 
+      allow write: if isAuth();
     }
 
-    // Feeds XML: Público lectura, Staff escritura
-    match /feeds/{allPaths=**} {
-      allow read: if true;
-      allow write: if isStaff();
-    }
-
-    // Documentación Privada (Contratos, DNIs): Solo accesible por el dueño/inquilino propio o staff
-    match /contracts/{userId}/{allPaths=**} {
-      allow read: if request.auth != null && (request.auth.uid == userId || isStaff());
-      allow write: if isStaff();
-    }
-    
-    // SOLICITUDES PUBLICAS DE COLABORADORES (FORMULARIO WEB)
+    // 5. SOLICITUDES COLABORADORES (Subida Pública para formulario web)
+    // Permite create a cualquiera (para el form), read solo autenticados (staff revisando)
     match /requests/{requestId}/{allPaths=**} {
-      allow read: if isStaff();
-      allow write: if true; 
+      allow create: if true;
+      allow read: if isAuth();
     }
 
-    // --- NUEVAS REGLAS PARA AREA PROPIETARIO ---
-
-    // Firmas RGPD: Cada usuario escribe en su carpeta
-    match /signatures/{userId}/{allPaths=**} {
-      allow read: if isStaff() || (request.auth != null && request.auth.uid == userId);
-      allow write: if request.auth != null && request.auth.uid == userId;
+    // 6. FEEDS XML (Público para sincronización con portales)
+    match /feeds/{fileName} {
+      allow read: if true;
+      allow write: if isAuth();
     }
 
-    // Facturas y Documentos: Propietarios pueden subir a cualquier carpeta de ID propiedad (simplificado para evitar errores de lookup)
-    // En producción idealmente validaríamos ownership, pero Firestore Rules ya valida la metadata.
-    match /invoices/{propertyId}/{allPaths=**} {
-      allow read: if isStaff() || isOwner();
-      allow write: if isStaff() || isOwner();
-    }
-
-    match /documents/{propertyId}/{allPaths=**} {
-      allow read: if isStaff() || isOwner();
-      allow write: if isStaff() || isOwner();
-    }
-
-    // Regla por defecto: Bloqueo total
+    // Regla por defecto
     match /{allPaths=**} {
-      allow read, write: if isStaff();
+      allow read, write: if isAuth(); 
     }
   }
 }

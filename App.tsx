@@ -21,6 +21,7 @@ import { LegalModals, ModalType } from './components/LegalModals';
 import { CollaborationBanner } from './components/CollaborationBanner';
 import { OpportunityCard } from './components/OpportunityCard'; 
 import { LandingView } from './components/LandingView';
+import { InvestorDossier } from './components/InvestorDossier'; // Nueva importación
 import { Opportunity } from './types';
 import { opportunities as staticOpportunities } from './data';
 import { TrendingUp, MessageCircle, Bell } from 'lucide-react';
@@ -30,7 +31,7 @@ import { db } from './firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
 
 // Type alias
-type ViewType = 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts' | 'blog' | 'brokers' | 'intranet' | 'landing' | 'submission';
+type ViewType = 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts' | 'blog' | 'brokers' | 'intranet' | 'landing' | 'submission' | 'dossier';
 
 // Mapping Hash paths
 const PATH_MAP: Record<string, ViewType> = {
@@ -44,7 +45,8 @@ const PATH_MAP: Record<string, ViewType> = {
   '#/blog': 'blog',
   '#/colaboradores': 'brokers',
   '#/intranet': 'intranet',
-  '#/landing': 'landing'
+  '#/landing': 'landing',
+  '#/dossier': 'dossier'
 };
 
 const VIEW_TO_HASH: Record<ViewType, string> = {
@@ -59,7 +61,8 @@ const VIEW_TO_HASH: Record<ViewType, string> = {
   'brokers': '#/colaboradores',
   'intranet': '#/intranet',
   'landing': '#/landing',
-  'submission': '#/colaboradores' // Redirige a brokers si se intenta acceder
+  'dossier': '#/dossier',
+  'submission': '#/colaboradores'
 };
 
 function AppContent() {
@@ -104,7 +107,7 @@ function AppContent() {
         const [baseHash, query] = hash.split('?');
 
         // Soporte para detalles
-        if (baseHash === '#/oportunidades' || baseHash === '#/landing') {
+        if (baseHash === '#/oportunidades' || baseHash === '#/landing' || baseHash === '#/dossier') {
             if (query) {
                 const params = new URLSearchParams(query);
                 const oppId = params.get('opp');
@@ -147,6 +150,10 @@ function AppContent() {
   const handleBackToLanding = () => {
     window.location.hash = '#/landing';
   };
+  
+  const handleBackToDossier = () => {
+    window.location.hash = '#/dossier';
+  };
 
   const handleNext = () => {
     const currentIndex = opportunities.findIndex(o => o.id === selectedId);
@@ -154,6 +161,8 @@ function AppContent() {
       const nextId = opportunities[currentIndex + 1].id;
       if (view === 'landing') {
           window.location.hash = `#/landing?opp=${nextId}`;
+      } else if (view === 'dossier') {
+          window.location.hash = `#/dossier?opp=${nextId}`;
       } else {
           window.location.hash = `#/oportunidades?opp=${nextId}`;
       }
@@ -166,6 +175,8 @@ function AppContent() {
       const prevId = opportunities[currentIndex - 1].id;
       if (view === 'landing') {
           window.location.hash = `#/landing?opp=${prevId}`;
+      } else if (view === 'dossier') {
+          window.location.hash = `#/dossier?opp=${prevId}`;
       } else {
           window.location.hash = `#/oportunidades?opp=${prevId}`;
       }
@@ -176,6 +187,19 @@ function AppContent() {
 
   // Lógica de renderizado
   const renderContent = () => {
+    // Si estamos en modo dossier y hay oportunidad seleccionada, el InvestorDossier maneja su propia vista de detalle si se desea, 
+    // pero para mantener consistencia podemos usar el DetailView o dejar que el Dossier lo maneje internamente.
+    // En este caso, dejaremos que InvestorDossier maneje todo si view === 'dossier'.
+    
+    if (view === 'dossier') {
+        return (
+            <InvestorDossier 
+                opportunities={opportunities} 
+                selectedOpportunity={selectedOpportunity || null}
+            />
+        );
+    }
+
     if (selectedOpportunity) {
       return (
         <DetailView 
@@ -208,7 +232,7 @@ function AppContent() {
       case 'discounts': return <DiscountsView />;
       case 'blog': return <BlogView />;
       case 'brokers': return <BrokerView openLegalModal={openLegalModal} />;
-      case 'submission': return <BrokerView openLegalModal={openLegalModal} />; // Fallback a Brokers
+      case 'submission': return <BrokerView openLegalModal={openLegalModal} />;
       
       case 'intranet':
         if (userRole === 'owner') return <OwnerDashboard />;
@@ -292,22 +316,25 @@ function AppContent() {
     }
   };
 
+  // Determine if full layout (Header/Footer) should be shown
+  const isStandaloneView = view === 'landing' || view === 'dossier';
+
   return (
     <div className="min-h-screen flex flex-col font-sans">
-      {/* Header Global */}
-      {view !== 'landing' && <Header onNavigate={handleNavigate} />}
+      {/* Header Global (Hidden for standalone views) */}
+      {!isStandaloneView && <Header onNavigate={handleNavigate} />}
 
       <main className="flex-grow bg-[#f9f9f9] relative z-0">
         {renderContent()}
       </main>
 
-      {/* WhatsApp Button */}
-      {view !== 'landing' && !(view === 'intranet' && (userRole === 'worker' || userRole === 'staff')) && <WhatsAppButton />}
+      {/* WhatsApp Button (Hidden for standalone views and internal dashboards) */}
+      {!isStandaloneView && !(view === 'intranet' && (userRole === 'worker' || userRole === 'staff')) && <WhatsAppButton />}
 
       <LegalModals activeModal={activeLegalModal} onClose={() => setActiveLegalModal(null)} />
 
-      {/* Footer Global */}
-      {view !== 'landing' && <Footer onNavigate={handleNavigate} openLegalModal={openLegalModal} />}
+      {/* Footer Global (Hidden for standalone views) */}
+      {!isStandaloneView && <Footer onNavigate={handleNavigate} openLegalModal={openLegalModal} />}
     </div>
   );
 }

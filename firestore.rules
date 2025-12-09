@@ -3,7 +3,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --- 1. FUNCIONES DE AYUDA (HELPERS) ---
+    // --- FUNCIONES DE AYUDA ---
 
     function isAuthenticated() {
       return request.auth != null;
@@ -13,156 +13,156 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
+    // Obtener datos del usuario actual desde Firestore para verificar roles
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
     function hasRole(role) {
-      let userData = getUserData();
-      return isAuthenticated() && 
-             userData.role == role && 
-             (!("active" in userData) || userData.active == true);
+      return isAuthenticated() && getUserData().role == role;
     }
-
-    // --- 2. DEFINICIÓN DE PERFILES ---
 
     function isStaff() {
       return hasRole('staff') || hasRole('admin') || hasRole('agency');
+    }
+
+    function isOwner() {
+      return hasRole('owner');
     }
 
     function isWorker() {
       return hasRole('worker');
     }
 
-    function isTeam() {
-      return isStaff() || isWorker();
-    }
-
-    function isOwner() { return hasRole('owner'); }
-    function isTenant() { return hasRole('tenant'); }
-
-    // --- 3. LÓGICA DE PROPIEDAD (SEGURIDAD DE DATOS) ---
-    
+    // Verificar si la propiedad objetivo pertenece al usuario actual
     function propertyBelongsToOwner(propertyId) {
        return get(/databases/$(database)/documents/properties/$(propertyId)).data.ownerId == request.auth.uid;
     }
 
-    // --- 4. REGLAS POR COLECCIÓN ---
+    // --- REGLAS POR COLECCIÓN ---
 
+    // USERS
     match /users/{userId} {
-      allow read: if true; 
-      allow create: if isStaff();       
-      
-      // Permitir que el usuario edite su propio perfil (ej. firmar GDPR)
-      allow update: if isStaff() || (
-        isSelf(userId) && 
-        (!request.resource.data.diff(resource.data).affectedKeys().has('role')) &&
-        (!request.resource.data.diff(resource.data).affectedKeys().has('active'))
-      );
-      
+      allow read: if true;
+      allow create: if isStaff() || isSelf(userId); 
+      allow update: if isStaff() || isSelf(userId); 
       allow delete: if isStaff();
     }
 
+    // PROPERTIES
     match /properties/{propertyId} {
-      allow read: if true; 
-      allow write: if isTeam() || (isOwner() && resource.data.ownerId == request.auth.uid); 
+      allow read: if true;
+      allow write: if isStaff() || isWorker(); 
     }
 
+    // DOCUMENTOS DE PROPIEDAD
     match /property_documents/{docId} {
       allow read: if isStaff() || (isOwner() && propertyBelongsToOwner(resource.data.propertyId));
-      // Permitir crear si el usuario es dueño de la propiedad indicada en el documento
       allow create: if isStaff() || (isOwner() && propertyBelongsToOwner(request.resource.data.propertyId));
       allow update, delete: if isStaff();
     }
 
+    // FACTURAS SUMINISTROS (Subidas por Propietarios)
     match /supply_invoices/{invoiceId} {
       allow read: if isStaff() || (isOwner() && propertyBelongsToOwner(resource.data.propertyId));
       allow create: if isStaff() || (isOwner() && propertyBelongsToOwner(request.resource.data.propertyId));
       allow update, delete: if isStaff();
     }
 
+    // REGISTROS DE CÁLCULO DE SUMINISTROS (Calculadora Staff)
+    match /supply_records/{recordId} {
+      allow read, write: if isStaff();
+    }
+
+    // AJUSTES ECONÓMICOS PROPIETARIOS
+    match /adjustments/{adjustmentId} {
+      allow read: if isStaff() || (isOwner() && resource.data.ownerId == request.auth.uid);
+      allow write: if isStaff();
+    }
+
+    // CONTABILIDAD GENERAL
+    match /accounting/{docId} {
+      allow read, write: if isStaff();
+    }
+
+    // OPORTUNIDADES (Cartera de Inversión)
     match /opportunities/{opportunityId} {
-      allow read: if true; 
+      allow read: if true;
       allow write: if isStaff();
     }
     
-    match /opportunity_requests/{requestId} {
-      allow create: if true; 
-      allow read, update, delete: if isStaff();
+    // CONTRATOS
+    match /contracts/{contractId} {
+      allow read: if isStaff() || isWorker() || (isAuthenticated() && (resource.data.ownerId == request.auth.uid || resource.data.tenantId == request.auth.uid));
+      allow write: if isStaff();
     }
 
+    // TAREAS
+    match /tasks/{taskId} {
+      allow read: if isStaff() || isWorker();
+      allow write: if isStaff() || isWorker();
+    }
+
+    // TABLEROS DE TAREAS
+    match /task_boards/{boardId} {
+      allow read: if isStaff() || isWorker();
+      allow write: if isStaff();
+    }
+
+    // PIPELINE CANDIDATOS
+    match /candidate_pipeline/{candidateId} {
+      // Staff y Worker ven todo. Propietario ve si es el dueño (campo ownerId)
+      allow read: if isStaff() || isWorker() || (isOwner() && resource.data.ownerId == request.auth.uid);
+      allow write: if isStaff() || isWorker();
+    }
+
+    // REGISTRO DE VISITAS
+    match /room_visits/{visitId} {
+      allow read: if isStaff() || isWorker();
+      allow write: if isStaff() || isWorker();
+    }
+
+    // NOTICIAS INTERNAS
+    match /internal_news/{newsId} {
+      allow read: if isStaff() || isWorker();
+      allow write: if isStaff();
+    }
+
+    // FACTURAS DE TRABAJADORES
+    match /worker_invoices/{invoiceId} {
+      allow read: if isStaff() || (isWorker() && resource.data.workerId == request.auth.uid);
+      allow create: if isStaff() || (isWorker() && request.resource.data.workerId == request.auth.uid);
+      allow update: if isStaff(); 
+      allow delete: if isStaff() || (isWorker() && resource.data.workerId == request.auth.uid);
+    }
+
+    // DEMANDAS DE COMPRA (Broker Requests)
+    // Lectura pública para la web, escritura solo Staff (desde CRM)
     match /buyer_requests/{requestId} {
       allow read: if true; 
       allow write: if isStaff();
     }
 
-    match /contracts/{contractId} {
-      allow read: if isStaff() 
-        || (isAuthenticated() && resource.data.ownerId == request.auth.uid)
-        || (isAuthenticated() && resource.data.tenantId == request.auth.uid);
-      allow write: if isStaff();
-    }
-
-    match /tasks/{taskId} {
-      allow read: if isTeam() || (isOwner() && propertyBelongsToOwner(resource.data.propertyId));
-      allow write: if isTeam();
-    }
-    match /task_boards/{boardId} {
-      allow read, write: if isTeam();
-    }
-
-    match /adjustments/{adjustmentId} {
-      // Propietarios pueden leer sus ajustes si coinciden con su ID de propiedad o ownerId directo
-      allow read: if isStaff() || (isOwner() && resource.data.ownerId == request.auth.uid);
-      allow write: if isStaff();
-    }
-
-    match /social_inbox/{msgId} {
-      allow read, write: if isTeam();
-    }
-
-    match /accounting/{transactionId} {
-      allow read, write: if isStaff();
-    }
-
-    match /supply_records/{recordId} {
-      allow read: if isStaff() || (isOwner() && propertyBelongsToOwner(resource.data.propertyId));
-      allow write: if isStaff();
-    }
-
-    match /candidate_pipeline/{candidateId} {
-      allow read: if isTeam() || (isOwner() && propertyBelongsToOwner(resource.data.propertyId));
-      allow create: if isTeam() && (request.resource.data.submittedBy != null);
-      allow update: if isTeam();
-      allow delete: if isStaff();
-    }
-
-    match /room_visits/{visitId} {
-      allow read: if isTeam() || (isOwner() && propertyBelongsToOwner(resource.data.propertyId));
-      allow create: if isTeam();
-      allow update, delete: if isStaff();
-    }
-
-    match /internal_news/{newsId} {
-      allow read: if isTeam();
-      allow write: if isStaff();
-    }
-
-    match /sales_tracker/{activityId} {
-      allow read, write: if isStaff();
-    }
-
-    match /tenant_blacklist/{entryId} {
-      allow read, write: if isStaff(); 
-    }
-
-    match /web_messages/{msgId} {
+    // SOLICITUDES DE COLABORACIÓN (Opportunity Requests)
+    // Creación pública (formulario web), lectura/gestión solo Staff
+    match /opportunity_requests/{requestId} {
       allow create: if true;
       allow read, update, delete: if isStaff();
     }
 
+    // SALES TRACKER (CRM Actividad)
+    match /sales_tracker/{trackId} {
+      allow read, write: if isStaff();
+    }
+
+    // BLACKLIST / INCIDENCIAS
+    match /tenant_blacklist/{entryId} {
+      allow read, write: if isStaff();
+    }
+
+    // Colecciones por defecto cerradas o solo staff
     match /{document=**} {
-      allow read, write: if false;
+      allow read, write: if isStaff();
     }
   }
 }

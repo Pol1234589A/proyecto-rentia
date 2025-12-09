@@ -1,8 +1,9 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { db } from '../../../firebase';
-import { collection, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy, onSnapshot } from 'firebase/firestore';
-import { Zap, Plus, X, Trash2 } from 'lucide-react';
+import { collection, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy, onSnapshot, where } from 'firebase/firestore';
+import { Zap, Plus, X, Trash2, Inbox, FileText, Download, CheckCircle, ExternalLink, Clock, AlertCircle, History, Filter } from 'lucide-react';
+import { SupplyInvoice } from '../../../types';
 
 interface SupplyRecord {
     id: string;
@@ -27,24 +28,44 @@ interface SuppliesPanelProps {
 }
 
 export const SuppliesPanel: React.FC<SuppliesPanelProps> = ({ properties }) => {
+    // State for Calculated Records
     const [supplyRecords, setSupplyRecords] = useState<SupplyRecord[]>([]);
+    
+    // State for Raw Invoices (Uploaded by Owners)
+    const [uploadedInvoices, setUploadedInvoices] = useState<SupplyInvoice[]>([]);
+
     const [isSupplyFormOpen, setIsSupplyFormOpen] = useState(false);
     const [supplyFilterProperty, setSupplyFilterProperty] = useState<string>('');
     const [supplyMonth, setSupplyMonth] = useState(new Date().toISOString().slice(0, 7));
     const [selectedPropId, setSelectedPropId] = useState<string>('');
     
+    // Nuevo filtro para ver historial o pendientes
+    const [invoiceListFilter, setInvoiceListFilter] = useState<'pending' | 'approved'>('pending');
+    
     const [supplyForm, setSupplyForm] = useState({ electricity: '', water: '', gas: '', internet: '', cleaning: '', notes: '' });
 
     useEffect(() => {
+        // 1. Load Calculated Records
         const qSupply = query(collection(db, "supply_records"), orderBy("month", "desc"));
-        const unsubscribe = onSnapshot(qSupply, (snapshot) => {
+        const unsubscribeRecords = onSnapshot(qSupply, (snapshot) => {
             const recs: SupplyRecord[] = [];
             snapshot.forEach((doc) => {
                 recs.push({ ...doc.data(), id: doc.id } as SupplyRecord);
             });
             setSupplyRecords(recs);
         });
-        return () => unsubscribe();
+
+        // 2. Load Raw Invoices from Owners
+        const qInvoices = query(collection(db, "supply_invoices"), orderBy("uploadedAt", "desc"));
+        const unsubscribeInvoices = onSnapshot(qInvoices, (snapshot) => {
+            const invs: SupplyInvoice[] = [];
+            snapshot.forEach((doc) => {
+                invs.push({ ...doc.data(), id: doc.id } as SupplyInvoice);
+            });
+            setUploadedInvoices(invs);
+        });
+
+        return () => { unsubscribeRecords(); unsubscribeInvoices(); };
     }, []);
 
     const currentMonthRecord = useMemo(() => {
@@ -66,6 +87,36 @@ export const SuppliesPanel: React.FC<SuppliesPanelProps> = ({ properties }) => {
         }
     }, [currentMonthRecord, selectedPropId, supplyMonth]);
 
+    // --- ACTIONS FOR RAW INVOICES ---
+    const handleProcessInvoice = async (invoiceId: string) => {
+        if (!confirm("¿Marcar esta factura como procesada? Pasará al historial.")) return;
+        try {
+            await updateDoc(doc(db, "supply_invoices", invoiceId), { status: 'approved' });
+        } catch (e) {
+            console.error("Error processing invoice:", e);
+            alert("Error al actualizar estado.");
+        }
+    };
+
+    const handleRevertInvoice = async (invoiceId: string) => {
+        if (!confirm("¿Devolver esta factura a pendientes?")) return;
+        try {
+            await updateDoc(doc(db, "supply_invoices", invoiceId), { status: 'pending' });
+        } catch (e) {
+            console.error("Error reverting invoice:", e);
+        }
+    };
+
+    const handleDeleteRawInvoice = async (invoiceId: string) => {
+        if (!confirm("¿Eliminar este archivo de factura definitivamente?")) return;
+        try {
+            await deleteDoc(doc(db, "supply_invoices", invoiceId));
+        } catch (e) {
+            console.error("Error deleting invoice:", e);
+        }
+    };
+
+    // --- ACTIONS FOR CALCULATED RECORDS ---
     const saveSupplyRecord = async () => {
         const activeProperty = properties.find(p => p.id === selectedPropId);
         if (!activeProperty) return;
@@ -110,7 +161,7 @@ export const SuppliesPanel: React.FC<SuppliesPanelProps> = ({ properties }) => {
     };
 
     const deleteSupplyRecord = async (id: string) => {
-        if(confirm("¿Seguro que quieres eliminar esta factura?")) {
+        if(confirm("¿Seguro que quieres eliminar este cálculo mensual?")) {
             try {
                 await deleteDoc(doc(db, "supply_records", id));
             } catch(e) {
@@ -128,47 +179,184 @@ export const SuppliesPanel: React.FC<SuppliesPanelProps> = ({ properties }) => {
         }
     };
 
+    // Filter raw invoices based on selected tab
+    const filteredRawInvoices = uploadedInvoices.filter(inv => {
+        const matchesProp = !supplyFilterProperty || inv.propertyId === supplyFilterProperty;
+        const matchesStatus = inv.status === invoiceListFilter;
+        return matchesProp && matchesStatus;
+    });
+
+    const getPropName = (id: string) => properties.find(p => p.id === id)?.address || 'Propiedad desconocida';
+
     return (
-        <div className="flex flex-col gap-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                    <h3 className="font-bold text-gray-800 flex items-center gap-2"><Zap className="w-5 h-5 text-rentia-blue"/> Histórico de Facturas</h3>
-                    <select value={supplyFilterProperty} onChange={(e) => setSupplyFilterProperty(e.target.value)} className="bg-gray-50 border border-gray-200 text-sm rounded-lg p-2 focus:ring-2 focus:ring-rentia-blue outline-none min-w-[200px]"><option value="">Todas las propiedades</option>{properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}</select>
+        <div className="flex flex-col gap-8">
+            
+            {/* --- SECCIÓN 1: BANDEJA DE ENTRADA (FACTURAS PROPIETARIOS) --- */}
+            <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-2">
+                        <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                            <Inbox className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-gray-800 text-lg">Facturas de Propietarios</h3>
+                            <p className="text-xs text-gray-500">Documentos subidos directamente por propietarios.</p>
+                        </div>
+                    </div>
+                    
+                    {/* Toggle Pendientes / Histórico */}
+                    <div className="flex bg-gray-100 p-1 rounded-lg">
+                        <button 
+                            onClick={() => setInvoiceListFilter('pending')}
+                            className={`px-4 py-2 rounded-md text-xs font-bold flex items-center gap-2 transition-all ${invoiceListFilter === 'pending' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        >
+                            <AlertCircle className="w-3 h-3" /> Pendientes
+                        </button>
+                        <button 
+                            onClick={() => setInvoiceListFilter('approved')}
+                            className={`px-4 py-2 rounded-md text-xs font-bold flex items-center gap-2 transition-all ${invoiceListFilter === 'approved' ? 'bg-white text-green-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        >
+                            <History className="w-3 h-3" /> Histórico
+                        </button>
+                    </div>
                 </div>
-                <button onClick={() => setIsSupplyFormOpen(true)} className="bg-rentia-black text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 hover:bg-gray-800 w-full sm:w-auto justify-center"><Plus className="w-4 h-4"/> Añadir Factura</button>
+
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left">
+                            <thead className="bg-blue-50 text-blue-800 font-bold uppercase text-xs">
+                                <tr>
+                                    <th className="p-4">Fecha Subida</th>
+                                    <th className="p-4">Propiedad</th>
+                                    <th className="p-4">Tipo</th>
+                                    <th className="p-4">Periodo</th>
+                                    <th className="p-4 text-right">Importe</th>
+                                    <th className="p-4 text-center">Archivo</th>
+                                    <th className="p-4 text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {filteredRawInvoices.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={7} className="p-8 text-center text-gray-400">
+                                            <div className="flex flex-col items-center gap-2">
+                                                {invoiceListFilter === 'pending' ? <CheckCircle className="w-8 h-8 text-green-100" /> : <History className="w-8 h-8 text-gray-200" />}
+                                                <span>{invoiceListFilter === 'pending' ? '¡Todo al día! No hay facturas pendientes.' : 'No hay facturas en el histórico.'}</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    filteredRawInvoices.map(inv => (
+                                        <tr key={inv.id} className="hover:bg-blue-50/30 transition-colors">
+                                            <td className="p-4 text-gray-500 text-xs">
+                                                {inv.uploadedAt?.toDate ? inv.uploadedAt.toDate().toLocaleDateString() : 'N/A'}
+                                            </td>
+                                            <td className="p-4 font-bold text-gray-800">{getPropName(inv.propertyId)}</td>
+                                            <td className="p-4 capitalize">
+                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 text-xs font-medium border border-gray-200">
+                                                    {inv.type === 'luz' && <Zap className="w-3 h-3 text-yellow-500"/>}
+                                                    {inv.type === 'agua' && <div className="w-3 h-3 rounded-full bg-blue-400"/>}
+                                                    {inv.type}
+                                                </span>
+                                            </td>
+                                            <td className="p-4 text-xs text-gray-500">
+                                                {inv.periodStart} <span className="text-gray-300">al</span> {inv.periodEnd}
+                                            </td>
+                                            <td className="p-4 text-right font-mono font-bold text-gray-700">
+                                                {inv.amount}€
+                                            </td>
+                                            <td className="p-4 text-center">
+                                                <a 
+                                                    href={inv.fileUrl} 
+                                                    target="_blank" 
+                                                    rel="noreferrer"
+                                                    className="inline-flex items-center justify-center p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                    title="Ver Factura"
+                                                >
+                                                    <Download className="w-4 h-4" />
+                                                </a>
+                                            </td>
+                                            <td className="p-4 text-center">
+                                                <div className="flex items-center justify-center gap-2">
+                                                    {inv.status === 'pending' ? (
+                                                        <button 
+                                                            onClick={() => handleProcessInvoice(inv.id)}
+                                                            className="p-1.5 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors text-xs font-bold flex items-center gap-1"
+                                                            title="Marcar como procesada"
+                                                        >
+                                                            <CheckCircle className="w-3 h-3" /> OK
+                                                        </button>
+                                                    ) : (
+                                                        <button 
+                                                            onClick={() => handleRevertInvoice(inv.id)}
+                                                            className="p-1.5 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200 transition-colors text-xs font-bold flex items-center gap-1"
+                                                            title="Devolver a pendientes"
+                                                        >
+                                                            <History className="w-3 h-3" />
+                                                        </button>
+                                                    )}
+                                                    
+                                                    <button 
+                                                        onClick={() => handleDeleteRawInvoice(inv.id)}
+                                                        className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                                                        title="Eliminar archivo"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            {/* --- SECCIÓN 2: HISTÓRICO CALCULADO (EXISTENTE) --- */}
+            <div className="space-y-4 pt-4 border-t border-gray-200">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                        <h3 className="font-bold text-gray-800 flex items-center gap-2"><Zap className="w-5 h-5 text-rentia-blue"/> Histórico de Repartos (Calculados)</h3>
+                        <select value={supplyFilterProperty} onChange={(e) => setSupplyFilterProperty(e.target.value)} className="bg-gray-50 border border-gray-200 text-sm rounded-lg p-2 focus:ring-2 focus:ring-rentia-blue outline-none min-w-[200px]"><option value="">Todas las propiedades</option>{properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}</select>
+                    </div>
+                    <button onClick={() => setIsSupplyFormOpen(true)} className="bg-rentia-black text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 hover:bg-gray-800 w-full sm:w-auto justify-center"><Plus className="w-4 h-4"/> Añadir Reparto Manual</button>
+                </div>
+                
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden overflow-x-auto">
+                    <table className="w-full text-sm text-left">
+                        <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs"><tr><th className="p-4 whitespace-nowrap">Propiedad</th><th className="p-4 whitespace-nowrap">Mes</th><th className="p-4 whitespace-nowrap">Total</th><th className="p-4 whitespace-nowrap text-center">Estado</th><th className="p-4 text-center">Acción</th></tr></thead>
+                        <tbody className="divide-y divide-gray-100">
+                            {supplyRecords
+                                .filter(rec => !supplyFilterProperty || rec.propertyId === supplyFilterProperty)
+                                .map(rec => (
+                                <tr key={rec.id} className="hover:bg-gray-50">
+                                    <td className="p-4 font-bold text-gray-800 whitespace-nowrap">{properties.find(p=>p.id===rec.propertyId)?.address || rec.propertyName}</td>
+                                    <td className="p-4 whitespace-nowrap">{rec.month}</td>
+                                    <td className="p-4 font-bold whitespace-nowrap">{rec.total.toFixed(2)}€</td>
+                                    <td className="p-4 whitespace-nowrap text-center">
+                                        <select 
+                                            value={rec.status} 
+                                            onChange={(e) => handleSupplyStatusChange(rec.id, e.target.value)}
+                                            className={`px-2 py-1 rounded-full text-xs font-bold border outline-none cursor-pointer ${rec.status==='settled'?'bg-green-100 text-green-700 border-green-200':'bg-yellow-100 text-yellow-700 border-yellow-200'}`}
+                                        >
+                                            <option value="pending">Pendiente</option>
+                                            <option value="settled">Pagado</option>
+                                        </select>
+                                    </td>
+                                    <td className="p-4 text-center">
+                                        <button onClick={() => deleteSupplyRecord(rec.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"><Trash2 className="w-4 h-4"/></button>
+                                    </td>
+                                </tr>
+                            ))}
+                            {supplyRecords.length === 0 && <tr><td colSpan={5} className="p-8 text-center text-gray-400">No hay repartos registrados.</td></tr>}
+                        </tbody>
+                    </table>
+                </div>
             </div>
             
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden overflow-x-auto">
-                <table className="w-full text-sm text-left">
-                    <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs"><tr><th className="p-4 whitespace-nowrap">Propiedad</th><th className="p-4 whitespace-nowrap">Mes</th><th className="p-4 whitespace-nowrap">Total</th><th className="p-4 whitespace-nowrap text-center">Estado</th><th className="p-4 text-center">Acción</th></tr></thead>
-                    <tbody className="divide-y divide-gray-100">
-                        {supplyRecords
-                            .filter(rec => !supplyFilterProperty || rec.propertyId === supplyFilterProperty)
-                            .map(rec => (
-                            <tr key={rec.id} className="hover:bg-gray-50">
-                                <td className="p-4 font-bold text-gray-800 whitespace-nowrap">{properties.find(p=>p.id===rec.propertyId)?.address || rec.propertyName}</td>
-                                <td className="p-4 whitespace-nowrap">{rec.month}</td>
-                                <td className="p-4 font-bold whitespace-nowrap">{rec.total.toFixed(2)}€</td>
-                                <td className="p-4 whitespace-nowrap text-center">
-                                    <select 
-                                        value={rec.status} 
-                                        onChange={(e) => handleSupplyStatusChange(rec.id, e.target.value)}
-                                        className={`px-2 py-1 rounded-full text-xs font-bold border outline-none cursor-pointer ${rec.status==='settled'?'bg-green-100 text-green-700 border-green-200':'bg-yellow-100 text-yellow-700 border-yellow-200'}`}
-                                    >
-                                        <option value="pending">Pendiente</option>
-                                        <option value="settled">Pagado</option>
-                                    </select>
-                                </td>
-                                <td className="p-4 text-center">
-                                    <button onClick={() => deleteSupplyRecord(rec.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"><Trash2 className="w-4 h-4"/></button>
-                                </td>
-                            </tr>
-                        ))}
-                        {supplyRecords.length === 0 && <tr><td colSpan={5} className="p-8 text-center text-gray-400">No hay facturas registradas.</td></tr>}
-                    </tbody>
-                </table>
-            </div>
-            
+            {/* Modal de Reparto Manual (Se mantiene igual) */}
             {isSupplyFormOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"><div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 max-h-[90vh] overflow-y-auto"><div className="p-4 bg-gray-50 border-b flex justify-between items-center sticky top-0 z-10"><h3 className="font-bold">Nueva Factura de Suministros</h3><button onClick={() => setIsSupplyFormOpen(false)}><X className="w-5 h-5 text-gray-400"/></button></div><div className="p-4 space-y-3"><select className="w-full p-2 border rounded" value={selectedPropId} onChange={e => setSelectedPropId(e.target.value)}><option value="">Propiedad...</option>{properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}</select><div className="grid grid-cols-2 gap-3"><input type="month" className="w-full p-2 border rounded" value={supplyMonth} onChange={e => setSupplyMonth(e.target.value)} /><input type="number" placeholder="Luz" className="w-full p-2 border rounded" value={supplyForm.electricity} onChange={e => setSupplyForm({...supplyForm, electricity: e.target.value})} /><input type="number" placeholder="Agua" className="w-full p-2 border rounded" value={supplyForm.water} onChange={e => setSupplyForm({...supplyForm, water: e.target.value})} /><input type="number" placeholder="Internet" className="w-full p-2 border rounded" value={supplyForm.internet} onChange={e => setSupplyForm({...supplyForm, internet: e.target.value})} /></div><button onClick={saveSupplyRecord} className="w-full bg-rentia-black text-white font-bold py-3 rounded-lg">Guardar</button></div></div></div>
             )}

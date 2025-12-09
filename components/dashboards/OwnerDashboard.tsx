@@ -6,9 +6,10 @@ import { collection, query, where, getDocs, onSnapshot, doc, updateDoc, addDoc, 
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { updatePassword } from 'firebase/auth';
 import { Property } from '../../data/rooms';
-import { Contract, Candidate, Task, OwnerAdjustment, PropertyDocument, SupplyInvoice, UserProfile } from '../../types';
+import { Contract, Candidate, Task, OwnerAdjustment, PropertyDocument, SupplyInvoice, UserProfile, CandidateStatus } from '../../types';
 import { VisitRecord } from '../admin/tools/VisitsLog';
-import { Home, Users, Wallet, Footprints, Clock, CheckCircle, X, DollarSign, Calendar, TrendingUp, AlertCircle, Loader2, Lock, Shield, Key, UserCheck, FileText, XCircle, Search, Image as ImageIcon, MapPin, AlertTriangle, Lightbulb, User, Briefcase, Gift, Upload, ExternalLink, Building, Zap, Save, PenTool, Check, FileCheck, ArrowRight, PieChart, Info, Download } from 'lucide-react';
+import { Home, Users, Wallet, Footprints, Clock, CheckCircle, X, DollarSign, Calendar, TrendingUp, AlertCircle, Loader2, Lock, Shield, Key, UserCheck, FileText, XCircle, Search, Image as ImageIcon, MapPin, AlertTriangle, Lightbulb, User, Briefcase, Gift, Upload, ExternalLink, Building, Zap, Save, PenTool, Check, FileCheck, ArrowRight, PieChart, Info, Download, Phone, Mail, ChevronDown, ChevronRight, CloudLightning } from 'lucide-react';
+import { rentgerService } from '../../services/rentgerService';
 
 // ... (SignaturePad Component kept same as previous) ...
 const SignaturePad: React.FC<{ onSave: (blob: Blob) => void }> = ({ onSave }) => {
@@ -19,7 +20,6 @@ const SignaturePad: React.FC<{ onSave: (blob: Blob) => void }> = ({ onSave }) =>
     const getCoordinates = (e: React.MouseEvent | React.TouchEvent | MouseEvent | TouchEvent, canvas: HTMLCanvasElement) => {
         const rect = canvas.getBoundingClientRect();
         let clientX, clientY;
-        
         if ('touches' in e && e.touches.length > 0) {
             clientX = e.touches[0].clientX;
             clientY = e.touches[0].clientY;
@@ -29,7 +29,6 @@ const SignaturePad: React.FC<{ onSave: (blob: Blob) => void }> = ({ onSave }) =>
         } else {
             return { offsetX: 0, offsetY: 0 };
         }
-        
         return {
             offsetX: clientX - rect.left,
             offsetY: clientY - rect.top
@@ -92,31 +91,16 @@ const SignaturePad: React.FC<{ onSave: (blob: Blob) => void }> = ({ onSave }) =>
 
     return (
         <div className="border border-gray-300 rounded-lg p-2 bg-white select-none">
-            <canvas
-                ref={canvasRef}
-                width={500}
-                height={200}
-                className="w-full h-40 border border-dashed border-gray-200 rounded cursor-crosshair touch-none bg-white"
-                onMouseDown={startDrawing}
-                onMouseMove={draw}
-                onMouseUp={stopDrawing}
-                onMouseLeave={stopDrawing}
-                onTouchStart={startDrawing}
-                onTouchMove={draw}
-                onTouchEnd={stopDrawing}
-            />
-            <div className="flex justify-between mt-2">
-                <button type="button" onClick={clear} className="text-xs text-red-500 hover:underline px-2 py-1">Borrar y Repetir</button>
-                <button type="button" onClick={save} disabled={!hasDrawn} className="bg-rentia-blue text-white px-6 py-2 rounded text-xs font-bold disabled:opacity-50 hover:bg-blue-700 transition-colors">Confirmar Firma</button>
-            </div>
+            <canvas ref={canvasRef} width={500} height={200} className="w-full h-40 border border-dashed border-gray-200 rounded cursor-crosshair touch-none bg-white" onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseLeave={stopDrawing} onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={stopDrawing} />
+            <div className="flex justify-between mt-2"><button type="button" onClick={clear} className="text-xs text-red-500 hover:underline px-2 py-1">Borrar y Repetir</button><button type="button" onClick={save} disabled={!hasDrawn} className="bg-rentia-blue text-white px-6 py-2 rounded text-xs font-bold disabled:opacity-50 hover:bg-blue-700 transition-colors">Confirmar Firma</button></div>
         </div>
     );
 };
 
 export const OwnerDashboard: React.FC = () => {
-  const { currentUser } = useAuth(); // removed isSimulated
+  const { currentUser } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'profile' | 'docs' | 'invoices' | 'financials' | 'security'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'profile' | 'docs' | 'invoices' | 'financials' | 'candidates'>('overview');
   
   // Data
   const [userData, setUserData] = useState<UserProfile | null>(null);
@@ -124,6 +108,7 @@ export const OwnerDashboard: React.FC = () => {
   const [uploadedDocs, setUploadedDocs] = useState<PropertyDocument[]>([]);
   const [uploadedInvoices, setUploadedInvoices] = useState<SupplyInvoice[]>([]);
   const [adjustments, setAdjustments] = useState<OwnerAdjustment[]>([]);
+  const [candidates, setCandidates] = useState<Candidate[]>([]); // New state for candidates
 
   // Forms
   const [profileForm, setProfileForm] = useState<Partial<UserProfile>>({});
@@ -133,11 +118,15 @@ export const OwnerDashboard: React.FC = () => {
   const [docFile, setDocFile] = useState<File | null>(null);
   const [docType, setDocType] = useState('escritura');
   const [selectedPropertyId, setSelectedPropertyId] = useState('');
+  
+  // UI States for Candidates view
+  const [expandedCandidatesProp, setExpandedCandidatesProp] = useState<Record<string, boolean>>({});
 
   // UI States
   const [isGdprOpen, setIsGdprOpen] = useState(false);
   const [gdprStep, setGdprStep] = useState(1);
   const [signing, setSigning] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<string>('');
 
   // ... (FINANCIALS CALCULATION KEPT AS IS) ...
   const financials = useMemo(() => {
@@ -176,7 +165,6 @@ export const OwnerDashboard: React.FC = () => {
   useEffect(() => {
     if (!currentUser) return;
 
-    // Use onSnapshot for User Data to get GDPR status update instantly in local view
     const userRef = doc(db, "users", currentUser.uid);
     const unsubUser = onSnapshot(userRef, (docSnap) => {
         if (docSnap.exists()) {
@@ -200,6 +188,9 @@ export const OwnerDashboard: React.FC = () => {
         if (ownerProperties.length > 0) {
             setSelectedPropertyId(ownerProperties[0].id);
             if (ownerProperties[0].communityInfo) setCommunityForm(ownerProperties[0].communityInfo as any);
+            
+            // Expand first property candidates by default
+            setExpandedCandidatesProp({ [ownerProperties[0].address]: true });
         }
 
         const propIds = ownerProperties.map(p => p.id);
@@ -226,6 +217,17 @@ export const OwnerDashboard: React.FC = () => {
         const aList: OwnerAdjustment[] = [];
         adjSnap.forEach(d => aList.push({ ...d.data(), id: d.id } as OwnerAdjustment));
         setAdjustments(aList);
+        
+        // Candidates (Cargar solo los de este owner)
+        try {
+            const candQuery = query(collection(db, "candidate_pipeline"), where("ownerId", "==", currentUser.uid), orderBy("submittedAt", "desc"));
+            const candSnap = await getDocs(candQuery);
+            const cList: Candidate[] = [];
+            candSnap.forEach(d => cList.push({ ...d.data(), id: d.id } as Candidate));
+            setCandidates(cList);
+        } catch (e) {
+            console.warn("Could not query candidates by ownerId directly (missing index?). Fetching by property fallback not implemented for performance. Ensure index exists.");
+        }
 
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -236,85 +238,108 @@ export const OwnerDashboard: React.FC = () => {
     return () => unsubUser();
   }, [currentUser]);
 
+  // ... (Upload handlers kept same) ...
   const handleUploadDoc = async (e: React.FormEvent) => {
       e.preventDefault();
       if (!docFile || !selectedPropertyId) return alert("Falta archivo o propiedad");
-
       try {
           const storageRef = ref(storage, `documents/${selectedPropertyId}/${Date.now()}_${docFile.name}`);
           await uploadBytes(storageRef, docFile);
           const url = await getDownloadURL(storageRef);
-
-          await addDoc(collection(db, "property_documents"), {
-              propertyId: selectedPropertyId, name: docFile.name, type: docType, url: url, uploadedAt: serverTimestamp()
-          });
-          
+          await addDoc(collection(db, "property_documents"), { propertyId: selectedPropertyId, name: docFile.name, type: docType, url: url, uploadedAt: serverTimestamp() });
           setUploadedDocs(prev => [{ id: 'temp', propertyId: selectedPropertyId, name: docFile.name, type: docType as any, url, uploadedAt: new Date() }, ...prev]);
-          
           alert("Documento subido correctamente.");
           setDocFile(null);
-      } catch (e) {
-          console.error(e);
-          alert("Error al subir documento.");
-      }
+      } catch (e) { console.error(e); alert("Error al subir documento."); }
   };
 
   const handleUploadInvoice = async (e: React.FormEvent) => {
       e.preventDefault();
       if (!invoiceFile || !selectedPropertyId) return alert("Falta archivo o propiedad");
-      
       try {
           const storageRef = ref(storage, `invoices/${selectedPropertyId}/${Date.now()}_${invoiceFile.name}`);
           await uploadBytes(storageRef, invoiceFile);
           const url = await getDownloadURL(storageRef);
-
-          await addDoc(collection(db, "supply_invoices"), {
-              propertyId: selectedPropertyId, ...invoiceForm, amount: Number(invoiceForm.amount), fileUrl: url, uploadedAt: serverTimestamp(), status: 'pending'
-          });
+          await addDoc(collection(db, "supply_invoices"), { propertyId: selectedPropertyId, ...invoiceForm, amount: Number(invoiceForm.amount), fileUrl: url, uploadedAt: serverTimestamp(), status: 'pending' });
           alert("Factura subida correctamente.");
           setInvoiceFile(null);
-      } catch (e) {
-          console.error(e);
-          alert("Error al subir factura.");
-      }
+      } catch (e) { console.error(e); alert("Error al subir factura."); }
   };
 
-  const handleUpdateProfile = async (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!currentUser) return;
-      try { await updateDoc(doc(db, "users", currentUser.uid), profileForm); alert("Perfil actualizado."); } catch (e) { alert("Error."); }
-  };
+  const handleUpdateProfile = async (e: React.FormEvent) => { e.preventDefault(); if (!currentUser) return; try { await updateDoc(doc(db, "users", currentUser.uid), profileForm); alert("Perfil actualizado."); } catch (e) { alert("Error."); } };
+  const handleUpdateCommunity = async (e: React.FormEvent) => { e.preventDefault(); if (!selectedPropertyId) return; try { await updateDoc(doc(db, "properties", selectedPropertyId), { communityInfo: communityForm }); alert("Guardado."); } catch (e) { alert("Error."); } };
   
-  const handleUpdateCommunity = async (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!selectedPropertyId) return;
-      try { await updateDoc(doc(db, "properties", selectedPropertyId), { communityInfo: communityForm }); alert("Guardado."); } catch (e) { alert("Error."); }
-  };
-
+  // --- GDPR SIGNATURE WITH RENTGER SYNC ---
   const handleGdprSign = async (blob: Blob) => {
-      if (!currentUser) return;
+      if (!currentUser || !userData) return;
       setSigning(true);
+      setSyncStatus('Guardando en Firebase...');
       
       try {
-          const storageRef = ref(storage, `signatures/${currentUser.uid}/${Date.now()}_gdpr.png`);
+          // 1. Guardar en Firebase Storage (Backup Interno)
+          const fileName = `${Date.now()}_Firma_RGPD.png`;
+          const storageRef = ref(storage, `signatures/${currentUser.uid}/${fileName}`);
           await uploadBytes(storageRef, blob);
           const url = await getDownloadURL(storageRef);
           
+          // Actualizar Perfil de Usuario
           await updateDoc(doc(db, "users", currentUser.uid), { 
               gdpr: { 
                   signed: true, 
                   signedAt: serverTimestamp(), 
                   ip: 'unknown', 
                   signatureUrl: url, 
-                  documentVersion: 'v1.0' 
+                  documentVersion: 'v2.0 (Rentger Connected)' 
               } 
           });
+
+          // 1.5. AÑADIR A DOCUMENTOS DE PROPIEDAD (Para que sea visible en listas)
+          // Asignar a la propiedad seleccionada actualmente o la primera disponible
+          const targetPropId = selectedPropertyId || (properties.length > 0 ? properties[0].id : null);
           
-          setIsGdprOpen(false); 
-          alert("Firmado correctamente. Gracias.");
+          if (targetPropId) {
+             await addDoc(collection(db, "property_documents"), {
+                 propertyId: targetPropId,
+                 name: "Contrato RGPD Firmado",
+                 type: "otro",
+                 url: url,
+                 uploadedAt: serverTimestamp()
+             });
+          }
+
+          // 2. Sincronizar con Rentger (API Externa)
+          setSyncStatus('Conectando con Rentger API...');
+          
+          // Crear/Sincronizar el propietario en Rentger
+          const rentgerId = await rentgerService.syncOwner({
+              ...userData,
+              name: userData.name || currentUser.displayName || 'Propietario',
+              email: userData.email || currentUser.email || ''
+          });
+
+          if (rentgerId) {
+              setSyncStatus('Subiendo documento legal...');
+              // Subir la firma como documento
+              const uploadSuccess = await rentgerService.uploadGdprSignature(blob, rentgerId);
+              if (uploadSuccess) {
+                  setSyncStatus('✅ Sincronización completada.');
+              } else {
+                  setSyncStatus('⚠️ Error subiendo doc a Rentger (guardado local ok).');
+              }
+          } else {
+              setSyncStatus('⚠️ Error conectando usuario Rentger (guardado local ok).');
+          }
+
+          // Delay para cerrar modal y que el usuario vea el mensaje
+          setTimeout(() => {
+              setIsGdprOpen(false); 
+              alert("Documento firmado y guardado correctamente.");
+          }, 1000);
+
       } catch (e) { 
-          console.error("Error signing GDPR:", e);
-          alert("Error al guardar la firma. Por favor inténtalo de nuevo."); 
+          console.error("Error signing GDPR:", e); 
+          alert("Error crítico al guardar la firma. Por favor reintente."); 
+          setSyncStatus('Error.');
       } finally { 
           setSigning(false); 
       }
@@ -322,8 +347,25 @@ export const OwnerDashboard: React.FC = () => {
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-rentia-blue"/></div>;
 
+  // --- CANDIDATES GROUPING ---
+  const candidatesByProperty = useMemo(() => {
+      const groups: Record<string, Candidate[]> = {};
+      // Inicializar con propiedades del owner para asegurar que aparecen aunque no tengan candidatos
+      properties.forEach(p => groups[p.address] = []);
+      
+      candidates.forEach(c => {
+          const propName = c.propertyName || 'Sin asignar';
+          if (!groups[propName]) groups[propName] = [];
+          groups[propName].push(c);
+      });
+      return groups;
+  }, [candidates, properties]);
+
+  const toggleCandidateProp = (prop: string) => {
+      setExpandedCandidatesProp(prev => ({...prev, [prop]: !prev[prop]}));
+  };
+
   return (
-    // ... (REST OF UI KEPT AS IS - No functional changes, just removing simulation logic) ...
     <div className="min-h-screen bg-gray-50 p-4 md:p-8 animate-in fade-in">
       <div className="max-w-6xl mx-auto">
         <header className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -342,16 +384,15 @@ export const OwnerDashboard: React.FC = () => {
           )}
         </header>
 
-        {/* ... (Tabs and Content Sections - Kept Identical) ... */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-2 no-scrollbar bg-white p-2 rounded-xl shadow-sm w-fit border border-gray-100">
+        <div className="flex gap-2 mb-6 overflow-x-auto pb-2 no-scrollbar bg-white p-2 rounded-xl shadow-sm w-fit border border-gray-100 max-w-full">
             <button onClick={() => setActiveTab('overview')} className={`px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition-colors ${activeTab === 'overview' ? 'bg-rentia-black text-white' : 'text-gray-600 hover:bg-gray-50'}`}>Resumen</button>
             <button onClick={() => setActiveTab('profile')} className={`px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition-colors flex items-center gap-2 ${activeTab === 'profile' ? 'bg-rentia-black text-white' : 'text-gray-600 hover:bg-gray-50'}`}><User className="w-4 h-4"/> Mi Perfil</button>
+            <button onClick={() => setActiveTab('candidates')} className={`px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition-colors flex items-center gap-2 ${activeTab === 'candidates' ? 'bg-rentia-black text-white' : 'text-gray-600 hover:bg-gray-50'}`}><UserCheck className="w-4 h-4"/> Candidatos</button>
             <button onClick={() => setActiveTab('docs')} className={`px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition-colors flex items-center gap-2 ${activeTab === 'docs' ? 'bg-rentia-black text-white' : 'text-gray-600 hover:bg-gray-50'}`}><FileText className="w-4 h-4"/> Documentación</button>
             <button onClick={() => setActiveTab('invoices')} className={`px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition-colors flex items-center gap-2 ${activeTab === 'invoices' ? 'bg-rentia-black text-white' : 'text-gray-600 hover:bg-gray-50'}`}><Zap className="w-4 h-4"/> Suministros</button>
             <button onClick={() => setActiveTab('financials')} className={`px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition-colors flex items-center gap-2 ${activeTab === 'financials' ? 'bg-rentia-black text-white' : 'text-gray-600 hover:bg-gray-50'}`}><Wallet className="w-4 h-4"/> Finanzas</button>
         </div>
 
-        {/* ... (Content rendering - same as before) ... */}
         {activeTab === 'overview' && (
             <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -384,9 +425,105 @@ export const OwnerDashboard: React.FC = () => {
             </div>
         )}
 
-        {/* ... (Other tabs kept as is, just rendered) ... */}
-        {/* ... Skipping redundant content for brevity, functional logic fixed above ... */}
-        {/* ... (Profile form rendering) ... */}
+        {/* --- TAB: CANDIDATES --- */}
+        {activeTab === 'candidates' && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                            <UserCheck className="w-5 h-5 text-rentia-blue" /> Candidatos Interesados
+                        </h2>
+                        <p className="text-xs text-gray-500">Estado en tiempo real del proceso de selección de inquilinos para tus propiedades.</p>
+                    </div>
+                </div>
+
+                {Object.keys(candidatesByProperty).length === 0 ? (
+                    <div className="bg-white p-8 rounded-xl border border-dashed border-gray-200 text-center text-gray-400">
+                        <UserCheck className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                        <p>No hay candidatos registrados por el momento.</p>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        {Object.entries(candidatesByProperty).map(([propName, cands]: [string, Candidate[]]) => {
+                            const isExpanded = expandedCandidatesProp[propName] || false;
+                            const pendingCount = cands.filter(c => c.status === 'pending_review').length;
+                            const approvedCount = cands.filter(c => c.status === 'approved').length;
+
+                            return (
+                                <div key={propName} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+                                    <div 
+                                        className="p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors"
+                                        onClick={() => toggleCandidateProp(propName)}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            {isExpanded ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+                                            <div>
+                                                <h3 className="font-bold text-gray-800 text-sm">{propName}</h3>
+                                                <p className="text-xs text-gray-500">{cands.length} candidatos históricos</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            {pendingCount > 0 && <span className="text-[10px] font-bold bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full">{pendingCount} Pendientes</span>}
+                                            {approvedCount > 0 && <span className="text-[10px] font-bold bg-green-100 text-green-700 px-2 py-1 rounded-full">{approvedCount} Aprobados</span>}
+                                        </div>
+                                    </div>
+
+                                    {isExpanded && (
+                                        <div className="border-t border-gray-100 bg-gray-50 p-4 space-y-3">
+                                            {cands.length === 0 ? (
+                                                <p className="text-xs text-gray-400 italic text-center py-2">Sin actividad reciente.</p>
+                                            ) : (
+                                                cands.map(c => (
+                                                    <div key={c.id} className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                                                        <div>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="font-bold text-sm text-gray-800">{c.candidateName}</span>
+                                                                <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded border ${
+                                                                    c.status === 'approved' ? 'bg-green-50 text-green-700 border-green-200' :
+                                                                    c.status === 'pending_review' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                                                                    c.status === 'rented' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                                                    'bg-gray-100 text-gray-500 border-gray-200'
+                                                                }`}>
+                                                                    {c.status === 'pending_review' ? 'En Revisión' : 
+                                                                     c.status === 'approved' ? 'Aprobado' : 
+                                                                     c.status === 'rented' ? 'Alquilado' : 
+                                                                     c.status === 'rejected' ? 'Rechazado' : 'Archivado'}
+                                                                </span>
+                                                            </div>
+                                                            <p className="text-xs text-gray-500 mt-1 flex items-center gap-2">
+                                                                <span>Habitación: {c.roomName}</span>
+                                                                <span>•</span>
+                                                                <span>{c.submittedAt?.toDate().toLocaleDateString()}</span>
+                                                            </p>
+                                                        </div>
+                                                        
+                                                        {/* Información adicional visible para propietario */}
+                                                        <div className="text-right">
+                                                            {c.status === 'approved' && (
+                                                                <span className="text-[10px] text-green-600 font-medium flex items-center gap-1 bg-green-50 px-2 py-1 rounded">
+                                                                    <CheckCircle className="w-3 h-3"/> Perfil verificado por Rentia
+                                                                </span>
+                                                            )}
+                                                            {c.status === 'rented' && (
+                                                                <span className="text-[10px] text-blue-600 font-medium flex items-center gap-1 bg-blue-50 px-2 py-1 rounded">
+                                                                    <Key className="w-3 h-3"/> Contrato formalizado
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+            </div>
+        )}
+
+        {/* ... (Other Tabs Rendering - Profile, Docs, Invoices, Financials kept same) ... */}
         {activeTab === 'profile' && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
@@ -395,80 +532,38 @@ export const OwnerDashboard: React.FC = () => {
                     </h3>
                     <form onSubmit={handleUpdateProfile} className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nombre</label>
-                                <input type="text" className="w-full p-2 border rounded" value={profileForm.name} onChange={e => setProfileForm({...profileForm, name: e.target.value})} />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">DNI / NIE</label>
-                                <input type="text" className="w-full p-2 border rounded" value={profileForm.dni} onChange={e => setProfileForm({...profileForm, dni: e.target.value})} />
-                            </div>
+                            <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nombre</label><input type="text" className="w-full p-2 border rounded" value={profileForm.name} onChange={e => setProfileForm({...profileForm, name: e.target.value})} /></div>
+                            <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">DNI / NIE</label><input type="text" className="w-full p-2 border rounded" value={profileForm.dni} onChange={e => setProfileForm({...profileForm, dni: e.target.value})} /></div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Teléfono</label>
-                                <input type="text" className="w-full p-2 border rounded" value={profileForm.phone} onChange={e => setProfileForm({...profileForm, phone: e.target.value})} />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Email</label>
-                                <input type="email" className="w-full p-2 border rounded bg-gray-50" value={profileForm.email} disabled />
-                            </div>
+                            <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Teléfono</label><input type="text" className="w-full p-2 border rounded" value={profileForm.phone} onChange={e => setProfileForm({...profileForm, phone: e.target.value})} /></div>
+                            <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Email</label><input type="email" className="w-full p-2 border rounded bg-gray-50" value={profileForm.email} disabled /></div>
                         </div>
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Dirección Fiscal</label>
-                            <input type="text" className="w-full p-2 border rounded" value={profileForm.address} onChange={e => setProfileForm({...profileForm, address: e.target.value})} />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">IBAN (Pagos)</label>
-                            <input type="text" className="w-full p-2 border rounded font-mono" value={profileForm.bankAccount} onChange={e => setProfileForm({...profileForm, bankAccount: e.target.value})} />
-                        </div>
+                        <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Dirección Fiscal</label><input type="text" className="w-full p-2 border rounded" value={profileForm.address} onChange={e => setProfileForm({...profileForm, address: e.target.value})} /></div>
+                        <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">IBAN (Pagos)</label><input type="text" className="w-full p-2 border rounded font-mono" value={profileForm.bankAccount} onChange={e => setProfileForm({...profileForm, bankAccount: e.target.value})} /></div>
                         <button type="submit" className="w-full bg-rentia-black text-white py-2 rounded-lg font-bold hover:bg-gray-800">Actualizar Datos</button>
                     </form>
                 </div>
-
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                    <h3 className="font-bold text-lg mb-6 flex items-center gap-2 border-b border-gray-100 pb-3">
-                        <Building className="w-5 h-5 text-rentia-blue"/> Info Comunidad
-                    </h3>
-                    <div className="mb-4">
-                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Propiedad</label>
-                        <select className="w-full p-2 border rounded mb-4" value={selectedPropertyId} onChange={e => setSelectedPropertyId(e.target.value)}>
-                            {properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}
-                        </select>
-                    </div>
+                    <h3 className="font-bold text-lg mb-6 flex items-center gap-2 border-b border-gray-100 pb-3"><Building className="w-5 h-5 text-rentia-blue"/> Info Comunidad</h3>
+                    <div className="mb-4"><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Propiedad</label><select className="w-full p-2 border rounded mb-4" value={selectedPropertyId} onChange={e => setSelectedPropertyId(e.target.value)}>{properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}</select></div>
                     <form onSubmit={handleUpdateCommunity} className="space-y-4">
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Teléfono Presidente</label>
-                            <input type="text" className="w-full p-2 border rounded" value={communityForm.presidentPhone} onChange={e => setCommunityForm({...communityForm, presidentPhone: e.target.value})} />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Empresa Administradora</label>
-                            <input type="text" className="w-full p-2 border rounded" value={communityForm.adminCompany} onChange={e => setCommunityForm({...communityForm, adminCompany: e.target.value})} />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Contacto Admin (Email/Tel)</label>
-                            <input type="text" className="w-full p-2 border rounded" value={communityForm.adminContact} onChange={e => setCommunityForm({...communityForm, adminContact: e.target.value})} />
-                        </div>
+                        <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Teléfono Presidente</label><input type="text" className="w-full p-2 border rounded" value={communityForm.presidentPhone} onChange={e => setCommunityForm({...communityForm, presidentPhone: e.target.value})} /></div>
+                        <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Empresa Administradora</label><input type="text" className="w-full p-2 border rounded" value={communityForm.adminCompany} onChange={e => setCommunityForm({...communityForm, adminCompany: e.target.value})} /></div>
+                        <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Contacto Admin (Email/Tel)</label><input type="text" className="w-full p-2 border rounded" value={communityForm.adminContact} onChange={e => setCommunityForm({...communityForm, adminContact: e.target.value})} /></div>
                         <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded-lg font-bold hover:bg-blue-700">Guardar Info Comunidad</button>
                     </form>
                 </div>
             </div>
         )}
 
-        {/* ... (Docs Tab) ... */}
+        {/* ... (Docs, Invoices, Financials tabs same as previous version, stripped for brevity) ... */}
         {activeTab === 'docs' && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-1 space-y-6">
                     <div className="bg-indigo-50 p-6 rounded-xl border border-indigo-100">
                         <h3 className="font-bold text-indigo-900 mb-4 flex items-center gap-2"><Info className="w-5 h-5"/> Documentación Mínima</h3>
-                        <div className="space-y-3">
-                            {requiredDocsStatus.map((req, idx) => (
-                                <div key={idx} className="flex items-center justify-between bg-white p-3 rounded-lg border border-indigo-100 shadow-sm">
-                                    <span className="text-sm text-gray-700">{req.label}</span>
-                                    {req.uploaded ? <span className="text-green-600 flex items-center gap-1 text-xs font-bold"><CheckCircle className="w-4 h-4"/> OK</span> : <span className="text-red-500 flex items-center gap-1 text-xs font-bold animate-pulse"><AlertCircle className="w-4 h-4"/> Pendiente</span>}
-                                </div>
-                            ))}
-                        </div>
+                        <div className="space-y-3">{requiredDocsStatus.map((req, idx) => (<div key={idx} className="flex items-center justify-between bg-white p-3 rounded-lg border border-indigo-100 shadow-sm"><span className="text-sm text-gray-700">{req.label}</span>{req.uploaded ? <span className="text-green-600 flex items-center gap-1 text-xs font-bold"><CheckCircle className="w-4 h-4"/> OK</span> : <span className="text-red-500 flex items-center gap-1 text-xs font-bold animate-pulse"><AlertCircle className="w-4 h-4"/> Pendiente</span>}</div>))}</div>
                     </div>
                     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                         <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Upload className="w-5 h-5"/> Subir Documento</h3>
@@ -480,59 +575,26 @@ export const OwnerDashboard: React.FC = () => {
                         </form>
                     </div>
                 </div>
-                <div className="lg:col-span-2 space-y-3">
-                    <h3 className="font-bold text-lg mb-4">Documentos Archivados</h3>
-                    {uploadedDocs.length === 0 ? <p className="text-gray-400 text-sm italic">No hay documentos.</p> : uploadedDocs.map(doc => (
-                        <div key={doc.id} className="bg-white p-4 rounded-lg border border-gray-200 flex justify-between items-center hover:shadow-sm transition-shadow">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><FileText className="w-5 h-5"/></div>
-                                <div><p className="font-bold text-sm text-gray-800 capitalize">{doc.type.replace('_', ' ')}</p><p className="text-xs text-gray-500">{doc.name}</p></div>
-                            </div>
-                            <a href={doc.url} target="_blank" rel="noreferrer" className="text-xs font-bold text-rentia-blue bg-blue-50 px-3 py-1.5 rounded hover:bg-blue-100 flex items-center gap-2"><Download className="w-3 h-3"/> Descargar</a>
-                        </div>
-                    ))}
-                </div>
+                <div className="lg:col-span-2 space-y-3"><h3 className="font-bold text-lg mb-4">Documentos Archivados</h3>{uploadedDocs.length === 0 ? <p className="text-gray-400 text-sm italic">No hay documentos.</p> : uploadedDocs.map(doc => (<div key={doc.id} className="bg-white p-4 rounded-lg border border-gray-200 flex justify-between items-center hover:shadow-sm transition-shadow"><div className="flex items-center gap-3"><div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><FileText className="w-5 h-5"/></div><div><p className="font-bold text-sm text-gray-800 capitalize">{doc.type.replace('_', ' ')}</p><p className="text-xs text-gray-500">{doc.name}</p></div></div><a href={doc.url} target="_blank" rel="noreferrer" className="text-xs font-bold text-rentia-blue bg-blue-50 px-3 py-1.5 rounded hover:bg-blue-100 flex items-center gap-2"><Download className="w-3 h-3"/> Descargar</a></div>))}</div>
             </div>
         )}
 
-        {/* ... (Invoices Tab) ... */}
         {activeTab === 'invoices' && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-1 bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                     <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Zap className="w-5 h-5"/> Registrar Factura</h3>
                     <form onSubmit={handleUploadInvoice} className="space-y-4">
                         <select className="w-full p-2 border rounded bg-white text-sm" value={selectedPropertyId} onChange={e => setSelectedPropertyId(e.target.value)}>{properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}</select>
-                        <div className="grid grid-cols-2 gap-2">
-                            <select className="w-full p-2 border rounded bg-white text-sm" value={invoiceForm.type} onChange={e => setInvoiceForm({...invoiceForm, type: e.target.value})}><option value="luz">Luz</option><option value="agua">Agua</option><option value="internet">Internet</option><option value="gas">Gas</option><option value="comunidad">Comunidad</option></select>
-                            <input type="number" step="0.01" placeholder="Importe €" className="w-full p-2 border rounded text-sm" value={invoiceForm.amount} onChange={e => setInvoiceForm({...invoiceForm, amount: e.target.value})} />
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                            <div><label className="text-[10px] uppercase font-bold text-gray-400">Inicio</label><input type="date" className="w-full p-2 border rounded text-xs" value={invoiceForm.periodStart} onChange={e => setInvoiceForm({...invoiceForm, periodStart: e.target.value})} /></div>
-                            <div><label className="text-[10px] uppercase font-bold text-gray-400">Fin</label><input type="date" className="w-full p-2 border rounded text-xs" value={invoiceForm.periodEnd} onChange={e => setInvoiceForm({...invoiceForm, periodEnd: e.target.value})} /></div>
-                        </div>
+                        <div className="grid grid-cols-2 gap-2"><select className="w-full p-2 border rounded bg-white text-sm" value={invoiceForm.type} onChange={e => setInvoiceForm({...invoiceForm, type: e.target.value})}><option value="luz">Luz</option><option value="agua">Agua</option><option value="internet">Internet</option><option value="gas">Gas</option><option value="comunidad">Comunidad</option></select><input type="number" step="0.01" placeholder="Importe €" className="w-full p-2 border rounded text-sm" value={invoiceForm.amount} onChange={e => setInvoiceForm({...invoiceForm, amount: e.target.value})} /></div>
+                        <div className="grid grid-cols-2 gap-2"><div><label className="text-[10px] uppercase font-bold text-gray-400">Inicio</label><input type="date" className="w-full p-2 border rounded text-xs" value={invoiceForm.periodStart} onChange={e => setInvoiceForm({...invoiceForm, periodStart: e.target.value})} /></div><div><label className="text-[10px] uppercase font-bold text-gray-400">Fin</label><input type="date" className="w-full p-2 border rounded text-xs" value={invoiceForm.periodEnd} onChange={e => setInvoiceForm({...invoiceForm, periodEnd: e.target.value})} /></div></div>
                         <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:bg-gray-50 relative"><input type="file" onChange={e => setInvoiceFile(e.target.files?.[0] || null)} className="absolute inset-0 opacity-0 cursor-pointer" /><p className="text-xs text-gray-500">{invoiceFile ? invoiceFile.name : 'Subir PDF Factura'}</p></div>
                         <button type="submit" className="w-full bg-green-600 text-white py-2 rounded-lg font-bold text-sm hover:bg-green-700">Registrar Gasto</button>
                     </form>
                 </div>
-                <div className="lg:col-span-2 space-y-3">
-                    <h3 className="font-bold text-lg mb-4">Histórico Facturas Subidas</h3>
-                    {uploadedInvoices.length === 0 ? <p className="text-gray-400 text-sm italic">No hay facturas registradas.</p> : uploadedInvoices.map(inv => (
-                        <div key={inv.id} className="bg-white p-4 rounded-lg border border-gray-200 flex justify-between items-center hover:shadow-sm transition-shadow">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-yellow-50 text-yellow-600 rounded-lg"><DollarSign className="w-5 h-5"/></div>
-                                <div><p className="font-bold text-sm text-gray-800 capitalize">{inv.type} <span className="text-gray-400">|</span> {inv.amount}€</p><p className="text-xs text-gray-500">{inv.periodStart} - {inv.periodEnd}</p></div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${inv.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{inv.status}</span>
-                                {inv.fileUrl && <a href={inv.fileUrl} target="_blank" rel="noreferrer" className="text-gray-400 hover:text-rentia-blue"><ExternalLink className="w-4 h-4"/></a>}
-                            </div>
-                        </div>
-                    ))}
-                </div>
+                <div className="lg:col-span-2 space-y-3"><h3 className="font-bold text-lg mb-4">Histórico Facturas Subidas</h3>{uploadedInvoices.length === 0 ? <p className="text-gray-400 text-sm italic">No hay facturas registradas.</p> : uploadedInvoices.map(inv => (<div key={inv.id} className="bg-white p-4 rounded-lg border border-gray-200 flex justify-between items-center hover:shadow-sm transition-shadow"><div className="flex items-center gap-3"><div className="p-2 bg-yellow-50 text-yellow-600 rounded-lg"><DollarSign className="w-5 h-5"/></div><div><p className="font-bold text-sm text-gray-800 capitalize">{inv.type} <span className="text-gray-400">|</span> {inv.amount}€</p><p className="text-xs text-gray-500">{inv.periodStart} - {inv.periodEnd}</p></div></div><div className="flex items-center gap-2"><span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${inv.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{inv.status}</span>{inv.fileUrl && <a href={inv.fileUrl} target="_blank" rel="noreferrer" className="text-gray-400 hover:text-rentia-blue"><ExternalLink className="w-4 h-4"/></a>}</div></div>))}</div>
             </div>
         )}
 
-        {/* ... (Financials Tab) ... */}
         {activeTab === 'financials' && (
             <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -575,7 +637,7 @@ export const OwnerDashboard: React.FC = () => {
 
       </div>
 
-      {/* GDPR MODAL - ALWAYS VISIBLE IF NOT SIGNED */}
+      {/* GDPR MODAL - MODIFIED TO INCLUDE RENTGER SYNC */}
       {isGdprOpen && (
           <div className="fixed inset-0 z-[10000] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
               <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
@@ -583,29 +645,12 @@ export const OwnerDashboard: React.FC = () => {
                       <h2 className="text-xl font-bold text-rentia-black flex items-center gap-2"><Shield className="w-6 h-6 text-rentia-blue"/> Protección de Datos</h2>
                       <div className="text-xs font-bold text-gray-400 uppercase tracking-wide">Paso {gdprStep}/2</div>
                   </div>
-                  
                   <div className="p-8 overflow-y-auto leading-relaxed text-gray-600 text-sm space-y-4">
-                      {gdprStep === 1 ? (
-                          <>
-                              <p className="font-bold text-gray-800">CONSENTIMIENTO EXPLÍCITO PARA EL TRATAMIENTO DE DATOS PERSONALES</p>
-                              <p>De conformidad con lo establecido en el Reglamento (UE) 2016/679 (RGPD) y la Ley Orgánica 3/2018 (LOPDGDD), RENTIA INVESTMENTS S.L. le informa que sus datos personales serán tratados con la finalidad de gestionar la relación contractual de administración de su propiedad inmobiliaria.</p>
-                              {/* ... resto del texto legal ... */}
-                          </>
-                      ) : (
-                          <div className="space-y-6">
-                              <p>Por favor, firme en el recuadro para aceptar las condiciones y formalizar el tratamiento de sus datos. Esta firma tendrá plena validez legal para la gestión de su propiedad.</p>
-                              <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg text-xs text-yellow-800 flex gap-2"><AlertCircle className="w-5 h-5 shrink-0"/><div><strong>Registro de Auditoría:</strong> Se registrará su dirección IP, fecha y hora como prueba de consentimiento. Se generará un certificado digital automáticamente.</div></div>
-                              <div><label className="block text-xs font-bold text-gray-500 uppercase mb-2">Su Firma Digital</label><SignaturePad onSave={handleGdprSign} /></div>
-                          </div>
-                      )}
+                      {gdprStep === 1 ? (<><p className="font-bold text-gray-800">CONSENTIMIENTO EXPLÍCITO PARA EL TRATAMIENTO DE DATOS PERSONALES</p><p>De conformidad con lo establecido en el Reglamento (UE) 2016/679 (RGPD) y la Ley Orgánica 3/2018 (LOPDGDD), RENTIA INVESTMENTS S.L. le informa que sus datos personales serán tratados con la finalidad de gestionar la relación contractual de administración de su propiedad inmobiliaria.</p><div className="bg-indigo-50 border border-indigo-200 p-4 rounded-lg mt-4 flex items-start gap-3"><CloudLightning className="w-5 h-5 text-indigo-600 mt-0.5 shrink-0" /><p className="text-xs text-indigo-800"><strong>Sincronización Automática:</strong> Al firmar, sus datos se sincronizarán de forma segura con nuestra plataforma de gestión legal (Rentger) para la generación automática de contratos.</p></div></>) : (<div className="space-y-6"><p>Por favor, firme en el recuadro para aceptar las condiciones y formalizar el tratamiento de sus datos. Esta firma tendrá plena validez legal para la gestión de su propiedad.</p><div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg text-xs text-yellow-800 flex gap-2"><AlertCircle className="w-5 h-5 shrink-0"/><div><strong>Registro de Auditoría:</strong> Se registrará su dirección IP, fecha y hora como prueba de consentimiento. Se generará un certificado digital automáticamente.</div></div><div><label className="block text-xs font-bold text-gray-500 uppercase mb-2">Su Firma Digital</label><SignaturePad onSave={handleGdprSign} /></div></div>)}
                   </div>
-
-                  <div className="p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
-                      {gdprStep === 1 ? (
-                          <button onClick={() => setGdprStep(2)} className="bg-rentia-black text-white px-8 py-3 rounded-xl font-bold hover:bg-gray-800 transition-colors shadow-lg flex items-center gap-2">He leído y acepto <ArrowRight className="w-4 h-4"/></button>
-                      ) : (
-                          <button disabled={true} className="text-xs text-gray-400 italic">{signing ? 'Generando certificado legal...' : 'Firme arriba para finalizar'}</button>
-                      )}
+                  <div className="p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-3 items-center">
+                      {syncStatus && <span className="text-xs text-indigo-600 font-bold animate-pulse mr-4">{syncStatus}</span>}
+                      {gdprStep === 1 ? (<button onClick={() => setGdprStep(2)} className="bg-rentia-black text-white px-8 py-3 rounded-xl font-bold hover:bg-gray-800 transition-colors shadow-lg flex items-center gap-2">He leído y acepto <ArrowRight className="w-4 h-4"/></button>) : (<button disabled={true} className="text-xs text-gray-400 italic">{signing ? 'Procesando firma...' : 'Firme arriba para finalizar'}</button>)}
                   </div>
               </div>
           </div>

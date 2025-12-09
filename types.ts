@@ -168,6 +168,7 @@ export interface Candidate {
     additionalInfo: string;
     propertyId: string;
     propertyName: string;
+    ownerId?: string; // Nuevo: Para vincular con el panel de propietario
     roomId: string;
     roomName: string;
     submittedBy: string;
@@ -176,6 +177,8 @@ export interface Candidate {
     closureReason?: string; 
     assignedRoomId?: string; 
     assignedDate?: any;
+    assignedTo?: string; 
+    sourcePlatform?: string;
 }
 
 export type VisitOutcome = 'successful' | 'unsuccessful' | 'pending';
@@ -272,6 +275,7 @@ export interface OpportunityRequest {
         relation: 'propietario' | 'mediador' | 'agencia' | 'amigo' | 'otro';
     };
     assets: AssetSubmission[];
+    isPack?: boolean;
     packPrice?: number; 
     isBuilding?: boolean;
     buildingDetails?: {
@@ -285,4 +289,18 @@ export interface OpportunityRequest {
     createdAt: any;
     gdprAccepted: boolean;
     dataPolicyAccepted: boolean;
+}
+
+export interface WorkerInvoice {
+    id: string;
+    workerId: string;
+    workerName: string;
+    amount: number;
+    concept: string;
+    date: any; // timestamp
+    status: 'pending' | 'paid';
+    fileUrl: string; // La factura en sí
+    fileName: string;
+    paymentProofUrl?: string; // Nuevo: Justificante de pago
+    createdAt: any;
 }

@@ -23,16 +23,13 @@ setPersistence(auth, browserLocalPersistence).catch((error) => {
 });
 
 // 3. Inicializar Firestore con caché persistente (Offline support)
-// Usamos initializeFirestore para configuración avanzada en lugar de getFirestore
 export const db = initializeFirestore(app, {
   localCache: persistentLocalCache({
     tabManager: persistentMultipleTabManager()
   })
 });
 
-// Habilitar persistencia explícita para navegadores antiguos si es necesario, 
-// aunque initializeFirestore ya lo maneja arriba.
-// (El bloque try-catch es preventivo por si el navegador no soporta IndexedDB)
+// Habilitar persistencia explícita para navegadores antiguos si es necesario
 try {
   enableMultiTabIndexedDbPersistence(db).catch((err) => {
     if (err.code == 'failed-precondition') {

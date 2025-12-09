@@ -1,5 +1,5 @@
 
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // Función auxiliar para convertir File/Blob a Base64
 export const toBase64 = (file: Blob): Promise<string> => {
@@ -25,8 +25,8 @@ export const cleanImageWithAI = async (file: Blob | File, apiKey: string | undef
     const mimeType = file.type || 'image/jpeg';
 
     // 2. Consultar a Gemini (Detección)
-    const ai = new GoogleGenAI({ apiKey });
-    const model = ai.models;
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
     
     const prompt = `
         Analyze this image. Detect bounding boxes for:
@@ -42,18 +42,13 @@ export const cleanImageWithAI = async (file: Blob | File, apiKey: string | undef
     `;
 
     try {
-        const response = await model.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: {
-                parts: [
-                    { inlineData: { mimeType, data: base64Data } },
-                    { text: prompt }
-                ]
-            }
-        });
+        const response = await model.generateContent([
+            { inlineData: { mimeType, data: base64Data } },
+            prompt
+        ]);
 
         let analysis;
-        const text = response.text || "{}";
+        const text = response.response.text() || "{}";
         const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
         analysis = JSON.parse(cleanJson);
 

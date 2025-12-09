@@ -1,9 +1,7 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-
 const RENTGER_API_KEY = process.env.RENTGER_API_KEY;
 const RENTGER_API_BASE = "https://api.rentger.com/api/v1";
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req: any, res: any) {
   // Solo permitir POST
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -32,7 +30,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const searchResponse = await fetch(`${RENTGER_API_BASE}/people?email=${encodeURIComponent(email)}&limit=1`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${RENTGER_API_KEY}`,
+        'rentger-key': RENTGER_API_KEY,
         'Content-Type': 'application/json',
       },
     });
@@ -48,7 +46,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const updateResponse = await fetch(`${RENTGER_API_BASE}/people/${rentgerId}`, {
           method: 'PUT',
           headers: {
-            'Authorization': `Bearer ${RENTGER_API_KEY}`,
+            'rentger-key': RENTGER_API_KEY,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
@@ -76,7 +74,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const createResponse = await fetch(`${RENTGER_API_BASE}/people`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${RENTGER_API_KEY}`,
+        'rentger-key': RENTGER_API_KEY,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({

@@ -1,13 +1,13 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { createPortal } from 'react-dom'; // IMPORTANTE
+import { createPortal } from 'react-dom'; 
 import { db, storage } from '../../firebase';
 import { collection, addDoc, serverTimestamp, onSnapshot, deleteDoc, doc, writeBatch, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { brokerRequests as staticRequests, BrokerRequest } from '../../data/brokerRequests';
 import { opportunities as staticOpportunities } from '../../data';
 import { Opportunity, OpportunityScenario, Visibility } from '../../types';
-import { Briefcase, Building2, UserPlus, Search, Filter, TrendingUp, MapPin, DollarSign, Save, ArrowRight, Users, Eye, EyeOff, Plus, Image as ImageIcon, Trash2, Home, Bed, Layout, Bath, Phone, FileText, Tag, AlertCircle, Handshake, Star, Crown, X, UploadCloud, RefreshCw, Pencil, Sparkles, Wand2, Loader2, Link as LinkIcon, AlertTriangle } from 'lucide-react';
+import { Briefcase, Building2, UserPlus, Search, Filter, TrendingUp, MapPin, DollarSign, Save, ArrowRight, Users, Eye, EyeOff, Plus, Image as ImageIcon, Trash2, Home, Bed, Layout, Bath, Phone, FileText, Tag, AlertCircle, Handshake, Star, Crown, X, UploadCloud, RefreshCw, Pencil, Sparkles, Wand2, Loader2, Link as LinkIcon, AlertTriangle, MonitorPlay } from 'lucide-react';
 import { ImageUploader } from './ImageUploader';
 import { cleanImageWithAI } from '../../utils/aiImageCleaner';
 import { compressImage } from '../../utils/imageOptimizer';
@@ -610,6 +610,15 @@ export const SalesCRM: React.FC = () => {
                                   <div className="text-right mr-4 hidden sm:block">
                                       <p className="font-bold text-lg">{opp.financials.purchasePrice.toLocaleString()} €</p>
                                   </div>
+                                  <a 
+                                    href={`#/presentation?id=${opp.id}`} 
+                                    target="_blank"
+                                    rel="noreferrer" 
+                                    className="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors flex items-center gap-1 font-bold text-xs"
+                                    title="Ver Plantilla Presentación"
+                                  >
+                                      <MonitorPlay className="w-4 h-4" /> <span className="hidden md:inline">Ver Presentación</span>
+                                  </a>
                                   <button onClick={() => handleEditAsset(opp)} className="p-2 text-gray-400 hover:text-rentia-blue hover:bg-blue-50 rounded-lg transition-colors"><Pencil className="w-4 h-4" /></button>
                                   <button onClick={() => handleDeleteAsset(opp.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
                               </div>

@@ -1,8 +1,11 @@
-
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Users, Building, AlertCircle, CheckCircle, BarChart3, RefreshCw, LayoutDashboard, Calculator, Briefcase, Wrench, Plus, ArrowUpRight, ArrowDownRight, Search, FileText, Trash2, Save, X, DollarSign, Calendar as CalendarIcon, Filter, Download, Pencil, ChevronLeft, ChevronRight, PieChart, Landmark, ChevronDown, Wallet, CreditCard, Clock, Zap, Droplets, Flame, Wifi, Settings, Receipt, Split, Info, MessageCircle, Share2, ClipboardList, UserCheck, Mail, Phone, ArrowRight, UserPlus, Archive, Send, Home, DoorOpen, Menu, Grid, Footprints, MapPin, Percent, Quote, Sparkles, Activity, Ban, ShieldAlert, Inbox, Globe } from 'lucide-react';
+import { db } from '../../firebase';
+import { collection, onSnapshot, addDoc, query, where, orderBy, serverTimestamp } from 'firebase/firestore';
+import { properties as staticProperties, Property } from '../../data/rooms'; 
+import { useAuth } from '../../contexts/AuthContext';
 import { UserCreator } from '../admin/UserCreator';
+import { UserManager } from '../admin/UserManager'; 
 import { FileAnalyzer } from '../admin/FileAnalyzer';
 import { RoomManager } from '../admin/RoomManager';
 import { SalesCRM } from '../admin/SalesCRM';
@@ -23,12 +26,11 @@ import { NewsManager } from '../admin/NewsManager';
 import { SalesTracker } from '../admin/SalesTracker';
 import { BlacklistManager } from '../admin/tools/BlacklistManager';
 import { WorkerInvoicesPanel } from '../admin/tools/WorkerInvoicesPanel';
-import { db } from '../../firebase';
-import { collection, onSnapshot, addDoc, query, where, orderBy, serverTimestamp } from 'firebase/firestore';
-import { properties as staticProperties, Property } from '../../data/rooms'; // Fix import type
-import { useAuth } from '../../contexts/AuthContext';
+import { TransferRequestManager } from '../admin/TransferRequestManager';
+// FIX: Added Globe and Send icons to lucide-react import
+import { LayoutDashboard, Calculator, Briefcase, Wrench, Plus, Search, FileText, Save, X, DollarSign, Calendar as CalendarIcon, Filter, Pencil, PieChart, Landmark, Wallet, Clock, Zap, Settings, Receipt, Split, Info, MessageCircle, Share2, ClipboardList, UserCheck, Mail, Phone, ArrowRight, UserPlus, Inbox, Home, DoorOpen, Menu, Activity, ShieldAlert, UserCog, Siren, Footprints, BarChart3, Building, Grid, Globe, Send, Users } from 'lucide-react';
 
-// ... (Resto del código existente: MOTIVATIONAL_QUOTES, Banner, etc. sin cambios) ...
+
 const MOTIVATIONAL_QUOTES = [
     "El único modo de hacer un gran trabajo es amar lo que haces. – Steve Jobs",
     "El éxito es la suma de pequeños esfuerzos repetidos día tras día. – Robert Collier",
@@ -47,7 +49,7 @@ const MotivationalBanner = () => {
     return (
         <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white p-4 rounded-xl shadow-lg mb-6 flex items-center gap-3 animate-in fade-in slide-in-from-top-4">
             <div className="bg-white/20 p-2 rounded-full">
-                <Quote className="w-5 h-5 text-white" />
+                <Info className="w-5 h-5 text-white" />
             </div>
             <p className="text-sm font-medium italic opacity-90">"{quote}"</p>
         </div>
@@ -57,11 +59,10 @@ const MotivationalBanner = () => {
 export const StaffDashboard: React.FC = () => {
   const { currentUser } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'real_estate' | 'accounting' | 'tools' | 'contracts' | 'calendar' | 'supplies' | 'calculator' | 'social' | 'tasks' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices'>('overview');
-  const [activeMobileTab, setActiveMobileTab] = useState<'overview' | 'tasks' | 'candidates' | 'properties' | 'menu' | 'accounting' | 'supplies' | 'calendar' | 'contracts' | 'social' | 'calculator' | 'tools' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'real_estate' | 'accounting' | 'tools' | 'contracts' | 'calendar' | 'supplies' | 'calculator' | 'social' | 'tasks' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'transfers'>('overview');
+  const [activeMobileTab, setActiveMobileTab] = useState<'overview' | 'tasks' | 'candidates' | 'properties' | 'menu' | 'accounting' | 'supplies' | 'calendar' | 'contracts' | 'social' | 'calculator' | 'tools' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager'>('overview');
   const [mobilePropertyView, setMobilePropertyView] = useState<'rent' | 'sale'>('rent');
 
-  // ... (Stats Logic kept identical) ...
   const [stats, setStats] = useState({
     totalRooms: 0,
     occupancyRate: 0,
@@ -74,6 +75,7 @@ export const StaffDashboard: React.FC = () => {
   const [loadingStats, setLoadingStats] = useState(true);
   const [pendingCandidatesCount, setPendingCandidatesCount] = useState(0);
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0); 
+  const [pendingTransfersCount, setPendingTransfersCount] = useState(0);
   const [propertiesList, setPropertiesList] = useState<Property[]>([]);
   const [selectedPropId, setSelectedPropId] = useState<string>(''); 
   const [totalRealBalance, setTotalRealBalance] = useState(0);
@@ -86,13 +88,12 @@ export const StaffDashboard: React.FC = () => {
       additionalInfo: '', 
       candidatePhone: '', 
       candidateEmail: '',
-      sourcePlatform: '' 
+      sourcePlatform: '',
+      priority: 'Media' as 'Alta' | 'Media' | 'Baja'
   });
 
   useEffect(() => {
-    // ... (Existing Props Snapshot) ...
     const unsubscribeProps = onSnapshot(collection(db, "properties"), (snapshot) => {
-      // ... same logic ...
       let totalRoomsCount = 0;
       let occupiedCount = 0;
       let revenueCount = 0;
@@ -108,8 +109,6 @@ export const StaffDashboard: React.FC = () => {
       const missingStatics = staticProperties.filter(p => !dbIds.has(p.id));
       
       const allProps = [...firestoreProps, ...missingStatics].map(data => {
-          let inferredConfig = data.cleaningConfig; // fix cleaningConfig access
-          // logic remains similar
           return data;
       });
 
@@ -152,7 +151,6 @@ export const StaffDashboard: React.FC = () => {
       setLoadingStats(false);
     });
 
-    // ... (Accounting logic same)
     const qAccounting = query(collection(db, "accounting"));
     const unsubscribeAccounting = onSnapshot(qAccounting, (snapshot) => {
         let balance = 0;
@@ -174,7 +172,13 @@ export const StaffDashboard: React.FC = () => {
         setPendingRequestsCount(snap.size);
     });
 
-    return () => { unsubscribeProps(); unsubscribeAccounting(); unsubPending(); unsubRequests(); };
+    const qTransfers = query(collection(db, "pending_transfers"), where("status", "==", "pending_review"));
+    const unsubTransfers = onSnapshot(qTransfers, (snap) => {
+       setPendingTransfersCount(snap.size);
+    });
+
+
+    return () => { unsubscribeProps(); unsubscribeAccounting(); unsubPending(); unsubRequests(); unsubTransfers(); };
   }, []);
 
   const handleSendCandidate = async (e: React.FormEvent) => {
@@ -189,14 +193,14 @@ export const StaffDashboard: React.FC = () => {
           await addDoc(collection(db, "candidate_pipeline"), {
               ...newCandidate,
               propertyName: prop?.address || 'N/A',
-              ownerId: prop?.ownerId || null, // AÑADIDO: Guardar ownerId
+              ownerId: prop?.ownerId || null, 
               roomName: room?.name || 'General / A definir', 
               submittedBy: currentUser?.displayName || 'Staff', 
               submittedAt: serverTimestamp(),
               status: 'pending_review'
           });
           setShowCandidateModal(false);
-          setNewCandidate({ propertyId: '', roomId: '', candidateName: '', additionalInfo: '', candidatePhone: '', candidateEmail: '', sourcePlatform: '' });
+          setNewCandidate({ propertyId: '', roomId: '', candidateName: '', additionalInfo: '', candidatePhone: '', candidateEmail: '', sourcePlatform: '', priority: 'Media' });
           alert('Candidato enviado a filtrado correctamente.');
       } catch (error) {
           console.error(error);
@@ -204,12 +208,11 @@ export const StaffDashboard: React.FC = () => {
       }
   };
 
-    // ... (Render Lists and Mobile Content - No changes needed except passing ownerId logic above) ...
-    // ... (Keeping rest of the file identical to preserve functionality) ...
     const desktopTools = [
         { id: 'tasks', label: 'Tareas', icon: <ClipboardList className="w-4 h-4" /> },
         { id: 'real_estate', label: 'Inmobiliaria', icon: <Building className="w-4 h-4" /> },
         { id: 'requests', label: 'Solicitudes', icon: <Inbox className="w-4 h-4" />, count: pendingRequestsCount }, 
+        { id: 'transfers', label: 'Traspasos', icon: <Share2 className="w-4 h-4" />, count: pendingTransfersCount },
         { id: 'sales_tracker', label: 'Ventas', icon: <Activity className="w-4 h-4" /> },
         { id: 'blacklist', label: 'Gestión Riesgos', icon: <ShieldAlert className="w-4 h-4 text-red-500" /> }, 
         { id: 'contracts', label: 'Contratos', icon: <FileText className="w-4 h-4" /> },
@@ -220,6 +223,7 @@ export const StaffDashboard: React.FC = () => {
         { id: 'accounting', label: 'Contabilidad', icon: <Calculator className="w-4 h-4" /> },
         { id: 'calendar', label: 'Calendario', icon: <CalendarIcon className="w-4 h-4" /> },
         { id: 'visits', label: 'Visitas', icon: <Footprints className="w-4 h-4" /> }, 
+        { id: 'user_manager', label: 'Usuarios', icon: <UserCog className="w-4 h-4" /> }, 
         { id: 'tools', label: 'Admin', icon: <Wrench className="w-4 h-4" /> },
     ];
 
@@ -234,127 +238,73 @@ export const StaffDashboard: React.FC = () => {
         { id: 'visits', label: 'Visitas', icon: <Footprints className="w-6 h-6"/>, color: 'bg-red-100 text-red-600' },
         { id: 'contracts', label: 'Contratos', icon: <FileText className="w-6 h-6"/>, color: 'bg-purple-100 text-purple-600' },
         { id: 'social', label: 'Mensajería', icon: <MessageCircle className="w-6 h-6"/>, color: 'bg-pink-100 text-pink-600' },
+        { id: 'user_manager', label: 'Usuarios', icon: <UserCog className="w-6 h-6"/>, color: 'bg-gray-200 text-gray-700' },
         { id: 'calculator', label: 'Inversión', icon: <Split className="w-6 h-6"/>, color: 'bg-orange-100 text-orange-600' },
         { id: 'tools', label: 'Herramientas', icon: <Wrench className="w-6 h-6"/>, color: 'bg-gray-100 text-gray-600' },
     ];
 
     const renderMobileContent = () => {
-        const SubSectionWrapper = ({ title, children }: { title: string, children?: React.ReactNode }) => (
-            <div className="animate-in slide-in-from-right-4 duration-300 h-full flex flex-col">
-                <div className="flex items-center gap-3 mb-4 sticky top-0 bg-gray-100 py-2 z-10 px-4">
-                    <button onClick={() => setActiveMobileTab('menu')} className="p-2 bg-white rounded-full shadow-sm">
-                        <ChevronLeft className="w-5 h-5 text-gray-600"/>
-                    </button>
-                    <h2 className="text-lg font-bold text-gray-800">{title}</h2>
+        if (activeMobileTab === 'menu') {
+             return (
+                <div className="p-4 grid grid-cols-3 gap-3 overflow-y-auto pb-24">
+                    {mobileMenuOptions.map(option => (
+                        <button
+                            key={option.id}
+                            onClick={() => setActiveMobileTab(option.id as any)}
+                            className={`flex flex-col items-center justify-center p-3 rounded-xl border bg-white shadow-sm transition-transform active:scale-95 ${option.color.replace('text-', 'border-').replace('bg-', 'border-opacity-20 ')}`}
+                        >
+                            <div className={`p-2 rounded-full mb-2 ${option.color}`}>
+                                {option.icon}
+                            </div>
+                            <span className="text-[10px] font-bold text-gray-700 text-center leading-tight">{option.label}</span>
+                            {option.count ? <span className="mt-1 bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded-full">{option.count}</span> : null}
+                        </button>
+                    ))}
                 </div>
-                <div className="flex-grow overflow-y-auto pb-24 px-2">
-                    {children}
-                </div>
-            </div>
-        );
+            );
+        }
 
         switch (activeMobileTab) {
             case 'overview': return (
-                <div className="animate-in slide-in-from-bottom-4 duration-300 space-y-4 h-full overflow-y-auto pb-24 px-4 pt-4">
+                <div className="p-4 space-y-4 overflow-y-auto pb-24">
                     <MotivationalBanner />
-                    {/* ... (Overview cards kept same) ... */}
-                    {pendingCandidatesCount > 0 && (
-                        <div 
-                            className="bg-orange-50 border border-orange-200 rounded-lg p-4 flex items-center justify-between shadow-sm cursor-pointer"
-                            onClick={() => { setActiveMobileTab('candidates'); }}
-                        >
-                            <div className="flex items-center gap-3">
-                                <div className="bg-orange-100 p-2 rounded-full text-orange-600"><UserCheck className="w-5 h-5" /></div>
-                                <div><h4 className="font-bold text-orange-800 text-sm">Candidatos Pendientes</h4><p className="text-xs text-orange-700">Requieren tu aprobación</p></div>
-                            </div>
-                            <span className="bg-orange-600 text-white font-bold text-lg px-3 py-1 rounded-full">{pendingCandidatesCount}</span>
-                        </div>
-                    )}
-                    {pendingRequestsCount > 0 && (
-                        <div 
-                            className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between shadow-sm cursor-pointer"
-                            onClick={() => { setActiveMobileTab('requests'); }}
-                        >
-                            <div className="flex items-center gap-3">
-                                <div className="bg-blue-100 p-2 rounded-full text-blue-600"><Inbox className="w-5 h-5" /></div>
-                                <div><h4 className="font-bold text-blue-800 text-sm">Nuevas Oportunidades</h4><p className="text-xs text-blue-700">Solicitudes de colaboradores</p></div>
-                            </div>
-                            <span className="bg-blue-600 text-white font-bold text-lg px-3 py-1 rounded-full">{pendingRequestsCount}</span>
-                        </div>
-                    )}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-white p-4 rounded-lg shadow-sm border"><span className="text-xs text-gray-500 uppercase font-bold">Total Habs</span><span className="text-2xl font-bold text-gray-800 block mt-1">{loadingStats ? '-' : stats.totalRooms}</span></div>
-                        <div className="bg-white p-4 rounded-lg shadow-sm border"><span className="text-xs text-gray-500 uppercase font-bold">Ocupación</span><span className={`text-2xl font-bold block mt-1 ${stats.occupancyRate > 90 ? 'text-green-600' : 'text-gray-800'}`}>{loadingStats ? '-' : `${stats.occupancyRate}%`}</span></div>
-                        <div className="bg-white p-4 rounded-lg shadow-sm border"><span className="text-xs text-gray-500 uppercase font-bold">Incidencias</span><span className="text-2xl font-bold text-red-600 block mt-1">{loadingStats ? '-' : stats.activeIncidents}</span></div>
-                        <div className="bg-white p-4 rounded-lg shadow-sm border"><span className="text-xs text-gray-500 uppercase font-bold">Vacías</span><span className="text-2xl font-bold text-orange-500 block mt-1">{loadingStats ? '-' : stats.vacantRooms}</span></div>
-                        
-                        <div className="bg-white p-4 rounded-lg shadow-sm border col-span-2 border-l-4 border-l-purple-500">
-                            <span className="text-xs text-gray-500 uppercase font-bold flex items-center gap-1"><DollarSign className="w-3 h-3 text-purple-500"/> Comisión Mensual (Est)</span>
-                            <span className="text-3xl font-bold text-purple-700 block mt-1">
-                                {loadingStats ? '-' : stats.estimatedCommission.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}€
-                            </span>
-                        </div>
-
-                        <div className="bg-white p-4 rounded-lg shadow-sm border col-span-2"><span className="text-xs text-gray-500 uppercase font-bold">Balance Caja</span><span className={`text-2xl font-bold block mt-1 ${totalRealBalance >= 0 ? 'text-gray-800' : 'text-red-600'}`}>{totalRealBalance.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span></div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-100"><p className="text-[10px] text-gray-500 font-bold uppercase">Habitaciones</p><p className="text-2xl font-bold text-gray-800">{stats.totalRooms}</p></div>
+                        <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-100"><p className="text-[10px] text-gray-500 font-bold uppercase">Ocupación</p><p className={`text-2xl font-bold ${stats.occupancyRate > 90 ? 'text-green-600' : 'text-gray-800'}`}>{stats.occupancyRate}%</p></div>
                     </div>
-                    <button onClick={() => setShowCandidateModal(true)} className="w-full bg-green-50 text-green-700 p-4 rounded-lg font-bold hover:bg-green-100 border border-green-200 flex justify-between items-center"><span className="flex items-center gap-2"><UserPlus className="w-5 h-5"/> Enviar Candidato</span><ArrowRight/></button>
-                    <button onClick={() => setActiveMobileTab('tasks')} className="w-full bg-blue-50 text-blue-700 p-4 rounded-lg font-bold hover:bg-blue-100 border border-blue-200 flex justify-between items-center"><span className="flex items-center gap-2"><ClipboardList className="w-5 h-5"/> Nueva Tarea</span><ArrowRight/></button>
+                    {pendingCandidatesCount > 0 && <div className="bg-orange-50 p-4 rounded-xl border border-orange-100 flex items-center justify-between shadow-sm" onClick={() => setActiveMobileTab('candidates')}><div className="flex items-center gap-3"><UserCheck className="w-5 h-5 text-orange-600"/><div><p className="font-bold text-orange-900">{pendingCandidatesCount} Candidatos</p><p className="text-xs text-orange-700">Revisar pendientes</p></div></div><ArrowRight className="w-4 h-4 text-orange-400"/></div>}
+                    {pendingRequestsCount > 0 && <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex items-center justify-between shadow-sm" onClick={() => setActiveMobileTab('requests')}><div className="flex items-center gap-3"><Inbox className="w-5 h-5 text-blue-600"/><div><p className="font-bold text-blue-900">{pendingRequestsCount} Solicitudes</p><p className="text-xs text-blue-700">Nuevas oportunidades</p></div></div><ArrowRight className="w-4 h-4 text-blue-400"/></div>}
                 </div>
             );
-            case 'tasks': return <div className="animate-in fade-in h-full overflow-hidden"><TaskManager /></div>;
-            case 'candidates': return <div className="animate-in fade-in h-full overflow-y-auto pb-24"><CandidateManager /></div>;
+            case 'tasks': return <div className="h-full overflow-y-auto pb-24"><TaskManager /></div>;
+            case 'candidates': return <div className="h-full overflow-y-auto pb-24"><CandidateManager /></div>;
             case 'properties': return (
-                <div className="flex flex-col h-full">
-                    <div className="flex p-2 bg-gray-100 gap-2 shrink-0 rounded-lg mb-2">
-                        <button onClick={() => setMobilePropertyView('rent')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${mobilePropertyView === 'rent' ? 'bg-white shadow text-rentia-blue' : 'text-gray-500 hover:text-gray-700'}`}>Alquiler</button>
-                        <button onClick={() => setMobilePropertyView('sale')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${mobilePropertyView === 'sale' ? 'bg-white shadow text-rentia-blue' : 'text-gray-500 hover:text-gray-700'}`}>Venta (CRM)</button>
+                <div className="h-full overflow-y-auto p-4 space-y-4 pb-24">
+                    <div className="flex bg-gray-100 p-1 rounded-lg mb-4">
+                        <button onClick={() => setMobilePropertyView('rent')} className={`flex-1 py-2 text-xs font-bold rounded-md ${mobilePropertyView === 'rent' ? 'bg-white shadow text-rentia-blue' : 'text-gray-500'}`}>Alquiler</button>
+                        <button onClick={() => setMobilePropertyView('sale')} className={`flex-1 py-2 text-xs font-bold rounded-md ${mobilePropertyView === 'sale' ? 'bg-white shadow text-rentia-blue' : 'text-gray-500'}`}>Venta</button>
                     </div>
-                    <div className="flex-grow overflow-y-auto pb-24">
-                        {mobilePropertyView === 'rent' ? <RoomManager /> : <SalesCRM /> }
-                    </div>
+                    {mobilePropertyView === 'rent' ? <RoomManager /> : <SalesCRM />}
                 </div>
             );
-            case 'menu': return (
-                <div className="animate-in slide-in-from-bottom-4 p-4 h-full overflow-y-auto pb-24">
-                    <h2 className="text-lg font-bold text-gray-800 mb-4 px-2">Más Herramientas</h2>
-                    <div className="grid grid-cols-2 gap-4">
-                        {mobileMenuOptions.map(opt => (
-                            <button key={opt.id} onClick={() => setActiveMobileTab(opt.id as any)} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center justify-center gap-3 hover:bg-gray-50 active:scale-95 transition-all aspect-square relative">
-                                <div className={`p-3 rounded-full ${opt.color}`}>{opt.icon}</div>
-                                <span className="font-bold text-gray-700 text-sm text-center leading-tight">{opt.label}</span>
-                                {opt.count && opt.count > 0 && <span className="absolute top-2 right-2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{opt.count}</span>}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            );
-            case 'worker_invoices': return <SubSectionWrapper title="Facturas Trabajadores"><WorkerInvoicesPanel /></SubSectionWrapper>;
-            case 'blacklist': return <SubSectionWrapper title="Gestión de Riesgos"><BlacklistManager /></SubSectionWrapper>; 
-            case 'requests': return <SubSectionWrapper title="Solicitudes Colaboradores"><OpportunityRequestManager /></SubSectionWrapper>; 
-            case 'sales_tracker': return <SubSectionWrapper title="Seguimiento Ventas"><SalesTracker /></SubSectionWrapper>;
-            case 'visits': return <SubSectionWrapper title="Visitas"><VisitsLog /></SubSectionWrapper>;
-            case 'accounting': return <SubSectionWrapper title="Contabilidad"><AccountingPanel /></SubSectionWrapper>;
-            case 'calendar': return <SubSectionWrapper title="Calendario"><CalendarManager /></SubSectionWrapper>;
-            case 'supplies': return <SubSectionWrapper title="Suministros"><SuppliesPanel properties={propertiesList} /></SubSectionWrapper>;
-            case 'contracts': return <SubSectionWrapper title="Contratos"><ContractManager onClose={() => setActiveMobileTab('menu')} /></SubSectionWrapper>;
-            case 'social': return <SubSectionWrapper title="Mensajería"><SocialInbox /></SubSectionWrapper>;
-            case 'calculator': return <SubSectionWrapper title="Calculadora Suministros"><SupplyCalculator properties={propertiesList} preSelectedPropertyId={selectedPropId} /></SubSectionWrapper>;
-            case 'tools': return (
-                <SubSectionWrapper title="Herramientas Admin">
-                    <div className="space-y-4">
-                        <NewsManager /> 
-                        <FeedGenerator />
-                        <OpportunityManager />
-                        <UserCreator />
-                        <FileAnalyzer />
-                        <ProfitCalculator />
-                    </div>
-                </SubSectionWrapper>
-            );
+            case 'contracts': return <div className="h-full overflow-y-auto pb-24"><ContractManager onClose={() => setActiveMobileTab('menu')} /></div>;
+            case 'calendar': return <div className="h-full overflow-y-auto pb-24"><CalendarManager /></div>;
+            case 'supplies': return <div className="h-full overflow-y-auto pb-24"><SuppliesPanel properties={propertiesList} /></div>;
+            case 'accounting': return <div className="h-full overflow-y-auto pb-24"><AccountingPanel /></div>;
+            case 'visits': return <div className="h-full overflow-y-auto pb-24"><VisitsLog /></div>;
+            case 'sales_tracker': return <div className="h-full overflow-y-auto pb-24"><SalesTracker /></div>;
+            case 'blacklist': return <div className="h-full overflow-y-auto pb-24"><BlacklistManager /></div>;
+            case 'requests': return <div className="h-full overflow-y-auto pb-24"><OpportunityRequestManager /></div>;
+            case 'worker_invoices': return <div className="h-full overflow-y-auto pb-24"><WorkerInvoicesPanel /></div>;
+            case 'user_manager': return <div className="h-full overflow-y-auto pb-24"><UserManager /></div>;
+            case 'calculator': return <div className="h-full overflow-y-auto pb-24"><SupplyCalculator properties={propertiesList} /></div>;
+            case 'social': return <div className="h-full overflow-y-auto pb-24"><SocialInbox /></div>;
+            case 'tools': return <div className="h-full overflow-y-auto p-4 space-y-4 pb-24"><NewsManager /><ProfitCalculator /></div>;
+            default: return null;
         }
     };
-  
-  return (
+
+    return (
     <div className="min-h-screen bg-gray-100 p-0 sm:p-4 md:p-6 animate-in fade-in">
       <div className="max-w-7xl mx-auto">
         
@@ -393,7 +343,6 @@ export const StaffDashboard: React.FC = () => {
                     <MotivationalBanner />
                     {/* Stats Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-                        {/* ... Stats cards ... */}
                         <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-500 relative overflow-hidden"><span className="text-xs text-gray-500 uppercase font-bold">Total Habitaciones</span><div className="flex justify-between items-end mt-2"><span className="text-3xl font-bold text-gray-800">{loadingStats ? '-' : stats.totalRooms}</span><Building className="w-6 h-6 text-blue-100 absolute right-4 top-4 transform scale-150" /></div></div>
                         <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-green-500 relative overflow-hidden"><span className="text-xs text-gray-500 uppercase font-bold">Ocupación Actual</span><div className="flex justify-between items-end mt-2"><span className={`text-3xl font-bold ${stats.occupancyRate > 90 ? 'text-green-600' : 'text-gray-800'}`}>{loadingStats ? '-' : `${stats.occupancyRate}%`}</span><Users className="w-6 h-6 text-green-100 absolute right-4 top-4 transform scale-150" /></div></div>
                         <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-orange-500 relative overflow-hidden"><span className="text-xs text-gray-500 uppercase font-bold">Habitaciones Vacías</span><div className="flex justify-between items-end mt-2"><span className="text-3xl font-bold text-orange-600">{loadingStats ? '-' : stats.vacantRooms}</span><DoorOpen className="w-6 h-6 text-orange-100 absolute right-4 top-4 transform scale-150" /></div></div>
@@ -436,6 +385,7 @@ export const StaffDashboard: React.FC = () => {
                 </div>
             )}
             
+            {activeTab === 'transfers' && <div className="animate-in slide-in-from-bottom-4 duration-300"><TransferRequestManager /></div>}
             {activeTab === 'tasks' && <div className="animate-in slide-in-from-bottom-4 duration-300"><TaskManager /></div>}
             {activeTab === 'real_estate' && <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-300"><RoomManager /><SalesCRM /></div>}
             {activeTab === 'contracts' && <div className="animate-in slide-in-from-bottom-4 duration-300"><ContractManager onClose={() => setActiveTab('real_estate')} /></div>}
@@ -449,6 +399,8 @@ export const StaffDashboard: React.FC = () => {
             {activeTab === 'blacklist' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><BlacklistManager /></div>} 
             {activeTab === 'requests' && <div className="animate-in slide-in-from-bottom-4 duration-300"><OpportunityRequestManager /></div>}
             {activeTab === 'worker_invoices' && <div className="animate-in slide-in-from-bottom-4 duration-300"><WorkerInvoicesPanel /></div>}
+            {/* FIX: Corrected typo from Users icon to UserManager component */}
+            {activeTab === 'user_manager' && <div className="animate-in slide-in-from-bottom-4 duration-300"><UserManager /></div>}
             
             {activeTab === 'tools' && ( 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in slide-in-from-bottom-4 duration-300">
@@ -463,7 +415,7 @@ export const StaffDashboard: React.FC = () => {
         </div>
         
         {/* MOBILE NAVIGATION BAR */}
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] grid grid-cols-4 z-50 md:hidden h-16">
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] grid grid-cols-5 z-50 md:hidden h-16">
             <button onClick={() => setActiveMobileTab('overview')} className={`flex flex-col items-center justify-center gap-1 transition-colors ${activeMobileTab === 'overview' ? 'text-rentia-blue' : 'text-gray-400'}`}>
                 <BarChart3 className="w-5 h-5" />
                 <span className="text-[9px] font-bold">Resumen</span>
@@ -482,7 +434,7 @@ export const StaffDashboard: React.FC = () => {
             </button>
         </div>
 
-        {/* ... (Candidate Modal UPDATE) ... */}
+        {/* Candidate Modal */}
         {showCandidateModal && createPortal(
             <div className="fixed inset-0 z-[10001] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setShowCandidateModal(false)}>
                 <form onSubmit={handleSendCandidate} className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-xl shadow-2xl flex flex-col animate-in slide-in-from-bottom-10 overflow-hidden" onClick={e => e.stopPropagation()}>
@@ -521,7 +473,20 @@ export const StaffDashboard: React.FC = () => {
                                 <input type="email" className="w-full p-2 border rounded text-sm" value={newCandidate.candidateEmail} onChange={e => setNewCandidate({...newCandidate, candidateEmail: e.target.value})} />
                             </div>
                         </div>
-                        {/* Nuevo campo Plataforma */}
+                        
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1 flex items-center gap-1"><Siren className="w-3 h-3"/> Urgencia / Prioridad</label>
+                            <select 
+                                className="w-full p-2 border rounded text-sm bg-white" 
+                                value={newCandidate.priority} 
+                                onChange={e => setNewCandidate({...newCandidate, priority: e.target.value as any})}
+                            >
+                                <option value="Alta">🔴 Alta - Muy Interesado / Urgente</option>
+                                <option value="Media">🟡 Media - Interesado normal</option>
+                                <option value="Baja">🟢 Baja - Solo curiosidad / Futuro</option>
+                            </select>
+                        </div>
+
                         <div>
                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1 flex items-center gap-1"><Globe className="w-3 h-3"/> Plataforma de Origen</label>
                             <input type="text" className="w-full p-2 border rounded text-sm" placeholder="Ej: Idealista, Facebook, Referido..." value={newCandidate.sourcePlatform} onChange={e => setNewCandidate({...newCandidate, sourcePlatform: e.target.value})} />

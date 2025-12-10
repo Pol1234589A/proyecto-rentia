@@ -13,13 +13,21 @@ service firebase.storage {
       allow write: if request.auth.uid == userId;
     }
 
-    // 2. DOCUMENTOS Y FACTURAS PROPIEDADES
+    // 2. DOCUMENTOS Y FACTURAS PROPIEDADES (Para Owner Dashboard)
+    // Se permite escritura a autenticados para que los propietarios puedan subir sus archivos.
+    // La seguridad de quién ve qué se maneja principalmente en Firestore (property_documents).
     match /documents/{propertyId}/{allPaths=**} {
       allow read: if isAuth();
       allow write: if isAuth();
     }
 
     match /invoices/{propertyId}/{allPaths=**} {
+      allow read: if isAuth();
+      allow write: if isAuth();
+    }
+    
+    // Contratos PDF subidos por Admin/Staff
+    match /contracts/{propertyId}/{allPaths=**} {
       allow read: if isAuth();
       allow write: if isAuth();
     }
@@ -46,7 +54,7 @@ service firebase.storage {
     }
 
     // 5. SOLICITUDES COLABORADORES (Subida Pública para formulario web)
-    // Permite create a cualquiera (para el form), read solo autenticados (staff revisando)
+    // Se permite 'create' a todo el mundo para que el formulario público pueda subir fotos
     match /requests/{requestId}/{allPaths=**} {
       allow create: if true;
       allow read: if isAuth();
@@ -58,7 +66,7 @@ service firebase.storage {
       allow write: if isAuth();
     }
 
-    // Regla por defecto
+    // Regla por defecto para el resto
     match /{allPaths=**} {
       allow read, write: if isAuth(); 
     }

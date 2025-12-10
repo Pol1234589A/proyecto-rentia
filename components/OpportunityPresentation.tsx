@@ -1,0 +1,215 @@
+
+import React, { useState, useEffect } from 'react';
+import { Opportunity } from '../types';
+import { MapPin, TrendingUp, Maximize, Building, ArrowRight, Phone, Download, ExternalLink, Bed, PlayCircle, Home, CheckCircle } from 'lucide-react';
+import { ImageLightbox } from './ImageLightbox';
+
+interface Props {
+    opportunity: Opportunity;
+    onClose?: () => void;
+}
+
+export const OpportunityPresentation: React.FC<Props> = ({ opportunity, onClose }) => {
+    const [activeImageIndex, setActiveImageIndex] = useState(0);
+    const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+
+    // Cálculos
+    const purchasePrice = opportunity.financials.purchasePrice;
+    const agencyFees = opportunity.financials.agencyFees || (purchasePrice > 100000 ? purchasePrice * 0.03 : 3000);
+    const totalInvestment = opportunity.financials.totalInvestment + (agencyFees * 1.21);
+    
+    const monthlyIncome = opportunity.financials.monthlyRentProjected > 0 
+        ? opportunity.financials.monthlyRentProjected 
+        : opportunity.financials.monthlyRentTraditional;
+        
+    const grossYield = ((monthlyIncome * 12) / totalInvestment) * 100;
+    const netYield = (((monthlyIncome * 12) - opportunity.financials.yearlyExpenses) / totalInvestment) * 100;
+
+    const whatsappLink = `https://api.whatsapp.com/send?phone=34672886369&text=Hola,%20estoy%20interesado%20en%20la%20oportunidad%20${opportunity.id}%20(${encodeURIComponent(opportunity.title)})`;
+
+    return (
+        <div className="min-h-screen bg-slate-50 font-sans text-slate-800">
+            {/* Header / Nav */}
+            <nav className="fixed top-0 w-full bg-white/90 backdrop-blur-md z-50 border-b border-gray-100">
+                <div className="max-w-6xl mx-auto px-4 h-16 flex justify-between items-center">
+                    <img src="https://i.ibb.co/QvzK6db3/Logo-Negativo.png" alt="Rentia" className="h-8 filter invert opacity-80" />
+                    <div className="flex gap-4">
+                        {onClose && (
+                            <button onClick={onClose} className="text-sm font-bold text-gray-500 hover:text-gray-800">
+                                Cerrar
+                            </button>
+                        )}
+                        <a href={whatsappLink} target="_blank" className="bg-rentia-black text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-gray-800 transition-colors shadow-md">
+                            Me Interesa
+                        </a>
+                    </div>
+                </div>
+            </nav>
+
+            {/* Hero Section */}
+            <header className="relative pt-24 pb-12 lg:pt-32 lg:pb-20 overflow-hidden bg-slate-900 text-white">
+                <div className="absolute inset-0 z-0">
+                    <img src={opportunity.images[0]} className="w-full h-full object-cover opacity-30" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-slate-900/50"></div>
+                </div>
+                <div className="container mx-auto px-4 relative z-10 max-w-5xl text-center">
+                    <div className="inline-flex items-center gap-2 bg-rentia-gold text-rentia-black px-3 py-1 rounded-full text-xs font-bold uppercase mb-6 shadow-lg">
+                        <TrendingUp className="w-3 h-3" /> Rentabilidad {grossYield.toFixed(1)}%
+                    </div>
+                    <h1 className="text-3xl md:text-5xl lg:text-6xl font-display font-bold mb-6 leading-tight drop-shadow-xl">
+                        {opportunity.title}
+                    </h1>
+                    <p className="text-lg md:text-xl text-slate-300 max-w-2xl mx-auto font-light leading-relaxed">
+                        {opportunity.address}, {opportunity.city}
+                    </p>
+                </div>
+            </header>
+
+            {/* Key Numbers Grid */}
+            <section className="container mx-auto px-4 -mt-8 relative z-20 max-w-5xl">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-white p-6 rounded-xl shadow-lg border-t-4 border-rentia-gold text-center">
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Precio Compra</p>
+                        <p className="text-3xl font-display font-bold text-slate-900">{purchasePrice.toLocaleString()} €</p>
+                    </div>
+                    <div className="bg-white p-6 rounded-xl shadow-lg border-t-4 border-rentia-blue text-center">
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Inversión Total</p>
+                        <p className="text-3xl font-display font-bold text-rentia-blue">{totalInvestment.toLocaleString('es-ES', {maximumFractionDigits: 0})} €</p>
+                        <p className="text-[10px] text-gray-400 mt-1">(Incluye ITP, Reforma, Honorarios)</p>
+                    </div>
+                    <div className="bg-white p-6 rounded-xl shadow-lg border-t-4 border-green-500 text-center">
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Cashflow Neto</p>
+                        <p className="text-3xl font-display font-bold text-green-600">+{Math.round((monthlyIncome * 12) - opportunity.financials.yearlyExpenses)} €/año</p>
+                    </div>
+                </div>
+            </section>
+
+            {/* Main Content */}
+            <main className="container mx-auto px-4 py-16 max-w-5xl">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+                    
+                    {/* Left Column: Description */}
+                    <div className="lg:col-span-7 space-y-12">
+                        <div>
+                            <h3 className="text-2xl font-bold font-display text-slate-900 mb-6 flex items-center gap-3">
+                                <Home className="w-6 h-6 text-rentia-blue" />
+                                Sobre el Activo
+                            </h3>
+                            <div className="prose prose-slate text-gray-600 leading-relaxed whitespace-pre-line text-justify">
+                                {opportunity.description}
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 className="text-xl font-bold font-display text-slate-900 mb-6">Puntos Clave</h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {opportunity.features.map((feat, idx) => (
+                                    <div key={idx} className="flex items-start gap-3 bg-white p-4 rounded-lg border border-gray-100 shadow-sm">
+                                        <div className="mt-0.5 w-5 h-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center flex-shrink-0">
+                                            <CheckCircle className="w-3 h-3" />
+                                        </div>
+                                        <span className="text-sm font-medium text-gray-700">{feat}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {opportunity.videos && opportunity.videos.length > 0 && (
+                            <div className="bg-slate-900 rounded-2xl p-8 text-center relative overflow-hidden group cursor-pointer" onClick={() => window.open(opportunity.videos![0], '_blank')}>
+                                <div className="absolute inset-0 opacity-30 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+                                <PlayCircle className="w-16 h-16 text-white mx-auto mb-4 group-hover:scale-110 transition-transform" />
+                                <h4 className="text-white text-xl font-bold relative z-10">Ver Video Tour</h4>
+                                <p className="text-slate-400 text-sm relative z-10">Recorrido virtual disponible</p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Right Column: Specs & Gallery */}
+                    <div className="lg:col-span-5 space-y-8">
+                        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wide mb-6">Ficha Técnica</h3>
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center py-3 border-b border-gray-50">
+                                    <span className="text-gray-600 flex items-center gap-2"><Maximize className="w-4 h-4"/> Superficie</span>
+                                    <span className="font-bold text-slate-900">{opportunity.specs.sqm} m²</span>
+                                </div>
+                                <div className="flex justify-between items-center py-3 border-b border-gray-50">
+                                    <span className="text-gray-600 flex items-center gap-2"><Bed className="w-4 h-4"/> Habitaciones</span>
+                                    <span className="font-bold text-slate-900">{opportunity.specs.rooms}</span>
+                                </div>
+                                <div className="flex justify-between items-center py-3 border-b border-gray-50">
+                                    <span className="text-gray-600 flex items-center gap-2"><Building className="w-4 h-4"/> Planta</span>
+                                    <span className="font-bold text-slate-900">{opportunity.specs.floor}</span>
+                                </div>
+                                <div className="flex justify-between items-center py-3 border-b border-gray-50">
+                                    <span className="text-gray-600 flex items-center gap-2"><MapPin className="w-4 h-4"/> Zona</span>
+                                    <span className="font-bold text-slate-900 truncate max-w-[150px]">{opportunity.city}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wide mb-4">Galería ({opportunity.images.length})</h3>
+                            <div className="grid grid-cols-2 gap-2">
+                                {opportunity.images.slice(0, 6).map((img, idx) => (
+                                    <div 
+                                        key={idx} 
+                                        onClick={() => { setActiveImageIndex(idx); setIsLightboxOpen(true); }}
+                                        className={`relative overflow-hidden rounded-lg cursor-pointer group ${idx === 0 ? 'col-span-2 aspect-video' : 'aspect-square'}`}
+                                    >
+                                        <img src={img} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
+                                        {idx === 5 && opportunity.images.length > 6 && (
+                                            <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white font-bold text-sm">
+                                                +{opportunity.images.length - 6}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {opportunity.driveFolder && (
+                            <a href={opportunity.driveFolder} target="_blank" className="flex items-center justify-center gap-2 w-full py-3 border-2 border-slate-200 rounded-xl text-slate-600 font-bold hover:border-slate-800 hover:text-slate-800 transition-colors">
+                                <ExternalLink className="w-4 h-4" /> Carpeta Drive
+                            </a>
+                        )}
+                    </div>
+                </div>
+            </main>
+
+            {/* Sticky Footer CTA */}
+            <div className="fixed bottom-0 w-full bg-white border-t border-gray-200 p-4 z-40 md:hidden">
+                <a href={whatsappLink} target="_blank" className="block w-full bg-rentia-black text-white text-center py-3 rounded-xl font-bold shadow-lg">
+                    Contactar Interés
+                </a>
+            </div>
+
+            {/* Desktop CTA */}
+            <div className="bg-rentia-blue text-white py-16 mt-12 hidden md:block">
+                <div className="container mx-auto px-4 text-center">
+                    <h2 className="text-3xl font-display font-bold mb-6">¿Te encaja esta inversión?</h2>
+                    <p className="text-blue-100 mb-8 max-w-2xl mx-auto">
+                        Los activos con estas rentabilidades suelen reservarse en menos de 7 días. Contacta con nosotros para bloquear la oportunidad.
+                    </p>
+                    <a href={whatsappLink} target="_blank" className="inline-flex items-center gap-2 bg-white text-rentia-blue px-8 py-4 rounded-full font-bold text-lg hover:bg-gray-100 transition-colors shadow-xl">
+                        <Phone className="w-5 h-5" /> Contactar ahora
+                    </a>
+                </div>
+            </div>
+
+            <footer className="bg-slate-900 text-slate-500 py-8 text-center text-xs pb-24 md:pb-8">
+                <p>Rentia Investments S.L. © 2025</p>
+                <p className="mt-2">Documento confidencial. La información contenida son estimaciones basadas en mercado.</p>
+            </footer>
+
+            {isLightboxOpen && (
+                <ImageLightbox 
+                    images={opportunity.images} 
+                    selectedIndex={activeImageIndex} 
+                    onClose={() => setIsLightboxOpen(false)} 
+                />
+            )}
+        </div>
+    );
+};

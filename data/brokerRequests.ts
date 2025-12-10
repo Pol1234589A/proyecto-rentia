@@ -11,6 +11,13 @@ export interface BrokerRequest {
   budget: number; // 0 significa "Sin tope" o "Flexible"
   notes?: string;
   tag: RequestTag;
+  // Campos extendidos para CRM y Web Forms
+  name?: string;     // Privado (Solo admin)
+  contact?: string;  // Privado (Solo admin)
+  email?: string;    // Privado (Solo admin)
+  origin?: 'crm' | 'web';
+  gdprAccepted?: boolean;
+  gdprDate?: any;
 }
 
 export const brokerRequests: BrokerRequest[] = [

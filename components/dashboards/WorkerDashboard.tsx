@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-// ... imports (se mantienen igual) ...
+// ... imports
 import { createPortal } from 'react-dom';
 import { db, storage } from '../../firebase';
 import { collection, query, where, onSnapshot, updateDoc, doc, addDoc, serverTimestamp, orderBy, limit, deleteDoc } from 'firebase/firestore';
@@ -8,8 +8,9 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '../../contexts/AuthContext';
 import { Task, TaskStatus, Candidate, CandidateStatus, VisitOutcome, RoomVisit, InternalNews, WorkerInvoice } from '../../types';
 import { Property, Room, CleaningConfig } from '../../data/rooms';
-import { ClipboardList, Home, CheckCircle, Clock, AlertCircle, MapPin, Search, Calendar, Wrench, Plus, X, AlertTriangle, ChevronLeft, Loader2, WifiOff, Monitor, Tv, Lock, Sun, Bed, Layout, Image as ImageIcon, UserPlus, Send, Users, UserX, UserCheck, ChevronRight, Eye, Megaphone, Bell, ChevronDown, Sparkles, Trophy, Euro, Save, Receipt, Trash2, Download, Upload, FileCheck } from 'lucide-react';
+import { ClipboardList, Home, CheckCircle, Clock, AlertCircle, MapPin, Search, Calendar, Wrench, Plus, X, AlertTriangle, ChevronLeft, Loader2, WifiOff, Monitor, Tv, Lock, Sun, Bed, Layout, Image as ImageIcon, UserPlus, Send, Users, UserX, UserCheck, ChevronRight, Eye, Megaphone, Bell, ChevronDown, Sparkles, Trophy, Euro, Save, Receipt, Trash2, Download, Upload, FileCheck, Siren, ArrowRight, Phone, MessageCircle } from 'lucide-react';
 import { ImageLightbox } from '../ImageLightbox';
+import { SensitiveDataDisplay } from '../common/SecurityComponents';
 
 // ... (helpers and constants same as before) ...
 const CELEBRATION_MESSAGES = [
@@ -104,10 +105,10 @@ export const WorkerDashboard: React.FC = () => {
     const [lightboxIndex, setLightboxIndex] = useState(0);
     const [isLightboxOpen, setIsLightboxOpen] = useState(false);
     const [celebrationMessage, setCelebrationMessage] = useState<string | null>(null);
-    const [candidateFilter, setCandidateFilter] = useState<CandidateStatus>('pending_review');
+    const [candidateFilter, setCandidateFilter] = useState<'my_visits' | 'my_submissions'>('my_visits'); // CAMBIADO
     const [showCompletedTasks, setShowCompletedTasks] = useState(false);
     const [newIncident, setNewIncident] = useState({ propertyId: '', roomId: 'common', title: '', description: '', priority: 'Media' as 'Alta' | 'Media' | 'Baja' });
-    const [newCandidate, setNewCandidate] = useState({ propertyId: '', roomId: '', candidateName: '', additionalInfo: '', candidatePhone: '', candidateEmail: '' });
+    const [newCandidate, setNewCandidate] = useState({ propertyId: '', roomId: '', candidateName: '', additionalInfo: '', candidatePhone: '', candidateEmail: '', priority: 'Media' as 'Alta' | 'Media' | 'Baja' });
     const [showVisitLogModal, setShowVisitLogModal] = useState<Room | null>(null);
     const [newVisitData, setNewVisitData] = useState({ outcome: 'pending' as VisitOutcome, comments: '', commission: 0 });
     const [editingCleaningPropId, setEditingCleaningPropId] = useState<string | null>(null);
@@ -159,14 +160,24 @@ export const WorkerDashboard: React.FC = () => {
 
     // ... (Helpers and Handlers kept identical) ...
     const tasksByStatus = useMemo(() => { return myTasks.reduce((acc, task) => { const status = task.status || 'Pendiente'; if (!acc[status]) acc[status] = []; acc[status].push(task); return acc; }, {} as Record<string, Task[]>); }, [myTasks]);
-    const candidatesByStatus = useMemo(() => ({ pending_review: myCandidates.filter(c => c.status === 'pending_review'), approved: myCandidates.filter(c => c.status === 'approved'), rejected: myCandidates.filter(c => c.status === 'rejected'), }), [myCandidates]);
+    
+    // NEW CANDIDATE FILTERING LOGIC
+    const candidatesByFilter = useMemo(() => {
+        return {
+            // Visitas que ME han asignado a MÍ (Status aprobado, assignedTo = yo)
+            my_visits: myCandidates.filter(c => c.assignedTo === workerName && c.status === 'approved'),
+            // Candidatos que YO he enviado (Status cualquiera, submittedBy = yo)
+            my_submissions: myCandidates.filter(c => c.submittedBy === workerName)
+        };
+    }, [myCandidates, workerName]);
+
     const filteredProperties = useMemo(() => { return properties.filter(p => p.address.toLowerCase().includes(roomSearch.toLowerCase()) || p.city.toLowerCase().includes(roomSearch.toLowerCase())); }, [properties, roomSearch]);
     const openImages = (images: string[], index = 0) => { setLightboxImages(images); setLightboxIndex(index); setIsLightboxOpen(true); };
     const getFeatureIcon = (id: string) => { switch(id) { case 'balcony': return <Sun className="w-3 h-3"/>; case 'smart_tv': return <Tv className="w-3 h-3"/>; case 'lock': return <Lock className="w-3 h-3"/>; case 'desk': return <Monitor className="w-3 h-3"/>; default: return <CheckCircle className="w-3 h-3"/>; } };
     const handleStatusChange = async (taskId: string, newStatus: TaskStatus) => { await updateDoc(doc(db, "tasks", taskId), { status: newStatus }); if (newStatus === 'Completada') { const randomMsg = CELEBRATION_MESSAGES[Math.floor(Math.random() * CELEBRATION_MESSAGES.length)]; setCelebrationMessage(randomMsg); setTimeout(() => setCelebrationMessage(null), 3500); } };
     const handleSaveIncident = async (e: React.FormEvent) => { e.preventDefault(); if (!newIncident.propertyId || !newIncident.title) return alert("Selecciona una propiedad y escribe un título."); const selectedProp = properties.find(p => p.id === newIncident.propertyId); const locationText = selectedProp?.address || 'Propiedad'; const taskTitle = `INCIDENCIA: ${newIncident.title} (${locationText})`; await addDoc(collection(db, "tasks"), { title: taskTitle, description: newIncident.description, assignee: workerName, priority: newIncident.priority, status: 'Pendiente', category: 'Mantenimiento', boardId: 'incidents', createdAt: serverTimestamp(), dueDate: new Date().toISOString() }); setShowIncidentModal(false); setNewIncident({ propertyId: '', roomId: 'common', title: '', description: '', priority: 'Media' }); alert("Incidencia reportada correctamente."); };
     
-    // MODIFICADO: Guardar ownerId
+    // MODIFICADO: Guardar ownerId y Prioridad
     const handleSendCandidate = async (e: React.FormEvent) => { 
         e.preventDefault(); 
         if (!newCandidate.propertyId || !newCandidate.candidateName) { return alert("Completa los campos obligatorios: propiedad y nombre."); } 
@@ -176,14 +187,14 @@ export const WorkerDashboard: React.FC = () => {
             await addDoc(collection(db, "candidate_pipeline"), { 
                 ...newCandidate, 
                 propertyName: prop?.address || 'N/A', 
-                ownerId: prop?.ownerId || null, // Guardar ID propietario
+                ownerId: prop?.ownerId || null, 
                 roomName: room?.name || 'General / A definir', 
                 submittedBy: workerName, 
                 submittedAt: serverTimestamp(), 
                 status: 'pending_review' 
             }); 
             setShowCandidateModal(false); 
-            setNewCandidate({ propertyId: '', roomId: '', candidateName: '', additionalInfo: '', candidatePhone: '', candidateEmail: '' }); 
+            setNewCandidate({ propertyId: '', roomId: '', candidateName: '', additionalInfo: '', candidatePhone: '', candidateEmail: '', priority: 'Media' }); 
             alert('Candidato enviado a filtrado correctamente.'); 
         } catch (error) { 
             console.error(error); alert('Error al enviar candidato.'); 
@@ -205,7 +216,94 @@ export const WorkerDashboard: React.FC = () => {
                 const inProgress = tasksByStatus['En Curso'] || []; const pending = tasksByStatus['Pendiente'] || []; const completed = tasksByStatus['Completada'] || []; const blocked = tasksByStatus['Bloqueada'] || []; const priorityOrder = { 'Alta': 0, 'Media': 1, 'Baja': 2 }; pending.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
                 return (<div className="space-y-6 pb-8"><NewsBanner />{loading && <Loader2 className="w-6 h-6 animate-spin text-rentia-blue mx-auto mt-8"/>}{!loading && myTasks.length === 0 && (<div className="text-center py-12 text-gray-400 border-2 border-dashed rounded-xl"><ClipboardList className="w-12 h-12 mx-auto mb-2 opacity-30" /><p>No tienes tareas asignadas.</p></div>)}{inProgress.length > 0 && (<div className="animate-in fade-in slide-in-from-left-2"><h3 className="text-xs font-bold text-blue-800 uppercase tracking-wide mb-3 flex items-center gap-2 px-1"><Clock className="w-4 h-4 animate-pulse" /> En Curso ({inProgress.length})</h3><div className="space-y-3">{inProgress.map(task => <TaskCard key={task.id} task={task} onStatusChange={handleStatusChange} />)}</div></div>)}{pending.length > 0 && (<div className="animate-in fade-in slide-in-from-left-2 delay-100"><h3 className="text-xs font-bold text-gray-600 uppercase tracking-wide mb-3 flex items-center gap-2 px-1 border-t border-gray-200 pt-4 mt-4"><ClipboardList className="w-4 h-4" /> Pendientes ({pending.length})</h3><div className="space-y-3">{pending.map(task => <TaskCard key={task.id} task={task} onStatusChange={handleStatusChange} />)}</div></div>)}{(completed.length > 0 || blocked.length > 0) && (<div className="pt-6 border-t border-gray-200"><button onClick={() => setShowCompletedTasks(!showCompletedTasks)} className="w-full py-3 flex items-center justify-between text-gray-500 text-sm font-bold bg-white border border-gray-200 rounded-xl px-4 hover:bg-gray-50 transition-colors shadow-sm"><span className="flex items-center gap-2"><CheckCircle className="w-4 h-4"/> Historial Completado ({completed.length + blocked.length})</span><ChevronDown className={`w-4 h-4 transition-transform ${showCompletedTasks ? 'rotate-180' : ''}`} /></button>{showCompletedTasks && (<div className="space-y-3 mt-4 animate-in slide-in-from-top-2">{blocked.map(t => <TaskCard key={t.id} task={t} onStatusChange={handleStatusChange} />)}{completed.map(t => <TaskCard key={t.id} task={t} onStatusChange={handleStatusChange} />)}</div>)}</div>)}</div>);
             }
-            case 'candidates': return (<div className="space-y-4"><div className="flex bg-gray-100 p-1 rounded-lg overflow-x-auto no-scrollbar gap-1">{(['pending_review', 'approved', 'rejected'] as CandidateStatus[]).map(status => (<button key={status} onClick={() => setCandidateFilter(status)} className={`flex-shrink-0 px-4 py-2 text-xs font-bold rounded-md transition-all capitalize whitespace-nowrap ${candidateFilter === status ? 'bg-white shadow text-gray-800' : 'text-gray-500'}`}>{status === 'pending_review' ? 'Pendientes' : status === 'approved' ? 'Aprobados' : 'Rechazados'} ({candidatesByStatus[status]?.length || 0})</button>))}</div>{(candidatesByStatus[candidateFilter] && candidatesByStatus[candidateFilter].length > 0) ? candidatesByStatus[candidateFilter].map(c => (<div key={c.id} className="bg-white border p-3 rounded-lg text-xs shadow-sm relative overflow-hidden">{c.assignedTo === workerName && (<div className="absolute top-0 right-0 bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-bl-lg border-b border-l border-blue-200">¡Asignado para Visita!</div>)}<p className="font-bold text-sm text-gray-800 mt-1">{c.candidateName}</p><p className="text-gray-500 text-xs flex items-center gap-1 mt-1"><Home className="w-3 h-3" /> {c.propertyName}</p><p className="text-gray-400 text-[10px] mt-1 italic">{c.roomName}</p></div>)) : <div className="text-center py-10 text-gray-400 text-sm">No hay perfiles.</div>}</div>);
+            case 'candidates': return (
+                <div className="space-y-4">
+                    {/* Header Tabs */}
+                    <div className="flex bg-gray-100 p-1 rounded-lg gap-1">
+                        <button onClick={() => setCandidateFilter('my_visits')} className={`flex-1 px-4 py-2 text-xs font-bold rounded-md transition-all ${candidateFilter === 'my_visits' ? 'bg-white shadow text-rentia-blue' : 'text-gray-500'}`}>
+                            Mis Visitas Asignadas ({candidatesByFilter.my_visits.length})
+                        </button>
+                        <button onClick={() => setCandidateFilter('my_submissions')} className={`flex-1 px-4 py-2 text-xs font-bold rounded-md transition-all ${candidateFilter === 'my_submissions' ? 'bg-white shadow text-gray-800' : 'text-gray-500'}`}>
+                            Mis Envíos ({candidatesByFilter.my_submissions.length})
+                        </button>
+                    </div>
+
+                    {/* Content List */}
+                    <div className="space-y-3">
+                        {candidatesByFilter[candidateFilter].length === 0 ? (
+                            <div className="text-center py-12 text-gray-400 text-sm border-2 border-dashed rounded-xl">No hay registros en esta sección.</div>
+                        ) : (
+                            candidatesByFilter[candidateFilter].map(c => (
+                                <div key={c.id} className="bg-white border border-gray-200 p-4 rounded-xl shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
+                                    
+                                    {/* Prioridad Badge (Si es 'my_visits') */}
+                                    {candidateFilter === 'my_visits' && c.priority && (
+                                        <div className={`absolute top-0 right-0 px-3 py-1 text-[10px] font-bold uppercase rounded-bl-lg border-b border-l ${
+                                            c.priority === 'Alta' ? 'bg-red-100 text-red-700 border-red-200' : 
+                                            c.priority === 'Media' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' : 
+                                            'bg-green-100 text-green-700 border-green-200'
+                                        }`}>
+                                            Prioridad {c.priority}
+                                        </div>
+                                    )}
+
+                                    {/* Estado Badge (Si es 'my_submissions') */}
+                                    {candidateFilter === 'my_submissions' && (
+                                        <div className={`absolute top-0 right-0 px-3 py-1 text-[10px] font-bold uppercase rounded-bl-lg border-b border-l ${
+                                            c.status === 'approved' ? 'bg-green-100 text-green-700' :
+                                            c.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                            'bg-blue-100 text-blue-700'
+                                        }`}>
+                                            {c.status}
+                                        </div>
+                                    )}
+
+                                    <div className="pr-12">
+                                        <h4 className="font-bold text-gray-900 text-base">{c.candidateName}</h4>
+                                        <p className="text-gray-500 text-xs flex items-center gap-1 mt-1">
+                                            <Home className="w-3.5 h-3.5" /> {c.propertyName}
+                                        </p>
+                                        <p className="text-gray-400 text-[10px] mt-1 italic flex items-center gap-1">
+                                            <Bed className="w-3 h-3"/> Interés: {c.roomName}
+                                        </p>
+                                    </div>
+
+                                    {/* Botón de Acción Rápida para Visitas */}
+                                    {candidateFilter === 'my_visits' && (
+                                        <div className="mt-3 pt-3 border-t border-gray-50 flex justify-between items-center">
+                                            <div className="flex gap-2">
+                                                {c.candidatePhone && (
+                                                    <a href={`tel:${c.candidatePhone}`} className="bg-green-50 text-green-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-green-100 flex items-center gap-1">
+                                                        <Phone className="w-3 h-3"/> Llamar
+                                                    </a>
+                                                )}
+                                                <a href={`https://api.whatsapp.com/send?phone=${c.candidatePhone}`} target="_blank" className="bg-green-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm">
+                                                    <MessageCircle className="w-3 h-3"/> WhatsApp
+                                                </a>
+                                            </div>
+                                            <button 
+                                                onClick={() => { 
+                                                    const prop = properties.find(p => p.address === c.propertyName);
+                                                    if(prop) { 
+                                                        const room = prop.rooms.find(r => r.name === c.roomName) || prop.rooms[0];
+                                                        setSelectedProperty(prop); 
+                                                        setShowVisitLogModal(room); 
+                                                    } else {
+                                                        alert("Propiedad no encontrada para registrar visita.");
+                                                    }
+                                                }} 
+                                                className="text-indigo-600 text-xs font-bold flex items-center gap-1 hover:underline"
+                                            >
+                                                Registrar Visita <ArrowRight className="w-3 h-3"/>
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+            );
             case 'rooms': return (<div className="space-y-4"><div className="relative"><input type="text" placeholder="Buscar propiedad..." className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-rentia-blue shadow-sm text-sm" value={roomSearch} onChange={(e) => setRoomSearch(e.target.value)} /><Search className="w-5 h-5 text-gray-400 absolute left-3 top-3.5" /></div>{filteredProperties.length === 0 ? <div className="text-center py-12 text-gray-400 border-2 border-dashed border-gray-200 rounded-xl"><Home className="w-12 h-12 mx-auto mb-2 opacity-30" /><p>No se encontraron propiedades.</p></div> : filteredProperties.map((prop) => { const rooms = prop.rooms || []; const availCount = rooms.filter(r => r.status === 'available').length; return (<div key={prop.id} onClick={() => setSelectedProperty(prop)} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden cursor-pointer hover:shadow-lg transition-all group flex items-center"><div className="w-24 h-24 bg-gray-200 relative flex-shrink-0">{prop.image ? <img src={prop.image} alt={prop.address} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-400"><Home className="w-8 h-8 opacity-30" /></div>}</div><div className="p-3 flex-grow min-w-0"><h3 className="font-bold text-sm leading-tight truncate">{prop.address}</h3><p className="text-xs text-gray-500 truncate">{prop.city}</p><div className="mt-2 text-[10px] font-bold">{availCount > 0 ? <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full">{availCount} Libres</span> : <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded-full">Completo</span>}</div></div><ChevronRight className="w-5 h-5 text-gray-300 mr-4 group-hover:text-rentia-blue"/></div>); })}</div>);
             case 'cleaning': return (<div className="space-y-6"><h3 className="font-bold text-lg text-indigo-900 flex items-center gap-2"><Sparkles className="w-5 h-5 text-indigo-600" /> Configuración de Limpieza</h3><div className="space-y-4">{properties.map(prop => (<div key={prop.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"><div className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gray-50 border-b border-gray-100 gap-2"><div><h4 className="font-bold text-gray-800 text-sm">{prop.address}</h4><p className="text-xs text-gray-500">{prop.city}</p></div><button onClick={() => editingCleaningPropId === prop.id ? setEditingCleaningPropId(null) : startEditingCleaning(prop)} className="text-xs bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg font-bold border border-indigo-100 hover:bg-indigo-100 transition-colors">{editingCleaningPropId === prop.id ? 'Cerrar' : 'Configurar'}</button></div>{editingCleaningPropId === prop.id ? (<div className="p-4 bg-indigo-50/50 animate-in slide-in-from-top-2"><div className="flex flex-wrap items-center gap-4 mb-4"><label className="flex items-center gap-2 cursor-pointer bg-white px-3 py-1.5 rounded border border-indigo-200"><input type="checkbox" checked={cleaningConfigForm.enabled} onChange={(e) => setCleaningConfigForm({...cleaningConfigForm, enabled: e.target.checked})} className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"/><span className="text-xs font-bold text-indigo-700">Activar Servicio</span></label>{cleaningConfigForm.enabled && (<><div className="flex items-center gap-1 bg-white px-2 py-1 rounded border border-indigo-200"><Clock className="w-3 h-3 text-indigo-400" /><input type="text" placeholder="Horario (10:00 - 13:00)" className="text-xs border-none focus:ring-0 w-32 p-0" value={cleaningConfigForm.hours} onChange={(e) => setCleaningConfigForm({...cleaningConfigForm, hours: e.target.value})}/></div><div className="flex items-center gap-1 bg-white px-2 py-1 rounded border border-indigo-200"><Euro className="w-3 h-3 text-indigo-400" /><input type="number" placeholder="Coste/Hora" className="text-xs border-none focus:ring-0 w-20 p-0" value={cleaningConfigForm.costPerHour} onChange={(e) => setCleaningConfigForm({...cleaningConfigForm, costPerHour: Number(e.target.value)})}/></div></>)}</div>{cleaningConfigForm.enabled && (<div className="flex flex-wrap gap-2 mb-4">{['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(day => (<button key={day} onClick={() => toggleCleaningDay(day)} className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${cleaningConfigForm.days.includes(day) ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-gray-500 border border-indigo-100 hover:border-indigo-300'}`}>{day}</button>))}</div>)}<div className="flex justify-end"><button onClick={handleCleaningSave} className="bg-indigo-600 text-white px-4 py-2 rounded text-xs font-bold flex items-center gap-2 hover:bg-indigo-700 shadow-sm"><Save className="w-3 h-3"/> Guardar Configuración</button></div></div>) : (<div className="p-4 flex gap-4 text-xs text-gray-600">{prop.cleaningConfig?.enabled ? (<><div className="flex items-center gap-1"><Calendar className="w-3 h-3 text-indigo-400"/> {prop.cleaningConfig.days.join(', ')}</div><div className="flex items-center gap-1"><Clock className="w-3 h-3 text-indigo-400"/> {prop.cleaningConfig.hours}</div></>) : (<span className="text-gray-400 italic">Sin servicio activo</span>)}</div>)}</div>))}</div></div>);
             // ... (Invoices view kept identical) ...
@@ -313,7 +411,21 @@ export const WorkerDashboard: React.FC = () => {
             {selectedProperty && createPortal(<div className="fixed inset-0 z-[10000] bg-white flex flex-col animate-in slide-in-from-bottom-10"><div className="flex-shrink-0 bg-white shadow-sm p-4 flex justify-between items-center sticky top-0 border-b border-gray-100"><button onClick={() => setSelectedProperty(null)} className="flex items-center gap-1 text-rentia-blue text-sm font-bold p-2 -ml-2"><ChevronLeft className="w-5 h-5"/> Volver</button><h2 className="font-bold text-sm truncate max-w-[50%]">{selectedProperty.address}</h2><a href={selectedProperty.googleMapsLink} target="_blank" rel="noreferrer" className="p-2 text-gray-500"><MapPin className="w-5 h-5"/></a></div><div className="flex-grow overflow-y-auto p-4 space-y-4 bg-gray-50 pb-20">{(selectedProperty.rooms || []).map(room => (<div key={room.id} className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm"><div className="flex justify-between items-start mb-2"><h4 className="font-bold text-gray-800 text-lg">{room.name}</h4><span className={`text-xs font-bold px-2 py-0.5 rounded-full ${room.status==='available'?'bg-green-100 text-green-700':'bg-gray-100 text-gray-500'}`}>{room.status}</span></div><p className="text-xl font-bold text-rentia-blue mb-3">{room.price}€<span className="text-sm font-normal text-gray-400">/mes</span></p><div className="flex flex-wrap gap-2 mt-2 mb-4">{room.images && room.images.length > 0 && <button onClick={() => openImages(room.images!)} className="text-[10px] font-bold bg-gray-100 px-2 py-1 rounded flex items-center gap-1"><ImageIcon className="w-3 h-3"/> {room.images.length} fotos</button>}{room.features?.map(f => <div key={f} className="text-[10px] font-bold bg-gray-100 px-2 py-1 rounded flex items-center gap-1">{getFeatureIcon(f)} {f}</div>)}</div><div className="pt-3 border-t border-gray-100"><button onClick={() => setShowVisitLogModal(room)} className="w-full bg-indigo-50 text-indigo-700 text-sm font-bold py-3 rounded-lg border border-indigo-100 flex items-center justify-center gap-2 hover:bg-indigo-100 transition-colors"><Eye className="w-4 h-4" /> Registrar Visita</button></div></div>))}</div></div>, document.body)}
             {showVisitLogModal && createPortal(<div className="fixed inset-0 z-[10001] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setShowVisitLogModal(null)}><form onSubmit={handleSaveVisit} className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-xl shadow-2xl flex flex-col animate-in slide-in-from-bottom-10 overflow-hidden" onClick={e => e.stopPropagation()}><div className="p-4 bg-gray-50 border-b flex justify-between items-center"><h3 className="font-bold flex items-center gap-2"><Eye className="w-5 h-5 text-indigo-500"/> Registrar Visita a {showVisitLogModal.name}</h3><button type="button" onClick={() => setShowVisitLogModal(null)} className="p-2 -mr-2"><X className="w-5 h-5 text-gray-400"/></button></div><div className="p-4 space-y-4 overflow-y-auto"><div><label className="text-xs font-bold text-gray-500 block mb-1">Resultado de la Visita</label><select required className="w-full p-2 border rounded text-sm" value={newVisitData.outcome} onChange={e => setNewVisitData({...newVisitData, outcome: e.target.value as any})}><option value="successful">Exitosa</option><option value="unsuccessful">No exitosa</option><option value="pending">Pendiente de respuesta</option></select></div><div><label className="text-xs font-bold text-gray-500 block mb-1">Comentarios / Pegas</label><textarea placeholder="Ej: Le ha gustado pero le parece pequeña..." className="w-full p-2 border rounded text-sm h-24" value={newVisitData.comments} onChange={e => setNewVisitData({...newVisitData, comments: e.target.value})}></textarea></div><div><label className="text-xs font-bold text-gray-500 block mb-1">Comisión Propuesta al Inquilino (€)</label><input type="number" placeholder="Ej: 150" className="w-full p-2 border rounded text-sm" value={newVisitData.commission} onChange={e => setNewVisitData({...newVisitData, commission: Number(e.target.value)})} /></div></div><div className="p-4 bg-gray-50 border-t flex gap-2"><button type="button" onClick={() => setShowVisitLogModal(null)} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-bold hover:bg-gray-200">Cancelar</button><button type="submit" className="flex-1 bg-indigo-600 text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-indigo-700"><Send className="w-4 h-4"/> Guardar Visita</button></div></form></div>, document.body)}
             {showIncidentModal && createPortal(<div className="fixed inset-0 z-[10001] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setShowIncidentModal(false)}><form onSubmit={handleSaveIncident} className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-xl shadow-2xl flex flex-col animate-in slide-in-from-bottom-10 overflow-hidden" onClick={e => e.stopPropagation()}><div className="p-4 bg-gray-50 border-b flex justify-between items-center"><h3 className="font-bold flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-red-500"/> Reportar Incidencia</h3><button type="button" onClick={() => setShowIncidentModal(false)} className="p-2 -mr-2"><X className="w-5 h-5 text-gray-400"/></button></div><div className="p-4 space-y-4 overflow-y-auto"><select required className="w-full p-2 border rounded text-sm" value={newIncident.propertyId} onChange={e => setNewIncident({...newIncident, propertyId: e.target.value})}><option value="">Seleccionar Propiedad*</option>{properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}</select><input required type="text" placeholder="Título Incidencia*" className="w-full p-2 border rounded text-sm" value={newIncident.title} onChange={e => setNewIncident({...newIncident, title: e.target.value})} /><textarea placeholder="Descripción detallada..." className="w-full p-2 border rounded text-sm h-24" value={newIncident.description} onChange={e => setNewIncident({...newIncident, description: e.target.value})}></textarea><select className="w-full p-2 border rounded text-sm" value={newIncident.priority} onChange={e => setNewIncident({...newIncident, priority: e.target.value as any})}><option value="Baja">Baja</option><option value="Media">Media</option><option value="Alta">Alta</option></select></div><div className="p-4 bg-gray-50 border-t flex gap-2"><button type="button" onClick={() => setShowIncidentModal(false)} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-bold hover:bg-gray-200">Cancelar</button><button type="submit" className="flex-1 bg-red-600 text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-red-700"><Send className="w-4 h-4"/> Enviar Reporte</button></div></form></div>, document.body)}
-            {showCandidateModal && createPortal(<div className="fixed inset-0 z-[10001] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setShowCandidateModal(false)}><form onSubmit={handleSendCandidate} className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-xl shadow-2xl flex flex-col animate-in slide-in-from-bottom-10 overflow-hidden" onClick={e => e.stopPropagation()}><div className="p-4 bg-gray-50 border-b flex justify-between items-center"><h3 className="font-bold flex items-center gap-2"><UserPlus className="w-5 h-5 text-green-600"/> Enviar Candidato</h3><button type="button" onClick={() => setShowCandidateModal(false)} className="p-2 -mr-2"><X className="w-5 h-5 text-gray-400"/></button></div><div className="p-4 space-y-4 overflow-y-auto max-h-[70vh]"><div><label className="text-xs font-bold text-gray-500 block mb-1">Propiedad*</label><select required className="w-full p-2 border rounded text-sm" value={newCandidate.propertyId} onChange={e => setNewCandidate({...newCandidate, propertyId: e.target.value, roomId: ''})}><option value="">Seleccionar...</option>{properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}</select></div><div><label className="text-xs font-bold text-gray-500 block mb-1">Habitación (Opcional)</label><select disabled={!newCandidate.propertyId} className="w-full p-2 border rounded text-sm" value={newCandidate.roomId} onChange={e => setNewCandidate({...newCandidate, roomId: e.target.value})}><option value="">Seleccionar...</option>{properties.find(p => p.id === newCandidate.propertyId)?.rooms?.map(r => <option key={r.id} value={r.id}>{r.name} ({r.status})</option>)}</select></div><div><label className="text-xs font-bold text-gray-500 block mb-1">Nombre Candidato*</label><input required type="text" className="w-full p-2 border rounded text-sm" value={newCandidate.candidateName} onChange={e => setNewCandidate({...newCandidate, candidateName: e.target.value})} /></div><div className="grid grid-cols-2 gap-4"><div><label className="text-xs font-bold text-gray-500 block mb-1">Teléfono</label><input type="tel" className="w-full p-2 border rounded text-sm" value={newCandidate.candidatePhone} onChange={e => setNewCandidate({...newCandidate, candidatePhone: e.target.value})}/></div><div><label className="text-xs font-bold text-gray-500 block mb-1">Email</label><input type="email" className="w-full p-2 border rounded text-sm" value={newCandidate.candidateEmail} onChange={e => setNewCandidate({...newCandidate, candidateEmail: e.target.value})}/></div></div><div><label className="text-xs font-bold text-gray-500 block mb-1">Info Adicional</label><textarea className="w-full p-2 border rounded text-sm h-20" value={newCandidate.additionalInfo} onChange={e => setNewCandidate({...newCandidate, additionalInfo: e.target.value})} /></div></div><div className="p-4 bg-gray-50 border-t flex gap-2"><button type="button" onClick={() => setShowCandidateModal(false)} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-bold hover:bg-gray-200">Cancelar</button><button type="submit" className="flex-1 bg-green-600 text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-green-700"><Send className="w-4 h-4"/> Enviar a Oficina</button></div></form></div>, document.body)}
+            {showCandidateModal && createPortal(<div className="fixed inset-0 z-[10001] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setShowCandidateModal(false)}><form onSubmit={handleSendCandidate} className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-xl shadow-2xl flex flex-col animate-in slide-in-from-bottom-10 overflow-hidden" onClick={e => e.stopPropagation()}><div className="p-4 bg-gray-50 border-b flex justify-between items-center"><h3 className="font-bold flex items-center gap-2"><UserPlus className="w-5 h-5 text-green-600"/> Enviar Candidato</h3><button type="button" onClick={() => setShowCandidateModal(false)} className="p-2 -mr-2"><X className="w-5 h-5 text-gray-400"/></button></div><div className="p-4 space-y-4 overflow-y-auto max-h-[70vh]"><div><label className="text-xs font-bold text-gray-500 block mb-1">Propiedad*</label><select required className="w-full p-2 border rounded text-sm" value={newCandidate.propertyId} onChange={e => setNewCandidate({...newCandidate, propertyId: e.target.value, roomId: ''})}><option value="">Seleccionar...</option>{properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}</select></div><div><label className="text-xs font-bold text-gray-500 block mb-1">Habitación (Opcional)</label><select disabled={!newCandidate.propertyId} className="w-full p-2 border rounded text-sm" value={newCandidate.roomId} onChange={e => setNewCandidate({...newCandidate, roomId: e.target.value})}><option value="">Seleccionar...</option>{properties.find(p => p.id === newCandidate.propertyId)?.rooms?.map(r => <option key={r.id} value={r.id}>{r.name} ({r.status})</option>)}</select></div><div><label className="text-xs font-bold text-gray-500 block mb-1">Nombre Candidato*</label><input required type="text" className="w-full p-2 border rounded text-sm" value={newCandidate.candidateName} onChange={e => setNewCandidate({...newCandidate, candidateName: e.target.value})} /></div><div className="grid grid-cols-2 gap-4"><div><label className="text-xs font-bold text-gray-500 block mb-1">Teléfono</label><input type="tel" className="w-full p-2 border rounded text-sm" value={newCandidate.candidatePhone} onChange={e => setNewCandidate({...newCandidate, candidatePhone: e.target.value})}/></div><div><label className="text-xs font-bold text-gray-500 block mb-1">Email</label><input type="email" className="w-full p-2 border rounded text-sm" value={newCandidate.candidateEmail} onChange={e => setNewCandidate({...newCandidate, candidateEmail: e.target.value})}/></div></div>
+            {/* Selector de Prioridad NUEVO */}
+            <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1 flex items-center gap-1"><Siren className="w-3 h-3"/> Urgencia / Prioridad</label>
+                <select 
+                    className="w-full p-2 border rounded text-sm bg-white" 
+                    value={newCandidate.priority} 
+                    onChange={e => setNewCandidate({...newCandidate, priority: e.target.value as any})}
+                >
+                    <option value="Alta">🔴 Alta - Muy Interesado / Urgente</option>
+                    <option value="Media">🟡 Media - Interesado normal</option>
+                    <option value="Baja">🟢 Baja - Solo curiosidad / Futuro</option>
+                </select>
+            </div>
+            <div><label className="text-xs font-bold text-gray-500 block mb-1">Info Adicional</label><textarea className="w-full p-2 border rounded text-sm h-20" value={newCandidate.additionalInfo} onChange={e => setNewCandidate({...newCandidate, additionalInfo: e.target.value})} /></div></div><div className="p-4 bg-gray-50 border-t flex gap-2"><button type="button" onClick={() => setShowCandidateModal(false)} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-bold hover:bg-gray-200">Cancelar</button><button type="submit" className="flex-1 bg-green-600 text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-green-700"><Send className="w-4 h-4"/> Enviar a Oficina</button></div></form></div>, document.body)}
             {isLightboxOpen && <ImageLightbox images={lightboxImages} selectedIndex={lightboxIndex} onClose={() => setIsLightboxOpen(false)} />}
         </div>
     );

@@ -44,6 +44,7 @@ service cloud.firestore {
     // USERS
     match /users/{userId} {
       allow read: if true;
+      // Allow creation if staff (admin creating owner) or self (signup flow triggers)
       allow create: if isStaff() || isSelf(userId); 
       allow update: if isStaff() || isSelf(userId); 
       allow delete: if isStaff();
@@ -55,18 +56,30 @@ service cloud.firestore {
       allow write: if isStaff() || isWorker(); 
     }
 
-    // DOCUMENTOS DE PROPIEDAD
+    // DOCUMENTOS DE PROPIEDAD (Gestión Propietarios)
     match /property_documents/{docId} {
+      // Lectura: Staff o Propietario dueño de la propiedad
       allow read: if isStaff() || (isOwner() && propertyBelongsToOwner(resource.data.propertyId));
+      // Creación: Staff o Propietario dueño de la propiedad (en el payload)
       allow create: if isStaff() || (isOwner() && propertyBelongsToOwner(request.resource.data.propertyId));
+      // Edición/Borrado: Solo Staff
       allow update, delete: if isStaff();
     }
 
-    // FACTURAS SUMINISTROS (Subidas por Propietarios)
+    // FACTURAS SUMINISTROS (Gestión Propietarios)
     match /supply_invoices/{invoiceId} {
+      // Lectura: Staff o Propietario dueño de la propiedad
       allow read: if isStaff() || (isOwner() && propertyBelongsToOwner(resource.data.propertyId));
+      // Creación: Staff o Propietario dueño de la propiedad
       allow create: if isStaff() || (isOwner() && propertyBelongsToOwner(request.resource.data.propertyId));
+      // Edición/Borrado: Solo Staff (para aprobar/rechazar)
       allow update, delete: if isStaff();
+    }
+    
+    // COLECCIÓN: TRASPASOS PENDIENTES
+    match /pending_transfers/{transferId} {
+      allow create: if true;
+      allow read, update, delete: if isStaff();
     }
 
     // REGISTROS DE CÁLCULO DE SUMINISTROS (Calculadora Staff)
@@ -111,7 +124,6 @@ service cloud.firestore {
 
     // PIPELINE CANDIDATOS
     match /candidate_pipeline/{candidateId} {
-      // Staff y Worker ven todo. Propietario ve si es el dueño (campo ownerId)
       allow read: if isStaff() || isWorker() || (isOwner() && resource.data.ownerId == request.auth.uid);
       allow write: if isStaff() || isWorker();
     }
@@ -137,14 +149,13 @@ service cloud.firestore {
     }
 
     // DEMANDAS DE COMPRA (Broker Requests)
-    // Lectura pública para la web, escritura solo Staff (desde CRM)
     match /buyer_requests/{requestId} {
       allow read: if true; 
-      allow write: if isStaff();
+      allow create: if true; 
+      allow update, delete: if isStaff();
     }
 
     // SOLICITUDES DE COLABORACIÓN (Opportunity Requests)
-    // Creación pública (formulario web), lectura/gestión solo Staff
     match /opportunity_requests/{requestId} {
       allow create: if true;
       allow read, update, delete: if isStaff();
@@ -160,7 +171,7 @@ service cloud.firestore {
       allow read, write: if isStaff();
     }
 
-    // Colecciones por defecto cerradas o solo staff
+    // Fallback: cerrar todo lo demás por seguridad
     match /{document=**} {
       allow read, write: if isStaff();
     }

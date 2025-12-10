@@ -1,27 +1,31 @@
 
-import React, { useState, useEffect, useRef } from 'react';
-import { db } from '../../firebase';
-import { collection, getDocs, doc, setDoc, updateDoc, addDoc, serverTimestamp, getDoc } from 'firebase/firestore';
-import { UserProfile, Contract } from '../../types';
+import React, { useState, useEffect } from 'react';
+import { db, storage } from '../../firebase';
+import { collection, getDocs, doc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { Contract } from '../../types';
 import { Property } from '../../data/rooms';
-import { Check, ChevronRight, ChevronLeft, UserPlus, Search, Calendar, DollarSign, FileText, Save, Loader2, AlertCircle, Building, User, Upload, Plus, FilePlus, Bold, Italic, List, AlignLeft, AlignCenter, AlignRight, ChevronDown, X, Eye, Link, PenTool, Globe, ShieldCheck } from 'lucide-react';
-import { rentgerService } from '../../services/rentgerService';
+import { Check, User, Calendar, DollarSign, FileText, Save, Loader2, AlertCircle, Upload, Plus, X, Link, ExternalLink, Paperclip } from 'lucide-react';
 
-const CONTRACT_TEMPLATES = [
-    { id: 'room_seasonal', name: 'Alquiler Habitación (Temporada)', type: 'room' },
-    { id: 'flat_standard', name: 'Vivienda Habitual (LAU)', type: 'flat' },
-    { id: 'commercial', name: 'Local Comercial', type: 'other' }
-];
-
-export const ContractManager: React.FC<any> = ({ initialMode = 'list', preSelectedRoom, contractId, onClose }) => {
-    const [viewMode, setViewMode] = useState<'list' | 'create' | 'details' | 'rentger'>(initialMode);
+export const ContractManager: React.FC<any> = ({ initialMode = 'list', preSelectedRoom, onClose }) => {
+    const [viewMode, setViewMode] = useState<'list' | 'create' | 'rentger'>(initialMode);
     const [contracts, setContracts] = useState<Contract[]>([]);
     const [properties, setProperties] = useState<Property[]>([]);
     const [loading, setLoading] = useState(false);
-    
-    // Rentger State
-    const [rentgerStatus, setRentgerStatus] = useState<'idle' | 'checking' | 'connected' | 'error'>('idle');
-    const [rentgerLog, setRentgerLog] = useState<string[]>([]);
+    const [uploading, setUploading] = useState(false);
+
+    // Form State
+    const [formData, setFormData] = useState({
+        propertyId: preSelectedRoom?.propertyId || '',
+        roomId: preSelectedRoom?.roomId || '',
+        tenantName: '',
+        rentAmount: preSelectedRoom?.price || 0,
+        depositAmount: preSelectedRoom?.price || 0,
+        startDate: new Date().toISOString().split('T')[0],
+        endDate: '',
+        status: 'active'
+    });
+    const [contractFile, setContractFile] = useState<File | null>(null);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -45,114 +49,51 @@ export const ContractManager: React.FC<any> = ({ initialMode = 'list', preSelect
         fetchData();
     }, []);
 
-    // --- RENTGER INTEGRATION ---
-    const checkRentgerConnection = async () => {
-        setRentgerStatus('checking');
-        addLog("Iniciando conexión con API Rentger...");
-        addLog("Verificando API Key...");
-        
+    const handleRegisterContract = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!formData.propertyId || !formData.roomId || !formData.tenantName || !contractFile) {
+            return alert("Por favor completa los datos obligatorios y sube el PDF.");
+        }
+
+        setUploading(true);
         try {
-            const success = await rentgerService.ping();
-            if (success) {
-                setRentgerStatus('connected');
-                addLog("✅ Conexión establecida (Pong recibido).");
-                addLog("Token de seguridad generado correctamente (Validez 24h).");
-            } else {
-                setRentgerStatus('error');
-                addLog("❌ Error de conexión. Verifica la consola o CORS.");
-            }
+            // 1. Subir PDF
+            const storageRef = ref(storage, `contracts/${formData.propertyId}/${formData.roomId}_${Date.now()}.pdf`);
+            await uploadBytes(storageRef, contractFile);
+            const downloadUrl = await getDownloadURL(storageRef);
+
+            // 2. Guardar metadata en Firestore
+            const prop = properties.find(p => p.id === formData.propertyId);
+            const room = prop?.rooms.find(r => r.id === formData.roomId);
+
+            await addDoc(collection(db, "contracts"), {
+                ...formData,
+                propertyName: prop?.address || 'Desconocido',
+                roomName: room?.name || 'Habitación',
+                fileUrl: downloadUrl,
+                fileName: contractFile.name,
+                createdAt: serverTimestamp()
+            });
+
+            alert("Contrato registrado y archivado correctamente.");
+            setViewMode('list');
+            // Reset form
+            setFormData({ propertyId: '', roomId: '', tenantName: '', rentAmount: 0, depositAmount: 0, startDate: '', endDate: '', status: 'active' });
+            setContractFile(null);
+            
+            // Recargar lista (simple reload trigger)
+            const cSnap = await getDocs(collection(db, "contracts"));
+            const cList: Contract[] = [];
+            cSnap.forEach(d => cList.push({ ...d.data(), id: d.id } as Contract));
+            setContracts(cList);
+
         } catch (error) {
-            setRentgerStatus('error');
-            addLog("❌ Excepción al conectar.");
+            console.error("Error saving contract:", error);
+            alert("Error al guardar el contrato.");
+        } finally {
+            setUploading(false);
         }
     };
-
-    const syncPropertyToRentger = async (prop: Property) => {
-        addLog(`Sincronizando propiedad: ${prop.address}...`);
-        try {
-            const result = await rentgerService.syncAsset(prop);
-            addLog(`Respuesta API: ${JSON.stringify(result)}`);
-            if (result.status === 200 || result.id) { // Asumiendo estructura de respuesta exitosa
-                 addLog("✅ Propiedad creada/actualizada en Rentger.");
-            }
-        } catch (e: any) {
-            addLog(`❌ Error sincronizando: ${e.message}`);
-        }
-    };
-
-    const addLog = (msg: string) => {
-        setRentgerLog(prev => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev]);
-    };
-
-    const RentgerPanel = () => (
-        <div className="p-6 max-w-4xl mx-auto space-y-6 animate-in fade-in">
-            <div className="bg-indigo-900 text-white rounded-xl p-6 shadow-lg flex justify-between items-center">
-                <div>
-                    <h2 className="text-xl font-bold flex items-center gap-2">
-                        <PenTool className="w-6 h-6" /> Firmas Digitales Seguras
-                    </h2>
-                    <p className="text-indigo-200 text-sm mt-1">Integración oficial con Rentger (Idealista Technology).</p>
-                </div>
-                <div className="flex items-center gap-3">
-                    <div className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 ${rentgerStatus === 'connected' ? 'bg-green-500 text-white' : rentgerStatus === 'error' ? 'bg-red-500 text-white' : 'bg-indigo-800 text-indigo-300'}`}>
-                        {rentgerStatus === 'connected' ? <Check className="w-3 h-3"/> : rentgerStatus === 'checking' ? <Loader2 className="w-3 h-3 animate-spin"/> : <Globe className="w-3 h-3"/>}
-                        {rentgerStatus === 'connected' ? 'Conectado' : rentgerStatus === 'checking' ? 'Conectando...' : 'Desconectado'}
-                    </div>
-                    <button 
-                        onClick={checkRentgerConnection}
-                        className="bg-white text-indigo-900 px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-50 transition-colors"
-                    >
-                        Probar Conexión
-                    </button>
-                </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Panel de Sincronización */}
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-                    <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-                        <Building className="w-5 h-5 text-rentia-blue" /> Enviar Propiedades a Firma
-                    </h3>
-                    <p className="text-xs text-gray-500 mb-4">Selecciona una propiedad para crearla en el entorno de firmas de Rentger.</p>
-                    
-                    <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar border rounded-lg p-2 bg-gray-50">
-                        {properties.map(p => (
-                            <div key={p.id} className="flex justify-between items-center p-2 bg-white border border-gray-100 rounded hover:shadow-sm">
-                                <span className="text-sm font-medium truncate max-w-[200px]">{p.address}</span>
-                                <button 
-                                    onClick={() => syncPropertyToRentger(p)}
-                                    disabled={rentgerStatus !== 'connected'}
-                                    className="text-xs bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded font-bold hover:bg-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-                                >
-                                    <Upload className="w-3 h-3" /> Sync
-                                </button>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Log de Actividad */}
-                <div className="bg-slate-900 rounded-xl p-5 text-green-400 font-mono text-xs overflow-hidden flex flex-col">
-                    <h3 className="font-bold text-white mb-2 flex items-center gap-2 border-b border-slate-700 pb-2">
-                        <ShieldCheck className="w-4 h-4" /> Log de Seguridad
-                    </h3>
-                    <div className="flex-grow overflow-y-auto space-y-1 h-60">
-                        {rentgerLog.length === 0 ? <span className="text-slate-600 italic">Esperando actividad...</span> : rentgerLog.map((log, i) => (
-                            <div key={i}>{log}</div>
-                        ))}
-                    </div>
-                </div>
-            </div>
-
-            <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex gap-3">
-                <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                <div className="text-sm text-blue-800">
-                    <strong>Nota Técnica:</strong> La integración utiliza la clave cifrada proporcionada para generar tokens de sesión. 
-                    Si experimentas errores de CORS (Cross-Origin), asegúrate de que el dominio <code>api.rentger.com</code> permite peticiones desde este origen o utiliza un proxy intermedio.
-                </div>
-            </div>
-        </div>
-    );
 
     return (
         <div className="flex flex-col h-full bg-gray-50 animate-in fade-in">
@@ -161,14 +102,14 @@ export const ContractManager: React.FC<any> = ({ initialMode = 'list', preSelect
                 <div>
                     <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                         <FileText className="w-6 h-6 text-rentia-blue"/> 
-                        Gestor de Contratos
+                        Archivo de Contratos
                     </h2>
-                    <p className="text-xs text-gray-500">Generación, firma y archivo.</p>
+                    <p className="text-xs text-gray-500">Repositorio digital de contratos firmados.</p>
                 </div>
                 <div className="flex bg-gray-100 p-1 rounded-lg">
                     <button onClick={() => setViewMode('list')} className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${viewMode === 'list' ? 'bg-white shadow text-rentia-blue' : 'text-gray-500'}`}>Listado</button>
-                    <button onClick={() => setViewMode('rentger')} className={`px-4 py-2 rounded-md text-sm font-bold transition-all flex items-center gap-2 ${viewMode === 'rentger' ? 'bg-indigo-600 text-white shadow' : 'text-gray-500'}`}>
-                        <PenTool className="w-3 h-3" /> Firma Digital
+                    <button onClick={() => setViewMode('create')} className={`px-4 py-2 rounded-md text-sm font-bold transition-all flex items-center gap-2 ${viewMode === 'create' ? 'bg-indigo-600 text-white shadow' : 'text-gray-500'}`}>
+                        <Upload className="w-3 h-3" /> Subir Contrato
                     </button>
                     {onClose && <button onClick={onClose} className="ml-2 px-3 py-2 text-gray-400 hover:text-red-500"><X className="w-5 h-5"/></button>}
                 </div>
@@ -176,38 +117,60 @@ export const ContractManager: React.FC<any> = ({ initialMode = 'list', preSelect
 
             {/* Content Area */}
             <div className="flex-grow overflow-hidden relative">
+                
+                {/* LISTA DE CONTRATOS */}
                 {viewMode === 'list' && (
                     <div className="p-6 h-full overflow-y-auto">
                         <div className="flex justify-between mb-6">
-                            <h3 className="font-bold text-lg text-gray-700">Contratos Activos</h3>
-                            <button onClick={() => setViewMode('create')} className="bg-rentia-black text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-gray-800">
-                                <Plus className="w-4 h-4" /> Nuevo Contrato
-                            </button>
+                            <h3 className="font-bold text-lg text-gray-700">Contratos Vigentes</h3>
+                            <a 
+                                href="https://rentger.com" 
+                                target="_blank" 
+                                rel="noreferrer"
+                                className="text-xs flex items-center gap-1 text-gray-500 hover:text-rentia-blue bg-white border border-gray-200 px-3 py-1.5 rounded-lg"
+                            >
+                                <ExternalLink className="w-3 h-3"/> Ir a Rentger (Redacción)
+                            </a>
                         </div>
                         
                         {loading ? <div className="text-center py-10"><Loader2 className="w-8 h-8 animate-spin mx-auto text-rentia-blue"/></div> : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {contracts.map(contract => (
-                                    <div key={contract.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all cursor-pointer group">
+                                    <div key={contract.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all group">
                                         <div className="flex justify-between items-start mb-3">
                                             <div className="flex items-center gap-2">
-                                                <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
+                                                <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs">
                                                     {contract.tenantName.charAt(0)}
                                                 </div>
-                                                <div>
-                                                    <h4 className="font-bold text-sm text-gray-900">{contract.tenantName}</h4>
-                                                    <p className="text-[10px] text-gray-500">{contract.roomName}</p>
+                                                <div className="min-w-0">
+                                                    <h4 className="font-bold text-sm text-gray-900 truncate">{contract.tenantName}</h4>
+                                                    <p className="text-[10px] text-gray-500 truncate">{(contract as any).roomName || 'Habitación'}</p>
                                                 </div>
                                             </div>
                                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${contract.status === 'active' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
-                                                {contract.status === 'active' ? 'ACTIVO' : contract.status}
+                                                {contract.status === 'active' ? 'ACTIVO' : 'FINALIZADO'}
                                             </span>
                                         </div>
-                                        <div className="space-y-1 text-xs text-gray-600 bg-gray-50 p-2 rounded">
+                                        
+                                        <div className="space-y-1 text-xs text-gray-600 bg-gray-50 p-2 rounded mb-3">
                                             <div className="flex justify-between"><span>Renta:</span> <strong>{contract.rentAmount}€</strong></div>
                                             <div className="flex justify-between"><span>Fianza:</span> <strong>{contract.depositAmount}€</strong></div>
-                                            <div className="flex justify-between"><span>Fin:</span> <span>{contract.endDate}</span></div>
+                                            <div className="flex justify-between"><span>Inicio:</span> <span>{contract.startDate}</span></div>
+                                            <div className="flex justify-between"><span>Fin:</span> <span>{contract.endDate || 'Indefinido'}</span></div>
                                         </div>
+
+                                        {(contract as any).fileUrl ? (
+                                            <a 
+                                                href={(contract as any).fileUrl} 
+                                                target="_blank" 
+                                                rel="noreferrer"
+                                                className="block w-full text-center bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold py-2 rounded-lg transition-colors border border-indigo-100"
+                                            >
+                                                Ver PDF Firmado
+                                            </a>
+                                        ) : (
+                                            <div className="text-center text-xs text-gray-400 italic py-2">Sin documento adjunto</div>
+                                        )}
                                     </div>
                                 ))}
                                 {contracts.length === 0 && (
@@ -220,23 +183,134 @@ export const ContractManager: React.FC<any> = ({ initialMode = 'list', preSelect
                     </div>
                 )}
 
-                {viewMode === 'rentger' && <RentgerPanel />}
-
-                {/* (Mantengo el resto de modos 'create', 'details' simplificados para no extender demasiado el código, ya que el foco era la integración de Rentger) */}
+                {/* FORMULARIO DE SUBIDA (REGISTRO) */}
                 {viewMode === 'create' && (
-                    <div className="p-8 text-center">
-                        <div className="max-w-xl mx-auto bg-white p-8 rounded-xl shadow-lg">
-                            <h3 className="text-xl font-bold mb-4">Asistente de Creación</h3>
-                            <p className="text-gray-500 mb-6">Selecciona una plantilla para comenzar a redactar.</p>
-                            <div className="grid grid-cols-1 gap-3">
-                                {CONTRACT_TEMPLATES.map(t => (
-                                    <button key={t.id} className="p-4 border rounded-lg hover:border-rentia-blue hover:bg-blue-50 text-left transition-colors group">
-                                        <span className="font-bold text-gray-800 group-hover:text-rentia-blue block">{t.name}</span>
-                                        <span className="text-xs text-gray-500">Plantilla estándar actualizada 2025</span>
-                                    </button>
-                                ))}
+                    <div className="p-4 md:p-8 h-full overflow-y-auto">
+                        <div className="max-w-2xl mx-auto bg-white p-6 md:p-8 rounded-xl shadow-lg border border-gray-100">
+                            
+                            <div className="mb-6 bg-blue-50 border border-blue-100 rounded-lg p-4 flex gap-3">
+                                <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                                <div className="text-sm text-blue-800">
+                                    <strong>Redacción Externa:</strong> Recuerda que la redacción y firma legal se realiza en <strong>Rentger</strong>. 
+                                    Utiliza este formulario únicamente para subir el PDF final firmado y vincularlo a la habitación.
+                                </div>
                             </div>
-                            <button onClick={() => setViewMode('list')} className="mt-6 text-sm text-gray-500 hover:text-gray-800 underline">Cancelar</button>
+
+                            <form onSubmit={handleRegisterContract} className="space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="md:col-span-2">
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Inquilino *</label>
+                                        <div className="relative">
+                                            <User className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                                            <input 
+                                                type="text" 
+                                                required 
+                                                className="w-full pl-9 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-rentia-blue outline-none"
+                                                placeholder="Nombre Completo"
+                                                value={formData.tenantName}
+                                                onChange={e => setFormData({...formData, tenantName: e.target.value})}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Propiedad *</label>
+                                        <select 
+                                            required 
+                                            className="w-full p-2 border rounded-lg text-sm bg-white"
+                                            value={formData.propertyId}
+                                            onChange={e => setFormData({...formData, propertyId: e.target.value, roomId: ''})}
+                                        >
+                                            <option value="">Seleccionar Propiedad...</option>
+                                            {properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Habitación *</label>
+                                        <select 
+                                            required 
+                                            className="w-full p-2 border rounded-lg text-sm bg-white disabled:bg-gray-100"
+                                            value={formData.roomId}
+                                            onChange={e => {
+                                                const room = properties.find(p => p.id === formData.propertyId)?.rooms.find(r => r.id === e.target.value);
+                                                setFormData({
+                                                    ...formData, 
+                                                    roomId: e.target.value, 
+                                                    rentAmount: room?.price || 0,
+                                                    depositAmount: room?.price || 0 // Default deposit = 1 month
+                                                });
+                                            }}
+                                            disabled={!formData.propertyId}
+                                        >
+                                            <option value="">Seleccionar Habitación...</option>
+                                            {properties.find(p => p.id === formData.propertyId)?.rooms.map(r => (
+                                                <option key={r.id} value={r.id}>{r.name} ({r.status})</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Renta Mensual (€)</label>
+                                        <div className="relative">
+                                            <DollarSign className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                                            <input type="number" required className="w-full pl-9 pr-4 py-2 border rounded-lg text-sm" value={formData.rentAmount} onChange={e => setFormData({...formData, rentAmount: Number(e.target.value)})} />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Fianza (€)</label>
+                                        <div className="relative">
+                                            <DollarSign className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                                            <input type="number" required className="w-full pl-9 pr-4 py-2 border rounded-lg text-sm" value={formData.depositAmount} onChange={e => setFormData({...formData, depositAmount: Number(e.target.value)})} />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Fecha Inicio</label>
+                                        <input type="date" required className="w-full p-2 border rounded-lg text-sm" value={formData.startDate} onChange={e => setFormData({...formData, startDate: e.target.value})} />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Fecha Fin (Opcional)</label>
+                                        <input type="date" className="w-full p-2 border rounded-lg text-sm" value={formData.endDate} onChange={e => setFormData({...formData, endDate: e.target.value})} />
+                                    </div>
+                                </div>
+
+                                {/* File Upload */}
+                                <div className="border-2 border-dashed border-indigo-200 bg-indigo-50/30 rounded-xl p-6 text-center">
+                                    <input 
+                                        type="file" 
+                                        id="contract-pdf" 
+                                        accept="application/pdf" 
+                                        className="hidden" 
+                                        onChange={(e) => setContractFile(e.target.files?.[0] || null)}
+                                    />
+                                    <label htmlFor="contract-pdf" className="cursor-pointer flex flex-col items-center gap-2">
+                                        <div className="p-3 bg-indigo-100 text-indigo-600 rounded-full">
+                                            {contractFile ? <Check className="w-6 h-6"/> : <Paperclip className="w-6 h-6"/>}
+                                        </div>
+                                        <span className="text-sm font-bold text-indigo-900">
+                                            {contractFile ? contractFile.name : "Adjuntar PDF Firmado"}
+                                        </span>
+                                        <span className="text-xs text-indigo-500">
+                                            {contractFile ? "Click para cambiar archivo" : "Haz click para seleccionar"}
+                                        </span>
+                                    </label>
+                                </div>
+
+                                <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                                    <button type="button" onClick={() => setViewMode('list')} className="px-6 py-2.5 text-gray-500 hover:text-gray-700 font-bold text-sm">Cancelar</button>
+                                    <button 
+                                        type="submit" 
+                                        disabled={uploading}
+                                        className="bg-rentia-black text-white px-8 py-2.5 rounded-lg font-bold text-sm hover:bg-gray-800 transition-colors flex items-center gap-2 shadow-lg disabled:opacity-70"
+                                    >
+                                        {uploading ? <Loader2 className="w-4 h-4 animate-spin"/> : <Save className="w-4 h-4"/>}
+                                        {uploading ? 'Subiendo...' : 'Guardar Registro'}
+                                    </button>
+                                </div>
+                            </form>
                         </div>
                     </div>
                 )}

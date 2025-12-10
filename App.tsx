@@ -21,7 +21,8 @@ import { LegalModals, ModalType } from './components/LegalModals';
 import { CollaborationBanner } from './components/CollaborationBanner';
 import { OpportunityCard } from './components/OpportunityCard'; 
 import { LandingView } from './components/LandingView';
-import { InvestorDossier } from './components/InvestorDossier'; // Nueva importación
+import { InvestorDossier } from './components/InvestorDossier'; 
+import { OpportunityPresentation } from './components/OpportunityPresentation'; // Nueva Importación
 import { Opportunity } from './types';
 import { opportunities as staticOpportunities } from './data';
 import { TrendingUp, MessageCircle, Bell } from 'lucide-react';
@@ -31,7 +32,7 @@ import { db } from './firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
 
 // Type alias
-type ViewType = 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts' | 'blog' | 'brokers' | 'intranet' | 'landing' | 'submission' | 'dossier';
+type ViewType = 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts' | 'blog' | 'brokers' | 'intranet' | 'landing' | 'submission' | 'dossier' | 'presentation';
 
 // Mapping Hash paths
 const PATH_MAP: Record<string, ViewType> = {
@@ -46,7 +47,8 @@ const PATH_MAP: Record<string, ViewType> = {
   '#/colaboradores': 'brokers',
   '#/intranet': 'intranet',
   '#/landing': 'landing',
-  '#/dossier': 'dossier'
+  '#/dossier': 'dossier',
+  '#/presentation': 'presentation'
 };
 
 const VIEW_TO_HASH: Record<ViewType, string> = {
@@ -62,7 +64,8 @@ const VIEW_TO_HASH: Record<ViewType, string> = {
   'intranet': '#/intranet',
   'landing': '#/landing',
   'dossier': '#/dossier',
-  'submission': '#/colaboradores'
+  'submission': '#/colaboradores',
+  'presentation': '#/presentation'
 };
 
 function AppContent() {
@@ -106,11 +109,11 @@ function AppContent() {
         let hash = window.location.hash || '#/';
         const [baseHash, query] = hash.split('?');
 
-        // Soporte para detalles
-        if (baseHash === '#/oportunidades' || baseHash === '#/landing' || baseHash === '#/dossier') {
+        // Soporte para detalles y presentación
+        if (baseHash === '#/oportunidades' || baseHash === '#/landing' || baseHash === '#/dossier' || baseHash === '#/presentation') {
             if (query) {
                 const params = new URLSearchParams(query);
-                const oppId = params.get('opp');
+                const oppId = params.get('id') || params.get('opp'); // Acepta ambos
                 setSelectedId(oppId);
             } else {
                 setSelectedId(null);
@@ -187,10 +190,13 @@ function AppContent() {
 
   // Lógica de renderizado
   const renderContent = () => {
-    // Si estamos en modo dossier y hay oportunidad seleccionada, el InvestorDossier maneja su propia vista de detalle si se desea, 
-    // pero para mantener consistencia podemos usar el DetailView o dejar que el Dossier lo maneje internamente.
-    // En este caso, dejaremos que InvestorDossier maneje todo si view === 'dossier'.
-    
+    // Modo Presentación (Standalone)
+    if (view === 'presentation' && selectedOpportunity) {
+        return <OpportunityPresentation opportunity={selectedOpportunity} />;
+    } else if (view === 'presentation' && !selectedOpportunity) {
+        return <div className="min-h-screen flex items-center justify-center text-gray-500">Oportunidad no encontrada o enlace roto.</div>;
+    }
+
     if (view === 'dossier') {
         return (
             <InvestorDossier 
@@ -317,7 +323,7 @@ function AppContent() {
   };
 
   // Determine if full layout (Header/Footer) should be shown
-  const isStandaloneView = view === 'landing' || view === 'dossier';
+  const isStandaloneView = view === 'landing' || view === 'dossier' || view === 'presentation';
 
   return (
     <div className="min-h-screen flex flex-col font-sans">

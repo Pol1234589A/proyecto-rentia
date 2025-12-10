@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Upload, FileText, Send, Loader2, AlertCircle, CheckCircle, BrainCircuit, Sparkles } from 'lucide-react';
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 
 export const FileAnalyzer: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -39,32 +39,38 @@ export const FileAnalyzer: React.FC = () => {
 
     try {
       // 1. Inicializar cliente Gemini
-      const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || '');
-      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
       // 2. Preparar el archivo
       const base64Full = await toBase64(file);
       const base64Clean = base64Full.split(',')[1]; // Eliminar cabecera data:image/...
 
       // 3. Llamar al modelo (Multimodal)
-      const response = await model.generateContent([
-        {
-          inlineData: {
-            mimeType: file.type,
-            data: base64Clean
-          }
-        },
-        `Actúa como un experto en gestión inmobiliaria y organización de datos.
-        
-        Instrucción del usuario: ${prompt}
-        
-        Si la respuesta requiere estructura, usa un formato claro (Markdown, listas o JSON si se pide).`
-      ]);
+      // Usamos gemini-2.5-flash porque es rápido y eficiente para análisis de documentos/imágenes
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: {
+          parts: [
+            {
+              inlineData: {
+                mimeType: file.type,
+                data: base64Clean
+              }
+            },
+            {
+              text: `Actúa como un experto en gestión inmobiliaria y organización de datos.
+              
+              Instrucción del usuario: ${prompt}
+              
+              Si la respuesta requiere estructura, usa un formato claro (Markdown, listas o JSON si se pide).`
+            }
+          ]
+        }
+      });
 
       // 4. Mostrar resultado
-      const text = response.response.text();
-      if (text) {
-        setResult(text);
+      if (response.text) {
+        setResult(response.text);
       } else {
         throw new Error("La IA no devolvió texto.");
       }

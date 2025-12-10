@@ -3,6 +3,7 @@ import { initializeApp } from "firebase/app";
 import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth";
 import { getFirestore, enableMultiTabIndexedDbPersistence, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
+import { getFunctions } from "firebase/functions";
 
 export const firebaseConfig = {
   apiKey: "AIzaSyCv5G788hEWYmgv-2n0SRl9d0geUHkC9ko",
@@ -43,3 +44,4 @@ try {
 }
 
 export const storage = getStorage(app);
+export const functions = getFunctions(app, 'us-central1'); // Ajusta la región si usas otra (ej: europe-west1)

@@ -201,11 +201,20 @@ export const CandidateManager: React.FC = () => {
 
     // COMPONENTE DE TARJETA DE CANDIDATO (Reutilizable)
     const CandidateCard: React.FC<{ c: Candidate }> = ({ c }) => (
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col md:flex-row justify-between items-start gap-4 hover:shadow-md transition-shadow">
-            <div className="flex-1 w-full min-w-0">
+        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col md:flex-row justify-between items-start gap-4 hover:shadow-md transition-shadow relative overflow-hidden">
+            
+            {/* Visual Indicator of Priority */}
+            {c.priority && (
+                <div className={`absolute left-0 top-0 bottom-0 w-1 ${
+                    c.priority === 'Alta' ? 'bg-red-500' : c.priority === 'Media' ? 'bg-yellow-500' : 'bg-green-500'
+                }`}></div>
+            )}
+
+            <div className="flex-1 w-full min-w-0 pl-2">
                 <div className="flex items-center justify-between mb-2">
                     <span className="font-bold text-base md:text-lg text-gray-900 truncate flex items-center gap-2">
                         {c.candidateName}
+                        {c.priority === 'Alta' && <span className="bg-red-100 text-red-700 text-[10px] px-2 py-0.5 rounded border border-red-200 uppercase font-bold animate-pulse">Urgente</span>}
                         {c.status === 'rented' && <span className="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded border border-green-200 uppercase">Alquilado</span>}
                         {c.status === 'archived' && <span className="bg-gray-100 text-gray-600 text-[10px] px-2 py-0.5 rounded border border-gray-200 uppercase">Archivado</span>}
                     </span>
@@ -240,7 +249,7 @@ export const CandidateManager: React.FC = () => {
 
                 {c.status === 'approved' && c.assignedTo && (
                     <div className="text-xs text-blue-700 bg-blue-50 px-2 py-1 rounded w-fit mb-3 border border-blue-100">
-                        <strong>Visita:</strong> {c.assignedTo}
+                        <strong>Visita asignada a:</strong> {c.assignedTo}
                     </div>
                 )}
                 
@@ -421,6 +430,7 @@ export const CandidateManager: React.FC = () => {
                             <div><span className="block text-xs font-bold text-gray-400 uppercase">Estado Actual</span><span className="font-bold uppercase text-rentia-blue">{selectedCandidate.status}</span></div>
                             <div><span className="block text-xs font-bold text-gray-400 uppercase">Interés</span><span>{selectedCandidate.propertyName} - {selectedCandidate.roomName}</span></div>
                             <div><span className="block text-xs font-bold text-gray-400 uppercase">Captado por</span><span>{selectedCandidate.submittedBy}</span></div>
+                            <div><span className="block text-xs font-bold text-gray-400 uppercase">Prioridad</span><span className={`font-bold ${selectedCandidate.priority === 'Alta' ? 'text-red-600' : 'text-gray-700'}`}>{selectedCandidate.priority || 'Media'}</span></div>
                         </div>
                         {selectedCandidate.additionalInfo && (<div><span className="block text-xs font-bold text-gray-400 uppercase mb-1">Notas del Comercial</span><p className="bg-yellow-50 p-3 rounded border border-yellow-100 text-gray-700 italic">"{selectedCandidate.additionalInfo}"</p></div>)}
                         <div className="text-xs text-gray-400 text-center pt-4 border-t">Registrado el: {selectedCandidate.submittedAt?.toDate().toLocaleString()}</div>
@@ -435,7 +445,7 @@ export const CandidateManager: React.FC = () => {
                 <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95">
                     <div className="p-4 border-b bg-gray-50 flex justify-between items-center"><h3 className="font-bold text-gray-800 flex items-center gap-2"><UserPlus className="w-5 h-5 text-green-600"/> Asignar Visita</h3><button onClick={() => setModalMode(null)}><X className="w-5 h-5 text-gray-400"/></button></div>
                     <div className="p-6 space-y-4">
-                        <p className="text-sm text-gray-600">Vas a aprobar a <strong>{selectedCandidate.candidateName}</strong>. ¿Quién realizará la visita comercial?</p>
+                        <p className="text-sm text-gray-600">Vas a aprobar a <strong>{selectedCandidate.candidateName}</strong> (Prioridad: {selectedCandidate.priority}). ¿Quién realizará la visita comercial?</p>
                         <div><label className="text-xs font-bold text-gray-500 uppercase block mb-1">Asignar a:</label><select className="w-full p-2 border rounded-lg text-sm bg-white focus:border-green-500 outline-none" value={assignee} onChange={(e) => setAssignee(e.target.value as any)}><option value="">Seleccionar...</option>{STAFF_MEMBERS.map(staff => (<option key={staff} value={staff}>{staff}</option>))}</select></div>
                         <div className="flex justify-end gap-2 pt-2"><button onClick={() => setModalMode(null)} className="px-4 py-2 text-gray-500 font-bold text-sm hover:bg-gray-100 rounded-lg">Cancelar</button><button onClick={handleApproveAndAssign} disabled={!assignee} className="px-4 py-2 bg-green-600 text-white rounded-lg font-bold text-sm shadow-md disabled:opacity-50 hover:bg-green-700">Confirmar & Aprobar</button></div>
                     </div>

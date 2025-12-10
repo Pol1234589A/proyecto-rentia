@@ -78,7 +78,7 @@ export const OpportunityRequestManager: React.FC = () => {
                 financials: {
                     purchasePrice: purchasePrice,
                     itpPercent: asset.itpPercent,
-                    reformCost: asset.state === 'Para reformar' ? 15000 : 0, // Estimación base
+                    reformCost: asset.state === 'A reformar' ? 15000 : 0, // Estimación base
                     furnitureCost: 0,
                     notaryAndTaxes: 1500 + (purchasePrice * (asset.itpPercent/100)),
                     totalInvestment: purchasePrice * 1.15, // Estimación rápida

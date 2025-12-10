@@ -1,11 +1,11 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { brokerRequests as staticRequests, BrokerRequest, RequestTag } from '../data/brokerRequests';
-import { Briefcase, Search, MapPin, FileText, MessageCircle, ArrowRight, Building2, ShieldCheck, Filter, X, AlertCircle, Handshake, Crown, Star, Network, PlusCircle, SearchCheck } from 'lucide-react';
+import { Briefcase, Search, MapPin, FileText, MessageCircle, ArrowRight, Building2, ShieldCheck, Filter, X, AlertCircle, Handshake, Crown, Star, Network, PlusCircle, SearchCheck, CheckCircle, Lock, Send, Loader2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { ModalType } from './LegalModals';
 import { db } from '../firebase';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
 import { PropertySubmissionForm } from './collaborators/PropertySubmissionForm';
 
 interface BrokerViewProps {
@@ -19,6 +19,22 @@ export const BrokerView: React.FC<BrokerViewProps> = ({ openLegalModal }) => {
   const [filterLocation, setFilterLocation] = useState('');
   const [filterTag, setFilterTag] = useState<RequestTag | 'all'>('all');
   const [brokerRequests, setBrokerRequests] = useState<BrokerRequest[]>(staticRequests);
+
+  // Estados para Modal de Publicación de Demanda
+  const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [publishForm, setPublishForm] = useState({
+      name: '',
+      contact: '',
+      email: '',
+      userType: 'individual' as 'individual' | 'agency',
+      type: '',
+      specs: '',
+      location: '',
+      budget: '',
+      notes: '',
+      gdprAccepted: false
+  });
 
   // Load Broker Requests from Firestore and merge with static
   useEffect(() => {
@@ -35,7 +51,10 @@ export const BrokerView: React.FC<BrokerViewProps> = ({ openLegalModal }) => {
                 condition: data.condition || 'Estándar',
                 budget: data.budget,
                 notes: data.notes,
-                tag: data.tag || 'own'
+                tag: data.tag || 'own',
+                name: data.name,
+                contact: data.contact,
+                email: data.email
             });
         });
         // Merge: Static first, then Firestore
@@ -46,6 +65,47 @@ export const BrokerView: React.FC<BrokerViewProps> = ({ openLegalModal }) => {
 
     return () => unsubscribe();
   }, []);
+
+  // Handle Publish Submit
+  const handlePublishSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!publishForm.gdprAccepted) return alert("Debes aceptar la política de privacidad.");
+      if (!publishForm.name || !publishForm.contact) return alert("Los datos de contacto son obligatorios.");
+
+      setPublishing(true);
+      try {
+          const refCode = `WEB-${Math.floor(1000 + Math.random() * 9000)}`;
+          // Si es particular -> tag 'own' (Propia), Si es agencia -> 'collaboration'
+          const finalTag: RequestTag = publishForm.userType === 'individual' ? 'own' : 'collaboration';
+
+          await addDoc(collection(db, "buyer_requests"), {
+              reference: refCode,
+              name: publishForm.name,
+              contact: publishForm.contact,
+              email: publishForm.email,
+              type: publishForm.type,
+              specs: publishForm.specs,
+              location: publishForm.location,
+              condition: 'Búsqueda Activa',
+              budget: Number(publishForm.budget) || 0,
+              notes: publishForm.notes,
+              tag: finalTag,
+              origin: 'web',
+              gdprAccepted: true,
+              gdprDate: serverTimestamp(),
+              createdAt: serverTimestamp()
+          });
+
+          alert("¡Tu demanda ha sido publicada! Aparecerá en el listado.");
+          setIsPublishModalOpen(false);
+          setPublishForm({ name: '', contact: '', email: '', userType: 'individual', type: '', specs: '', location: '', budget: '', notes: '', gdprAccepted: false });
+      } catch (error) {
+          console.error(error);
+          alert("Error al publicar la demanda.");
+      } finally {
+          setPublishing(false);
+      }
+  };
 
   // Extract unique locations for the dropdown
   const uniqueLocations = useMemo(() => {
@@ -134,17 +194,17 @@ export const BrokerView: React.FC<BrokerViewProps> = ({ openLegalModal }) => {
       {/* Main Tab Navigation */}
       <section className="container mx-auto px-4 -mt-8 relative z-20 mb-8">
           <div className="flex justify-center">
-              <div className="bg-white p-1.5 rounded-xl shadow-lg border border-gray-200 inline-flex">
+              <div className="bg-white p-1.5 rounded-xl shadow-lg border border-gray-200 inline-flex overflow-x-auto max-w-full">
                   <button 
                     onClick={() => setActiveTab('requests')}
-                    className={`px-6 py-3 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${activeTab === 'requests' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'}`}
+                    className={`px-4 sm:px-6 py-3 rounded-lg text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === 'requests' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'}`}
                   >
                       <SearchCheck className="w-4 h-4" />
                       Demandas de Inversión
                   </button>
                   <button 
                     onClick={() => setActiveTab('submission')}
-                    className={`px-6 py-3 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${activeTab === 'submission' ? 'bg-rentia-blue text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'}`}
+                    className={`px-4 sm:px-6 py-3 rounded-lg text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === 'submission' ? 'bg-rentia-blue text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'}`}
                   >
                       <PlusCircle className="w-4 h-4" />
                       Proponer Colaboración
@@ -161,8 +221,16 @@ export const BrokerView: React.FC<BrokerViewProps> = ({ openLegalModal }) => {
                   <div className="p-3 bg-yellow-50 rounded-full text-rentia-gold hidden md:block">
                       <Network className="w-6 h-6" />
                   </div>
-                  <div>
-                      <h3 className="text-xl font-bold text-rentia-black mb-2">{t('brokers.intro.title')}</h3>
+                  <div className="flex-1">
+                      <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-2">
+                          <h3 className="text-xl font-bold text-rentia-black">{t('brokers.intro.title')}</h3>
+                          <button 
+                             onClick={() => setIsPublishModalOpen(true)}
+                             className="bg-slate-900 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-md hover:bg-slate-800 transition-colors flex items-center gap-2"
+                          >
+                             <PlusCircle className="w-4 h-4" /> Publicar mi Demanda
+                          </button>
+                      </div>
                       <p className="text-gray-600 leading-relaxed mb-4">
                           {t('brokers.intro.text')}
                       </p>
@@ -436,6 +504,138 @@ export const BrokerView: React.FC<BrokerViewProps> = ({ openLegalModal }) => {
           </>
           )}
       </section>
+
+      {/* --- MODAL PUBLICAR DEMANDA --- */}
+      {isPublishModalOpen && (
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+              <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col animate-in slide-in-from-bottom-10 max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+                  <div className="p-5 bg-slate-900 text-white border-b border-slate-800 flex justify-between items-center sticky top-0 z-10">
+                      <h3 className="font-bold flex items-center gap-2 text-lg">
+                          <PlusCircle className="w-5 h-5 text-rentia-gold" />
+                          Publicar Nueva Demanda
+                      </h3>
+                      <button onClick={() => setIsPublishModalOpen(false)} className="hover:bg-white/20 p-2 rounded-full transition-colors"><X className="w-5 h-5"/></button>
+                  </div>
+
+                  <div className="p-6 overflow-y-auto">
+                      <form onSubmit={handlePublishSubmit}>
+                          
+                          {/* Tipo de Usuario */}
+                          <div className="mb-6 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                              <label className="block text-xs font-bold text-gray-500 uppercase mb-3">¿Quién eres?</label>
+                              <div className="flex gap-4">
+                                  <label className={`flex-1 flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${publishForm.userType === 'individual' ? 'bg-green-50 border-green-300 ring-1 ring-green-300' : 'bg-white border-gray-200'}`}>
+                                      <input type="radio" name="userType" className="hidden" checked={publishForm.userType === 'individual'} onChange={() => setPublishForm({...publishForm, userType: 'individual'})} />
+                                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${publishForm.userType === 'individual' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                                          <Star className="w-5 h-5" />
+                                      </div>
+                                      <div>
+                                          <span className="font-bold text-sm block">Particular</span>
+                                          <span className="text-xs text-gray-500">Busco para mí o familiar</span>
+                                      </div>
+                                  </label>
+
+                                  <label className={`flex-1 flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${publishForm.userType === 'agency' ? 'bg-indigo-50 border-indigo-300 ring-1 ring-indigo-300' : 'bg-white border-gray-200'}`}>
+                                      <input type="radio" name="userType" className="hidden" checked={publishForm.userType === 'agency'} onChange={() => setPublishForm({...publishForm, userType: 'agency'})} />
+                                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${publishForm.userType === 'agency' ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100 text-gray-400'}`}>
+                                          <Building2 className="w-5 h-5" />
+                                      </div>
+                                      <div>
+                                          <span className="font-bold text-sm block">Profesional</span>
+                                          <span className="text-xs text-gray-500">Agencia / Personal Shopper</span>
+                                      </div>
+                                  </label>
+                              </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                              {/* COLUMNA 1: Datos Privados */}
+                              <div className="space-y-4">
+                                  <div className="flex items-center gap-2 mb-2 text-rentia-blue border-b border-gray-100 pb-1">
+                                      <Lock className="w-4 h-4" />
+                                      <span className="text-xs font-bold uppercase">Datos de Contacto (Privados)</span>
+                                  </div>
+                                  <div>
+                                      <label className="block text-xs font-bold text-gray-600 mb-1">Nombre Completo *</label>
+                                      <input required type="text" className="w-full p-2.5 border rounded-lg text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-rentia-blue outline-none" value={publishForm.name} onChange={e => setPublishForm({...publishForm, name: e.target.value})} placeholder="Tu nombre" />
+                                  </div>
+                                  <div>
+                                      <label className="block text-xs font-bold text-gray-600 mb-1">Teléfono *</label>
+                                      <input required type="tel" className="w-full p-2.5 border rounded-lg text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-rentia-blue outline-none" value={publishForm.contact} onChange={e => setPublishForm({...publishForm, contact: e.target.value})} placeholder="+34 600..." />
+                                  </div>
+                                  <div>
+                                      <label className="block text-xs font-bold text-gray-600 mb-1">Email</label>
+                                      <input type="email" className="w-full p-2.5 border rounded-lg text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-rentia-blue outline-none" value={publishForm.email} onChange={e => setPublishForm({...publishForm, email: e.target.value})} placeholder="contacto@email.com" />
+                                  </div>
+                                  <div className="bg-blue-50 p-3 rounded-lg text-[10px] text-blue-800 flex gap-2 items-start border border-blue-100">
+                                      <Lock className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                                      Estos datos NO se publicarán. RentiaRoom actuará como filtro y te contactará solo cuando haya una oportunidad real.
+                                  </div>
+                              </div>
+
+                              {/* COLUMNA 2: Datos Públicos */}
+                              <div className="space-y-4">
+                                  <div className="flex items-center gap-2 mb-2 text-green-600 border-b border-gray-100 pb-1">
+                                      <Send className="w-4 h-4" />
+                                      <span className="text-xs font-bold uppercase">Datos del Encargo (Públicos)</span>
+                                  </div>
+                                  <div>
+                                      <label className="block text-xs font-bold text-gray-600 mb-1">Tipo de Inmueble *</label>
+                                      <input required type="text" className="w-full p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-green-500 outline-none" value={publishForm.type} onChange={e => setPublishForm({...publishForm, type: e.target.value})} placeholder="Ej: Piso para reformar" />
+                                  </div>
+                                  <div>
+                                      <label className="block text-xs font-bold text-gray-600 mb-1">Zona / Ubicación *</label>
+                                      <input required type="text" className="w-full p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-green-500 outline-none" value={publishForm.location} onChange={e => setPublishForm({...publishForm, location: e.target.value})} placeholder="Ej: Centro de Murcia" />
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-3">
+                                      <div>
+                                          <label className="block text-xs font-bold text-gray-600 mb-1">Presupuesto (€)</label>
+                                          <input type="number" className="w-full p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-green-500 outline-none" value={publishForm.budget} onChange={e => setPublishForm({...publishForm, budget: e.target.value})} placeholder="0 = Flexible" />
+                                      </div>
+                                      <div>
+                                          <label className="block text-xs font-bold text-gray-600 mb-1">Características</label>
+                                          <input type="text" className="w-full p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-green-500 outline-none" value={publishForm.specs} onChange={e => setPublishForm({...publishForm, specs: e.target.value})} placeholder="Ej: Min 3 Hab" />
+                                      </div>
+                                  </div>
+                                  <div>
+                                      <label className="block text-xs font-bold text-gray-600 mb-1">Notas Adicionales</label>
+                                      <textarea className="w-full p-2.5 border rounded-lg text-sm h-20 resize-none focus:ring-2 focus:ring-green-500 outline-none" value={publishForm.notes} onChange={e => setPublishForm({...publishForm, notes: e.target.value})} placeholder="Detalles visibles..." />
+                                  </div>
+                              </div>
+                          </div>
+
+                          {/* GDPR Checkbox */}
+                          <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 mb-6">
+                              <label className="flex items-start gap-3 cursor-pointer">
+                                  <input 
+                                    type="checkbox" 
+                                    className="mt-1 w-4 h-4 text-rentia-blue rounded border-gray-300 focus:ring-rentia-blue"
+                                    checked={publishForm.gdprAccepted}
+                                    onChange={e => setPublishForm({...publishForm, gdprAccepted: e.target.checked})}
+                                  />
+                                  <div className="text-xs text-gray-600 leading-relaxed">
+                                      <span className="font-bold block text-gray-800 mb-1">Consentimiento de Privacidad</span>
+                                      Acepto que mis datos personales sean tratados por Rentia Investments S.L. para gestionar esta solicitud y contactarme con oportunidades. Entiendo que los datos públicos serán visibles en la web. <button type="button" onClick={() => openLegalModal && openLegalModal('privacy')} className="text-rentia-blue underline">Ver Política</button>.
+                                  </div>
+                              </label>
+                          </div>
+
+                          <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                              <button type="button" onClick={() => setIsPublishModalOpen(false)} className="px-6 py-2.5 text-gray-600 hover:bg-gray-100 rounded-lg font-bold text-sm transition-colors">Cancelar</button>
+                              <button 
+                                type="submit" 
+                                disabled={publishing || !publishForm.gdprAccepted}
+                                className="bg-rentia-black text-white px-8 py-2.5 rounded-lg font-bold text-sm hover:bg-slate-800 transition-all shadow-md flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                  {publishing ? <Loader2 className="w-4 h-4 animate-spin"/> : <CheckCircle className="w-4 h-4"/>}
+                                  Publicar Demanda
+                              </button>
+                          </div>
+                      </form>
+                  </div>
+              </div>
+          </div>
+      )}
 
       {/* Direct Contact */}
       <section className="bg-white border-t border-gray-200 py-12">

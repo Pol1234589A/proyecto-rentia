@@ -642,27 +642,48 @@ export const OwnerDashboard: React.FC = () => {
                {/* ESTILOS DE IMPRESIÓN PARA PROPIETARIO */}
                 <style>{`
                     @media print {
-                        body {
-                            visibility: hidden;
+                        /* 1. Reset global agresivo del contenedor principal de la App */
+                        html, body, #root {
                             height: auto !important;
                             overflow: visible !important;
+                            width: 100% !important;
+                            position: static !important;
+                            margin: 0 !important;
+                            padding: 0 !important;
+                            background-color: white !important;
                         }
-                        #invoice-print-area {
-                            visibility: visible;
-                            position: absolute;
-                            left: 0;
-                            top: 0;
-                            width: 100%;
-                            background: white;
-                            z-index: 9999;
+
+                        /* 2. Ocultar TODO lo que hay en la pantalla */
+                        body * {
+                            visibility: hidden;
                         }
+
+                        /* 3. Hacer visible SOLO el área de la factura y su contenido interno */
+                        #invoice-print-area, 
                         #invoice-print-area * {
                             visibility: visible;
                         }
-                        .print\\:hidden {
-                            display: none !important;
+
+                        /* 4. Posicionar la factura al inicio absoluto de la hoja de papel */
+                        #invoice-print-area {
+                            position: absolute !important;
+                            left: 0 !important;
+                            top: 0 !important;
+                            width: 100% !important;
+                            max-width: 100% !important; /* Asegurar que use el ancho del papel */
+                            margin: 0 !important;
+                            padding: 0 !important;
+                            background: white !important;
+                            
+                            /* Eliminar estilos de "tarjeta/modal" para que parezca papel */
+                            border: none !important;
+                            box-shadow: none !important;
+                            overflow: visible !important;
+                            z-index: 99999 !important; /* Asegurar que esté encima de todo */
                         }
-                        .no-print {
+
+                        /* 5. Ocultar botones de acción dentro de la propia factura (si los hubiera) */
+                        .print\\:hidden, .no-print {
                             display: none !important;
                         }
                     }

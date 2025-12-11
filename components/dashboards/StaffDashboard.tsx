@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { db } from '../../firebase';
@@ -27,6 +28,7 @@ import { SalesTracker } from '../admin/SalesTracker';
 import { BlacklistManager } from '../admin/tools/BlacklistManager';
 import { WorkerInvoicesPanel } from '../admin/tools/WorkerInvoicesPanel';
 import { TransferRequestManager } from '../admin/TransferRequestManager';
+import { AdvancedCalculator } from '../admin/tools/AdvancedCalculator'; // Importar nueva herramienta
 // FIX: Added Globe and Send icons to lucide-react import
 import { LayoutDashboard, Calculator, Briefcase, Wrench, Plus, Search, FileText, Save, X, DollarSign, Calendar as CalendarIcon, Filter, Pencil, PieChart, Landmark, Wallet, Clock, Zap, Settings, Receipt, Split, Info, MessageCircle, Share2, ClipboardList, UserCheck, Mail, Phone, ArrowRight, UserPlus, Inbox, Home, DoorOpen, Menu, Activity, ShieldAlert, UserCog, Siren, Footprints, BarChart3, Building, Grid, Globe, Send, Users } from 'lucide-react';
 
@@ -59,8 +61,8 @@ const MotivationalBanner = () => {
 export const StaffDashboard: React.FC = () => {
   const { currentUser } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'real_estate' | 'accounting' | 'tools' | 'contracts' | 'calendar' | 'supplies' | 'calculator' | 'social' | 'tasks' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'transfers'>('overview');
-  const [activeMobileTab, setActiveMobileTab] = useState<'overview' | 'tasks' | 'candidates' | 'properties' | 'menu' | 'accounting' | 'supplies' | 'calendar' | 'contracts' | 'social' | 'calculator' | 'tools' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'real_estate' | 'accounting' | 'tools' | 'contracts' | 'calendar' | 'supplies' | 'calculator' | 'social' | 'tasks' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'transfers' | 'advanced_calc'>('overview');
+  const [activeMobileTab, setActiveMobileTab] = useState<'overview' | 'tasks' | 'candidates' | 'properties' | 'menu' | 'accounting' | 'supplies' | 'calendar' | 'contracts' | 'social' | 'calculator' | 'tools' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'advanced_calc'>('overview');
   const [mobilePropertyView, setMobilePropertyView] = useState<'rent' | 'sale'>('rent');
 
   const [stats, setStats] = useState({
@@ -219,8 +221,9 @@ export const StaffDashboard: React.FC = () => {
         { id: 'supplies', label: 'Suministros', icon: <Zap className="w-4 h-4" /> },
         { id: 'worker_invoices', label: 'Facturas Trabajadores', icon: <Receipt className="w-4 h-4" /> },
         { id: 'social', label: 'Mensajería', icon: <MessageCircle className="w-4 h-4" /> },
-        { id: 'calculator', label: 'Calculadora', icon: <Split className="w-4 h-4" /> },
+        { id: 'calculator', label: 'Reparto Gastos', icon: <Split className="w-4 h-4" /> },
         { id: 'accounting', label: 'Contabilidad', icon: <Calculator className="w-4 h-4" /> },
+        { id: 'advanced_calc', label: 'Liquidaciones', icon: <FileText className="w-4 h-4" /> }, // New Tool
         { id: 'calendar', label: 'Calendario', icon: <CalendarIcon className="w-4 h-4" /> },
         { id: 'visits', label: 'Visitas', icon: <Footprints className="w-4 h-4" /> }, 
         { id: 'user_manager', label: 'Usuarios', icon: <UserCog className="w-4 h-4" /> }, 
@@ -234,12 +237,13 @@ export const StaffDashboard: React.FC = () => {
         { id: 'blacklist', label: 'Riesgos', icon: <ShieldAlert className="w-6 h-6"/>, color: 'bg-red-100 text-red-600' }, 
         { id: 'accounting', label: 'Contabilidad', icon: <Calculator className="w-6 h-6"/>, color: 'bg-blue-100 text-blue-600' },
         { id: 'supplies', label: 'Suministros', icon: <Zap className="w-6 h-6"/>, color: 'bg-yellow-100 text-yellow-600' },
+        { id: 'advanced_calc', label: 'Liquidaciones', icon: <FileText className="w-6 h-6"/>, color: 'bg-indigo-100 text-indigo-600' }, // New Tool Mobile
         { id: 'calendar', label: 'Calendario', icon: <CalendarIcon className="w-6 h-6"/>, color: 'bg-green-100 text-green-600' },
         { id: 'visits', label: 'Visitas', icon: <Footprints className="w-6 h-6"/>, color: 'bg-red-100 text-red-600' },
         { id: 'contracts', label: 'Contratos', icon: <FileText className="w-6 h-6"/>, color: 'bg-purple-100 text-purple-600' },
         { id: 'social', label: 'Mensajería', icon: <MessageCircle className="w-6 h-6"/>, color: 'bg-pink-100 text-pink-600' },
         { id: 'user_manager', label: 'Usuarios', icon: <UserCog className="w-6 h-6"/>, color: 'bg-gray-200 text-gray-700' },
-        { id: 'calculator', label: 'Inversión', icon: <Split className="w-6 h-6"/>, color: 'bg-orange-100 text-orange-600' },
+        { id: 'calculator', label: 'Reparto Gastos', icon: <Split className="w-6 h-6"/>, color: 'bg-orange-100 text-orange-600' },
         { id: 'tools', label: 'Herramientas', icon: <Wrench className="w-6 h-6"/>, color: 'bg-gray-100 text-gray-600' },
     ];
 
@@ -291,6 +295,7 @@ export const StaffDashboard: React.FC = () => {
             case 'calendar': return <div className="h-full overflow-y-auto pb-24"><CalendarManager /></div>;
             case 'supplies': return <div className="h-full overflow-y-auto pb-24"><SuppliesPanel properties={propertiesList} /></div>;
             case 'accounting': return <div className="h-full overflow-y-auto pb-24"><AccountingPanel /></div>;
+            case 'advanced_calc': return <div className="h-full overflow-y-auto pb-24"><AdvancedCalculator properties={propertiesList} /></div>;
             case 'visits': return <div className="h-full overflow-y-auto pb-24"><VisitsLog /></div>;
             case 'sales_tracker': return <div className="h-full overflow-y-auto pb-24"><SalesTracker /></div>;
             case 'blacklist': return <div className="h-full overflow-y-auto pb-24"><BlacklistManager /></div>;
@@ -391,6 +396,7 @@ export const StaffDashboard: React.FC = () => {
             {activeTab === 'contracts' && <div className="animate-in slide-in-from-bottom-4 duration-300"><ContractManager onClose={() => setActiveTab('real_estate')} /></div>}
             {activeTab === 'calendar' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><CalendarManager /></div>}
             {activeTab === 'calculator' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><SupplyCalculator properties={propertiesList} preSelectedPropertyId={selectedPropId} /></div>}
+            {activeTab === 'advanced_calc' && <div className="animate-in slide-in-from-bottom-4 duration-300"><AdvancedCalculator properties={propertiesList} /></div>}
             {activeTab === 'social' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><SocialInbox /></div>}
             {activeTab === 'visits' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><VisitsLog /></div>}
             {activeTab === 'supplies' && <div className="animate-in slide-in-from-bottom-4 duration-300"><SuppliesPanel properties={propertiesList} /></div>}
@@ -465,13 +471,11 @@ export const StaffDashboard: React.FC = () => {
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Teléfono</label>
-                                <input type="tel" className="w-full p-2 border rounded text-sm" value={newCandidate.candidatePhone} onChange={e => setNewCandidate({...newCandidate, candidatePhone: e.target.value})} />
-                            </div>
+                                <label className="block text-xs font-bold text-gray-500 block mb-1">Teléfono</label>
+                                <input type="tel" className="w-full p-2 border rounded text-sm" value={newCandidate.candidatePhone} onChange={e => setNewCandidate({...newCandidate, candidatePhone: e.target.value})}/></div>
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Email</label>
-                                <input type="email" className="w-full p-2 border rounded text-sm" value={newCandidate.candidateEmail} onChange={e => setNewCandidate({...newCandidate, candidateEmail: e.target.value})} />
-                            </div>
+                                <label className="block text-xs font-bold text-gray-500 block mb-1">Email</label>
+                                <input type="email" className="w-full p-2 border rounded text-sm" value={newCandidate.candidateEmail} onChange={e => setNewCandidate({...newCandidate, candidateEmail: e.target.value})}/></div>
                         </div>
                         
                         <div>

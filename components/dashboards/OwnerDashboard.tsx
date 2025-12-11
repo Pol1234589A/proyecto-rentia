@@ -1,768 +1,946 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { db, storage } from '../../firebase';
-import { collection, query, where, getDocs, onSnapshot, doc, updateDoc, addDoc, serverTimestamp, orderBy } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, doc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Property } from '../../data/rooms';
-import { Candidate, OwnerAdjustment, PropertyDocument, SupplyInvoice, UserProfile } from '../../types';
-import { Zap, Loader2, Shield, UserCheck, FileText, XCircle, CheckCircle, Upload, Building, User, ArrowRight, MousePointerClick, ShieldCheck, Printer, Droplet, Flame, Wifi, FileCheck, CloudLightning, Clock, Download, AlertTriangle, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
+import { Contract, PropertyDocument, SupplyInvoice } from '../../types';
+import { 
+  Building2, MapPin, ChevronDown, TrendingUp, DollarSign,
+  Briefcase, User, FileCheck, Megaphone, Lock, FileText, 
+  Upload, Receipt, Download, Loader2, CreditCard, LayoutDashboard, Plus, CheckCircle, Percent, Gift, Sparkles, Clock, Calendar, AlertCircle, Save, ArrowRight, Trash2, Eye, FilePlus, Info
+} from 'lucide-react';
 
-// TEXTO LEGAL ROBUSTO (COMPLIANCE RGPD & LOPDGDD)
-const LEGAL_TEXT_HTML = `
-  <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; padding: 20px;">
-    <h2 style="text-align: center; color: #0072CE;">ACUERDO DE CONFIDENCIALIDAD Y ENCARGO DE TRATAMIENTO DE DATOS</h2>
-    <p><strong>Entre:</strong> RENTIA INVESTMENTS S.L. (en adelante, "El Responsable") y el PROPIETARIO (en adelante, "El Encargado").</p>
-    
-    <h3>1. OBJETO DEL ACUERDO</h3>
-    <p>En el marco de la gestión inmobiliaria, el Propietario tendrá acceso a datos personales de candidatos e inquilinos (nombres, DNI, datos económicos, contacto) facilitados por RENTIA.</p>
-    
-    <h3>2. OBLIGACIONES DE CONFIDENCIALIDAD</h3>
-    <p>El Propietario se compromete a:</p>
-    <ul>
-      <li>Utilizar los datos <strong>exclusivamente</strong> para la finalidad de formalizar el alquiler y gestionar la relación contractual.</li>
-      <li>No comunicar ni ceder estos datos a terceros (salvo obligación legal o administración pública).</li>
-      <li>Mantener el secreto profesional respecto a toda la información, incluso después de finalizar la relación.</li>
-    </ul>
+type Tab = 'overview' | 'documents' | 'supplies' | 'profile';
 
-    <h3>3. MEDIDAS DE SEGURIDAD</h3>
-    <p>El Propietario se compromete a no guardar copias locales inseguras de la documentación (nóminas, DNI) una vez finalizada su utilidad, y a custodiar las credenciales de acceso a este panel de forma segura.</p>
-
-    <h3>4. DESTRUCCIÓN DE DATOS</h3>
-    <p>Una vez finalizada la relación de arrendamiento, el Propietario deberá destruir o devolver cualquier dato personal del inquilino que obre en su poder fuera de esta plataforma.</p>
-
-    <div style="margin-top: 30px; border-top: 1px solid #ccc; padding-top: 10px;">
-      <p style="font-size: 12px; color: #666;">Documento aceptado digitalmente mediante firma electrónica simple (Clickwrap Agreement) conforme al Reglamento eIDAS.</p>
-    </div>
-  </div>
-`;
+// Updated configuration: Escritura is now optional
+const REQUIRED_DOCS = [
+    { key: 'dni', label: 'DNI / NIE Propietario', desc: 'Cara frontal y trasera', required: true },
+    { key: 'escritura', label: 'Escritura / Nota Simple', desc: 'Justificante de propiedad', required: false },
+    { key: 'seguro', label: 'Póliza de Seguro', desc: 'Seguro de hogar vigente', required: true },
+    { key: 'iban', label: 'Certificado Bancario', desc: 'Titularidad de la cuenta', required: true },
+    { key: 'cee', label: 'Certificado Energético', desc: 'Etiqueta energética', required: true },
+    { key: 'cedula', label: 'Cédula Habitabilidad', desc: 'Si dispone de ella', required: true }
+];
 
 export const OwnerDashboard: React.FC = () => {
   const { currentUser } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'profile' | 'docs' | 'invoices' | 'candidates'>('overview');
+  const [activeTab, setActiveTab] = useState<Tab>('overview');
   
-  // Data
-  const [userData, setUserData] = useState<UserProfile | null>(null);
+  // Data State
   const [properties, setProperties] = useState<Property[]>([]);
-  const [uploadedDocs, setUploadedDocs] = useState<PropertyDocument[]>([]);
-  const [uploadedInvoices, setUploadedInvoices] = useState<SupplyInvoice[]>([]);
-  const [adjustments, setAdjustments] = useState<OwnerAdjustment[]>([]);
-  const [candidates, setCandidates] = useState<Candidate[]>([]); 
-
+  const [contracts, setContracts] = useState<Contract[]>([]);
+  const [documents, setDocuments] = useState<PropertyDocument[]>([]);
+  const [invoices, setInvoices] = useState<SupplyInvoice[]>([]);
+  
+  // User Profile Data (for Bank Account editing)
+  const [ownerProfile, setOwnerProfile] = useState<any>(null);
+  const [ibanForm, setIbanForm] = useState('');
+  
+  // UI State
+  const [loading, setLoading] = useState(true);
+  const [expandedPropId, setExpandedPropId] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadingDocKey, setUploadingDocKey] = useState<string | null>(null); // Para controlar el spinner de cada hueco
+  
   // Forms
-  const [profileForm, setProfileForm] = useState<Partial<UserProfile>>({});
-  
-  // Invoice Upload Form
-  const [invoiceForm, setInvoiceForm] = useState({ 
-      type: 'luz', 
-      periodStart: '', 
-      periodEnd: '', 
-      amount: '' 
-  });
-  const [invoiceFile, setInvoiceFile] = useState<File | null>(null);
-  const [isUploadingInvoice, setIsUploadingInvoice] = useState(false);
+  const [supplyForm, setSupplyForm] = useState({ propertyId: '', type: 'luz', amount: '', date: new Date().toISOString().split('T')[0] });
+  const [supplyFile, setSupplyFile] = useState<File | null>(null);
 
-  // Doc Upload Form
-  const [docFile, setDocFile] = useState<File | null>(null);
-  const [docType, setDocType] = useState('certificado_energetico');
-  const [isUploadingDoc, setIsUploadingDoc] = useState(false);
-
-  const [selectedPropertyId, setSelectedPropertyId] = useState('');
-  
-  // UI States for Candidates view
-  const [expandedCandidatesProp, setExpandedCandidatesProp] = useState<Record<string, boolean>>({});
-
-  // UI States
-  const [isGdprOpen, setIsGdprOpen] = useState(false);
-  const [gdprStep, setGdprStep] = useState(1);
-  const [isGdprChecked, setIsGdprChecked] = useState(false); 
-  const [signing, setSigning] = useState(false);
-
-  // Financials Calculation
-  const financials = useMemo(() => {
-      let income = 0;
-      let expenses = 0;
-      properties.forEach(p => {
-          p.rooms.forEach(r => {
-              if (r.status === 'occupied') income += r.price;
-          });
-      });
-      adjustments.forEach(adj => {
-          if (adj.type === 'discount') { } 
-          else { expenses += adj.amount; }
-      });
-      return { monthlyIncome: income, monthlyExpenses: expenses, netBalance: income - expenses };
-  }, [properties, adjustments]);
-
-  // Required Docs Check
-  const requiredDocsStatus = useMemo(() => {
-      const required = [
-          { type: 'certificado_energetico', label: 'Certificado Energético' },
-          { type: 'seguro_hogar', label: 'Seguro de Hogar' }, 
-          { type: 'ibi', label: 'Recibo IBI' },
-          { type: 'escritura', label: 'Nota Simple / Escritura' }
-      ];
-      // Check for current selected property
-      const currentPropDocs = uploadedDocs.filter(d => d.propertyId === selectedPropertyId);
-      
-      return required.map(req => {
-          const exists = currentPropDocs.some(d => d.type === req.type);
-          return { ...req, uploaded: exists };
-      });
-  }, [uploadedDocs, selectedPropertyId]);
+  // Investment Forms (Transient state for inputs)
+  const [investmentInputs, setInvestmentInputs] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (!currentUser) return;
 
-    const userRef = doc(db, "users", currentUser.uid);
-    const unsubUser = onSnapshot(userRef, (docSnap) => {
+    // 0. Fetch User Profile (Realtime)
+    const unsubUser = onSnapshot(doc(db, "users", currentUser.uid), (docSnap) => {
         if (docSnap.exists()) {
-            const data = docSnap.data() as UserProfile;
-            setUserData(data);
-            setProfileForm(data);
-            if (!data.gdpr?.signed) {
-                setIsGdprOpen(true);
-            } else {
-                setIsGdprOpen(false);
-            }
+            const data = docSnap.data();
+            setOwnerProfile(data);
+            // Solo establecer si no se está editando activamente (o inicializar)
+            setIbanForm(prev => prev === '' ? (data.bankAccount || '') : prev);
         }
-        setLoading(false);
     });
 
-    const fetchData = async () => {
-      try {
-        // Properties
-        const propsQuery = query(collection(db, "properties"), where("ownerId", "==", currentUser.uid));
-        const propsSnap = await getDocs(propsQuery);
-        const ownerProperties: Property[] = [];
-        propsSnap.forEach(doc => ownerProperties.push({ ...doc.data(), id: doc.id } as Property));
-        ownerProperties.sort((a,b) => a.address.localeCompare(b.address));
-        setProperties(ownerProperties);
-        if (ownerProperties.length > 0) {
-            setSelectedPropertyId(ownerProperties[0].id);
-            setExpandedCandidatesProp({ [ownerProperties[0].address]: true });
-        }
+    // 1. Fetch Properties
+    const qProps = query(collection(db, 'properties'), where('ownerId', '==', currentUser.uid));
+    const unsubProps = onSnapshot(qProps, (snapshot) => {
+      const props: Property[] = [];
+      const initInvestments: Record<string, number> = {};
+      
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        // @ts-ignore - investmentAmount might be missing in older docs
+        const prop = { ...data, id: doc.id, investmentAmount: data.investmentAmount || 0 } as Property;
+        props.push(prop);
+        initInvestments[prop.id] = prop.investmentAmount || 0;
+      });
+      setProperties(props);
+      // Only set initial inputs if not already set (to avoid overwriting user typing)
+      setInvestmentInputs(prev => Object.keys(prev).length === 0 ? initInvestments : prev);
 
-        const propIds = ownerProperties.map(p => p.id);
-
-        if (propIds.length > 0) {
-            // Documents
-            const docsQuery = query(collection(db, "property_documents"), where("propertyId", "in", propIds));
-            const unsubDocs = onSnapshot(docsQuery, (snapshot) => {
-                const dList: PropertyDocument[] = [];
-                snapshot.forEach(d => dList.push({ ...d.data(), id: d.id } as PropertyDocument));
-                setUploadedDocs(dList);
-            });
-
-            // Invoices
-            const invQuery = query(collection(db, "supply_invoices"), where("propertyId", "in", propIds), orderBy("uploadedAt", "desc"));
-            const unsubInvoices = onSnapshot(invQuery, (snapshot) => {
-                const iList: SupplyInvoice[] = [];
-                snapshot.forEach(d => iList.push({ ...d.data(), id: d.id } as SupplyInvoice));
-                setUploadedInvoices(iList);
-            });
-        }
-
-        // Adjustments
-        const adjQuery = query(collection(db, "adjustments"), where("ownerId", "==", currentUser.uid), orderBy("date", "desc"));
-        const adjSnap = await getDocs(adjQuery);
-        const aList: OwnerAdjustment[] = [];
-        adjSnap.forEach(d => aList.push({ ...d.data(), id: d.id } as OwnerAdjustment));
-        setAdjustments(aList);
-        
-        // Candidates
-        try {
-            const candQuery = query(collection(db, "candidate_pipeline"), where("ownerId", "==", currentUser.uid), orderBy("submittedAt", "desc"));
-            const candSnap = await getDocs(candQuery);
-            const cList: Candidate[] = [];
-            candSnap.forEach(d => cList.push({ ...d.data(), id: d.id } as Candidate));
-            setCandidates(cList);
-        } catch (e) {
-            console.warn("Error fetching candidates");
-        }
-
-      } catch (error) {
-        console.error("Error fetching data:", error);
+      if (props.length > 0 && !expandedPropId) {
+          setExpandedPropId(props[0].id);
       }
-    };
+      setLoading(false);
+    });
 
-    fetchData();
-    return () => unsubUser();
+    // 2. Fetch Contracts
+    const qContracts = query(collection(db, 'contracts'), where('ownerId', '==', currentUser.uid));
+    const unsubContracts = onSnapshot(qContracts, (snapshot) => {
+        const conts: Contract[] = [];
+        snapshot.forEach((doc) => {
+            conts.push({ ...doc.data(), id: doc.id } as Contract);
+        });
+        setContracts(conts);
+    });
+
+    return () => {
+      unsubUser();
+      unsubProps();
+      unsubContracts();
+    };
   }, [currentUser]);
 
-  // --- UPLOAD HANDLERS ---
+  // 3. Fetch Sub-collections based on Properties
+  useEffect(() => {
+      if (properties.length === 0) return;
+      const propIds = properties.map(p => p.id);
 
-  const handleUploadDoc = async (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!docFile || !selectedPropertyId) return alert("Selecciona archivo y propiedad.");
-      
-      setIsUploadingDoc(true);
+      // Documents
+      const qDocs = query(collection(db, "property_documents"), where("propertyId", "in", propIds.slice(0, 10))); 
+      const unsubDocs = onSnapshot(qDocs, (snap) => {
+          const docs: PropertyDocument[] = [];
+          snap.forEach(d => docs.push({ ...d.data(), id: d.id } as PropertyDocument));
+          setDocuments(docs);
+      });
+
+      // Supply Invoices
+      const qInvoices = query(collection(db, "supply_invoices"), where("propertyId", "in", propIds.slice(0, 10)));
+      const unsubInvoices = onSnapshot(qInvoices, (snap) => {
+          const invs: SupplyInvoice[] = [];
+          snap.forEach(d => invs.push({ ...d.data(), id: d.id } as SupplyInvoice));
+          invs.sort((a,b) => (b.uploadedAt?.toMillis() || 0) - (a.uploadedAt?.toMillis() || 0));
+          setInvoices(invs);
+      });
+
+      return () => { unsubDocs(); unsubInvoices(); };
+  }, [properties]);
+
+  const toggleExpand = (id: string) => {
+    setExpandedPropId(expandedPropId === id ? null : id);
+  };
+
+  // --- STRUCTURED UPLOAD HANDLER ---
+  const handleSmartUpload = async (e: React.ChangeEvent<HTMLInputElement>, propertyId: string, docKey: string, docLabel: string) => {
+      const file = e.target.files?.[0];
+      if (!file || !currentUser) return;
+
+      setUploadingDocKey(`${propertyId}-${docKey}`);
       try {
-          const fileName = `doc_${Date.now()}_${docFile.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
-          const storageRef = ref(storage, `documents/${selectedPropertyId}/${fileName}`);
-          await uploadBytes(storageRef, docFile);
+          const storageRef = ref(storage, `documents/${propertyId}/${docKey}_${Date.now()}_${file.name}`);
+          await uploadBytes(storageRef, file);
           const url = await getDownloadURL(storageRef);
 
           await addDoc(collection(db, "property_documents"), {
-              propertyId: selectedPropertyId,
-              name: docFile.name,
-              type: docType,
+              propertyId: propertyId,
+              name: docLabel, // Usamos la etiqueta oficial como nombre
+              type: docKey,   // La key interna para identificarlo
               url: url,
-              uploadedAt: serverTimestamp()
+              uploadedAt: serverTimestamp(),
+              ownerId: currentUser.uid
           });
 
+          // Limpiar input (truco visual)
+          e.target.value = ''; 
           alert("Documento subido correctamente.");
-          setDocFile(null);
       } catch (error) {
           console.error(error);
           alert("Error al subir documento.");
       } finally {
-          setIsUploadingDoc(false);
+          setUploadingDocKey(null);
       }
   };
 
   const handleUploadInvoice = async (e: React.FormEvent) => {
       e.preventDefault();
-      if (!invoiceFile || !invoiceForm.amount || !invoiceForm.periodStart) return alert("Completa los datos de la factura.");
+      if (!supplyFile || !supplyForm.propertyId || !supplyForm.amount) return alert("Rellena todos los campos");
       
-      setIsUploadingInvoice(true);
+      setUploading(true);
       try {
-          const fileName = `invoice_${Date.now()}_${invoiceFile.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
-          const storageRef = ref(storage, `invoices/${selectedPropertyId}/${fileName}`);
-          await uploadBytes(storageRef, invoiceFile);
+          const storageRef = ref(storage, `invoices/${supplyForm.propertyId}/${Date.now()}_${supplyFile.name}`);
+          await uploadBytes(storageRef, supplyFile);
           const url = await getDownloadURL(storageRef);
 
           await addDoc(collection(db, "supply_invoices"), {
-              propertyId: selectedPropertyId,
-              type: invoiceForm.type,
-              periodStart: invoiceForm.periodStart,
-              periodEnd: invoiceForm.periodEnd,
-              amount: parseFloat(invoiceForm.amount),
+              propertyId: supplyForm.propertyId,
+              type: supplyForm.type,
+              amount: parseFloat(supplyForm.amount),
+              periodStart: supplyForm.date,
+              periodEnd: supplyForm.date,
               fileUrl: url,
-              status: 'pending', // Important for Staff Panel
+              status: 'pending',
               uploadedAt: serverTimestamp()
           });
-
-          alert("Factura enviada. El equipo de Rentia la procesará en el próximo reparto.");
-          setInvoiceFile(null);
-          setInvoiceForm({ type: 'luz', periodStart: '', periodEnd: '', amount: '' });
+          
+          setSupplyFile(null);
+          setSupplyForm({ ...supplyForm, amount: '' });
+          alert("Factura subida correctamente");
       } catch (error) {
           console.error(error);
-          alert("Error al subir factura.");
+          alert("Error al subir");
       } finally {
-          setIsUploadingInvoice(false);
+          setUploading(false);
       }
   };
 
-  const handleUpdateProfile = async (e: React.FormEvent) => { e.preventDefault(); if (!currentUser) return; try { await updateDoc(doc(db, "users", currentUser.uid), profileForm); alert("Perfil actualizado."); } catch (e) { alert("Error."); } };
-  
-  // --- GDPR ---
-  const handleGdprAccept = async () => {
-      if (!currentUser || !userData || !isGdprChecked) return;
-      setSigning(true);
+  const handleSaveInvestment = async (propId: string) => {
+      const amount = investmentInputs[propId];
+      if (amount === undefined || amount < 0) return alert("Introduce un valor válido.");
+      
       try {
-          const timestamp = new Date().toISOString();
-          const signerInfo = `
-            <div style="background:#f9f9f9; padding:15px; border:1px solid #ddd; margin-top:20px;">
-                <strong>FIRMADO DIGITALMENTE POR:</strong><br/>
-                Nombre: ${userData.name}<br/>
-                DNI: ${userData.dni || 'No registrado'}<br/>
-                Email: ${userData.email}<br/>
-                Fecha: ${timestamp}<br/>
-                ID Usuario: ${currentUser.uid}
-            </div>
-          `;
-          const fullEvidenceHtml = LEGAL_TEXT_HTML + signerInfo;
-          await updateDoc(doc(db, "users", currentUser.uid), { 
-              gdpr: { signed: true, signedAt: serverTimestamp(), ip: 'browser_session', documentVersion: 'v3.0', htmlSnapshot: fullEvidenceHtml } 
+          await updateDoc(doc(db, "properties", propId), {
+              investmentAmount: amount
           });
-          setTimeout(() => { setIsGdprOpen(false); alert("Documento firmado correctamente."); }, 500);
-      } catch (e) { console.error("Error signing:", e); alert("Error al registrar la aceptación."); } finally { setSigning(false); }
-  };
-
-  const handlePrintAgreement = () => {
-      if (userData?.gdpr?.htmlSnapshot) {
-          const printWindow = window.open('', '_blank');
-          if (printWindow) {
-              printWindow.document.write(userData.gdpr.htmlSnapshot);
-              printWindow.document.close();
-              printWindow.print();
-          }
-      } else { alert("No se encuentra la copia digital."); }
-  };
-
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-rentia-blue"/></div>;
-
-  const candidatesByProperty = useMemo(() => {
-      const groups: Record<string, Candidate[]> = {};
-      properties.forEach(p => groups[p.address] = []);
-      candidates.forEach(c => {
-          const propName = c.propertyName || 'Sin asignar';
-          if (!groups[propName]) groups[propName] = [];
-          groups[propName].push(c);
-      });
-      return groups;
-  }, [candidates, properties]);
-  
-  const toggleCandidateProp = (prop: string) => { setExpandedCandidatesProp(prev => ({...prev, [prop]: !prev[prop]})); };
-
-  // Helper icons for invoices
-  const getSupplyIcon = (type: string) => {
-      switch(type) {
-          case 'luz': return <Zap className="w-4 h-4 text-yellow-500"/>;
-          case 'agua': return <Droplet className="w-4 h-4 text-blue-500"/>;
-          case 'gas': return <Flame className="w-4 h-4 text-orange-500"/>;
-          case 'internet': return <Wifi className="w-4 h-4 text-purple-500"/>;
-          default: return <FileText className="w-4 h-4 text-gray-500"/>;
+          alert("Inversión guardada. Tu ROI se recalculará automáticamente.");
+      } catch (error) {
+          console.error(error);
+          alert("Error al guardar inversión. Contacta con soporte.");
       }
   };
+
+  const handleUpdateIban = async () => {
+      if (!currentUser) return;
+      try {
+          await updateDoc(doc(db, "users", currentUser.uid), {
+              bankAccount: ibanForm
+          });
+          alert("Cuenta bancaria actualizada correctamente.");
+      } catch (error) {
+          console.error(error);
+          alert("Error al actualizar la cuenta.");
+      }
+  };
+
+  const handleDeleteDocument = async (docId: string) => {
+      if(!confirm("¿Seguro que quieres eliminar este documento?")) return;
+      try {
+          await deleteDoc(doc(db, "property_documents", docId));
+      } catch (e) {
+          console.error(e);
+          alert("Error al eliminar");
+      }
+  };
+
+  // Stats Calculations
+  const totalProperties = properties.length;
+  const totalRooms = properties.reduce((acc, p) => acc + (p.rooms?.length || 0), 0);
+  const occupiedRooms = properties.reduce((acc, p) => acc + (p.rooms?.filter(r => r.status === 'occupied').length || 0), 0);
+  const occupancyRate = totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
+  
+  // Real Monthly Income (from active contracts)
+  const monthlyIncome = contracts.filter(c => c.status === 'active').reduce((acc, c) => acc + c.rentAmount, 0);
+
+  // ROI Calculation (Global)
+  const totalInvestment = properties.reduce((acc, p) => acc + (p.investmentAmount || 0), 0);
+  const annualizedIncome = monthlyIncome * 12;
+  const dynamicROI = totalInvestment > 0 ? (annualizedIncome / totalInvestment) * 100 : 0;
+
+  if (loading) {
+      return <div className="flex items-center justify-center min-h-screen"><Loader2 className="animate-spin h-10 w-10 text-rentia-blue" /></div>;
+  }
 
   return (
-    <div className={`min-h-screen bg-gray-50 p-4 md:p-8 animate-in fade-in ${isGdprOpen ? 'overflow-hidden h-screen' : ''}`}>
+    <div className="min-h-screen bg-gray-50 p-4 md:p-8 font-sans">
       <div className="max-w-6xl mx-auto">
-        <header className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-rentia-black font-display">Área Privada Propietario</h1>
-            <p className="text-gray-500 text-sm">Gestión integral de tus activos inmobiliarios.</p>
-          </div>
-          {userData?.gdpr?.signed ? (
-              <span className="flex items-center gap-1 text-green-600 bg-green-50 px-3 py-1 rounded-full text-xs font-bold border border-green-200">
-                  <ShieldCheck className="w-3 h-3"/> Contrato Activo
-              </span>
-          ) : (
-              <span className="flex items-center gap-1 text-red-600 bg-red-50 px-3 py-1 rounded-full text-xs font-bold border border-red-200 animate-pulse">
-                  <AlertTriangle className="w-3 h-3"/> Acción Requerida
-              </span>
-          )}
-        </header>
-
-        {/* Scrollable Tabs for Mobile Optimization */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-2 no-scrollbar bg-white p-2 rounded-xl shadow-sm w-full md:w-fit border border-gray-100 -mx-4 px-4 md:mx-0 md:px-2 touch-pan-x">
-            <button onClick={() => setActiveTab('overview')} className={`px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition-colors flex-shrink-0 ${activeTab === 'overview' ? 'bg-rentia-black text-white shadow-md' : 'text-gray-600 hover:bg-gray-50'}`}>Resumen</button>
-            <button onClick={() => setActiveTab('invoices')} className={`px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition-colors flex items-center gap-2 flex-shrink-0 ${activeTab === 'invoices' ? 'bg-rentia-black text-white shadow-md' : 'text-gray-600 hover:bg-gray-50'}`}><Zap className="w-4 h-4"/> Facturas</button>
-            <button onClick={() => setActiveTab('docs')} className={`px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition-colors flex items-center gap-2 flex-shrink-0 ${activeTab === 'docs' ? 'bg-rentia-black text-white shadow-md' : 'text-gray-600 hover:bg-gray-50'}`}><FileText className="w-4 h-4"/> Documentación</button>
-            <button onClick={() => setActiveTab('candidates')} className={`px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition-colors flex items-center gap-2 flex-shrink-0 ${activeTab === 'candidates' ? 'bg-rentia-black text-white shadow-md' : 'text-gray-600 hover:bg-gray-50'}`}><UserCheck className="w-4 h-4"/> Candidatos</button>
-            <button onClick={() => setActiveTab('profile')} className={`px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition-colors flex items-center gap-2 flex-shrink-0 ${activeTab === 'profile' ? 'bg-rentia-black text-white shadow-md' : 'text-gray-600 hover:bg-gray-50'}`}><User className="w-4 h-4"/> Perfil</button>
-        </div>
-
-        {activeTab === 'overview' && (
-            <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-                    <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100"><p className="text-xs text-gray-500 font-bold uppercase">Propiedades</p><p className="text-3xl font-bold text-gray-900">{properties.length}</p></div>
-                    <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100"><p className="text-xs text-gray-500 font-bold uppercase">Ingresos Brutos Mes</p><p className="text-3xl font-bold text-green-600">{financials.monthlyIncome}€</p></div>
-                    <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100"><p className="text-xs text-gray-500 font-bold uppercase">Cargos Extra Mes</p><p className="text-3xl font-bold text-red-500">-{financials.monthlyExpenses}€</p></div>
+        
+        {/* HEADER & STATS */}
+        <header className="mb-8">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                <div>
+                    <h1 className="text-2xl md:text-3xl font-bold text-rentia-black font-display">
+                        Bienvenido, {currentUser?.displayName?.split(' ')[0] || 'Propietario'}
+                    </h1>
+                    <p className="text-gray-500 text-sm mt-1">Resumen de tu cartera de activos.</p>
                 </div>
-                
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div className="p-4 bg-gray-50 border-b border-gray-100 font-bold text-gray-700 text-sm">Mis Propiedades</div>
-                    <div className="p-4 space-y-3">
-                        {properties.map(p => (
-                            <div key={p.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-rentia-blue font-bold flex-shrink-0">
-                                        <Building className="w-5 h-5" />
-                                    </div>
-                                    <div className="min-w-0">
-                                        <h4 className="font-bold text-sm truncate">{p.address}</h4>
-                                        <p className="text-xs text-gray-500 truncate">{p.city} • {p.rooms.length} Habitaciones</p>
-                                    </div>
-                                </div>
-                                <div className="text-right flex-shrink-0">
-                                    <span className="text-[10px] font-bold bg-green-100 text-green-700 px-2 py-1 rounded">Activa</span>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+                <div className="flex gap-2">
+                    <button onClick={() => setActiveTab('supplies')} className="bg-rentia-blue text-white px-4 py-2 rounded-lg text-sm font-bold shadow-md hover:bg-blue-700 transition-colors flex items-center gap-2">
+                        <Upload className="w-4 h-4" /> Subir Factura
+                    </button>
                 </div>
             </div>
-        )}
-
-        {/* --- PESTAÑA: FACTURAS (SUMINISTROS) --- */}
-        {activeTab === 'invoices' && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                    <p className="text-xs text-gray-400 font-bold uppercase mb-1">Propiedades</p>
+                    <p className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                        <Building2 className="w-5 h-5 text-rentia-blue"/> {totalProperties}
+                    </p>
+                </div>
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                    <p className="text-xs text-gray-400 font-bold uppercase mb-1">Ocupación</p>
+                    <p className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                        <TrendingUp className={`w-5 h-5 ${occupancyRate >= 90 ? 'text-green-500' : 'text-yellow-500'}`}/> {occupancyRate}%
+                    </p>
+                </div>
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                    <p className="text-xs text-gray-400 font-bold uppercase mb-1">Ingresos Brutos</p>
+                    <p className="text-2xl font-bold text-rentia-blue flex items-center gap-2">
+                        <DollarSign className="w-5 h-5"/> {monthlyIncome}€
+                    </p>
+                </div>
                 
-                {/* Columna Izq: Subida */}
-                <div className="bg-white p-5 md:p-6 rounded-xl shadow-sm border border-gray-200">
-                    <h3 className="font-bold text-lg mb-4 flex items-center gap-2 border-b border-gray-100 pb-3">
-                        <Upload className="w-5 h-5 text-rentia-blue"/> Subir Factura
-                    </h3>
+                {/* DYNAMIC ROI WIDGET (GLOBAL) */}
+                <div className={`p-4 rounded-xl shadow-lg relative overflow-hidden group transition-all duration-300 ${totalInvestment > 0 ? 'bg-rentia-black text-white' : 'bg-red-500 text-white cursor-pointer hover:bg-red-600'}`} onClick={() => totalInvestment === 0 && setActiveTab('profile')}>
+                    <p className="text-xs text-white/70 font-bold uppercase mb-1 relative z-10">Rentabilidad Global</p>
                     
-                    <form onSubmit={handleUploadInvoice} className="space-y-4">
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Propiedad</label>
-                            <select className="w-full p-3 border rounded-lg text-sm bg-gray-50 focus:bg-white transition-colors" value={selectedPropertyId} onChange={e => setSelectedPropertyId(e.target.value)}>
-                                {properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}
-                            </select>
+                    {totalInvestment > 0 ? (
+                        <div className="flex items-center gap-2 relative z-10">
+                            <p className={`text-2xl font-bold flex items-center gap-1 ${dynamicROI >= 5 ? 'text-green-400' : 'text-yellow-400'}`}>
+                                {dynamicROI.toFixed(1)}% <span className="text-xs text-white/50 font-normal">anual</span>
+                            </p>
                         </div>
+                    ) : (
+                        <div className="relative z-10">
+                             <p className="text-sm font-bold flex items-center gap-1">
+                                <AlertCircle className="w-4 h-4" /> Configurar aquí
+                             </p>
+                             <p className="text-[9px] leading-tight mt-1 text-white/90">
+                                Calcula tu ROI real configurando la inversión inicial.
+                             </p>
+                        </div>
+                    )}
+                    
+                    <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full blur-xl -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform"></div>
+                </div>
+            </div>
+        </header>
 
-                        <div className="grid grid-cols-2 gap-4">
+        {/* NAVIGATION TABS */}
+        <div className="flex overflow-x-auto gap-2 mb-6 pb-2 no-scrollbar border-b border-gray-200">
+            <button 
+                onClick={() => setActiveTab('overview')}
+                className={`px-6 py-3 rounded-t-lg text-sm font-bold transition-all flex items-center gap-2 border-b-2 ${activeTab === 'overview' ? 'border-rentia-blue text-rentia-blue bg-white' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}
+            >
+                <LayoutDashboard className="w-4 h-4" /> Mis Propiedades
+            </button>
+            <button 
+                onClick={() => setActiveTab('documents')}
+                className={`px-6 py-3 rounded-t-lg text-sm font-bold transition-all flex items-center gap-2 border-b-2 ${activeTab === 'documents' ? 'border-rentia-blue text-rentia-blue bg-white' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}
+            >
+                <FileText className="w-4 h-4" /> Documentos
+            </button>
+            <button 
+                onClick={() => setActiveTab('supplies')}
+                className={`px-6 py-3 rounded-t-lg text-sm font-bold transition-all flex items-center gap-2 border-b-2 ${activeTab === 'supplies' ? 'border-rentia-blue text-rentia-blue bg-white' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}
+            >
+                <Receipt className="w-4 h-4" /> Suministros
+            </button>
+            <button 
+                onClick={() => setActiveTab('profile')}
+                className={`px-6 py-3 rounded-t-lg text-sm font-bold transition-all flex items-center gap-2 border-b-2 ${activeTab === 'profile' ? 'border-rentia-blue text-rentia-blue bg-white' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}
+            >
+                <User className="w-4 h-4" /> Mi Perfil
+            </button>
+        </div>
+
+        {/* --- TAB CONTENT --- */}
+        <div className="animate-in slide-in-from-bottom-2 fade-in duration-300">
+            
+            {/* 1. OVERVIEW (PROPERTIES) */}
+            {activeTab === 'overview' && (
+                <div className="space-y-6">
+                    {properties.length === 0 ? (
+                        <div className="text-center py-12 bg-white rounded-xl border border-dashed border-gray-300">
+                            <Building2 className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                            <p className="text-gray-500">No tienes propiedades asignadas.</p>
+                        </div>
+                    ) : (
+                        properties.map(p => {
+                            const isExpanded = expandedPropId === p.id;
+                            const propOccupancy = p.rooms.filter(r => r.status === 'occupied').length;
+                            
+                            // CALCULATE PROPERTY SPECIFIC ROI
+                            const propCurrentIncome = p.rooms.filter(r => r.status === 'occupied').reduce((acc, r) => acc + r.price, 0);
+                            const propAnnualProjection = propCurrentIncome * 12;
+                            const propInvestment = p.investmentAmount || 0;
+                            const propRoi = propInvestment > 0 ? (propAnnualProjection / propInvestment) * 100 : 0;
+
+                            return (
+                                <div key={p.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all hover:shadow-md">
+                                    <div 
+                                        className="p-5 flex flex-col md:flex-row justify-between items-start md:items-center cursor-pointer bg-white hover:bg-gray-50 transition-colors"
+                                        onClick={() => toggleExpand(p.id)}
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center text-rentia-blue shrink-0">
+                                                <Building2 className="w-6 h-6" />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-bold text-gray-800 text-lg">{p.address}</h3>
+                                                <p className="text-gray-500 text-xs flex items-center gap-1">
+                                                    <MapPin className="w-3 h-3"/> {p.city} 
+                                                    <span className="mx-1">•</span> 
+                                                    {p.rooms.length} Habs
+                                                </p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="flex flex-col md:flex-row items-start md:items-center gap-4 mt-4 md:mt-0 w-full md:w-auto justify-between md:justify-end">
+                                            {/* COMMISSION BADGE */}
+                                            <div className="bg-gray-100 px-3 py-1 rounded text-xs text-gray-600 font-bold border border-gray-200">
+                                                Comisión: {p.managementCommission ? `${p.managementCommission}% + IVA` : '-'}
+                                            </div>
+
+                                            <div className="text-right">
+                                                <div className="text-xs text-gray-400 font-bold uppercase">Estado</div>
+                                                <div className={`font-bold ${propOccupancy === p.rooms.length ? 'text-green-600' : 'text-orange-500'}`}>
+                                                    {propOccupancy}/{p.rooms.length} Ocupadas
+                                                </div>
+                                            </div>
+                                            <div className={`transform transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
+                                                <ChevronDown className="w-5 h-5 text-gray-400" />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Expanded Details */}
+                                    {isExpanded && (
+                                        <div className="bg-gray-50 border-t border-gray-100 p-4 md:p-6 animate-in slide-in-from-top-2">
+                                            
+                                            {/* --- DYNAMIC PROPERTY ROI INDICATOR --- */}
+                                            <div className={`mb-6 rounded-xl p-3 flex flex-col sm:flex-row justify-between items-center gap-3 border transition-colors ${propInvestment > 0 ? 'bg-yellow-50 border-yellow-200' : 'bg-red-50 border-red-200'}`}>
+                                                <div className="flex items-center gap-3">
+                                                     <div className={`p-2 rounded-full ${propInvestment > 0 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
+                                                         <TrendingUp className="w-4 h-4" />
+                                                     </div>
+                                                     <div>
+                                                         {propInvestment > 0 ? (
+                                                            <>
+                                                                <span className="text-xs text-yellow-800 font-bold uppercase block">
+                                                                    Rentabilidad actual de este activo
+                                                                </span>
+                                                                <span className="text-lg font-bold text-yellow-900">
+                                                                    {propRoi.toFixed(2)}% <span className="text-xs font-normal opacity-80">anualizado</span>
+                                                                </span>
+                                                            </>
+                                                         ) : (
+                                                            <>
+                                                                <span className="text-xs text-red-800 font-bold uppercase block">
+                                                                    Rentabilidad desconocida
+                                                                </span>
+                                                                <span className="text-sm text-red-900">
+                                                                    Configura la inversión para ver el dato real.
+                                                                </span>
+                                                            </>
+                                                         )}
+                                                     </div>
+                                                </div>
+
+                                                {(!propInvestment || propInvestment <= 0) && (
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); setActiveTab('profile'); }}
+                                                        className="text-xs bg-white text-red-700 border border-red-200 px-4 py-2 rounded-lg font-bold hover:bg-red-50 transition-colors flex items-center gap-1 shadow-sm"
+                                                    >
+                                                        Configurar Inversión <ArrowRight className="w-3 h-3" />
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            {/* VISIBLE CLEANING SERVICE CARD */}
+                                            {p.cleaningConfig?.enabled && (
+                                                <div className="mb-6 bg-indigo-50 border border-indigo-100 rounded-xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 animate-in fade-in">
+                                                    <div>
+                                                        <h4 className="text-xs font-bold text-indigo-800 uppercase mb-2 flex items-center gap-2">
+                                                            <Sparkles className="w-4 h-4"/> Servicio de Limpieza Activo
+                                                        </h4>
+                                                        <div className="flex items-center gap-4 text-sm text-indigo-900">
+                                                            <div className="flex items-center gap-1">
+                                                                <Calendar className="w-4 h-4 text-indigo-500"/>
+                                                                <span className="font-medium">{(p.cleaningConfig.days || []).join(', ')}</span>
+                                                            </div>
+                                                            <div className="flex items-center gap-1">
+                                                                <Clock className="w-4 h-4 text-indigo-500"/>
+                                                                <span className="font-medium">{p.cleaningConfig.hours || 'Horario flexible'}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="bg-white px-4 py-2 rounded-lg border border-indigo-100 shadow-sm">
+                                                        <p className="text-[10px] text-gray-400 uppercase font-bold mb-0.5">Coste Servicio</p>
+                                                        <p className="text-lg font-bold text-indigo-700">{p.cleaningConfig.costPerHour}€ <span className="text-xs font-normal">/ hora</span></p>
+                                                        <p className="text-[9px] text-gray-400 text-right">(IVA Incluido)</p>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Recommendations Section */}
+                                            {p.ownerRecommendations && p.ownerRecommendations.length > 0 && (
+                                                <div className="mb-6 bg-yellow-50 border border-yellow-100 rounded-xl p-4">
+                                                    <h4 className="text-xs font-bold text-yellow-800 uppercase mb-3 flex items-center gap-2">
+                                                        <Megaphone className="w-4 h-4"/> Avisos de Gestión
+                                                    </h4>
+                                                    <div className="space-y-2">
+                                                        {p.ownerRecommendations.map(rec => (
+                                                            <div key={rec.id} className="flex gap-2 text-sm text-yellow-900 bg-white/50 p-2 rounded border border-yellow-200/50">
+                                                                <span className="font-bold text-yellow-700 min-w-[80px]">{new Date(rec.date).toLocaleDateString()}:</span>
+                                                                <span>{rec.text}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            <h4 className="text-xs font-bold text-gray-400 uppercase mb-3 ml-1">Estado de Habitaciones</h4>
+                                            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                                                <div className="overflow-x-auto">
+                                                    <table className="w-full text-left text-sm">
+                                                        <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs border-b border-gray-100">
+                                                            <tr>
+                                                                <th className="p-3 pl-4">Habitación</th>
+                                                                <th className="p-3 text-right">Precio</th>
+                                                                <th className="p-3 pl-6">Estado</th>
+                                                                <th className="p-3">Inquilino</th>
+                                                                <th className="p-3 text-center">Contrato</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="divide-y divide-gray-100">
+                                                            {p.rooms.map(room => {
+                                                                const activeContract = contracts.find(c => c.propertyId === p.id && c.roomId === room.id && c.status === 'active');
+                                                                const roomRecommendations = room.recommendations || [];
+
+                                                                return (
+                                                                    <React.Fragment key={room.id}>
+                                                                        <tr className="hover:bg-blue-50/30 transition-colors">
+                                                                            <td className="p-3 pl-4 font-bold text-gray-800">{room.name}</td>
+                                                                            <td className="p-3 text-right font-mono text-gray-600">{room.price}€</td>
+                                                                            <td className="p-3 pl-6">
+                                                                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase border ${room.status === 'occupied' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-gray-100 text-gray-500 border-gray-200'}`}>
+                                                                                    {room.status === 'occupied' ? 'Alquilada' : 'Disponible'}
+                                                                                </span>
+                                                                            </td>
+                                                                            <td className="p-3">
+                                                                                {activeContract ? (
+                                                                                    <div className="flex items-center gap-1.5 font-medium text-gray-900">
+                                                                                        <User className="w-3.5 h-3.5 text-gray-400" /> 
+                                                                                        {activeContract.tenantName}
+                                                                                    </div>
+                                                                                ) : (
+                                                                                    <span className="text-gray-400 italic text-xs">-</span>
+                                                                                )}
+                                                                            </td>
+                                                                            <td className="p-3 text-center">
+                                                                                {activeContract && (activeContract as any).fileUrl ? (
+                                                                                    <a 
+                                                                                        href={(activeContract as any).fileUrl} 
+                                                                                        target="_blank" 
+                                                                                        rel="noreferrer"
+                                                                                        className="inline-flex items-center gap-1 text-[10px] font-bold text-rentia-blue hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded border border-blue-100 transition-colors"
+                                                                                    >
+                                                                                        <FileCheck className="w-3 h-3" /> Ver
+                                                                                    </a>
+                                                                                ) : (
+                                                                                    <span className="text-gray-300 text-[10px]">-</span>
+                                                                                )}
+                                                                            </td>
+                                                                        </tr>
+                                                                        {/* Room Recommendations if any */}
+                                                                        {roomRecommendations.length > 0 && (
+                                                                            <tr>
+                                                                                <td colSpan={5} className="px-4 pb-3 pt-0">
+                                                                                    <div className="bg-orange-50 border-l-2 border-orange-300 p-2 rounded-r text-xs ml-4">
+                                                                                        <span className="font-bold text-orange-800 block mb-1 flex items-center gap-1">
+                                                                                            <Megaphone className="w-3 h-3"/> Sugerencias:
+                                                                                        </span>
+                                                                                        <ul className="list-disc list-inside text-orange-900 space-y-0.5">
+                                                                                            {roomRecommendations.map((rec, i) => (
+                                                                                                <li key={i}>{rec.text}</li>
+                                                                                            ))}
+                                                                                        </ul>
+                                                                                    </div>
+                                                                                </td>
+                                                                            </tr>
+                                                                        )}
+                                                                    </React.Fragment>
+                                                                );
+                                                            })}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                            <div className="mt-3 flex items-center gap-2 text-[10px] text-gray-400 bg-white p-2 rounded-lg border border-gray-100 w-fit">
+                                                <Lock className="w-3 h-3" />
+                                                <span>Datos personales protegidos por RGPD. Contactar con administración para detalles sensibles.</span>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
+            )}
+
+            {/* 2. DOCUMENTS TAB (UPDATED) */}
+            {activeTab === 'documents' && (
+                <div className="space-y-8">
+                    
+                    {/* A. SECCIÓN DE DOCUMENTOS REQUERIDOS (CHECKLIST) */}
+                    {properties.map(p => (
+                        <div key={p.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                            <div className="p-4 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
+                                <Building2 className="w-4 h-4 text-gray-500" />
+                                <h3 className="font-bold text-gray-800">{p.address}</h3>
+                                <span className="text-xs text-gray-400 ml-auto">Lista de Control</span>
+                            </div>
+                            
+                            <div className="p-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {REQUIRED_DOCS.map((reqDoc) => {
+                                        // Buscar si este documento ya existe para esta propiedad
+                                        const existingDoc = documents.find(d => d.propertyId === p.id && d.type === reqDoc.key);
+                                        const isUploadingThis = uploadingDocKey === `${p.id}-${reqDoc.key}`;
+
+                                        return (
+                                            <div key={reqDoc.key} className={`border rounded-lg p-4 transition-all relative ${existingDoc ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200 hover:border-blue-300'}`}>
+                                                
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <div>
+                                                        <h4 className={`font-bold text-sm flex items-center gap-2 ${existingDoc ? 'text-green-800' : 'text-gray-700'}`}>
+                                                            {reqDoc.label}
+                                                            {!reqDoc.required && !existingDoc && (
+                                                                <span className="text-[10px] font-normal bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">Opcional</span>
+                                                            )}
+                                                        </h4>
+                                                        <p className="text-xs text-gray-500">{reqDoc.desc}</p>
+                                                    </div>
+                                                    {existingDoc ? 
+                                                        <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" /> : 
+                                                        (reqDoc.required ? <AlertCircle className="w-5 h-5 text-gray-300 flex-shrink-0" /> : <Info className="w-5 h-5 text-gray-300 flex-shrink-0"/>)
+                                                    }
+                                                </div>
+
+                                                <div className="mt-3 pt-3 border-t border-gray-100/50 flex justify-between items-center">
+                                                    {existingDoc ? (
+                                                        <>
+                                                            <a 
+                                                                href={existingDoc.url} 
+                                                                target="_blank" 
+                                                                rel="noreferrer"
+                                                                className="text-xs font-bold text-green-700 hover:underline flex items-center gap-1"
+                                                            >
+                                                                <Eye className="w-3 h-3" /> Ver
+                                                            </a>
+                                                            <button 
+                                                                onClick={() => handleDeleteDocument(existingDoc.id)}
+                                                                className="text-gray-400 hover:text-red-500 p-1"
+                                                            >
+                                                                <Trash2 className="w-3 h-3" />
+                                                            </button>
+                                                        </>
+                                                    ) : (
+                                                        <div className="w-full">
+                                                            <input 
+                                                                type="file" 
+                                                                id={`upload-${p.id}-${reqDoc.key}`} 
+                                                                className="hidden" 
+                                                                onChange={(e) => handleSmartUpload(e, p.id, reqDoc.key, reqDoc.label)}
+                                                                disabled={isUploadingThis}
+                                                            />
+                                                            <label 
+                                                                htmlFor={`upload-${p.id}-${reqDoc.key}`}
+                                                                className={`w-full flex items-center justify-center gap-2 text-xs font-bold py-2 rounded-lg cursor-pointer transition-colors ${isUploadingThis ? 'bg-gray-100 text-gray-400' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
+                                                            >
+                                                                {isUploadingThis ? <Loader2 className="w-3 h-3 animate-spin"/> : <Upload className="w-3 h-3"/>}
+                                                                {isUploadingThis ? 'Subiendo...' : 'Subir'}
+                                                            </label>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+
+                    {/* B. BIBLIOTECA GENERAL (LISTADO SIMPLE) */}
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <h3 className="font-bold text-gray-800 text-lg mb-4 flex items-center gap-2">
+                            <FileText className="w-5 h-5 text-rentia-blue" /> Biblioteca de Archivos
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {documents.length === 0 ? (
+                                <div className="col-span-full text-center py-12 text-gray-400 border border-dashed rounded-lg bg-gray-50">
+                                    No hay documentos subidos.
+                                </div>
+                            ) : (
+                                documents.map(doc => (
+                                    <div key={doc.id} className="bg-white p-3 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between group">
+                                        <div>
+                                            <div className="flex items-start gap-3 mb-2">
+                                                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                                                    <FileText className="w-5 h-5" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-bold text-gray-800 text-sm line-clamp-1" title={doc.name}>{doc.name}</h4>
+                                                    <p className="text-[10px] text-gray-500 capitalize">{properties.find(p => p.id === doc.propertyId)?.address || 'Propiedad desconocida'}</p>
+                                                </div>
+                                            </div>
+                                            <p className="text-[10px] text-gray-400 mb-2">Subido: {doc.uploadedAt?.toDate().toLocaleDateString()}</p>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <a 
+                                                href={doc.url} 
+                                                target="_blank" 
+                                                rel="noreferrer"
+                                                className="flex-1 bg-gray-50 hover:bg-gray-100 text-gray-700 text-xs font-bold py-2 rounded-lg flex items-center justify-center gap-1 border border-gray-200 transition-colors"
+                                            >
+                                                <Download className="w-3 h-3" /> Descargar
+                                            </a>
+                                            <button 
+                                                onClick={() => handleDeleteDocument(doc.id)}
+                                                className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* 3. SUPPLIES TAB */}
+            {activeTab === 'supplies' && (
+                <div className="space-y-6">
+                    {/* Upload Form */}
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                        <h3 className="font-bold text-gray-800 text-lg mb-4 flex items-center gap-2">
+                            <Upload className="w-5 h-5 text-rentia-blue" /> Subir Factura
+                        </h3>
+                        <form onSubmit={handleUploadInvoice} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                            <div className="md:col-span-1">
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Propiedad</label>
+                                <select 
+                                    className="w-full p-2 border rounded-lg text-sm"
+                                    value={supplyForm.propertyId}
+                                    onChange={e => setSupplyForm({...supplyForm, propertyId: e.target.value})}
+                                >
+                                    <option value="">Seleccionar...</option>
+                                    {properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}
+                                </select>
+                            </div>
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Tipo Suministro</label>
-                                <select className="w-full p-3 border rounded-lg text-sm bg-gray-50 focus:bg-white transition-colors" value={invoiceForm.type} onChange={e => setInvoiceForm({...invoiceForm, type: e.target.value})}>
-                                    <option value="luz">💡 Luz</option>
-                                    <option value="agua">💧 Agua</option>
-                                    <option value="gas">🔥 Gas</option>
-                                    <option value="internet">📶 Internet</option>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Tipo</label>
+                                <select 
+                                    className="w-full p-2 border rounded-lg text-sm"
+                                    value={supplyForm.type}
+                                    onChange={e => setSupplyForm({...supplyForm, type: e.target.value})}
+                                >
+                                    <option value="luz">Luz</option>
+                                    <option value="agua">Agua</option>
+                                    <option value="gas">Gas</option>
+                                    <option value="internet">Internet</option>
+                                    <option value="otro">Otro</option>
                                 </select>
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Importe (€)</label>
-                                <input type="number" step="0.01" className="w-full p-3 border rounded-lg text-sm font-bold bg-gray-50 focus:bg-white transition-colors" value={invoiceForm.amount} onChange={e => setInvoiceForm({...invoiceForm, amount: e.target.value})} placeholder="0.00" />
+                                <input 
+                                    type="number" 
+                                    step="0.01" 
+                                    className="w-full p-2 border rounded-lg text-sm" 
+                                    value={supplyForm.amount}
+                                    onChange={e => setSupplyForm({...supplyForm, amount: e.target.value})}
+                                />
                             </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Inicio Periodo</label>
-                                <input type="date" className="w-full p-3 border rounded-lg text-sm bg-gray-50 focus:bg-white transition-colors" value={invoiceForm.periodStart} onChange={e => setInvoiceForm({...invoiceForm, periodStart: e.target.value})} />
+                            <div className="md:col-span-1 flex flex-col gap-2">
+                                <input 
+                                    type="file" 
+                                    id="invoice-file"
+                                    className="hidden"
+                                    accept="application/pdf,image/*"
+                                    onChange={e => setSupplyFile(e.target.files?.[0] || null)}
+                                />
+                                <label 
+                                    htmlFor="invoice-file" 
+                                    className={`w-full py-2 px-3 border border-dashed rounded-lg text-xs font-bold text-center cursor-pointer transition-colors ${supplyFile ? 'bg-green-50 border-green-300 text-green-700' : 'bg-gray-50 border-gray-300 text-gray-500 hover:bg-gray-100'}`}
+                                >
+                                    {supplyFile ? supplyFile.name : 'Adjuntar Archivo'}
+                                </label>
                             </div>
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Fin Periodo</label>
-                                <input type="date" className="w-full p-3 border rounded-lg text-sm bg-gray-50 focus:bg-white transition-colors" value={invoiceForm.periodEnd} onChange={e => setInvoiceForm({...invoiceForm, periodEnd: e.target.value})} />
+                            <div className="md:col-span-4 flex justify-end">
+                                <button 
+                                    type="submit" 
+                                    disabled={uploading}
+                                    className="bg-rentia-black text-white px-6 py-2 rounded-lg font-bold text-sm hover:bg-gray-800 transition-colors flex items-center gap-2"
+                                >
+                                    {uploading ? <Loader2 className="w-4 h-4 animate-spin"/> : <Upload className="w-4 h-4"/>}
+                                    Subir Factura
+                                </button>
                             </div>
-                        </div>
-
-                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:bg-gray-50 cursor-pointer relative transition-all active:bg-gray-100 active:scale-95 touch-manipulation">
-                            <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => setInvoiceFile(e.target.files?.[0] || null)} accept="application/pdf,image/*" />
-                            <div className="flex flex-col items-center gap-1 pointer-events-none">
-                                {invoiceFile ? (
-                                    <>
-                                        <FileCheck className="w-8 h-8 text-green-500 mb-1"/>
-                                        <span className="text-xs font-bold text-green-700 truncate max-w-full">{invoiceFile.name}</span>
-                                        <span className="text-[10px] text-green-600">Toca para cambiar</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <CloudLightning className="w-8 h-8 text-gray-400 mb-1"/>
-                                        <span className="text-sm font-medium text-gray-600">Toca para seleccionar archivo</span>
-                                        <span className="text-[10px] text-gray-400">PDF o Imagen</span>
-                                    </>
-                                )}
-                            </div>
-                        </div>
-
-                        <button 
-                            type="submit" 
-                            disabled={isUploadingInvoice}
-                            className="w-full bg-rentia-black text-white py-3.5 rounded-xl font-bold hover:bg-gray-800 transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 touch-manipulation"
-                        >
-                            {isUploadingInvoice ? <Loader2 className="w-5 h-5 animate-spin"/> : <Zap className="w-5 h-5"/>}
-                            {isUploadingInvoice ? 'Subiendo...' : 'Enviar Factura'}
-                        </button>
-                    </form>
-                </div>
-
-                {/* Columna Der: Historial */}
-                <div className="bg-white p-5 md:p-6 rounded-xl shadow-sm border border-gray-200 flex flex-col h-full min-h-[300px]">
-                    <h3 className="font-bold text-lg mb-4 flex items-center gap-2 border-b border-gray-100 pb-3">
-                        <Clock className="w-5 h-5 text-gray-500"/> Historial de Envíos
-                    </h3>
-                    
-                    <div className="flex-grow overflow-y-auto space-y-3 custom-scrollbar max-h-[400px] md:max-h-[500px]">
-                        {uploadedInvoices.filter(inv => inv.propertyId === selectedPropertyId).length === 0 ? (
-                            <div className="text-center py-10 text-gray-400 border-2 border-dashed rounded-xl">
-                                No hay facturas subidas para esta propiedad.
-                            </div>
-                        ) : (
-                            uploadedInvoices.filter(inv => inv.propertyId === selectedPropertyId).map(inv => (
-                                <div key={inv.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-white rounded-full border border-gray-200 shadow-sm flex-shrink-0">
-                                            {getSupplyIcon(inv.type)}
-                                        </div>
-                                        <div className="min-w-0">
-                                            <p className="font-bold text-sm text-gray-800 capitalize truncate">{inv.type} <span className="font-mono ml-1">{inv.amount}€</span></p>
-                                            <p className="text-[10px] text-gray-500 truncate">{inv.periodStart} - {inv.periodEnd}</p>
-                                        </div>
-                                    </div>
-                                    <div className="text-right flex flex-col items-end gap-1 flex-shrink-0">
-                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${inv.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
-                                            {inv.status === 'pending' ? 'Pendiente' : 'Procesada'}
-                                        </span>
-                                        <a href={inv.fileUrl} target="_blank" rel="noreferrer" className="text-[10px] text-blue-600 hover:underline flex items-center gap-1">
-                                            <Download className="w-3 h-3"/> <span className="hidden sm:inline">Descargar</span>
-                                        </a>
-                                    </div>
-                                </div>
-                            ))
-                        )}
-                    </div>
-                </div>
-            </div>
-        )}
-
-        {/* --- PESTAÑA: DOCUMENTOS --- */}
-        {activeTab === 'docs' && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
-                
-                {/* Columna Izq: Estado y Subida */}
-                <div className="space-y-6">
-                    {/* Checklist */}
-                    <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
-                        <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-                            <ShieldCheck className="w-5 h-5 text-green-600"/> Estado Documentación
-                        </h3>
-                        <div className="space-y-2">
-                            {requiredDocsStatus.map((req, idx) => (
-                                <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 border border-gray-100">
-                                    <span className="text-sm text-gray-700 font-medium truncate pr-2">{req.label}</span>
-                                    {req.uploaded ? (
-                                        <span className="flex items-center gap-1 text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded flex-shrink-0">
-                                            <CheckCircle className="w-3 h-3"/> OK
-                                        </span>
-                                    ) : (
-                                        <span className="flex items-center gap-1 text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded animate-pulse flex-shrink-0">
-                                            <XCircle className="w-3 h-3"/> Pendiente
-                                        </span>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Subida */}
-                    <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
-                        <h3 className="font-bold text-sm text-gray-800 mb-4 uppercase tracking-wide">Subir Nuevo Documento</h3>
-                        <form onSubmit={handleUploadDoc} className="space-y-4">
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Tipo de Documento</label>
-                                <select className="w-full p-3 border rounded-lg text-sm bg-gray-50 focus:bg-white transition-colors" value={docType} onChange={e => setDocType(e.target.value)}>
-                                    <option value="certificado_energetico">Certificado Energético</option>
-                                    <option value="seguro_hogar">Póliza Seguro Hogar</option>
-                                    <option value="ibi">Recibo IBI</option>
-                                    <option value="escritura">Escritura / Nota Simple</option>
-                                    <option value="otro">Otro Documento</option>
-                                </select>
-                            </div>
-                            
-                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:bg-gray-50 cursor-pointer relative transition-all active:bg-gray-100 active:scale-95 touch-manipulation">
-                                <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => setDocFile(e.target.files?.[0] || null)} accept="application/pdf,image/*" />
-                                <div className="flex flex-col items-center gap-1 pointer-events-none">
-                                    {docFile ? (
-                                        <>
-                                            <FileCheck className="w-8 h-8 text-blue-500 mb-1"/>
-                                            <span className="text-xs font-bold text-blue-700 truncate max-w-full">{docFile.name}</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Upload className="w-8 h-8 text-gray-400 mb-1"/>
-                                            <span className="text-sm font-medium text-gray-600">Toca para seleccionar</span>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-
-                            <button 
-                                type="submit" 
-                                disabled={isUploadingDoc}
-                                className="w-full bg-rentia-blue text-white py-3.5 rounded-lg font-bold text-sm hover:bg-blue-700 transition-all flex items-center justify-center gap-2 shadow-sm touch-manipulation"
-                            >
-                                {isUploadingDoc ? <Loader2 className="w-5 h-5 animate-spin"/> : <Upload className="w-5 h-5"/>}
-                                Subir Documento
-                            </button>
                         </form>
                     </div>
-                </div>
 
-                {/* Columna Der: Lista Archivos */}
-                <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
-                    <h3 className="font-bold text-lg mb-4 flex items-center gap-2 border-b border-gray-100 pb-3">
-                        <FileText className="w-5 h-5 text-gray-500"/> Archivos en la Nube
-                    </h3>
-                    <div className="space-y-3 max-h-[400px] md:max-h-[500px] overflow-y-auto custom-scrollbar">
-                        {uploadedDocs.filter(d => d.propertyId === selectedPropertyId).length === 0 ? (
-                            <div className="text-center py-10 text-gray-400">Carpeta vacía.</div>
-                        ) : (
-                            uploadedDocs.filter(d => d.propertyId === selectedPropertyId).map(doc => (
-                                <div key={doc.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-white transition-colors group">
-                                    <div className="flex items-center gap-3 overflow-hidden">
-                                        <div className="p-2 bg-blue-50 text-blue-600 rounded-lg flex-shrink-0">
-                                            <FileText className="w-4 h-4"/>
-                                        </div>
-                                        <div className="min-w-0">
-                                            <p className="font-bold text-sm text-gray-800 truncate">{doc.name}</p>
-                                            <p className="text-[10px] text-gray-500 uppercase">{doc.type.replace('_', ' ')}</p>
-                                        </div>
-                                    </div>
-                                    <a href={doc.url} target="_blank" rel="noreferrer" className="p-2 text-gray-400 hover:text-rentia-blue hover:bg-blue-50 rounded-full transition-colors flex-shrink-0">
-                                        <Download className="w-4 h-4"/>
-                                    </a>
-                                </div>
-                            ))
-                        )}
-                    </div>
-                </div>
-            </div>
-        )}
-
-        {activeTab === 'candidates' && (
-             <div className="space-y-6">
-                 {Object.keys(candidatesByProperty).map(propName => (
-                     <div key={propName} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                         <div 
-                            className="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center cursor-pointer hover:bg-gray-100 transition-colors"
-                            onClick={() => toggleCandidateProp(propName)}
-                         >
-                             <h3 className="font-bold text-gray-800 flex items-center gap-2 text-sm">
-                                 <Building className="w-4 h-4 text-rentia-blue"/> {propName}
-                             </h3>
-                             <div className="flex items-center gap-3">
-                                 <span className="text-xs bg-white px-2 py-1 rounded border border-gray-200 text-gray-500 font-bold">{candidatesByProperty[propName].length}</span>
-                                 {expandedCandidatesProp[propName] ? <ChevronDown className="w-4 h-4 text-gray-400"/> : <ChevronRight className="w-4 h-4 text-gray-400"/>}
-                             </div>
-                         </div>
-                         
-                         {expandedCandidatesProp[propName] && (
-                             <div className="divide-y divide-gray-100">
-                                 {candidatesByProperty[propName].length === 0 && <div className="p-6 text-center text-gray-400 text-sm">No hay candidatos activos para esta propiedad.</div>}
-                                 {candidatesByProperty[propName].map(candidate => (
-                                     <div key={candidate.id} className="p-4 hover:bg-blue-50/30 transition-colors flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                                         <div className="w-full">
-                                             <div className="flex items-center justify-between mb-1">
-                                                 <div className="flex items-center gap-2">
-                                                    <span className={`w-2 h-2 rounded-full ${candidate.status === 'approved' ? 'bg-green-500' : candidate.status === 'rejected' ? 'bg-red-500' : 'bg-yellow-500'}`}></span>
-                                                    <h4 className="font-bold text-gray-900 text-sm">{candidate.candidateName}</h4>
-                                                 </div>
-                                                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase flex-shrink-0 ${
-                                                     candidate.status === 'approved' ? 'bg-green-100 text-green-700' : 
-                                                     candidate.status === 'rejected' ? 'bg-red-100 text-red-700' : 
-                                                     'bg-yellow-100 text-yellow-700'
-                                                 }`}>
-                                                     {candidate.status === 'pending_review' ? 'En Revisión' : candidate.status === 'approved' ? 'Aprobado' : 'Descartado'}
-                                                 </span>
-                                             </div>
-                                             <div className="flex items-center justify-between mt-2">
-                                                <span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-600 border border-gray-200 truncate max-w-[150px]">{candidate.roomName || 'General'}</span>
-                                                <p className="text-[10px] text-gray-500 flex items-center gap-1">
-                                                    <Clock className="w-3 h-3"/> {candidate.submittedAt?.toDate().toLocaleDateString()}
-                                                </p>
-                                             </div>
-                                         </div>
-                                     </div>
-                                 ))}
-                             </div>
-                         )}
-                     </div>
-                 ))}
-                 {Object.keys(candidatesByProperty).length === 0 && <div className="p-8 text-center text-gray-400 border-2 border-dashed rounded-xl">Sin candidatos en proceso.</div>}
-             </div>
-        )}
-
-        {activeTab === 'profile' && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                    <h3 className="font-bold text-lg mb-6 flex items-center gap-2 border-b border-gray-100 pb-3">
-                        <UserCheck className="w-5 h-5 text-rentia-blue"/> Datos Personales
-                    </h3>
-                    <form onSubmit={handleUpdateProfile} className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nombre</label><input type="text" className="w-full p-3 border rounded-lg text-sm bg-gray-50 focus:bg-white" value={profileForm.name} onChange={e => setProfileForm({...profileForm, name: e.target.value})} /></div>
-                            <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">DNI</label><input type="text" className="w-full p-3 border rounded-lg text-sm bg-gray-50 focus:bg-white" value={profileForm.dni} onChange={e => setProfileForm({...profileForm, dni: e.target.value})} /></div>
+                    {/* Invoice History */}
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                        <div className="p-4 border-b border-gray-100 font-bold text-gray-700">Historial de Subidas</div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left text-sm">
+                                <thead className="bg-gray-50 text-gray-500 text-xs uppercase font-bold">
+                                    <tr>
+                                        <th className="p-3">Fecha</th>
+                                        <th className="p-3">Propiedad</th>
+                                        <th className="p-3">Tipo</th>
+                                        <th className="p-3 text-right">Importe</th>
+                                        <th className="p-3 text-center">Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {invoices.map(inv => (
+                                        <tr key={inv.id}>
+                                            <td className="p-3 text-gray-500 text-xs">{inv.uploadedAt?.toDate().toLocaleDateString()}</td>
+                                            <td className="p-3 font-medium">{properties.find(p => p.id === inv.propertyId)?.address}</td>
+                                            <td className="p-3 capitalize">{inv.type}</td>
+                                            <td className="p-3 text-right font-bold">{inv.amount}€</td>
+                                            <td className="p-3 text-center">
+                                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${inv.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                                                    {inv.status === 'approved' ? 'Procesada' : 'Pendiente'}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {invoices.length === 0 && (
+                                        <tr><td colSpan={5} className="p-6 text-center text-gray-400">No has subido facturas.</td></tr>
+                                    )}
+                                </tbody>
+                            </table>
                         </div>
-                        <button type="submit" className="w-full bg-rentia-black text-white py-3 rounded-lg font-bold hover:bg-gray-800 touch-manipulation">Actualizar Datos</button>
-                    </form>
-
-                    {/* SECCIÓN DOCUMENTOS LEGALES */}
-                    <div className="mt-8 pt-6 border-t border-gray-100">
-                         <h4 className="font-bold text-sm text-gray-700 mb-4 flex items-center gap-2"><FileText className="w-4 h-4"/> Documentación Legal Firmada</h4>
-                         {userData?.gdpr?.signed ? (
-                             <div className="bg-green-50 p-4 rounded-lg border border-green-200 flex justify-between items-center">
-                                 <div>
-                                     <p className="text-xs font-bold text-green-800">Acuerdo de Confidencialidad</p>
-                                     <p className="text-[10px] text-green-600">Firmado: {userData.gdpr.signedAt?.toDate().toLocaleDateString()}</p>
-                                 </div>
-                                 <button onClick={handlePrintAgreement} className="flex items-center gap-1 bg-white text-green-700 px-3 py-2 rounded border border-green-300 text-xs font-bold hover:bg-green-100">
-                                     <Printer className="w-3 h-3"/> Ver Copia
-                                 </button>
-                             </div>
-                         ) : (
-                             <div className="bg-red-50 p-4 rounded-lg border border-red-200 text-xs text-red-700">
-                                 Pendiente de firma.
-                             </div>
-                         )}
                     </div>
                 </div>
-            </div>
-        )}
+            )}
 
-      </div>
+            {/* 4. PROFILE TAB */}
+            {activeTab === 'profile' && (
+                <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-200 max-w-2xl mx-auto">
+                    <div className="flex items-center gap-4 mb-6">
+                        <div className="w-16 h-16 bg-rentia-blue rounded-full flex items-center justify-center text-white text-2xl font-bold">
+                            {currentUser?.displayName?.charAt(0) || 'U'}
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-bold text-gray-900">{currentUser?.displayName}</h2>
+                            <p className="text-gray-500">{currentUser?.email}</p>
+                            <span className="inline-block mt-1 bg-purple-100 text-purple-700 text-xs font-bold px-2 py-0.5 rounded border border-purple-200 uppercase">
+                                Propietario Verificado
+                            </span>
+                        </div>
+                    </div>
 
-      {/* GDPR MODAL - BLOCKING */}
-      {isGdprOpen && (
-          <div className="fixed inset-0 z-[10000] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
-              <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-                  <div className="p-5 bg-red-600 text-white border-b border-red-700 flex justify-between items-center shrink-0">
-                      <h2 className="text-lg md:text-xl font-bold flex items-center gap-2"><Shield className="w-5 h-5"/> Acción Requerida: Firma de Contrato</h2>
-                      <div className="text-xs font-bold bg-red-800 px-2 py-1 rounded">Paso {gdprStep}/2</div>
-                  </div>
-                  
-                  <div className="p-6 md:p-8 overflow-y-auto leading-relaxed text-gray-600 text-sm space-y-4 bg-gray-50 flex-grow custom-scrollbar">
-                      {gdprStep === 1 ? (
-                          <>
-                            <p className="font-bold text-gray-900 text-base md:text-lg mb-2">Importante: Actualización de Política de Privacidad</p>
-                            <p>Para acceder al Panel de Propietario y poder visualizar los datos de sus inquilinos y candidatos, es obligatorio por Ley (RGPD) formalizar un <strong>Acuerdo de Encargo de Tratamiento y Confidencialidad</strong>.</p>
-                            
-                            <div className="bg-white border border-gray-200 p-4 rounded-xl shadow-sm mt-4 text-xs md:text-sm">
-                                <div dangerouslySetInnerHTML={{ __html: LEGAL_TEXT_HTML }} />
+                    {/* DISCOUNT BANNER */}
+                    <div className="bg-gradient-to-r from-rentia-gold to-yellow-300 p-4 rounded-xl shadow-md border border-yellow-400 flex items-center justify-between text-rentia-black mb-6">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-white/30 p-2 rounded-full"><Gift className="w-6 h-6" /></div>
+                            <div>
+                                <h4 className="font-bold text-sm md:text-base">¡Trae otra propiedad y mejora tu tarifa!</h4>
+                                <p className="text-xs md:text-sm font-medium opacity-90">Si nos cedes la gestión de otra vivienda, te aplicamos un descuento en la comisión mensual.</p>
                             </div>
-                          </>
-                      ) : (
-                          <div className="space-y-6">
-                              <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg flex gap-3 items-start">
-                                  <AlertCircle className="w-5 h-5 text-yellow-600 shrink-0 mt-0.5"/>
-                                  <div className="text-xs text-yellow-800">
-                                      <strong>Aviso Legal:</strong> Al pulsar "Aceptar y Firmar", se generará un sello de tiempo electrónico y se registrarán sus datos de conexión como prueba de conformidad legal. Este documento será vinculante.
-                                  </div>
-                              </div>
+                        </div>
+                        <Percent className="w-8 h-8 opacity-20 hidden md:block" />
+                    </div>
 
-                              <div className="border-t border-gray-200 pt-4 mt-2">
-                                  <label className="flex items-start gap-3 cursor-pointer p-4 bg-white rounded-xl border border-gray-200 hover:border-rentia-blue transition-all shadow-sm">
-                                      <input 
-                                        type="checkbox" 
-                                        className="mt-1 w-5 h-5 text-rentia-blue rounded border-gray-300 focus:ring-rentia-blue cursor-pointer"
-                                        checked={isGdprChecked}
-                                        onChange={(e) => setIsGdprChecked(e.target.checked)}
-                                      />
-                                      <div className="text-sm text-gray-700">
-                                          <strong>He leído, comprendo y acepto íntegramente</strong> el Acuerdo de Confidencialidad y Encargo de Tratamiento expuesto anteriormente. Me comprometo a custodiar los datos de los inquilinos con la máxima diligencia y confidencialidad.
-                                      </div>
-                                  </label>
-                              </div>
-                          </div>
-                      )}
-                  </div>
+                    {/* INVESTMENT SETTINGS (Dynamic ROI) */}
+                    <div className="mb-6 bg-gray-50 p-4 rounded-xl border border-gray-200">
+                        <h4 className="text-xs font-bold text-gray-700 uppercase mb-3 flex items-center gap-2">
+                            <TrendingUp className="w-4 h-4 text-green-600" /> Configuración Financiera (ROI)
+                        </h4>
+                        <div className="space-y-4">
+                            {properties.map(p => (
+                                <div key={p.id} className="bg-white p-3 rounded-lg border border-gray-200">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className="text-sm font-bold text-gray-800">{p.address}</span>
+                                        <button 
+                                            onClick={() => handleSaveInvestment(p.id)}
+                                            className="text-xs bg-rentia-black text-white px-3 py-1 rounded font-bold hover:bg-gray-800 flex items-center gap-1"
+                                        >
+                                            <Save className="w-3 h-3" /> Guardar
+                                        </button>
+                                    </div>
+                                    <label className="text-[10px] text-gray-500 uppercase block mb-1">Coste Total Inversión (Compra + Impuestos + Reforma)</label>
+                                    <div className="relative">
+                                        <DollarSign className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
+                                        <input 
+                                            type="number" 
+                                            className="w-full pl-9 pr-4 py-2 border rounded text-sm font-bold text-gray-700 focus:ring-1 focus:ring-rentia-blue outline-none"
+                                            value={investmentInputs[p.id] || ''}
+                                            onChange={(e) => setInvestmentInputs(prev => ({...prev, [p.id]: parseFloat(e.target.value)}))}
+                                            placeholder="Ej: 150000"
+                                        />
+                                    </div>
+                                    <p className="text-[10px] text-gray-400 mt-1 italic">* Necesario para calcular tu rentabilidad real.</p>
+                                </div>
+                            ))}
+                            {properties.length === 0 && <span className="text-xs text-gray-500 italic">No hay propiedades asignadas.</span>}
+                        </div>
+                    </div>
 
-                  <div className="p-5 border-t border-gray-200 bg-white flex justify-end gap-3 items-center shrink-0">
-                      {gdprStep === 1 ? (
-                          <button onClick={() => setGdprStep(2)} className="bg-rentia-black text-white px-6 py-3 rounded-xl font-bold hover:bg-gray-800 transition-colors shadow-lg flex items-center gap-2 text-sm w-full md:w-auto justify-center">
-                              Leer y Continuar <ArrowRight className="w-4 h-4"/>
-                          </button>
-                      ) : (
-                          <div className="flex flex-col-reverse md:flex-row gap-3 w-full justify-between items-center">
-                              <button onClick={() => setGdprStep(1)} className="text-gray-500 hover:underline text-sm py-2">Volver a leer</button>
-                              <button 
-                                onClick={handleGdprAccept} 
-                                disabled={!isGdprChecked || signing}
-                                className={`px-6 py-3 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 transition-all w-full md:w-auto text-sm ${
-                                    !isGdprChecked || signing 
-                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                                    : 'bg-green-600 text-white hover:bg-green-700 hover:scale-105'
-                                }`}
-                              >
-                                  {signing ? (
-                                      <><Loader2 className="w-4 h-4 animate-spin"/> Generando Certificado...</>
-                                  ) : (
-                                      <><MousePointerClick className="w-4 h-4"/> Aceptar y Firmar</>
-                                  )}
-                              </button>
-                          </div>
-                      )}
-                  </div>
-              </div>
-          </div>
-      )}
+                    {/* COMMISSION RATES DISPLAY */}
+                    <div className="mb-6 bg-blue-50 p-4 rounded-xl border border-blue-100">
+                        <h4 className="text-xs font-bold text-blue-800 uppercase mb-3 flex items-center gap-2">
+                            <Percent className="w-4 h-4" /> Tarifa de Gestión
+                        </h4>
+                        <div className="space-y-2">
+                            {properties.map(p => (
+                                <div key={p.id} className="flex justify-between items-center bg-white p-2 rounded border border-blue-100 text-sm">
+                                    <span className="text-gray-700 truncate max-w-[200px]">{p.address}</span>
+                                    <span className="font-bold text-blue-700">{p.managementCommission ? `${p.managementCommission}% + IVA` : '-'}</span>
+                                </div>
+                            ))}
+                            {properties.length === 0 && <span className="text-xs text-blue-500 italic">No hay propiedades asignadas.</span>}
+                        </div>
+                    </div>
 
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-gray-100">
+                        <div>
+                            <label className="text-xs font-bold text-gray-400 uppercase block mb-1">Cuenta Bancaria (Pagos)</label>
+                            <div className="flex gap-2">
+                                <div className="relative flex-grow">
+                                     <CreditCard className="w-4 h-4 text-gray-400 absolute left-3 top-3"/>
+                                     <input 
+                                        type="text" 
+                                        value={ibanForm} 
+                                        onChange={(e) => setIbanForm(e.target.value)}
+                                        className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-mono text-gray-800 focus:outline-none focus:ring-2 focus:ring-rentia-blue uppercase"
+                                        placeholder="ES00 0000 0000 0000 0000 0000"
+                                     />
+                                </div>
+                                <button 
+                                    onClick={handleUpdateIban}
+                                    className="bg-rentia-black text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-gray-800 transition-colors"
+                                >
+                                    Guardar
+                                </button>
+                            </div>
+                            <p className="text-[10px] text-gray-400 mt-1 flex items-center gap-1">
+                                <CheckCircle className="w-3 h-3 text-green-500"/>
+                                Puedes modificar tu cuenta para recibir las transferencias mensuales.
+                            </p>
+                        </div>
+                        <div>
+                            <label className="text-xs font-bold text-gray-400 uppercase block mb-1">Día de Transferencia</label>
+                            <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 font-bold text-sm text-gray-700">
+                                Día 5 de cada mes
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+        </div>
+      </div>
     </div>
   );
 };

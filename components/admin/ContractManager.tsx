@@ -69,6 +69,7 @@ export const ContractManager: React.FC<any> = ({ initialMode = 'list', preSelect
             await addDoc(collection(db, "contracts"), {
                 ...formData,
                 propertyName: prop?.address || 'Desconocido',
+                ownerId: prop?.ownerId || null, // VINCULACIÓN CRÍTICA PARA EL OWNER DASHBOARD
                 roomName: room?.name || 'Habitación',
                 fileUrl: downloadUrl,
                 fileName: contractFile.name,

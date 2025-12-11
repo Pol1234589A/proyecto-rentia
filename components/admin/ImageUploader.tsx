@@ -4,7 +4,6 @@ import { Upload, Loader2, AlertCircle, Sparkles, Wand2, Eraser, Server, Globe, D
 import { storage } from '../../firebase';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { compressImage } from '../../utils/imageOptimizer';
-import { cleanImageWithAI } from '../../utils/aiImageCleaner';
 
 interface ImageUploaderProps {
   folder: string; 
@@ -16,7 +15,6 @@ interface ImageUploaderProps {
 
 export const ImageUploader: React.FC<ImageUploaderProps> = ({ folder, onUploadComplete, label = "Subir Foto", compact = false, onlyFirebase = false }) => {
   const [uploading, setUploading] = useState(false);
-  const [processing, setProcessing] = useState(false); 
   const [progress, setProgress] = useState<{current: number, total: number, percent: number} | null>(null);
   const [error, setError] = useState<string | null>(null);
   
@@ -98,20 +96,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ folder, onUploadCo
         setProgress({ current: i + 1, total: files.length, percent: 0 });
 
         try {
-            let blobToProcess: Blob = file;
-
-            if (process.env.API_KEY && process.env.API_KEY.length > 5 && files.length <= 5 && !onlyFirebase) {
-                setProcessing(true);
-                try {
-                    const cleaned = await cleanImageWithAI(file, process.env.API_KEY);
-                    if (cleaned) blobToProcess = cleaned;
-                } catch (aiError) {
-                    console.warn(`AI Cleaning skipped`, aiError);
-                }
-                setProcessing(false);
-            }
-
-            const fileToCompress = new File([blobToProcess], file.name, { type: 'image/jpeg' });
+            const fileToCompress = new File([file], file.name, { type: 'image/jpeg' });
             const compressedBlob = await compressImage(fileToCompress);
             
             let downloadURL = '';
@@ -134,7 +119,6 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ folder, onUploadCo
     }
 
     setUploading(false);
-    setProcessing(false);
     setProgress(null);
     
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -170,7 +154,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ folder, onUploadCo
                 <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" multiple className="hidden" />
                 <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="p-1.5 bg-blue-50 text-rentia-blue hover:bg-blue-100 rounded-md transition-colors border border-blue-200 disabled:opacity-50 relative overflow-hidden group flex items-center gap-1">
                     {uploading ? (
-                        processing ? <Wand2 className="w-3 h-3 animate-pulse text-purple-500" /> : <Loader2 className="w-3 h-3 animate-spin" />
+                         <Loader2 className="w-3 h-3 animate-spin" />
                     ) : (
                         <><Upload className="w-3 h-3" /><Layers className="w-2 h-2 text-rentia-blue absolute top-0.5 right-0.5 opacity-50" /></>
                     )}
@@ -194,17 +178,9 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ folder, onUploadCo
       {!onlyFirebase && <ServerToggle />}
 
       <div onClick={() => !uploading && fileInputRef.current?.click()} className={`relative border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-all overflow-hidden group ${uploading ? 'bg-gray-50 border-gray-300' : 'bg-white border-gray-300 hover:border-rentia-blue hover:bg-blue-50'} ${error ? 'border-red-300 bg-red-50' : ''}`}>
-        {processing && (
-            <div className="absolute inset-0 bg-white/90 flex items-center justify-center z-10 backdrop-blur-[1px]">
-                <div className="flex flex-col items-center animate-pulse">
-                    <div className="bg-purple-100 p-3 rounded-full mb-2"><Eraser className="w-6 h-6 text-purple-600" /></div>
-                    <span className="text-xs font-bold text-purple-700">Mejorando imagen...</span>
-                </div>
-            </div>
-        )}
-
+        
         <div className="flex flex-col items-center justify-center gap-2">
-            {uploading && !processing ? (
+            {uploading ? (
                 <div className="w-full max-w-[200px] flex flex-col items-center">
                     <Loader2 className="w-8 h-8 text-rentia-blue animate-spin mb-2" />
                     <span className="text-xs font-bold text-gray-600 mb-1">Subiendo...</span>

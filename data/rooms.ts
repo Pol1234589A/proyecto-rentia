@@ -22,6 +22,9 @@ export interface Room {
 
   commissionType?: 'percentage' | 'fixed'; 
   commissionValue?: number; 
+  
+  // New field: Canal privado Admin -> Propietario
+  recommendations?: OwnerRecommendation[];
 }
 
 export interface CleaningConfig {
@@ -30,6 +33,13 @@ export interface CleaningConfig {
     hours: string; 
     costPerHour: number;
     included: boolean; 
+}
+
+export interface OwnerRecommendation {
+    id: string;
+    date: string;
+    text: string;
+    type: 'price' | 'improvement' | 'info';
 }
 
 export interface Property {
@@ -43,12 +53,15 @@ export interface Property {
   googleMapsLink: string;
   driveLink?: string; 
   transferDay?: number; 
+  managementCommission?: number; // Nuevo campo para comisión de gestión
+  investmentAmount?: number;
   rooms: Room[];
   suppliesConfig?: {
       type: 'fixed' | 'shared';
       fixedAmount?: number;
   };
   cleaningConfig?: CleaningConfig;
+  ownerRecommendations?: OwnerRecommendation[];
   
   // NEW: Community Information
   communityInfo?: {
@@ -56,6 +69,9 @@ export interface Property {
       adminCompany?: string;
       adminContact?: string;
   };
+  
+  // Internal Notes (Admin only)
+  internalNotes?: string;
 }
 
 // Función auxiliar para generar enlace de maps

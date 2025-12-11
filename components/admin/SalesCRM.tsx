@@ -9,7 +9,6 @@ import { opportunities as staticOpportunities } from '../../data';
 import { Opportunity, OpportunityScenario, Visibility } from '../../types';
 import { Briefcase, Building2, UserPlus, Search, Filter, TrendingUp, MapPin, DollarSign, Save, ArrowRight, Users, Eye, EyeOff, Plus, Image as ImageIcon, Trash2, Home, Bed, Layout, Bath, Phone, FileText, Tag, AlertCircle, Handshake, Star, Crown, X, UploadCloud, RefreshCw, Pencil, Sparkles, Wand2, Loader2, Link as LinkIcon, AlertTriangle, MonitorPlay } from 'lucide-react';
 import { ImageUploader } from './ImageUploader';
-import { cleanImageWithAI } from '../../utils/aiImageCleaner';
 import { compressImage } from '../../utils/imageOptimizer';
 
 // ... (INTERFACES AND STATE KEPT AS IS) ...
@@ -44,10 +43,6 @@ export const SalesCRM: React.FC = () => {
   const [editingAssetId, setEditingAssetId] = useState<string | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   
-  // Estado para limpieza de imagen individual
-  const [cleaningImageIndex, setCleaningImageIndex] = useState<number | null>(null);
-  const [manualImageUrl, setManualImageUrl] = useState('');
-
   // --- ASSET FORM STATE ---
   const initialAssetFormState = {
     title: '',
@@ -143,28 +138,6 @@ export const SalesCRM: React.FC = () => {
 
     return () => { unsubscribeBuyers(); unsubscribeAssets(); };
   }, []);
-
-  // ... (Keep handleCleanExistingImage, handleAddBuyer, etc.) ...
-  const handleCleanExistingImage = async (url: string, index: number, e: React.MouseEvent) => {
-      e.stopPropagation(); 
-      e.preventDefault();
-      if (!process.env.API_KEY) {
-          alert("Requiere API Key.");
-          return;
-      }
-      setCleaningImageIndex(index);
-      try {
-          // ... (Existing implementation) ...
-          // Mock for brevity in this response, keep original logic
-          const newImages = [...assetForm.images];
-          // ... logic ...
-          setHasUnsavedChanges(true);
-      } catch (error) {
-          console.error(error);
-      } finally {
-          setCleaningImageIndex(null);
-      }
-  };
 
   const handleAddBuyer = async (e: React.FormEvent) => {
       e.preventDefault();

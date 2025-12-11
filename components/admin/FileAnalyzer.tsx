@@ -33,13 +33,18 @@ export const FileAnalyzer: React.FC = () => {
       return;
     }
 
+    if (!process.env.API_KEY) {
+        setError("API Key no configurada. No se puede analizar el archivo.");
+        return;
+    }
+
     setLoading(true);
     setError(null);
     setResult(null);
 
     try {
-      // 1. Inicializar cliente Gemini
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      // 1. Inicializar cliente Gemini (API Key verified above)
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
 
       // 2. Preparar el archivo
       const base64Full = await toBase64(file);

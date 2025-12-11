@@ -3,17 +3,12 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --- FUNCIONES DE AYUDA ---
+    // --- FUNCIONES DE AYUDA (HELPERS) ---
 
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    function isSelf(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
-    }
-
-    // Obtener datos del usuario actual desde Firestore para verificar roles
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
@@ -22,6 +17,7 @@ service cloud.firestore {
       return isAuthenticated() && getUserData().role == role;
     }
 
+    // Roles Jerárquicos
     function isStaff() {
       return hasRole('staff') || hasRole('admin') || hasRole('agency');
     }
@@ -34,113 +30,106 @@ service cloud.firestore {
       return hasRole('worker');
     }
 
-    // Verificar si la propiedad objetivo pertenece al usuario actual
-    function propertyBelongsToOwner(propertyId) {
-       return get(/databases/$(database)/documents/properties/$(propertyId)).data.ownerId == request.auth.uid;
+    // Helper combinado para operaciones de gestión diaria
+    function isStaffOrWorker() {
+      return isStaff() || isWorker();
     }
 
     // --- REGLAS POR COLECCIÓN ---
 
-    // USERS
+    // 1. USUARIOS
     match /users/{userId} {
-      allow read: if true;
-      // Allow creation if staff (admin creating owner) or self (signup flow triggers)
-      allow create: if isStaff() || isSelf(userId); 
-      allow update: if isStaff() || isSelf(userId); 
+      allow read: if isAuthenticated();
+      allow create, update: if isStaff() || (isAuthenticated() && request.auth.uid == userId);
       allow delete: if isStaff();
     }
 
-    // PROPERTIES
+    // 2. PROPIEDADES (Catálogo y Configuración)
     match /properties/{propertyId} {
-      allow read: if true;
-      allow write: if isStaff() || isWorker(); 
+      // Lectura pública para la web
+      allow read: if true; 
+      
+      // CRÍTICO: Escritura permitida para Staff y Workers.
+      // Owners pueden editar SOLO si son dueños de la propiedad (para configurar inversión)
+      allow update: if isStaffOrWorker() || (isOwner() && resource.data.ownerId == request.auth.uid);
+      allow create, delete: if isStaffOrWorker();
     }
 
-    // DOCUMENTOS DE PROPIEDAD (Gestión Propietarios)
+    // 3. DOCUMENTOS DE PROPIEDAD
     match /property_documents/{docId} {
-      // Lectura: Staff o Propietario dueño de la propiedad
-      allow read: if isStaff() || (isOwner() && propertyBelongsToOwner(resource.data.propertyId));
-      // Creación: Staff o Propietario dueño de la propiedad (en el payload)
-      allow create: if isStaff() || (isOwner() && propertyBelongsToOwner(request.resource.data.propertyId));
-      // Edición/Borrado: Solo Staff
-      allow update, delete: if isStaff();
+      allow read: if isStaff() || isOwner() || isWorker();
+      allow create: if isAuthenticated();
+      // MODIFICADO: Permitir al owner borrar SUS propios documentos (si se equivocó al subir)
+      allow update: if isStaff();
+      allow delete: if isStaff() || (isAuthenticated() && resource.data.ownerId == request.auth.uid);
     }
 
-    // FACTURAS SUMINISTROS (Gestión Propietarios)
+    // 4. FACTURAS DE SUMINISTROS
     match /supply_invoices/{invoiceId} {
-      // Lectura: Staff o Propietario dueño de la propiedad
-      allow read: if isStaff() || (isOwner() && propertyBelongsToOwner(resource.data.propertyId));
-      // Creación: Staff o Propietario dueño de la propiedad
-      allow create: if isStaff() || (isOwner() && propertyBelongsToOwner(request.resource.data.propertyId));
-      // Edición/Borrado: Solo Staff (para aprobar/rechazar)
+      allow read: if isStaff() || isOwner() || isWorker();
+      allow create: if isAuthenticated(); 
       allow update, delete: if isStaff();
     }
     
-    // COLECCIÓN: TRASPASOS PENDIENTES
-    match /pending_transfers/{transferId} {
-      allow create: if true;
-      allow read, update, delete: if isStaff();
-    }
-
-    // REGISTROS DE CÁLCULO DE SUMINISTROS (Calculadora Staff)
+    // 5. CÁLCULOS DE SUMINISTROS
     match /supply_records/{recordId} {
-      allow read, write: if isStaff();
+      allow read: if isAuthenticated();
+      allow write: if isStaff();
     }
 
-    // AJUSTES ECONÓMICOS PROPIETARIOS
+    // 6. AJUSTES ECONÓMICOS
     match /adjustments/{adjustmentId} {
       allow read: if isStaff() || (isOwner() && resource.data.ownerId == request.auth.uid);
       allow write: if isStaff();
     }
 
-    // CONTABILIDAD GENERAL
+    // 7. CONTABILIDAD
     match /accounting/{docId} {
       allow read, write: if isStaff();
     }
 
-    // OPORTUNIDADES (Cartera de Inversión)
+    // 8. OPORTUNIDADES (Venta)
     match /opportunities/{opportunityId} {
       allow read: if true;
       allow write: if isStaff();
     }
     
-    // CONTRATOS
+    // 9. CONTRATOS
     match /contracts/{contractId} {
-      allow read: if isStaff() || isWorker() || (isAuthenticated() && (resource.data.ownerId == request.auth.uid || resource.data.tenantId == request.auth.uid));
+      // Workers necesitan leer contratos para saber quién está en la habitación si hay incidencias
+      allow read: if isStaffOrWorker() || (isAuthenticated() && (resource.data.ownerId == request.auth.uid || resource.data.tenantId == request.auth.uid));
       allow write: if isStaff();
     }
 
-    // TAREAS
+    // 10. TAREAS
     match /tasks/{taskId} {
-      allow read: if isStaff() || isWorker();
-      allow write: if isStaff() || isWorker();
+      // Gestión total de tareas compartida
+      allow read, write: if isStaffOrWorker();
     }
 
-    // TABLEROS DE TAREAS
     match /task_boards/{boardId} {
-      allow read: if isStaff() || isWorker();
-      allow write: if isStaff();
+      allow read, write: if isStaffOrWorker();
     }
 
-    // PIPELINE CANDIDATOS
+    // 11. PIPELINE CANDIDATOS
     match /candidate_pipeline/{candidateId} {
-      allow read: if isStaff() || isWorker() || (isOwner() && resource.data.ownerId == request.auth.uid);
-      allow write: if isStaff() || isWorker();
+      // Workers pueden ver y gestionar candidatos para visitas
+      allow read: if isStaffOrWorker() || (isOwner() && resource.data.ownerId == request.auth.uid);
+      allow write: if isStaffOrWorker();
     }
 
-    // REGISTRO DE VISITAS
+    // 12. VISITAS
     match /room_visits/{visitId} {
-      allow read: if isStaff() || isWorker();
-      allow write: if isStaff() || isWorker();
+      allow read, write: if isStaffOrWorker();
     }
 
-    // NOTICIAS INTERNAS
+    // 13. NOTICIAS INTERNAS
     match /internal_news/{newsId} {
-      allow read: if isStaff() || isWorker();
+      allow read: if isAuthenticated();
       allow write: if isStaff();
     }
 
-    // FACTURAS DE TRABAJADORES
+    // 14. FACTURAS TRABAJADORES
     match /worker_invoices/{invoiceId} {
       allow read: if isStaff() || (isWorker() && resource.data.workerId == request.auth.uid);
       allow create: if isStaff() || (isWorker() && request.resource.data.workerId == request.auth.uid);
@@ -148,32 +137,35 @@ service cloud.firestore {
       allow delete: if isStaff() || (isWorker() && resource.data.workerId == request.auth.uid);
     }
 
-    // DEMANDAS DE COMPRA (Broker Requests)
+    // 15. WEB FORMS (Públicos para escritura inicial)
     match /buyer_requests/{requestId} {
       allow read: if true; 
-      allow create: if true; 
+      allow create: if true;
       allow update, delete: if isStaff();
     }
 
-    // SOLICITUDES DE COLABORACIÓN (Opportunity Requests)
     match /opportunity_requests/{requestId} {
       allow create: if true;
       allow read, update, delete: if isStaff();
     }
+    
+    match /pending_transfers/{transferId} {
+      allow create: if true;
+      allow read, update, delete: if isStaff();
+    }
 
-    // SALES TRACKER (CRM Actividad)
+    // 16. TRACKING Y SEGURIDAD
     match /sales_tracker/{trackId} {
       allow read, write: if isStaff();
     }
 
-    // BLACKLIST / INCIDENCIAS
     match /tenant_blacklist/{entryId} {
       allow read, write: if isStaff();
     }
 
-    // Fallback: cerrar todo lo demás por seguridad
+    // Regla por defecto de seguridad
     match /{document=**} {
-      allow read, write: if isStaff();
+      allow read, write: if false;
     }
   }
 }

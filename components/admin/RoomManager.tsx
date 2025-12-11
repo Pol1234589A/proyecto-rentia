@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { db } from '../../firebase';
-import { collection, getDocs, doc, setDoc, deleteDoc, query, where, onSnapshot } from 'firebase/firestore';
-import { properties as staticProperties, Property, Room, CleaningConfig } from '../../data/rooms';
-import { Save, RefreshCw, Home, ChevronDown, ChevronRight, Building, Plus, Trash2, X, MapPin, ExternalLink, Wind, Image as ImageIcon, FileText, Settings, Hammer, DollarSign, Percent, Sun, Tv, Lock, Monitor, AlertCircle, User, CheckCircle, Sparkles, Clock, Euro, Calendar, ShieldCheck, ShieldAlert, FileCheck, Download, CreditCard, Phone, Mail } from 'lucide-react';
+import { collection, getDocs, doc, setDoc, deleteDoc, query, where, onSnapshot, updateDoc, getDoc } from 'firebase/firestore';
+import { properties as staticProperties, Property, Room, CleaningConfig, OwnerRecommendation } from '../../data/rooms';
+import { Save, RefreshCw, Home, ChevronDown, ChevronRight, Building, Plus, Trash2, X, MapPin, ExternalLink, Wind, Image as ImageIcon, FileText, Settings, Hammer, DollarSign, Percent, Sun, Tv, Lock, Monitor, AlertCircle, User, CheckCircle, Sparkles, Clock, Euro, Calendar, ShieldCheck, ShieldAlert, FileCheck, Download, CreditCard, Phone, Mail, Megaphone, Zap, Info, Send } from 'lucide-react';
 import { ImageUploader } from './ImageUploader';
 import { ContractManager } from './ContractManager';
 import { Contract, UserProfile, PropertyDocument, SupplyInvoice } from '../../types';
@@ -35,7 +34,7 @@ export const RoomManager: React.FC = () => {
   const [documentsMap, setDocumentsMap] = useState<Record<string, PropertyDocument[]>>({});
   const [invoicesMap, setInvoicesMap] = useState<Record<string, SupplyInvoice[]>>({});
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [expandedProp, setExpandedProp] = useState<string | null>(null);
   
@@ -51,44 +50,61 @@ export const RoomManager: React.FC = () => {
   const [newPropData, setNewPropData] = useState({ 
       address: '', city: 'Murcia', floor: '', bathrooms: 1, image: '', initialRooms: 3 
   });
+  
+  // Estado para nueva recomendación PROPIEDAD
+  const [newRec, setNewRec] = useState<{ text: string, type: 'price' | 'improvement' | 'info' }>({ text: '', type: 'info' });
 
-  // 1. Fetch Properties (One-time or Realtime? Let's use One-time for properties list to avoid heavy reads, 
-  // but real-time for Owners/Docs status which changes frequently)
-  const fetchData = async () => {
-    setLoading(true);
+  // Estado para gestión de recomendaciones de HABITACIÓN (Input temporal)
+  const [roomRecInputs, setRoomRecInputs] = useState<Record<string, string>>({});
+
+  // Fetch Contracts (Static Fetch is fine for contracts unless real-time is strictly needed)
+  const fetchContracts = async () => {
     try {
-      const querySnapshot = await getDocs(collection(db, "properties"));
-      const props: Property[] = [];
-      querySnapshot.forEach((doc) => {
-        props.push({ ...doc.data(), id: doc.id } as Property);
-      });
-      
-      if (props.length === 0) {
-          setProperties(staticProperties);
-      } else {
-          props.sort((a,b) => a.address.localeCompare(b.address));
-          setProperties(props);
-      }
-
-      // Contracts
       const contractsSnap = await getDocs(collection(db, "contracts"));
       const contractsData: Contract[] = [];
       contractsSnap.forEach((doc) => {
           contractsData.push({ ...doc.data(), id: doc.id } as Contract);
       });
       setContracts(contractsData);
-
     } catch (error) {
-      console.error("Error fetching data:", error);
-    } finally {
-      setLoading(false);
+      console.error("Error fetching contracts:", error);
     }
   };
 
   useEffect(() => { 
-      fetchData(); 
+      // 1. Initial Contracts Load
+      fetchContracts();
 
-      // 2. Real-time Listeners for Status Updates (RGPD & Docs)
+      // 2. Real-time Properties Listener (CRITICAL FOR SYNC WITH WORKER DASHBOARD)
+      const unsubProperties = onSnapshot(collection(db, "properties"), (snapshot) => {
+          const firestorePropsMap: Record<string, Property> = {};
+          
+          snapshot.forEach((doc) => {
+              firestorePropsMap[doc.id] = { ...doc.data(), id: doc.id } as Property;
+          });
+
+          // Merge Logic: Static props serve as base, Firestore props overwrite them.
+          const mergedProperties: Property[] = [];
+          
+          // 2.1 Add Static Props (checking if they exist in Firestore)
+          staticProperties.forEach(staticProp => {
+              if (firestorePropsMap[staticProp.id]) {
+                  mergedProperties.push(firestorePropsMap[staticProp.id]);
+                  delete firestorePropsMap[staticProp.id]; // Remove so we don't duplicate
+              } else {
+                  mergedProperties.push(staticProp);
+              }
+          });
+          
+          // 2.2 Add remaining Firestore Props (newly created ones)
+          Object.values(firestorePropsMap).forEach(p => mergedProperties.push(p));
+          
+          mergedProperties.sort((a,b) => a.address.localeCompare(b.address));
+          setProperties(mergedProperties);
+          setLoading(false);
+      });
+
+      // 3. Other Real-time Listeners for Status Updates (RGPD & Docs)
       const unsubOwners = onSnapshot(query(collection(db, "users"), where("role", "==", "owner")), (snapshot) => {
           const oMap: Record<string, UserProfile> = {};
           snapshot.forEach((doc) => {
@@ -117,14 +133,14 @@ export const RoomManager: React.FC = () => {
           setInvoicesMap(iMap);
       });
 
-      return () => { unsubOwners(); unsubDocs(); unsubInvoices(); };
+      return () => { unsubProperties(); unsubOwners(); unsubDocs(); unsubInvoices(); };
   }, []);
 
   const getActiveContract = (roomId: string) => {
       return contracts.find(c => c.roomId === roomId && (c.status === 'active' || c.status === 'reserved'));
   };
 
-  // ... (Create & Delete Handlers kept same) ...
+  // ... (Create & Delete Handlers) ...
   const handleCreateProperty = async () => {
       setSaving(true);
       try {
@@ -137,19 +153,61 @@ export const RoomManager: React.FC = () => {
           await setDoc(doc(db, "properties", newId), newProp);
           setIsCreating(false);
           setNewPropData({ address: '', city: 'Murcia', floor: '', bathrooms: 1, image: '', initialRooms: 3 });
-          fetchData();
       } catch (error) { console.error(error); alert("Error al crear propiedad"); } finally { setSaving(false); }
   };
 
   const handleDeleteProperty = async (propId: string) => {
       if(!confirm("¿Seguro que quieres eliminar esta propiedad y todas sus habitaciones?")) return;
-      try { await deleteDoc(doc(db, "properties", propId)); fetchData(); } catch (error) { console.error(error); }
+      try { await deleteDoc(doc(db, "properties", propId)); } catch (error) { console.error(error); }
   };
 
   const handlePropertyFieldChange = (propId: string, field: keyof Property, value: any) => {
       setProperties(prev => prev.map(p => p.id === propId ? { ...p, [field]: value } : p));
   };
 
+  // --- FIXED: SAVE FUNCTION FOR CLEANING TOGGLE ---
+  const toggleCleaningService = async (propId: string) => {
+      // 1. Encontrar la propiedad en el estado actual
+      const propertyToUpdate = properties.find(p => p.id === propId);
+      if (!propertyToUpdate) return;
+
+      const currentConfig = propertyToUpdate.cleaningConfig || { enabled: false, days: [], hours: '', costPerHour: 10, included: false };
+      const newEnabledState = !currentConfig.enabled;
+      
+      const newConfig = {
+          ...currentConfig,
+          enabled: newEnabledState
+      };
+
+      // 2. Actualización Optimista (UI instantánea)
+      setProperties(prev => prev.map(p => {
+          if (p.id !== propId) return p;
+          return { ...p, cleaningConfig: newConfig };
+      }));
+
+      // 3. Guardar en Firestore
+      try {
+          const propertyRef = doc(db, "properties", propId);
+          const docSnap = await getDoc(propertyRef);
+          
+          if (docSnap.exists()) {
+              // Si el documento ya existe, solo actualizamos el campo específico
+              await setDoc(propertyRef, { cleaningConfig: newConfig }, { merge: true });
+          } else {
+             // Si el documento NO existe (es propiedad estática convirtiéndose a dinámica), guardamos TODO el objeto
+             // IMPORTANTE: Excluir el campo 'id' si está dentro del objeto para evitar duplicidad, aunque Firestore lo maneja.
+             const { id, ...dataToSave } = propertyToUpdate;
+             await setDoc(propertyRef, { ...dataToSave, cleaningConfig: newConfig }, { merge: true });
+          }
+      } catch (e) {
+          console.error("Error saving cleaning toggle:", e);
+          alert("Error al sincronizar el estado del servicio. Comprueba tu conexión.");
+          // Revertir estado si falla
+          setProperties(properties); // Esto podría no ser perfecto sin un estado previo guardado, pero en onSnapshot se corregirá
+      }
+  };
+
+  // Modificación local de datos (días, horas) sin guardar en BD todavía
   const handleCleaningChange = (propId: string, field: keyof CleaningConfig, value: any) => {
       setProperties(prev => prev.map(p => {
           if (p.id !== propId) return p;
@@ -174,10 +232,6 @@ export const RoomManager: React.FC = () => {
       }));
   };
 
-  const addRoomImage = (propId: string, roomId: string, url: string) => {
-      setProperties(prev => prev.map(p => p.id === propId ? { ...p, rooms: p.rooms.map(r => r.id === roomId && !r.images?.includes(url) ? { ...r, images: [...(r.images || []), url] } : r) } : p));
-  };
-
   const handleRoomFeatureToggle = (propId: string, roomId: string, feature: string) => {
       setProperties(prev => prev.map(p => {
           if (p.id !== propId) return p;
@@ -185,264 +239,495 @@ export const RoomManager: React.FC = () => {
       }));
   };
 
-  const handleSaveAll = async (propId: string) => {
+  // RECOMMENDATION LOGIC (PROPERTY LEVEL)
+  const handleAddRecommendation = async (propId: string) => {
+      if (!newRec.text) return;
       const prop = properties.find(p => p.id === propId);
-      if(!prop) return;
-      setSaving(true);
-      try { await setDoc(doc(db, "properties", propId), prop); alert("Guardado correctamente"); } catch (error) { console.error(error); alert("Error al guardar"); } finally { setSaving(false); }
+      if (!prop) return;
+
+      const newRecommendation: OwnerRecommendation = {
+          id: Date.now().toString(),
+          date: new Date().toISOString(),
+          text: newRec.text,
+          type: newRec.type
+      };
+
+      const updatedRecs = [...(prop.ownerRecommendations || []), newRecommendation];
+      
+      setProperties(prev => prev.map(p => p.id === propId ? { ...p, ownerRecommendations: updatedRecs } : p));
+      await updateDoc(doc(db, "properties", propId), { ownerRecommendations: updatedRecs });
+      setNewRec({ text: '', type: 'info' });
   };
 
-  if (contractModalConfig.isOpen) {
-      return <div className="fixed inset-0 z-[10001] bg-white overflow-hidden"><ContractManager initialMode={contractModalConfig.mode} preSelectedRoom={contractModalConfig.preSelectedRoom} contractId={contractModalConfig.contractId} onClose={() => { setContractModalConfig({ isOpen: false, mode: 'list' }); fetchData(); }} /></div>;
-  }
+  const handleDeleteRecommendation = async (propId: string, recId: string) => {
+      const prop = properties.find(p => p.id === propId);
+      if (!prop) return;
+      
+      const updatedRecs = (prop.ownerRecommendations || []).filter(r => r.id !== recId);
+      setProperties(prev => prev.map(p => p.id === propId ? { ...p, ownerRecommendations: updatedRecs } : p));
+      await updateDoc(doc(db, "properties", propId), { ownerRecommendations: updatedRecs });
+  };
+
+  // RECOMMENDATION LOGIC (ROOM LEVEL)
+  const handleAddRoomRecommendation = async (propId: string, roomId: string) => {
+      const text = roomRecInputs[roomId];
+      if (!text) return;
+
+      const prop = properties.find(p => p.id === propId);
+      if (!prop) return;
+
+      const updatedRooms = prop.rooms.map(r => {
+          if (r.id === roomId) {
+              const newRec: OwnerRecommendation = {
+                  id: Date.now().toString(),
+                  date: new Date().toISOString(),
+                  text: text,
+                  type: 'info' // Default for room specific
+              };
+              return { ...r, recommendations: [...(r.recommendations || []), newRec] };
+          }
+          return r;
+      });
+
+      setProperties(prev => prev.map(p => p.id === propId ? { ...p, rooms: updatedRooms } : p));
+      await updateDoc(doc(db, "properties", propId), { rooms: updatedRooms });
+      setRoomRecInputs(prev => ({...prev, [roomId]: ''}));
+  };
+
+  const handleDeleteRoomRecommendation = async (propId: string, roomId: string, recId: string) => {
+      const prop = properties.find(p => p.id === propId);
+      if (!prop) return;
+
+      const updatedRooms = prop.rooms.map(r => {
+          if (r.id === roomId) {
+              return { ...r, recommendations: (r.recommendations || []).filter(rec => rec.id !== recId) };
+          }
+          return r;
+      });
+
+      setProperties(prev => prev.map(p => p.id === propId ? { ...p, rooms: updatedRooms } : p));
+      await updateDoc(doc(db, "properties", propId), { rooms: updatedRooms });
+  };
+
+  // Save changes to DB
+  const handleSaveAll = async (propId: string) => {
+      setSaving(true);
+      const prop = properties.find(p => p.id === propId);
+      if (prop) {
+          try {
+              // Usar setDoc con merge para asegurar que se crea/actualiza todo correctamente
+              await setDoc(doc(db, "properties", propId), prop, { merge: true });
+              alert("Cambios guardados");
+          } catch (e) {
+              console.error(e);
+              alert("Error al guardar");
+          }
+      }
+      setSaving(false);
+  };
+
+  if (loading) return <div className="text-center py-10"><RefreshCw className="animate-spin w-8 h-8 text-rentia-blue mx-auto"/></div>;
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col h-full">
+    <div className="space-y-8 animate-in fade-in pb-20">
+      
       {/* Header */}
-      <div className="p-6 border-b border-gray-100 bg-gray-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-            <h3 className="font-bold text-gray-800 flex items-center gap-2">
-            <Building className="w-5 h-5 text-rentia-blue" />
-            Gestión de Habitaciones
-            </h3>
-            <p className="text-xs text-gray-500 mt-1">Inventario, propietarios y documentación unificada.</p>
-        </div>
-        <div className="flex gap-2 w-full sm:w-auto">
-            <button onClick={fetchData} className="p-2 text-gray-500 hover:bg-gray-200 rounded-lg transition-colors flex-shrink-0"><RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /></button>
-            <button onClick={() => setIsCreating(true)} className="bg-rentia-black text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-gray-800 transition-colors flex items-center gap-2 flex-grow sm:flex-grow-0 justify-center"><Plus className="w-4 h-4" /> Nuevo Piso</button>
-        </div>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+          <div>
+              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                  <Building className="w-6 h-6 text-rentia-blue" />
+                  Gestión de Habitaciones
+              </h2>
+              <p className="text-sm text-gray-500 mt-1">{properties.length} Propiedades activas</p>
+          </div>
+          <button 
+            onClick={() => setIsCreating(!isCreating)}
+            className="bg-rentia-black text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-gray-800 transition-colors shadow-md"
+          >
+              {isCreating ? <X className="w-4 h-4"/> : <Plus className="w-4 h-4"/>}
+              {isCreating ? 'Cancelar' : 'Nueva Propiedad'}
+          </button>
       </div>
 
-      {/* CREACIÓN NUEVO PISO */}
+      {/* Create New Form */}
       {isCreating && (
-          <div className="bg-blue-50 p-6 border-b border-blue-100 animate-in slide-in-from-top-4">
-              <div className="max-w-3xl mx-auto bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                  {/* ... (Create form content kept compact) ... */}
-                  <div className="flex justify-between items-center mb-4"><h4 className="font-bold text-gray-800">Registrar Nueva Propiedad</h4><button onClick={() => setIsCreating(false)}><X className="w-4 h-4 text-gray-400"/></button></div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                      <input className="border p-2 rounded text-sm" placeholder="Dirección" value={newPropData.address} onChange={e => setNewPropData({...newPropData, address: e.target.value})} />
-                      <input className="border p-2 rounded text-sm" placeholder="Ciudad" value={newPropData.city} onChange={e => setNewPropData({...newPropData, city: e.target.value})} />
-                      <input className="border p-2 rounded text-sm" placeholder="Planta" value={newPropData.floor} onChange={e => setNewPropData({...newPropData, floor: e.target.value})} />
-                      <input type="number" className="border p-2 rounded text-sm" placeholder="Nº Habitaciones" value={newPropData.initialRooms} onChange={e => setNewPropData({...newPropData, initialRooms: Number(e.target.value)})} />
-                  </div>
-                  <div className="flex justify-end"><button onClick={handleCreateProperty} disabled={saving} className="bg-blue-600 text-white px-6 py-2 rounded font-bold text-sm hover:bg-blue-700">{saving ? 'Creando...' : 'Crear Propiedad'}</button></div>
+          <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 animate-in slide-in-from-top-4">
+              <h3 className="font-bold mb-4 text-gray-700">Alta Nueva Propiedad</h3>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                  <input type="text" placeholder="Dirección" className="border p-2 rounded" value={newPropData.address} onChange={e => setNewPropData({...newPropData, address: e.target.value})} />
+                  <input type="text" placeholder="Ciudad" className="border p-2 rounded" value={newPropData.city} onChange={e => setNewPropData({...newPropData, city: e.target.value})} />
+                  <input type="text" placeholder="Planta" className="border p-2 rounded" value={newPropData.floor} onChange={e => setNewPropData({...newPropData, floor: e.target.value})} />
+                  <input type="number" placeholder="Habitaciones" className="border p-2 rounded" value={newPropData.initialRooms} onChange={e => setNewPropData({...newPropData, initialRooms: Number(e.target.value)})} />
               </div>
+              <button onClick={handleCreateProperty} disabled={saving} className="bg-green-600 text-white px-6 py-2 rounded font-bold hover:bg-green-700 w-full md:w-auto">
+                  {saving ? 'Guardando...' : 'Crear Propiedad'}
+              </button>
           </div>
       )}
 
-      {/* LISTA DE PROPIEDADES */}
-      <div className="flex-grow overflow-y-auto p-4 md:p-6 space-y-4 bg-gray-50">
-        {properties.map(prop => {
-            // Get Owner Logic
-            const owner = prop.ownerId ? ownersMap[prop.ownerId] : null;
-            const isGdprSigned = owner?.gdpr?.signed;
-            const propertyDocs = documentsMap[prop.id] || [];
-            const propertyInvoices = invoicesMap[prop.id] || [];
-            const isExpanded = expandedProp === prop.id;
+      {/* Property List */}
+      <div className="space-y-4">
+          {properties.map(p => {
+              const isExpanded = expandedProp === p.id;
+              const ownerData = p.ownerId ? ownersMap[p.ownerId] : null;
+              
+              return (
+              <div key={p.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all">
+                  {/* Property Header */}
+                  <div className="p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 cursor-pointer hover:bg-gray-50 bg-white" onClick={() => setExpandedProp(isExpanded ? null : p.id)}>
+                      <div className="flex items-center gap-4">
+                          <div className={`p-3 rounded-lg ${ownerData ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
+                              <Home className="w-6 h-6" />
+                          </div>
+                          <div>
+                              <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
+                                  {p.address}
+                                  {ownerData && <span className="bg-green-100 text-green-800 text-[10px] px-2 py-0.5 rounded border border-green-200">RGPD OK</span>}
+                                  {p.ownerRecommendations && p.ownerRecommendations.length > 0 && <span className="bg-yellow-100 text-yellow-800 text-[10px] px-2 py-0.5 rounded flex items-center gap-1"><Megaphone className="w-3 h-3"/> Avisos</span>}
+                              </h3>
+                              <p className="text-sm text-gray-500">{p.city} • {p.rooms.length} Habs</p>
+                          </div>
+                      </div>
+                      <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
+                          <button onClick={(e) => {e.stopPropagation(); handleDeleteProperty(p.id)}} className="text-gray-400 hover:text-red-500 p-2"><Trash2 className="w-5 h-5" /></button>
+                          <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                      </div>
+                  </div>
 
-            return (
-            <div 
-                key={prop.id} 
-                className={`bg-white rounded-xl overflow-hidden transition-all duration-300 ease-in-out ${
-                    isExpanded 
-                    ? 'border-2 border-rentia-blue shadow-xl ring-4 ring-blue-50 relative z-10 scale-[1.005]' 
-                    : 'border border-gray-200 shadow-sm hover:shadow-md hover:border-gray-300'
-                }`}
-            >
-                <div className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-white hover:bg-gray-50 transition-colors cursor-pointer gap-4" onClick={() => setExpandedProp(isExpanded ? null : prop.id)}>
-                    <div className="flex items-center gap-3 w-full sm:w-auto">
-                        {isExpanded ? <ChevronDown className="w-5 h-5 text-rentia-blue flex-shrink-0"/> : <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0"/>}
-                        
-                        {/* IMAGEN + ICONO ESTADO */}
-                        <div className="relative w-10 h-10 flex-shrink-0">
-                            <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 overflow-hidden">
-                                {prop.image ? <img src={prop.image} className="w-full h-full object-cover" alt=""/> : <Home className="w-5 h-5" />}
-                            </div>
-                            {/* INDICADOR RGPD EN LISTA */}
-                            <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm">
-                                {isGdprSigned ? (
-                                    <ShieldCheck className="w-4 h-4 text-green-500 fill-green-50" />
-                                ) : (
-                                    <ShieldAlert className="w-4 h-4 text-red-400 fill-red-50" />
-                                )}
-                            </div>
-                        </div>
+                  {isExpanded && (
+                      <div className="p-4 bg-gray-50 border-t border-gray-100 animate-in slide-in-from-top-2">
+                          
+                          {/* OWNER INFO SECTION */}
+                          <div className="bg-white p-4 rounded-xl border border-blue-100 mb-6 shadow-sm">
+                              <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                  <User className="w-4 h-4 text-rentia-blue"/> Datos Propietario
+                                  {ownerData?.gdpr?.signed ? <span className="text-green-600 flex items-center gap-1 ml-auto"><ShieldCheck className="w-4 h-4"/> RGPD Firmado</span> : <span className="text-red-500 flex items-center gap-1 ml-auto"><ShieldAlert className="w-4 h-4"/> Pendiente Firma</span>}
+                              </h4>
+                              {ownerData ? (
+                                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                                      <div><span className="text-gray-500 block text-xs">Nombre</span><span className="font-bold">{ownerData.name}</span></div>
+                                      <div><span className="text-gray-500 block text-xs">DNI</span><SensitiveDataDisplay value={ownerData.dni || ''} type="dni"/></div>
+                                      <div><span className="text-gray-500 block text-xs">Teléfono</span><SensitiveDataDisplay value={ownerData.phone || ''} type="phone"/></div>
+                                      <div><span className="text-gray-500 block text-xs">Email</span><SensitiveDataDisplay value={ownerData.email} type="email"/></div>
+                                      <div className="md:col-span-2 lg:col-span-4 bg-gray-50 p-2 rounded border border-gray-200 flex items-center gap-2">
+                                          <span className="text-gray-500 text-xs font-bold">IBAN Pago:</span>
+                                          <SensitiveDataDisplay value={ownerData.bankAccount || ''} type="iban" className="font-mono text-gray-700"/>
+                                      </div>
+                                  </div>
+                              ) : (
+                                  <div className="text-center text-gray-400 italic py-2">
+                                      Propiedad no asignada a ningún usuario propietario.
+                                      <div className="mt-2 text-xs bg-yellow-50 text-yellow-700 p-2 rounded border border-yellow-200">
+                                          Ve a la sección "Usuarios" para crear el perfil y asignarle esta propiedad.
+                                      </div>
+                                  </div>
+                              )}
+                          </div>
 
-                        <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                                <h4 className={`font-bold text-sm truncate ${isExpanded ? 'text-rentia-blue' : 'text-gray-800'}`}>{prop.address}</h4>
-                                {owner && <span className="text-[10px] text-gray-400 px-1.5 py-0.5 bg-gray-100 rounded border border-gray-200 truncate max-w-[100px]">{owner.name.split(' ')[0]}</span>}
-                            </div>
-                            <p className="text-xs text-gray-500">{prop.city} • {prop.rooms.length} Habs</p>
-                        </div>
-                    </div>
-                    
-                    <div className="flex gap-2 w-full sm:w-auto">
-                        <button onClick={(e) => { e.stopPropagation(); handleDeleteProperty(prop.id); }} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
-                    </div>
-                </div>
+                          {/* RECOMMENDATIONS SECTION */}
+                          <div className="bg-white p-4 rounded-xl border border-yellow-100 mb-6 shadow-sm">
+                              <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                  <Megaphone className="w-4 h-4 text-yellow-500"/> Recomendaciones al Propietario
+                              </h4>
+                              
+                              {/* Add New Rec */}
+                              <div className="flex gap-2 mb-4">
+                                  <input 
+                                    type="text" 
+                                    placeholder="Escribe recomendación (ej: Bajar precio H3)" 
+                                    className="flex-grow p-2 border rounded text-sm"
+                                    value={newRec.text}
+                                    onChange={e => setNewRec({...newRec, text: e.target.value})}
+                                  />
+                                  <select 
+                                    className="p-2 border rounded text-sm bg-gray-50"
+                                    value={newRec.type}
+                                    onChange={e => setNewRec({...newRec, type: e.target.value as any})}
+                                  >
+                                      <option value="info">Info</option>
+                                      <option value="price">Precio</option>
+                                      <option value="improvement">Mejora</option>
+                                  </select>
+                                  <button onClick={() => handleAddRecommendation(p.id)} className="bg-rentia-black text-white px-4 py-2 rounded text-sm font-bold flex items-center gap-1">
+                                      <Plus className="w-3 h-3"/> Aplicar
+                                  </button>
+                              </div>
 
-                {/* DETALLE EXPANDIDO */}
-                {isExpanded && (
-                    <div className="border-t border-gray-100 bg-gray-50 animate-in slide-in-from-top-2">
-                        
-                        {/* --- SECCIÓN 1: EXPEDIENTE DIGITAL PROPIETARIO --- */}
-                        <div className="p-4 grid grid-cols-1 lg:grid-cols-2 gap-4 border-b border-gray-200">
-                            
-                            {/* Tarjeta de Datos Personales */}
-                            <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-                                <h5 className="font-bold text-xs text-gray-500 uppercase mb-3 flex items-center justify-between">
-                                    <span className="flex items-center gap-2"><User className="w-3 h-3"/> Datos Propietario</span>
-                                    {isGdprSigned ? <span className="text-green-600 flex items-center gap-1"><ShieldCheck className="w-3 h-3"/> RGPD OK</span> : <span className="text-red-500 flex items-center gap-1"><ShieldAlert className="w-3 h-3"/> RGPD Pendiente</span>}
-                                </h5>
-                                {owner ? (
-                                    <div className="space-y-2 text-sm">
-                                        <div className="flex justify-between border-b border-gray-50 pb-1">
-                                            <span className="text-gray-500">Nombre:</span>
-                                            <span className="font-bold">{owner.name}</span>
+                              {/* List Recs */}
+                              <div className="space-y-2">
+                                  {p.ownerRecommendations?.map(rec => (
+                                      <div key={rec.id} className={`p-3 rounded-lg border flex justify-between items-center text-sm ${rec.type === 'price' ? 'bg-green-50 border-green-200 text-green-800' : rec.type === 'improvement' ? 'bg-blue-50 border-blue-200 text-blue-800' : 'bg-yellow-50 border-yellow-200 text-yellow-800'}`}>
+                                          <div className="flex items-center gap-2">
+                                              {rec.type === 'price' && <DollarSign className="w-4 h-4"/>}
+                                              {rec.type === 'improvement' && <Hammer className="w-4 h-4"/>}
+                                              <div>
+                                                  <p className="font-bold">{rec.text}</p>
+                                                  <p className="text-[10px] opacity-70">{new Date(rec.date).toLocaleDateString()}</p>
+                                              </div>
+                                          </div>
+                                          <button onClick={() => handleDeleteRecommendation(p.id, rec.id)} className="text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4"/></button>
+                                      </div>
+                                  ))}
+                              </div>
+                          </div>
+
+                          {/* GENERAL CONFIG */}
+                          <div className="bg-white p-4 rounded-xl border border-gray-200 mb-6 shadow-sm">
+                              <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                  <Settings className="w-4 h-4 text-gray-500"/> Configuración Inmueble
+                              </h4>
+                              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                                  <div className="md:col-span-1">
+                                      <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Dirección</label>
+                                      <input type="text" className="w-full p-2 border rounded-lg text-sm bg-gray-50" value={p.address} onChange={e => handlePropertyFieldChange(p.id, 'address', e.target.value)} />
+                                  </div>
+                                  <div>
+                                      <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Planta</label>
+                                      <input type="text" className="w-full p-2 border rounded-lg text-sm bg-gray-50" value={p.floor} onChange={e => handlePropertyFieldChange(p.id, 'floor', e.target.value)} />
+                                  </div>
+                                  <div className="md:col-span-2">
+                                      <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Google Maps Link</label>
+                                      <input type="text" className="w-full p-2 border rounded-lg text-sm bg-gray-50" value={p.googleMapsLink} onChange={e => handlePropertyFieldChange(p.id, 'googleMapsLink', e.target.value)} />
+                                  </div>
+                              </div>
+                              
+                              {/* NEW ROW: PAYMENT DAY & COMMISSION */}
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                                  <div>
+                                       <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 flex items-center gap-1"><Calendar className="w-3 h-3"/> Día Pago (1-31)</label>
+                                       <input 
+                                          type="number" 
+                                          min="1" 
+                                          max="31" 
+                                          className="w-full p-2 border rounded-lg text-sm bg-white font-mono" 
+                                          value={p.transferDay || ''} 
+                                          onChange={(e) => handlePropertyFieldChange(p.id, 'transferDay', Number(e.target.value))} 
+                                          placeholder="Ej: 5"
+                                       />
+                                  </div>
+                                  <div>
+                                       <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 flex items-center gap-1 text-rentia-blue">% Gestión (+IVA)</label>
+                                       <div className="relative">
+                                          <input 
+                                              type="number" 
+                                              step="0.1" 
+                                              className="w-full p-2 border border-rentia-blue/30 rounded-lg text-sm bg-blue-50 font-bold text-rentia-blue focus:ring-rentia-blue focus:border-rentia-blue" 
+                                              value={p.managementCommission || ''} 
+                                              onChange={(e) => handlePropertyFieldChange(p.id, 'managementCommission', Number(e.target.value))} 
+                                              placeholder="10"
+                                          />
+                                          <Percent className="absolute right-3 top-2.5 w-3 h-3 text-rentia-blue/50 pointer-events-none" />
+                                       </div>
+                                  </div>
+                              </div>
+
+                              <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
+                                  <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-2">
+                                          <Sparkles className="w-4 h-4 text-blue-600" />
+                                          <span className="text-sm font-bold text-blue-800">Limpieza</span>
+                                      </div>
+                                      <button 
+                                          onClick={() => toggleCleaningService(p.id)}
+                                          className={`text-xs font-bold px-3 py-1 rounded transition-colors ${p.cleaningConfig?.enabled ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-blue-600 text-white shadow-sm'}`}
+                                      >
+                                          {p.cleaningConfig?.enabled ? 'Desactivar' : 'Activar'}
+                                      </button>
+                                  </div>
+                                  
+                                  {p.cleaningConfig?.enabled && (
+                                    <div className="mt-3 pt-3 border-t border-blue-200 w-full animate-in slide-in-from-top-2">
+                                        <div className="flex flex-wrap gap-2 mb-2">
+                                            {['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(day => (
+                                                 <button 
+                                                    key={day} 
+                                                    onClick={() => toggleCleaningDay(p.id, day)} 
+                                                    className={`px-2 py-1 text-[10px] rounded border ${p.cleaningConfig?.days.includes(day) ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-500 border-gray-300'}`}
+                                                 >
+                                                    {day.slice(0,3)}
+                                                 </button>
+                                            ))}
                                         </div>
-                                        <div className="flex justify-between border-b border-gray-50 pb-1">
-                                            <span className="text-gray-500">DNI:</span>
-                                            <SensitiveDataDisplay value={owner.dni || '-'} type="dni" />
-                                        </div>
-                                        <div className="flex justify-between border-b border-gray-50 pb-1">
-                                            <span className="text-gray-500">Teléfono:</span>
-                                            <SensitiveDataDisplay value={owner.phone || '-'} type="phone" />
-                                        </div>
-                                        <div className="flex justify-between border-b border-gray-50 pb-1">
-                                            <span className="text-gray-500">Email:</span>
-                                            <SensitiveDataDisplay value={owner.email} type="email" />
-                                        </div>
-                                        <div className="flex justify-between items-center pt-1 bg-blue-50 p-2 rounded">
-                                            <span className="text-gray-500 text-xs">IBAN:</span>
-                                            <SensitiveDataDisplay value={owner.bankAccount || '-'} type="iban" className="text-xs" />
+                                        <div className="grid grid-cols-2 gap-2">
+                                             <input 
+                                                type="text" 
+                                                placeholder="Horario (Ej: 10:00 - 12:00)" 
+                                                className="p-1 border rounded text-xs" 
+                                                value={p.cleaningConfig?.hours || ''} 
+                                                onChange={(e) => handleCleaningChange(p.id, 'hours', e.target.value)}
+                                             />
+                                             <div className="relative">
+                                                <input 
+                                                    type="number" 
+                                                    placeholder="Coste/Hora (€)" 
+                                                    className="p-1 border rounded text-xs w-full pr-8" 
+                                                    value={p.cleaningConfig?.costPerHour || ''} 
+                                                    onChange={(e) => handleCleaningChange(p.id, 'costPerHour', Number(e.target.value))}
+                                                />
+                                                <span className="absolute right-1 top-1.5 text-[8px] text-gray-400">(IVA inc.)</span>
+                                             </div>
                                         </div>
                                     </div>
-                                ) : (
-                                    <div className="text-center py-4 text-gray-400 text-xs italic">
-                                        No hay propietario asignado. Ve a "Usuarios" y asigna uno.
-                                    </div>
-                                )}
-                            </div>
+                                  )}
+                              </div>
+                          </div>
 
-                            {/* Tarjeta de Documentación y Comunidad */}
-                            <div className="space-y-4">
-                                {/* Info Comunidad */}
-                                <div className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
-                                    <h5 className="font-bold text-xs text-gray-500 uppercase mb-2 flex items-center gap-2"><Building className="w-3 h-3"/> Info Comunidad</h5>
-                                    <div className="grid grid-cols-2 gap-2 text-xs">
-                                        <div className="bg-gray-50 p-2 rounded">
-                                            <span className="block text-gray-400">Presidente</span>
-                                            <span className="font-bold">{prop.communityInfo?.presidentPhone || '-'}</span>
-                                        </div>
-                                        <div className="bg-gray-50 p-2 rounded">
-                                            <span className="block text-gray-400">Administrador</span>
-                                            <span className="font-bold">{prop.communityInfo?.adminCompany || '-'}</span>
-                                        </div>
-                                    </div>
-                                </div>
+                          <div className="flex justify-end mb-6">
+                              <button onClick={() => handleSaveAll(p.id)} disabled={saving} className="bg-rentia-black text-white px-6 py-2 rounded-lg font-bold text-sm shadow-lg hover:bg-gray-800 transition-colors flex items-center gap-2">
+                                  {saving ? <RefreshCw className="w-4 h-4 animate-spin"/> : <Save className="w-4 h-4"/>}
+                                  Guardar Todo
+                              </button>
+                          </div>
 
-                                {/* Archivos Subidos por Propietario */}
-                                <div className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
-                                    <h5 className="font-bold text-xs text-gray-500 uppercase mb-2 flex items-center gap-2"><FileCheck className="w-3 h-3"/> Documentos Compartidos</h5>
-                                    <div className="max-h-32 overflow-y-auto custom-scrollbar space-y-1">
-                                        {propertyDocs.length === 0 && propertyInvoices.length === 0 && <p className="text-xs text-gray-400 italic">No hay archivos.</p>}
-                                        
-                                        {propertyDocs.map(doc => (
-                                            <div key={doc.id} className="flex justify-between items-center text-xs p-1.5 bg-gray-50 rounded hover:bg-gray-100">
-                                                <span className="truncate max-w-[150px]">{doc.name}</span>
-                                                <a href={doc.url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline flex items-center gap-1"><Download className="w-3 h-3"/> Doc</a>
-                                            </div>
-                                        ))}
-                                        {propertyInvoices.map(inv => (
-                                            <div key={inv.id} className="flex justify-between items-center text-xs p-1.5 bg-yellow-50 rounded hover:bg-yellow-100">
-                                                <span className="truncate max-w-[150px]">{inv.type} ({inv.amount}€)</span>
-                                                <a href={inv.fileUrl} target="_blank" rel="noreferrer" className="text-yellow-700 hover:underline flex items-center gap-1"><Download className="w-3 h-3"/> Fac</a>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                          {/* ROOMS LIST */}
+                          <div className="space-y-4">
+                              {p.rooms.map(room => {
+                                  const activeContract = getActiveContract(room.id);
+                                  
+                                  return (
+                                  <div key={room.id} className={`bg-white p-4 rounded-xl border-l-4 shadow-sm ${room.status === 'occupied' ? 'border-l-green-500' : 'border-l-gray-300'}`}>
+                                      <div className="flex justify-between items-center mb-4">
+                                          <div className="flex items-center gap-3">
+                                              <span className="font-bold text-lg">{room.name}</span>
+                                              <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${room.status === 'occupied' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{room.status}</span>
+                                          </div>
+                                          <div className="flex items-center gap-2">
+                                              <span className="text-sm font-bold text-gray-500">Precio:</span>
+                                              <input 
+                                                  type="number" 
+                                                  className="w-20 p-1 border rounded text-right font-bold text-rentia-blue" 
+                                                  value={room.price} 
+                                                  onChange={e => handleRoomChange(p.id, room.id, 'price', Number(e.target.value))}
+                                              />
+                                          </div>
+                                      </div>
 
-                        {/* --- SECCIÓN 2: CONFIGURACIÓN Y HABITACIONES (Original) --- */}
-                        <div className="p-4">
-                            {/* Configuración Propiedad */}
-                            <div className="mb-4 bg-white p-4 rounded-lg border border-gray-200">
-                                <h5 className="font-bold text-xs text-gray-500 uppercase mb-3 flex items-center gap-2"><Settings className="w-3 h-3"/> Configuración Inmueble</h5>
-                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                                    <input value={prop.address} onChange={(e) => handlePropertyFieldChange(prop.id, 'address', e.target.value)} className="border p-2 rounded text-sm" placeholder="Dirección" />
-                                    <input value={prop.floor} onChange={(e) => handlePropertyFieldChange(prop.id, 'floor', e.target.value)} className="border p-2 rounded text-sm" placeholder="Planta" />
-                                    <input value={prop.googleMapsLink} onChange={(e) => handlePropertyFieldChange(prop.id, 'googleMapsLink', e.target.value)} className="border p-2 rounded text-sm" placeholder="Link Maps" />
-                                    <div className="relative">
-                                        <Calendar className="w-4 h-4 absolute left-2.5 top-2.5 text-gray-400"/>
-                                        <input type="number" min="1" max="31" value={prop.transferDay || ''} onChange={(e) => handlePropertyFieldChange(prop.id, 'transferDay', Number(e.target.value))} className="border p-2 pl-9 rounded text-sm w-full" placeholder="Día Pago (1-31)" title="Día de transferencia al propietario"/>
-                                    </div>
-                                </div>
-                                <div className="mb-4"><ImageUploader folder="properties" label="Portada" compact onUploadComplete={(url) => handlePropertyFieldChange(prop.id, 'image', url)} /></div>
+                                      {/* Room Controls Grid */}
+                                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                                          <div>
+                                              <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Estado</label>
+                                              <select 
+                                                  className="w-full p-2 border rounded text-sm bg-white"
+                                                  value={room.status}
+                                                  onChange={e => handleRoomChange(p.id, room.id, 'status', e.target.value)}
+                                              >
+                                                  <option value="available">Disponible</option>
+                                                  <option value="occupied">Ocupada</option>
+                                                  <option value="reserved">Reservada</option>
+                                              </select>
+                                          </div>
+                                          
+                                          <div>
+                                              <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Disponibilidad</label>
+                                              <input 
+                                                  type="date" 
+                                                  className="w-full p-2 border rounded text-sm"
+                                                  value={dateToInput(room.availableFrom)}
+                                                  onChange={e => handleRoomChange(p.id, room.id, 'availableFrom', inputToDate(e.target.value))}
+                                              />
+                                          </div>
 
-                                {/* Config Limpieza */}
-                                <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-3">
-                                    <div className="flex items-center gap-2 mb-2"><Sparkles className="w-4 h-4 text-indigo-600" /><h6 className="font-bold text-sm text-indigo-900">Limpieza</h6></div>
-                                    <div className="flex flex-wrap items-center gap-4 mb-2">
-                                        <label className="flex items-center gap-2 cursor-pointer bg-white px-3 py-1.5 rounded border border-indigo-200"><input type="checkbox" checked={prop.cleaningConfig?.enabled || false} onChange={(e) => handleCleaningChange(prop.id, 'enabled', e.target.checked)} className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"/><span className="text-xs font-bold text-indigo-700">Activar</span></label>
-                                        {prop.cleaningConfig?.enabled && (<><div className="flex items-center gap-1 bg-white px-2 py-1 rounded border border-indigo-200"><Clock className="w-3 h-3 text-indigo-400" /><input type="text" placeholder="10:00 - 13:00" className="text-xs border-none focus:ring-0 w-24 p-0" value={prop.cleaningConfig?.hours || ''} onChange={(e) => handleCleaningChange(prop.id, 'hours', e.target.value)}/></div><div className="flex items-center gap-1 bg-white px-2 py-1 rounded border border-indigo-200"><Euro className="w-3 h-3 text-indigo-400" /><input type="number" placeholder="€/h" className="text-xs border-none focus:ring-0 w-12 p-0" value={prop.cleaningConfig?.costPerHour || ''} onChange={(e) => handleCleaningChange(prop.id, 'costPerHour', Number(e.target.value))}/></div></>)}
-                                    </div>
-                                    {prop.cleaningConfig?.enabled && (<div className="flex flex-wrap gap-2">{['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(day => (<button key={day} onClick={() => toggleCleaningDay(prop.id, day)} className={`px-2 py-0.5 rounded text-[10px] font-bold ${prop.cleaningConfig?.days.includes(day) ? 'bg-indigo-600 text-white' : 'bg-white text-gray-500 border'}`}>{day.slice(0,3)}</button>))}</div>)}
-                                </div>
+                                          <div>
+                                              <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Gastos</label>
+                                              <select 
+                                                  className="w-full p-2 border rounded text-sm bg-white"
+                                                  value={room.expenses}
+                                                  onChange={e => handleRoomChange(p.id, room.id, 'expenses', e.target.value)}
+                                              >
+                                                  <option value="Gastos fijos aparte">Fijos Aparte</option>
+                                                  <option value="Se reparten los gastos">A Repartir</option>
+                                              </select>
+                                          </div>
+                                          
+                                          <div>
+                                              <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Perfil</label>
+                                              <select 
+                                                  className="w-full p-2 border rounded text-sm bg-white"
+                                                  value={room.targetProfile || 'both'}
+                                                  onChange={e => handleRoomChange(p.id, room.id, 'targetProfile', e.target.value)}
+                                              >
+                                                  <option value="both">Indiferente</option>
+                                                  <option value="students">Estudiantes</option>
+                                                  <option value="workers">Trabajadores</option>
+                                              </select>
+                                          </div>
+                                      </div>
 
-                                <div className="flex justify-end mt-4"><button onClick={() => handleSaveAll(prop.id)} className="bg-rentia-black text-white px-4 py-2 rounded text-xs font-bold flex items-center gap-2 hover:bg-gray-800"><Save className="w-3 h-3"/> Guardar Todo</button></div>
-                            </div>
+                                      {/* Features Toggles */}
+                                      <div className="flex flex-wrap gap-2 mb-4 bg-gray-50 p-2 rounded-lg">
+                                          <button onClick={() => handleRoomFeatureToggle(p.id, room.id, 'lock')} className={`px-2 py-1 rounded text-xs font-bold border transition-colors ${room.features?.includes('lock') ? 'bg-white border-rentia-blue text-rentia-blue shadow-sm' : 'border-transparent text-gray-400'}`}><Lock className="w-3 h-3 inline mr-1"/> Llave</button>
+                                          <button onClick={() => handleRoomFeatureToggle(p.id, room.id, 'balcony')} className={`px-2 py-1 rounded text-xs font-bold border transition-colors ${room.features?.includes('balcony') ? 'bg-white border-rentia-blue text-rentia-blue shadow-sm' : 'border-transparent text-gray-400'}`}><Sun className="w-3 h-3 inline mr-1"/> Balcón</button>
+                                          <button onClick={() => handleRoomFeatureToggle(p.id, room.id, 'smart_tv')} className={`px-2 py-1 rounded text-xs font-bold border transition-colors ${room.features?.includes('smart_tv') ? 'bg-white border-rentia-blue text-rentia-blue shadow-sm' : 'border-transparent text-gray-400'}`}><Tv className="w-3 h-3 inline mr-1"/> TV</button>
+                                          <button onClick={() => handleRoomFeatureToggle(p.id, room.id, 'desk')} className={`px-2 py-1 rounded text-xs font-bold border transition-colors ${room.features?.includes('desk') ? 'bg-white border-rentia-blue text-rentia-blue shadow-sm' : 'border-transparent text-gray-400'}`}><Monitor className="w-3 h-3 inline mr-1"/> Escritorio</button>
+                                          <button onClick={() => handleRoomChange(p.id, room.id, 'hasAirConditioning', !room.hasAirConditioning)} className={`px-2 py-1 rounded text-xs font-bold border transition-colors ${room.hasAirConditioning ? 'bg-white border-rentia-blue text-rentia-blue shadow-sm' : 'border-transparent text-gray-400'}`}><Wind className="w-3 h-3 inline mr-1"/> A/C</button>
+                                      </div>
 
-                            {/* Habitaciones */}
-                            <div className="grid grid-cols-1 gap-3">
-                                {prop.rooms.map((room, idx) => {
-                                    const contract = getActiveContract(room.id);
-                                    return (
-                                    <div key={room.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden relative">
-                                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-rentia-blue"></div>
-                                        <div className="p-3 flex flex-col gap-3">
-                                            <div className="flex justify-between items-center border-b border-gray-100 pb-2">
-                                                <div className="flex items-center gap-2">
-                                                    <input value={room.name} onChange={(e) => handleRoomChange(prop.id, room.id, 'name', e.target.value)} className="font-bold text-sm w-12 bg-gray-50 border border-gray-200 rounded px-1 py-0.5" />
-                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${room.status === 'available' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{room.status}</span>
-                                                </div>
-                                                <div className="flex items-center gap-1"><span className="text-xs text-gray-500">Precio:</span><input type="number" value={room.price} onChange={(e) => handleRoomChange(prop.id, room.id, 'price', Number(e.target.value))} className="w-16 font-bold text-rentia-blue bg-blue-50 border border-blue-100 rounded px-1 py-0.5 text-right text-sm" /></div>
-                                            </div>
-                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
-                                                <select value={room.status} onChange={(e) => handleRoomChange(prop.id, room.id, 'status', e.target.value)} className="border rounded p-1 bg-white text-xs"><option value="available">Disponible</option><option value="occupied">Ocupada</option><option value="reserved">Reservada</option></select>
-                                                <input type="date" value={dateToInput(room.availableFrom)} onChange={(e) => handleRoomChange(prop.id, room.id, 'availableFrom', inputToDate(e.target.value))} className="border rounded p-1 text-xs" />
-                                                <select value={room.expenses} onChange={(e) => handleRoomChange(prop.id, room.id, 'expenses', e.target.value)} className="border rounded p-1 bg-white text-xs"><option value="Gastos fijos aparte">Fijos aparte</option><option value="Se reparten los gastos">A repartir</option><option value="Gastos incluidos">Incluidos</option></select>
-                                                <select value={room.targetProfile} onChange={(e) => handleRoomChange(prop.id, room.id, 'targetProfile', e.target.value)} className="border rounded p-1 bg-white text-xs"><option value="both">Indiferente</option><option value="students">Estudiantes</option><option value="workers">Trabajadores</option></select>
-                                            </div>
-                                            <div className="flex flex-wrap gap-2">
-                                                {[{id: 'lock', icon: <Lock className="w-3 h-3"/>, label: 'Llave'}, {id: 'balcony', icon: <Sun className="w-3 h-3"/>, label: 'Balcón'}, {id: 'smart_tv', icon: <Tv className="w-3 h-3"/>, label: 'TV'}, {id: 'desk', icon: <Monitor className="w-3 h-3"/>, label: 'Escritorio'}].map(feat => (
-                                                    <button key={feat.id} onClick={() => handleRoomFeatureToggle(prop.id, room.id, feat.id)} className={`px-2 py-0.5 rounded border text-[10px] font-bold flex items-center gap-1 ${room.features?.includes(feat.id) ? 'bg-indigo-100 text-indigo-700 border-indigo-200' : 'bg-gray-50 text-gray-400 border-gray-200'}`}>{feat.icon} {feat.label}</button>
-                                                ))}
-                                                <button onClick={() => handleRoomChange(prop.id, room.id, 'hasAirConditioning', !room.hasAirConditioning)} className={`px-2 py-0.5 rounded border text-[10px] font-bold flex items-center gap-1 ${room.hasAirConditioning ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-gray-50 text-gray-400 border-gray-200'}`}><Wind className="w-3 h-3" /> A/C</button>
-                                            </div>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-gray-100">
-                                                <div className="bg-gray-50 p-2 rounded border border-gray-200 flex justify-between items-center">
-                                                    <span className="text-[10px] font-bold text-gray-500 uppercase flex items-center gap-1"><FileText className="w-3 h-3"/> Contrato</span>
-                                                    {contract ? <button onClick={() => setContractModalConfig({ isOpen: true, mode: 'details', contractId: contract.id })} className="text-[10px] text-blue-600 font-bold hover:underline">{contract.tenantName}</button> : <button onClick={() => setContractModalConfig({ isOpen: true, mode: 'create', preSelectedRoom: { propertyId: prop.id, roomId: room.id, price: room.price, roomName: room.name, propertyAddress: prop.address } })} className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded font-bold hover:bg-green-200">+ Crear</button>}
-                                                </div>
-                                                <div className="bg-gray-50 p-2 rounded border border-gray-200 flex justify-between items-center">
-                                                    <span className="text-[10px] font-bold text-gray-500 uppercase flex items-center gap-1"><ImageIcon className="w-3 h-3"/> Fotos ({room.images?.length || 0})</span>
-                                                    <div className="scale-75 origin-right"><ImageUploader folder={`rooms/${room.id}`} compact onUploadComplete={(url) => addRoomImage(prop.id, room.id, url)} /></div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </div>
-            );
-        })}
+                                      {/* Recommendations specific to Room */}
+                                      <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-100 mb-4">
+                                          <h5 className="font-bold text-[10px] text-yellow-800 uppercase mb-2">Recomendaciones Habitación ({room.recommendations?.length || 0})</h5>
+                                          <div className="space-y-2">
+                                              {room.recommendations?.map((rec, i) => (
+                                                  <div key={i} className="flex justify-between items-center text-xs bg-white p-2 rounded border border-yellow-200">
+                                                      <span className="text-gray-600">{rec.text}</span>
+                                                      <button onClick={() => handleDeleteRoomRecommendation(p.id, room.id, rec.id)} className="text-red-400 hover:text-red-600"><Trash2 className="w-3 h-3"/></button>
+                                                  </div>
+                                              ))}
+                                              <div className="flex gap-2 mt-2">
+                                                  <input 
+                                                      type="text" 
+                                                      placeholder="Añadir aviso específico..." 
+                                                      className="flex-grow p-1.5 border rounded text-xs"
+                                                      value={roomRecInputs[room.id] || ''}
+                                                      onChange={e => setRoomRecInputs({...roomRecInputs, [room.id]: e.target.value})}
+                                                  />
+                                                  <button onClick={() => handleAddRoomRecommendation(p.id, room.id)} className="bg-yellow-500 text-white px-2 rounded hover:bg-yellow-600"><Plus className="w-4 h-4"/></button>
+                                              </div>
+                                          </div>
+                                      </div>
+
+                                      {/* Contract Section */}
+                                      <div className="flex justify-between items-center pt-4 border-t border-gray-100">
+                                          <div className="flex items-center gap-2">
+                                              <FileText className="w-4 h-4 text-gray-400" />
+                                              <span className="text-xs font-bold text-gray-600 uppercase">Contrato</span>
+                                          </div>
+                                          {activeContract ? (
+                                              <div className="flex items-center gap-3">
+                                                  <div className="text-right">
+                                                      <p className="text-sm font-bold text-gray-800">{activeContract.tenantName}</p>
+                                                      <p className="text-[10px] text-gray-500">{new Date(activeContract.startDate).toLocaleDateString()} - {activeContract.endDate ? new Date(activeContract.endDate).toLocaleDateString() : 'Indef.'}</p>
+                                                  </div>
+                                                  <button className="bg-green-100 text-green-700 p-2 rounded-full hover:bg-green-200" title="Ver Contrato">
+                                                      <FileText className="w-4 h-4" />
+                                                  </button>
+                                              </div>
+                                          ) : (
+                                              <button onClick={() => setContractModalConfig({ isOpen: true, mode: 'create', preSelectedRoom: { propertyId: p.id, roomId: room.id, price: room.price, roomName: room.name, propertyAddress: p.address } })} className="bg-rentia-black text-white px-3 py-1.5 rounded text-xs font-bold flex items-center gap-1 hover:bg-gray-800">
+                                                  <Plus className="w-3 h-3"/> Crear Contrato
+                                              </button>
+                                          )}
+                                      </div>
+                                  </div>
+                              )})}
+                          </div>
+                      </div>
+                  )}
+              </div>
+          )})}
       </div>
+
+      {/* Contract Modal */}
+      {contractModalConfig.isOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+              <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl h-[90vh] overflow-hidden flex flex-col">
+                  <ContractManager 
+                      initialMode={contractModalConfig.mode} 
+                      preSelectedRoom={contractModalConfig.preSelectedRoom}
+                      onClose={() => setContractModalConfig({ isOpen: false, mode: 'list' })} 
+                  />
+              </div>
+          </div>
+      )}
     </div>
   );
 };

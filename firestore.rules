@@ -13,8 +13,11 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
+    // Verificación de Rol Robusta
     function hasRole(role) {
-      return isAuthenticated() && getUserData().role == role;
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
     }
 
     // Roles Jerárquicos
@@ -30,7 +33,6 @@ service cloud.firestore {
       return hasRole('worker');
     }
 
-    // Helper combinado para operaciones de gestión diaria
     function isStaffOrWorker() {
       return isStaff() || isWorker();
     }
@@ -44,34 +46,29 @@ service cloud.firestore {
       allow delete: if isStaff();
     }
 
-    // 2. PROPIEDADES (Catálogo y Configuración)
+    // 2. PROPIEDADES
     match /properties/{propertyId} {
-      // Lectura pública para la web
       allow read: if true; 
-      
-      // CRÍTICO: Permitir edición si es Staff/Worker O si el usuario es el dueño legítimo del documento (ownerId coincide).
-      // Esto soluciona el error al guardar la configuración financiera en el OwnerDashboard.
       allow update: if isStaffOrWorker() || (isAuthenticated() && resource.data.ownerId == request.auth.uid);
       allow create, delete: if isStaffOrWorker();
     }
 
-    // 3. DOCUMENTOS DE PROPIEDAD
+    // 3. DOCUMENTOS
     match /property_documents/{docId} {
       allow read: if isStaff() || isOwner() || isWorker();
       allow create: if isAuthenticated();
-      // MODIFICADO: Permitir al owner borrar SUS propios documentos (si se equivocó al subir)
       allow update: if isStaff();
       allow delete: if isStaff() || (isAuthenticated() && resource.data.ownerId == request.auth.uid);
     }
 
-    // 4. FACTURAS DE SUMINISTROS
+    // 4. FACTURAS SUMINISTROS
     match /supply_invoices/{invoiceId} {
       allow read: if isStaff() || isOwner() || isWorker();
       allow create: if isAuthenticated(); 
       allow update, delete: if isStaff();
     }
     
-    // 5. CÁLCULOS DE SUMINISTROS
+    // 5. CÁLCULOS SUMINISTROS
     match /supply_records/{recordId} {
       allow read: if isAuthenticated();
       allow write: if isStaff();
@@ -79,7 +76,6 @@ service cloud.firestore {
 
     // 6. AJUSTES ECONÓMICOS
     match /adjustments/{adjustmentId} {
-      // Permitimos lectura al owner si le pertenece
       allow read: if isStaff() || (isAuthenticated() && resource.data.ownerId == request.auth.uid);
       allow write: if isStaff();
     }
@@ -89,7 +85,7 @@ service cloud.firestore {
       allow read, write: if isStaff();
     }
 
-    // 8. OPORTUNIDADES (Venta)
+    // 8. OPORTUNIDADES
     match /opportunities/{opportunityId} {
       allow read: if true;
       allow write: if isStaff();
@@ -97,24 +93,20 @@ service cloud.firestore {
     
     // 9. CONTRATOS
     match /contracts/{contractId} {
-      // Workers necesitan leer contratos para saber quién está en la habitación si hay incidencias
       allow read: if isStaffOrWorker() || (isAuthenticated() && (resource.data.ownerId == request.auth.uid || resource.data.tenantId == request.auth.uid));
       allow write: if isStaff();
     }
 
     // 10. TAREAS
     match /tasks/{taskId} {
-      // Gestión total de tareas compartida
       allow read, write: if isStaffOrWorker();
     }
-
     match /task_boards/{boardId} {
       allow read, write: if isStaffOrWorker();
     }
 
-    // 11. PIPELINE CANDIDATOS
+    // 11. PIPELINE
     match /candidate_pipeline/{candidateId} {
-      // Workers pueden ver y gestionar candidatos para visitas
       allow read: if isStaffOrWorker() || (isAuthenticated() && resource.data.ownerId == request.auth.uid);
       allow write: if isStaffOrWorker();
     }
@@ -124,7 +116,7 @@ service cloud.firestore {
       allow read, write: if isStaffOrWorker();
     }
 
-    // 13. NOTICIAS INTERNAS
+    // 13. NOTICIAS
     match /internal_news/{newsId} {
       allow read: if isAuthenticated();
       allow write: if isStaff();
@@ -138,18 +130,16 @@ service cloud.firestore {
       allow delete: if isStaff() || (isWorker() && resource.data.workerId == request.auth.uid);
     }
 
-    // 15. WEB FORMS (Públicos para escritura inicial)
+    // 15. FORMULARIOS WEB
     match /buyer_requests/{requestId} {
       allow read: if true; 
       allow create: if true;
       allow update, delete: if isStaff();
     }
-
     match /opportunity_requests/{requestId} {
       allow create: if true;
       allow read, update, delete: if isStaff();
     }
-    
     match /pending_transfers/{transferId} {
       allow create: if true;
       allow read, update, delete: if isStaff();
@@ -159,18 +149,19 @@ service cloud.firestore {
     match /sales_tracker/{trackId} {
       allow read, write: if isStaff();
     }
-
     match /tenant_blacklist/{entryId} {
       allow read, write: if isStaff();
     }
 
     // 17. FACTURAS DE AGENCIA (LIQUIDACIONES)
     match /agency_invoices/{invoiceId} {
-        allow read: if isStaff() || (isAuthenticated() && resource.data.ownerId == request.auth.uid);
-        allow write: if isStaff();
+        // Staff puede hacer todo
+        allow read, write: if isStaff();
+        // Propietario solo puede leer las suyas
+        allow read: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
     }
 
-    // Regla por defecto de seguridad
+    // Regla por defecto
     match /{document=**} {
       allow read, write: if false;
     }

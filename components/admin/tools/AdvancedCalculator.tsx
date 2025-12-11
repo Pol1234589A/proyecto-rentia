@@ -4,7 +4,7 @@ import {
     Calculator, Plus, Trash2, Printer, 
     Settings, ToggleLeft, ToggleRight, 
     ChevronDown, User, FileText, Download,
-    Briefcase, Save, CheckCircle, Loader2, Building2, Info, Scale
+    Briefcase, Save, CheckCircle, Loader2, Building2, Info, Scale, Link as LinkIcon, AlertTriangle
 } from 'lucide-react';
 import { Property } from '../../../data/rooms';
 import { UserProfile } from '../../../types';
@@ -17,10 +17,10 @@ interface TenantInput {
     id: string;
     roomName: string;
     tenantName: string;
-    baseRent: number;      // Renta Base (Sujeta a comisión)
-    supplies: number;      // Suministros (No sujetos a comisión)
-    hasCleaning: boolean;  // Toggle
-    cleaningAmount: number;// Limpieza (No sujeta a comisión)
+    baseRent: number;      
+    supplies: number;      
+    hasCleaning: boolean;  
+    cleaningAmount: number;
 }
 
 interface Adjustment {
@@ -38,17 +38,15 @@ export const AdvancedCalculator: React.FC<AdvancedCalculatorProps> = ({ properti
     
     // --- ESTADO ---
 
-    // Configuración Global
     const [config, setConfig] = useState({
         invoiceNumber: `F-${new Date().getFullYear()}-${Math.floor(Math.random()*1000)}`,
         invoiceDate: new Date().toISOString().slice(0, 10),
-        month: new Date().toISOString().slice(0, 7), // YYYY-MM
+        month: new Date().toISOString().slice(0, 7), 
         commissionPercent: 10,
         vatPercent: 21,
-        selectedOwnerId: '', // ID de usuario en Firebase para guardar la factura
+        selectedOwnerId: '', 
     });
 
-    // Datos Fiscales (Manuales por defecto, rellenables)
     const [agencyData, setAgencyData] = useState({
         name: 'RENTIA INVESTMENTS, S.L.',
         cif: 'B-75995308',
@@ -61,21 +59,18 @@ export const AdvancedCalculator: React.FC<AdvancedCalculatorProps> = ({ properti
         nif: '',
         address: '',
         propertyAddress: '',
-        iban: '' // Nuevo campo para cuenta destino
+        iban: ''
     });
 
-    // Lista de propietarios para el selector
     const [owners, setOwners] = useState<UserProfile[]>([]);
     const [isSaving, setIsSaving] = useState(false);
 
-    // Inquilinos (Ingresos)
     const [tenants, setTenants] = useState<TenantInput[]>([
         { id: '1', roomName: 'H1', tenantName: '', baseRent: 0, supplies: 0, hasCleaning: false, cleaningAmount: 0 },
         { id: '2', roomName: 'H2', tenantName: '', baseRent: 0, supplies: 0, hasCleaning: false, cleaningAmount: 0 },
         { id: '3', roomName: 'H3', tenantName: '', baseRent: 0, supplies: 0, hasCleaning: false, cleaningAmount: 0 },
     ]);
 
-    // Ajustes (Gastos/Extras)
     const [adjustments, setAdjustments] = useState<Adjustment[]>([]);
 
     useEffect(() => {
@@ -92,44 +87,41 @@ export const AdvancedCalculator: React.FC<AdvancedCalculatorProps> = ({ properti
     // --- CÁLCULOS MATEMÁTICOS (CORE) ---
 
     const totals = useMemo(() => {
-        // 1. INGRESOS (CAJA)
-        const totalBaseRent = tenants.reduce((acc, t) => acc + t.baseRent, 0);
-        const totalSupplies = tenants.reduce((acc, t) => acc + t.supplies, 0);
-        const totalCleaning = tenants.reduce((acc, t) => acc + (t.hasCleaning ? t.cleaningAmount : 0), 0);
+        const safeNum = (n: any) => Number(n) || 0;
+
+        const totalBaseRent = tenants.reduce((acc, t) => acc + safeNum(t.baseRent), 0);
+        const totalSupplies = tenants.reduce((acc, t) => acc + safeNum(t.supplies), 0);
+        const totalCleaning = tenants.reduce((acc, t) => acc + (t.hasCleaning ? safeNum(t.cleaningAmount) : 0), 0);
         
         const totalCashIn = totalBaseRent + totalSupplies + totalCleaning;
 
-        // 2. HONORARIOS AGENCIA (Solo sobre Renta Base)
         const feeBase = totalBaseRent;
-        const feeNet = feeBase * (config.commissionPercent / 100);
-        const feeVAT = feeNet * (config.vatPercent / 100);
+        const feeNet = feeBase * (safeNum(config.commissionPercent) / 100);
+        const feeVAT = feeNet * (safeNum(config.vatPercent) / 100);
         const totalAgencyFee = feeNet + feeVAT;
 
-        // 3. AJUSTES (Suplidos y Descuentos)
         const totalSuplidos = adjustments
             .filter(a => a.type === 'suplido' || a.type === 'derrama')
-            .reduce((acc, a) => acc + a.amount, 0);
+            .reduce((acc, a) => acc + safeNum(a.amount), 0);
 
         const totalDiscounts = adjustments
             .filter(a => a.type === 'descuento')
-            .reduce((acc, a) => acc + a.amount, 0);
+            .reduce((acc, a) => acc + safeNum(a.amount), 0);
 
-        // 4. LIQUIDACIÓN FINAL
-        // Fórmula: Caja - Honorarios - Suplidos + Descuentos
         const netToOwner = totalCashIn - totalAgencyFee - totalSuplidos + totalDiscounts;
 
         return {
-            totalBaseRent,
-            totalSupplies,
-            totalCleaning,
-            totalCashIn,
-            feeBase,
-            feeNet,
-            feeVAT,
-            totalAgencyFee,
-            totalSuplidos,
-            totalDiscounts,
-            netToOwner
+            totalBaseRent: safeNum(totalBaseRent),
+            totalSupplies: safeNum(totalSupplies),
+            totalCleaning: safeNum(totalCleaning),
+            totalCashIn: safeNum(totalCashIn),
+            feeBase: safeNum(feeBase),
+            feeNet: safeNum(feeNet),
+            feeVAT: safeNum(feeVAT),
+            totalAgencyFee: safeNum(totalAgencyFee),
+            totalSuplidos: safeNum(totalSuplidos),
+            totalDiscounts: safeNum(totalDiscounts),
+            netToOwner: safeNum(netToOwner)
         };
     }, [tenants, config, adjustments]);
 
@@ -138,35 +130,50 @@ export const AdvancedCalculator: React.FC<AdvancedCalculatorProps> = ({ properti
     const handleLoadProperty = async (e: React.ChangeEvent<HTMLSelectElement>) => {
         const propId = e.target.value;
         const prop = properties.find(p => p.id === propId);
+        
+        // RESETEAR SIEMPRE PRIMERO para evitar que se quede el dueño anterior
+        setConfig(prev => ({ ...prev, selectedOwnerId: '' }));
+        setClientData({
+            name: '',
+            nif: '',
+            address: '',
+            iban: '',
+            propertyAddress: prop ? (prop.address + ', ' + prop.city) : ''
+        });
+
         if (!prop) return;
 
-        // Intentar autocompletar datos del cliente si el ownerId coincide
-        const owner = owners.find(o => o.id === prop.ownerId);
+        // Si la propiedad tiene dueño, lo cargamos
+        if (prop.ownerId) {
+            const owner = owners.find(o => o.id === prop.ownerId);
+            if (owner && owner.id) {
+                setConfig(prev => ({
+                    ...prev,
+                    selectedOwnerId: owner.id!
+                }));
+                
+                setClientData(prev => ({
+                    ...prev,
+                    name: owner.name || '',
+                    nif: owner.dni || '',
+                    address: owner.address || '',
+                    iban: owner.bankAccount || '',
+                    propertyAddress: prop.address + ', ' + prop.city,
+                }));
+            }
+        }
 
-        setConfig(prev => ({
-            ...prev,
-            commissionPercent: prop.managementCommission || 10,
-            selectedOwnerId: prop.ownerId || ''
-        }));
-
-        setClientData(prev => ({
-            ...prev,
-            name: owner?.name || '',
-            nif: owner?.dni || '',
-            address: owner?.address || '',
-            propertyAddress: prop.address + ', ' + prop.city,
-            iban: owner?.bankAccount || ''
-        }));
+        if (prop.managementCommission) {
+             setConfig(prev => ({ ...prev, commissionPercent: prop.managementCommission! }));
+        }
 
         // --- LÓGICA DE CONTRATOS ---
-        // Consultar contratos activos para obtener nombres reales
         let activeTenantsMap: Record<string, string> = {};
         try {
             const qContracts = query(collection(db, "contracts"), where("propertyId", "==", propId), where("status", "==", "active"));
             const snap = await getDocs(qContracts);
             snap.forEach(doc => {
                 const d = doc.data();
-                // Mapear ID de habitación -> Nombre Inquilino
                 if (d.roomId && d.tenantName) {
                     activeTenantsMap[d.roomId] = d.tenantName;
                 }
@@ -178,9 +185,8 @@ export const AdvancedCalculator: React.FC<AdvancedCalculatorProps> = ({ properti
         const newTenants = prop.rooms.map(r => ({
             id: r.id,
             roomName: r.name,
-            // Usar nombre del contrato si existe, sino el estado
             tenantName: activeTenantsMap[r.id] || (r.status === 'occupied' ? 'Ocupado' : 'Vacío'),
-            baseRent: r.price,
+            baseRent: Number(r.price) || 0,
             supplies: prop.suppliesConfig?.type === 'fixed' ? (prop.suppliesConfig.fixedAmount || 0) : 0,
             hasCleaning: false,
             cleaningAmount: 0
@@ -206,25 +212,55 @@ export const AdvancedCalculator: React.FC<AdvancedCalculatorProps> = ({ properti
     };
 
     const handleSaveInvoice = async () => {
-        if (!config.selectedOwnerId) return alert("Debes seleccionar un propietario vinculado (o cargar la propiedad) para guardar.");
-        if (!clientData.name) return alert("El nombre del cliente es obligatorio.");
+        if (!config.selectedOwnerId) return alert("ATENCIÓN: Debes seleccionar un 'Vincular Propietario' en la barra superior. Sin esto, la factura no se asignará a ninguna cuenta.");
+        
+        const finalOwnerName = clientData.name || "Cliente Sin Nombre";
 
         setIsSaving(true);
         try {
+            const safeTenants = tenants.map(t => ({
+                id: t.id || 'unknown',
+                roomName: t.roomName || 'Hab',
+                tenantName: t.tenantName || '-',
+                baseRent: Number(t.baseRent) || 0,
+                supplies: Number(t.supplies) || 0,
+                hasCleaning: !!t.hasCleaning,
+                cleaningAmount: Number(t.cleaningAmount) || 0
+            }));
+
+            const safeAdjustments = adjustments.map(a => ({
+                id: a.id || 'unknown',
+                concept: a.concept || 'Ajuste',
+                amount: Number(a.amount) || 0,
+                type: a.type
+            }));
+
             const invoicePayload = {
                 invoiceNumber: config.invoiceNumber,
                 date: config.invoiceDate,
-                ownerId: config.selectedOwnerId,
-                ownerName: clientData.name,
-                propertyAddress: clientData.propertyAddress,
-                totalAmount: totals.netToOwner, // Lo que se transfiere
-                agencyFee: totals.totalAgencyFee, // Lo que factura la agencia
-                ivaAmount: totals.feeVAT,
+                ownerId: config.selectedOwnerId, 
+                ownerName: finalOwnerName,       
+                propertyAddress: clientData.propertyAddress || '',
+                totalAmount: Number(totals.netToOwner) || 0, 
+                agencyFee: Number(totals.totalAgencyFee) || 0, 
+                ivaAmount: Number(totals.feeVAT) || 0,
                 details: {
                     month: config.month,
-                    tenants,
-                    adjustments,
-                    totals,
+                    tenants: safeTenants,
+                    adjustments: safeAdjustments,
+                    totals: {
+                        totalBaseRent: Number(totals.totalBaseRent) || 0,
+                        totalSupplies: Number(totals.totalSupplies) || 0,
+                        totalCleaning: Number(totals.totalCleaning) || 0,
+                        totalCashIn: Number(totals.totalCashIn) || 0,
+                        feeBase: Number(totals.feeBase) || 0,
+                        feeNet: Number(totals.feeNet) || 0,
+                        feeVAT: Number(totals.feeVAT) || 0,
+                        totalAgencyFee: Number(totals.totalAgencyFee) || 0,
+                        totalSuplidos: Number(totals.totalSuplidos) || 0,
+                        totalDiscounts: Number(totals.totalDiscounts) || 0,
+                        netToOwner: Number(totals.netToOwner) || 0
+                    },
                     agencyData,
                     clientData
                 },
@@ -233,10 +269,14 @@ export const AdvancedCalculator: React.FC<AdvancedCalculatorProps> = ({ properti
             };
 
             await addDoc(collection(db, "agency_invoices"), invoicePayload);
-            alert("Liquidación y Factura guardadas correctamente.");
-        } catch (error) {
+            alert("Liquidación guardada y enviada a la cuenta del propietario seleccionado.");
+        } catch (error: any) {
             console.error("Error saving invoice:", error);
-            alert("Error al guardar la factura.");
+            if (error.code === 'permission-denied') {
+                 alert("Error de Permisos: El sistema ha denegado la escritura. Asegúrate de estar logueado como Staff o Admin.");
+            } else {
+                 alert(`Error al guardar: ${error.message || 'Datos inválidos'}`);
+            }
         } finally {
             setIsSaving(false);
         }
@@ -276,11 +316,39 @@ export const AdvancedCalculator: React.FC<AdvancedCalculatorProps> = ({ properti
     const removeAdjustment = (id: string) => setAdjustments(prev => prev.filter(a => a.id !== id));
 
     const handlePrint = () => window.print();
+    
+    // Obtener nombre del propietario vinculado para mostrar feedback visual
+    const linkedOwnerName = owners.find(o => o.id === config.selectedOwnerId)?.name;
 
     // --- RENDER ---
 
     return (
         <div className="flex flex-col h-full bg-gray-100 font-sans">
+            
+            {/* ESTILOS DE IMPRESIÓN */}
+            <style>{`
+                @media print {
+                    body * {
+                        visibility: hidden;
+                    }
+                    #printable-area, #printable-area * {
+                        visibility: visible;
+                    }
+                    #printable-area {
+                        position: absolute;
+                        left: 0;
+                        top: 0;
+                        width: 100%;
+                        margin: 0;
+                        padding: 0;
+                        background: white;
+                    }
+                    /* Ocultar botones de acción en impresión dentro del área */
+                    .no-print {
+                        display: none !important;
+                    }
+                }
+            `}</style>
             
             {/* TOOLBAR (No se imprime) */}
             <div className="bg-white border-b border-gray-200 p-4 flex flex-col md:flex-row justify-between items-center gap-4 no-print shrink-0 shadow-sm z-10 sticky top-0">
@@ -303,16 +371,27 @@ export const AdvancedCalculator: React.FC<AdvancedCalculatorProps> = ({ properti
                         <ChevronDown className="w-4 h-4 text-gray-400 absolute right-2 top-2.5 pointer-events-none"/>
                     </div>
 
-                    <div className="relative">
-                        <select 
-                            value={config.selectedOwnerId} 
-                            onChange={handleSelectOwner}
-                            className="bg-gray-50 border border-gray-200 text-sm rounded-lg py-2 pl-3 pr-8 focus:ring-2 focus:ring-rentia-blue outline-none cursor-pointer hover:bg-white transition-colors"
-                        >
-                            <option value="">Vincular Propietario...</option>
-                            {owners.map(o => <option key={o.id} value={o.id!}>{o.name}</option>)}
-                        </select>
-                        <User className="w-4 h-4 text-gray-400 absolute right-2 top-2.5 pointer-events-none"/>
+                    <div className="flex flex-col relative">
+                        <div className="relative">
+                            <select 
+                                value={config.selectedOwnerId} 
+                                onChange={handleSelectOwner}
+                                className={`text-sm rounded-lg py-2 pl-3 pr-8 outline-none cursor-pointer transition-colors border ${!config.selectedOwnerId ? 'bg-red-50 border-red-300 text-red-700 animate-pulse font-bold' : 'bg-green-50 border-green-300 text-green-700 font-bold'}`}
+                            >
+                                <option value="">Vincular Propietario (Obligatorio)...</option>
+                                {owners.map(o => <option key={o.id} value={o.id!}>{o.name}</option>)}
+                            </select>
+                            <User className="w-4 h-4 text-gray-500 absolute right-2 top-2.5 pointer-events-none"/>
+                        </div>
+                        {config.selectedOwnerId ? (
+                            <span className="absolute -bottom-3 left-1 text-[9px] text-green-600 font-bold flex items-center gap-1 animate-in fade-in">
+                                <LinkIcon className="w-2 h-2"/> Se enviará a: {linkedOwnerName}
+                            </span>
+                        ) : (
+                            <span className="absolute -bottom-3 left-1 text-[9px] text-red-500 font-bold flex items-center gap-1 animate-in fade-in">
+                                <AlertTriangle className="w-2 h-2"/> Selecciona destinatario
+                            </span>
+                        )}
                     </div>
                     
                     <button onClick={handlePrint} className="flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-all text-sm font-bold">
@@ -327,7 +406,7 @@ export const AdvancedCalculator: React.FC<AdvancedCalculatorProps> = ({ properti
 
             {/* DOCUMENTO (Visual de Factura) */}
             <div className="flex-grow overflow-auto p-4 md:p-8 custom-scrollbar">
-                <div className="max-w-[210mm] mx-auto bg-white shadow-2xl border border-gray-200 min-h-[297mm] print:shadow-none print:border-none print:w-full print:max-w-none print:m-0 relative">
+                <div id="printable-area" className="max-w-[210mm] mx-auto bg-white shadow-2xl border border-gray-200 min-h-[297mm] print:shadow-none print:border-none print:w-full print:max-w-none print:m-0 relative">
                     
                     {/* 1. CABECERA FACTURA */}
                     <div className="p-12 pb-6 border-b border-gray-100 flex justify-between items-start">
@@ -335,9 +414,10 @@ export const AdvancedCalculator: React.FC<AdvancedCalculatorProps> = ({ properti
                         <div className="w-1/2">
                             <img src="https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/IMAGENES%20DE%20EMPRESA%2FLOGOS%2FPNG%2FLogo.png?alt=media&token=3d8358f0-2acc-4b82-824f-9e0a3c940240" alt="RentiaRoom" className="h-12 mb-4" />
                             <div className="text-sm text-gray-600 space-y-1">
-                                <input className="font-bold text-gray-900 border-none bg-transparent w-full focus:bg-gray-50" value={agencyData.name} onChange={e => setAgencyData({...agencyData, name: e.target.value})} />
+                                <textarea className="font-bold text-gray-900 border-none bg-transparent w-full focus:bg-gray-50 resize-none h-6 overflow-hidden" value={agencyData.name} onChange={e => setAgencyData({...agencyData, name: e.target.value})} rows={1} />
                                 <div className="flex gap-2 items-center"><span className="font-bold text-xs w-16">NIF:</span> <input className="border-none bg-transparent w-full focus:bg-gray-50" value={agencyData.cif} onChange={e => setAgencyData({...agencyData, cif: e.target.value})} /></div>
-                                <div className="flex gap-2 items-center"><span className="font-bold text-xs w-16">Dirección:</span> <input className="border-none bg-transparent w-full focus:bg-gray-50" value={agencyData.address} onChange={e => setAgencyData({...agencyData, address: e.target.value})} /></div>
+                                {/* Address as textarea to allow wrapping */}
+                                <div className="flex gap-2 items-start"><span className="font-bold text-xs w-16 mt-1">Dirección:</span> <textarea className="border-none bg-transparent w-full focus:bg-gray-50 resize-none overflow-hidden h-10 text-xs" value={agencyData.address} onChange={e => setAgencyData({...agencyData, address: e.target.value})} rows={2} /></div>
                             </div>
                         </div>
 
@@ -369,9 +449,10 @@ export const AdvancedCalculator: React.FC<AdvancedCalculatorProps> = ({ properti
                             <div className="space-y-1">
                                 <input placeholder="Nombre / Razón Social" className="block w-full font-bold text-lg bg-transparent border-b border-dashed border-gray-300 focus:border-rentia-blue outline-none py-1" value={clientData.name} onChange={e => setClientData({...clientData, name: e.target.value})} />
                                 <div className="flex gap-2"><span className="text-xs font-bold w-16 pt-1">NIF/DNI:</span> <input placeholder="DNI..." className="w-full bg-transparent border-b border-dashed border-gray-300 focus:border-rentia-blue outline-none text-sm" value={clientData.nif} onChange={e => setClientData({...clientData, nif: e.target.value})} /></div>
-                                <div className="flex gap-2"><span className="text-xs font-bold w-16 pt-1">Dirección:</span> <input placeholder="Dirección fiscal..." className="w-full bg-transparent border-b border-dashed border-gray-300 focus:border-rentia-blue outline-none text-sm" value={clientData.address} onChange={e => setClientData({...clientData, address: e.target.value})} /></div>
-                                {/* IBAN FIELD: Visibility Fix applied (removed /30 opacity) */}
-                                <div className="flex gap-2 items-center bg-yellow-50 p-1 rounded mt-1 border border-yellow-100"><span className="text-xs font-bold w-24 text-rentia-blue">Cuenta Abono:</span> <input placeholder="ES00 0000 0000 0000 0000 0000 0000" className="w-full bg-transparent border-b border-dashed border-gray-300 focus:border-rentia-blue outline-none text-sm font-mono" value={clientData.iban} onChange={e => setClientData({...clientData, iban: e.target.value})} /></div>
+                                {/* Address textarea */}
+                                <div className="flex gap-2 items-start"><span className="text-xs font-bold w-16 pt-1">Dirección:</span> <textarea placeholder="Dirección fiscal..." className="w-full bg-transparent border-b border-dashed border-gray-300 focus:border-rentia-blue outline-none text-sm resize-none h-10 overflow-hidden" value={clientData.address} onChange={e => setClientData({...clientData, address: e.target.value})} rows={2} /></div>
+                                {/* IBAN FIELD */}
+                                <div className="flex gap-2 items-center bg-yellow-50 p-1 rounded mt-1 border border-yellow-100"><span className="text-xs font-bold w-24 text-rentia-blue shrink-0">Cuenta Abono:</span> <input placeholder="ES00 0000 0000 0000 0000 0000 0000" className="w-full bg-transparent border-b border-dashed border-gray-300 focus:border-rentia-blue outline-none text-sm font-mono" value={clientData.iban} onChange={e => setClientData({...clientData, iban: e.target.value})} /></div>
                             </div>
                         </div>
                         <div className="w-1/3">
@@ -380,7 +461,7 @@ export const AdvancedCalculator: React.FC<AdvancedCalculatorProps> = ({ properti
                         </div>
                     </div>
 
-                    {/* 3. CUERPO DE LA LIQUIDACIÓN - Added significant padding bottom to avoid overlap */}
+                    {/* 3. CUERPO DE LA LIQUIDACIÓN - Fixed Padding */}
                     <div className="px-12 py-8 pb-64"> 
                         <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider border-b-2 border-gray-200 pb-2 mb-6">Detalle de Gestión y Liquidación</h3>
 
@@ -424,7 +505,7 @@ export const AdvancedCalculator: React.FC<AdvancedCalculatorProps> = ({ properti
                                                     {t.hasCleaning ? <input type="number" value={t.cleaningAmount} onChange={e => updateTenant(t.id, 'cleaningAmount', Number(e.target.value))} className="w-12 text-right bg-transparent border-b border-gray-200 text-xs"/> : '-'}
                                                 </div>
                                             </td>
-                                            <td className="p-2 text-right font-bold">{(t.baseRent + t.supplies + (t.hasCleaning ? t.cleaningAmount : 0)).toLocaleString()}€</td>
+                                            <td className="p-2 text-right font-bold">{(Number(t.baseRent||0) + Number(t.supplies||0) + (t.hasCleaning ? Number(t.cleaningAmount||0) : 0)).toLocaleString()}€</td>
                                             <td className="no-print text-center"><button onClick={() => removeTenantRow(t.id)} className="text-gray-300 hover:text-red-500"><Trash2 className="w-3 h-3"/></button></td>
                                         </tr>
                                     ))}

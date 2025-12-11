@@ -150,12 +150,9 @@ export const OwnerDashboard: React.FC = () => {
       return () => { unsubDocs(); unsubInvoices(); };
   }, [properties]);
 
-  // ... (RESTO DEL ARCHIVO SE MANTIENE IGUAL, solo cambia la importación del principio para añadir createPortal si faltaba y la query) ...
   const toggleExpand = (id: string) => {
     setExpandedPropId(expandedPropId === id ? null : id);
   };
-  
-  // (Mantengo todo el resto del código del componente igual, solo se modifica la query en el useEffect)
   
   const handleSmartUpload = async (e: React.ChangeEvent<HTMLInputElement>, propertyId: string, docKey: string, docLabel: string) => {
       const file = e.target.files?.[0];
@@ -645,22 +642,27 @@ export const OwnerDashboard: React.FC = () => {
                {/* ESTILOS DE IMPRESIÓN PARA PROPIETARIO */}
                 <style>{`
                     @media print {
-                        body * {
+                        body {
                             visibility: hidden;
-                        }
-                        #invoice-print-area, #invoice-print-area * {
-                            visibility: visible;
+                            height: auto !important;
+                            overflow: visible !important;
                         }
                         #invoice-print-area {
+                            visibility: visible;
                             position: absolute;
                             left: 0;
                             top: 0;
                             width: 100%;
-                            margin: 0;
-                            padding: 0;
                             background: white;
+                            z-index: 9999;
+                        }
+                        #invoice-print-area * {
+                            visibility: visible;
                         }
                         .print\\:hidden {
+                            display: none !important;
+                        }
+                        .no-print {
                             display: none !important;
                         }
                     }
@@ -684,7 +686,7 @@ export const OwnerDashboard: React.FC = () => {
 
                {/* DOCUMENTO (Visual de Factura idéntico al de Admin) */}
                <div className="flex-grow overflow-auto p-4 md:p-8 bg-gray-100">
-                    <div id="invoice-print-area" className="max-w-[210mm] mx-auto bg-white min-h-[297mm] shadow-2xl my-4 print:shadow-none print:m-0 print:w-full print:max-w-none relative border border-gray-200 print:border-none">
+                    <div id="invoice-print-area" className="max-w-[210mm] mx-auto bg-white min-h-[297mm] shadow-2xl my-4 relative border border-gray-200 print:shadow-none print:m-0 print:w-full print:max-w-none print:border-none">
                             
                             {/* 1. CABECERA FACTURA */}
                             <div className="p-12 pb-6 border-b border-gray-100 flex justify-between items-start">

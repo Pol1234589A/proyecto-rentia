@@ -286,6 +286,21 @@ export interface WorkerInvoice {
     createdAt?: any;
 }
 
+export interface AgencyInvoice {
+    id: string;
+    invoiceNumber: string;
+    date: string;
+    ownerId: string;
+    ownerName: string;
+    propertyAddress: string;
+    totalAmount: number; // El total que se transfiere
+    agencyFee: number; // La comisión cobrada
+    ivaAmount: number; // El IVA de la comisión
+    details: any; // JSON completo de la liquidación para reconstruirla
+    createdAt: any;
+    status: 'issued';
+}
+
 export const ITP_RATES: Record<string, number> = {
     'Murcia': 8,
     'Andalucía': 7,

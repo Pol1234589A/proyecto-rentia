@@ -49,9 +49,9 @@ service cloud.firestore {
       // Lectura pública para la web
       allow read: if true; 
       
-      // CRÍTICO: Escritura permitida para Staff y Workers.
-      // Owners pueden editar SOLO si son dueños de la propiedad (para configurar inversión)
-      allow update: if isStaffOrWorker() || (isOwner() && resource.data.ownerId == request.auth.uid);
+      // CRÍTICO: Permitir edición si es Staff/Worker O si el usuario es el dueño legítimo del documento (ownerId coincide).
+      // Esto soluciona el error al guardar la configuración financiera en el OwnerDashboard.
+      allow update: if isStaffOrWorker() || (isAuthenticated() && resource.data.ownerId == request.auth.uid);
       allow create, delete: if isStaffOrWorker();
     }
 
@@ -79,7 +79,8 @@ service cloud.firestore {
 
     // 6. AJUSTES ECONÓMICOS
     match /adjustments/{adjustmentId} {
-      allow read: if isStaff() || (isOwner() && resource.data.ownerId == request.auth.uid);
+      // Permitimos lectura al owner si le pertenece
+      allow read: if isStaff() || (isAuthenticated() && resource.data.ownerId == request.auth.uid);
       allow write: if isStaff();
     }
 
@@ -114,7 +115,7 @@ service cloud.firestore {
     // 11. PIPELINE CANDIDATOS
     match /candidate_pipeline/{candidateId} {
       // Workers pueden ver y gestionar candidatos para visitas
-      allow read: if isStaffOrWorker() || (isOwner() && resource.data.ownerId == request.auth.uid);
+      allow read: if isStaffOrWorker() || (isAuthenticated() && resource.data.ownerId == request.auth.uid);
       allow write: if isStaffOrWorker();
     }
 
@@ -161,6 +162,12 @@ service cloud.firestore {
 
     match /tenant_blacklist/{entryId} {
       allow read, write: if isStaff();
+    }
+
+    // 17. FACTURAS DE AGENCIA (LIQUIDACIONES)
+    match /agency_invoices/{invoiceId} {
+        allow read: if isStaff() || (isAuthenticated() && resource.data.ownerId == request.auth.uid);
+        allow write: if isStaff();
     }
 
     // Regla por defecto de seguridad

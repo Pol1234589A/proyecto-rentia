@@ -1,602 +1,280 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { 
-    Calculator, Plus, Trash2, Printer, 
-    Settings, ToggleLeft, ToggleRight, 
-    ChevronDown, User, FileText, Download,
-    Briefcase, Save, CheckCircle, Loader2, Building2, Info, Scale, Link as LinkIcon, AlertTriangle
-} from 'lucide-react';
-import { Property } from '../../../data/rooms';
-import { UserProfile } from '../../../types';
+import React, { useState, useEffect } from 'react';
 import { db } from '../../../firebase';
-import { collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { Calculator, Save, Printer, Plus, Trash2, Building, FileText, Download, User } from 'lucide-react';
+import { Property } from '../../../data/rooms';
 
-// --- TIPOS ---
-
-interface TenantInput {
-    id: string;
-    roomName: string;
-    tenantName: string;
-    baseRent: number;      
-    supplies: number;      
-    hasCleaning: boolean;  
-    cleaningAmount: number;
+interface Props {
+    properties: Property[];
 }
 
-interface Adjustment {
-    id: string;
-    concept: string;
-    amount: number;
-    type: 'suplido' | 'descuento' | 'derrama'; 
-}
-
-interface AdvancedCalculatorProps {
-    properties?: Property[];
-}
-
-export const AdvancedCalculator: React.FC<AdvancedCalculatorProps> = ({ properties = [] }) => {
+export const AdvancedCalculator: React.FC<Props> = ({ properties }) => {
+    const [selectedPropId, setSelectedPropId] = useState('');
+    const [month, setMonth] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
     
-    // --- ESTADO ---
-
-    const [config, setConfig] = useState({
-        invoiceNumber: `F-${new Date().getFullYear()}-${Math.floor(Math.random()*1000)}`,
-        invoiceDate: new Date().toISOString().slice(0, 10),
-        month: new Date().toISOString().slice(0, 7), 
-        commissionPercent: 10,
-        vatPercent: 21,
-        selectedOwnerId: '', 
-    });
-
     const [agencyData, setAgencyData] = useState({
-        name: 'RENTIA INVESTMENTS, S.L.',
+        name: 'Rentia Investments S.L.',
         cif: 'B-75995308',
-        address: 'Calle Brazal de Álamos, 7, 30130 Beniel (Murcia)',
-        registry: 'Sociedad inscrita en el Registro Mercantil de Murcia. Constituida en escritura otorgada el 27/02/2025 ante el Notario de Murcia D. José Javier Escolano Navarro, protocolo 757.' 
+        address: 'C/ Brazal de Álamos, 7, 30130, Beniel, Murcia',
+        representative: 'Pol Matencio Espinosa'
     });
 
-    const [clientData, setClientData] = useState({
-        name: '',
-        nif: '',
-        address: '',
-        propertyAddress: '',
-        iban: ''
-    });
-
-    const [owners, setOwners] = useState<UserProfile[]>([]);
-    const [isSaving, setIsSaving] = useState(false);
-
-    const [tenants, setTenants] = useState<TenantInput[]>([
-        { id: '1', roomName: 'H1', tenantName: '', baseRent: 0, supplies: 0, hasCleaning: false, cleaningAmount: 0 },
-        { id: '2', roomName: 'H2', tenantName: '', baseRent: 0, supplies: 0, hasCleaning: false, cleaningAmount: 0 },
-        { id: '3', roomName: 'H3', tenantName: '', baseRent: 0, supplies: 0, hasCleaning: false, cleaningAmount: 0 },
+    const [incomes, setIncomes] = useState<{id: number, concept: string, amount: number}[]>([
+        { id: 1, concept: 'Alquiler Mensual', amount: 0 }
     ]);
+    
+    const [expenses, setExpenses] = useState<{id: number, concept: string, amount: number}[]>([]);
+    
+    const [commissionRate, setCommissionRate] = useState(10);
+    const [vatRate, setVatRate] = useState(21);
+    const [invoiceNumber, setInvoiceNumber] = useState(`LIQ-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000)}`);
 
-    const [adjustments, setAdjustments] = useState<Adjustment[]>([]);
-
+    // Update defaults when property changes
     useEffect(() => {
-        const fetchOwners = async () => {
-            const q = query(collection(db, "users"), where("role", "==", "owner"));
-            const snap = await getDocs(q);
-            const list: UserProfile[] = [];
-            snap.forEach(doc => list.push({ ...doc.data(), id: doc.id } as UserProfile));
-            setOwners(list);
-        };
-        fetchOwners();
-    }, []);
-
-    // --- CÁLCULOS MATEMÁTICOS (CORE) ---
-
-    const totals = useMemo(() => {
-        const safeNum = (n: any) => Number(n) || 0;
-
-        const totalBaseRent = tenants.reduce((acc, t) => acc + safeNum(t.baseRent), 0);
-        const totalSupplies = tenants.reduce((acc, t) => acc + safeNum(t.supplies), 0);
-        const totalCleaning = tenants.reduce((acc, t) => acc + (t.hasCleaning ? safeNum(t.cleaningAmount) : 0), 0);
-        
-        const totalCashIn = totalBaseRent + totalSupplies + totalCleaning;
-
-        const feeBase = totalBaseRent;
-        const feeNet = feeBase * (safeNum(config.commissionPercent) / 100);
-        const feeVAT = feeNet * (safeNum(config.vatPercent) / 100);
-        const totalAgencyFee = feeNet + feeVAT;
-
-        const totalSuplidos = adjustments
-            .filter(a => a.type === 'suplido' || a.type === 'derrama')
-            .reduce((acc, a) => acc + safeNum(a.amount), 0);
-
-        const totalDiscounts = adjustments
-            .filter(a => a.type === 'descuento')
-            .reduce((acc, a) => acc + safeNum(a.amount), 0);
-
-        const netToOwner = totalCashIn - totalAgencyFee - totalSuplidos + totalDiscounts;
-
-        return {
-            totalBaseRent: safeNum(totalBaseRent),
-            totalSupplies: safeNum(totalSupplies),
-            totalCleaning: safeNum(totalCleaning),
-            totalCashIn: safeNum(totalCashIn),
-            feeBase: safeNum(feeBase),
-            feeNet: safeNum(feeNet),
-            feeVAT: safeNum(feeVAT),
-            totalAgencyFee: safeNum(totalAgencyFee),
-            totalSuplidos: safeNum(totalSuplidos),
-            totalDiscounts: safeNum(totalDiscounts),
-            netToOwner: safeNum(netToOwner)
-        };
-    }, [tenants, config, adjustments]);
-
-    // --- HANDLERS ---
-
-    const handleLoadProperty = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const propId = e.target.value;
-        const prop = properties.find(p => p.id === propId);
-        
-        // RESETEAR SIEMPRE PRIMERO para evitar que se quede el dueño anterior
-        setConfig(prev => ({ ...prev, selectedOwnerId: '' }));
-        setClientData({
-            name: '',
-            nif: '',
-            address: '',
-            iban: '',
-            propertyAddress: prop ? (prop.address + ', ' + prop.city) : ''
-        });
-
-        if (!prop) return;
-
-        // Si la propiedad tiene dueño, lo cargamos
-        if (prop.ownerId) {
-            const owner = owners.find(o => o.id === prop.ownerId);
-            if (owner && owner.id) {
-                setConfig(prev => ({
-                    ...prev,
-                    selectedOwnerId: owner.id!
-                }));
-                
-                setClientData(prev => ({
-                    ...prev,
-                    name: owner.name || '',
-                    nif: owner.dni || '',
-                    address: owner.address || '',
-                    iban: owner.bankAccount || '',
-                    propertyAddress: prop.address + ', ' + prop.city,
-                }));
-            }
+        const prop = properties.find(p => p.id === selectedPropId);
+        if (prop) {
+            // Estimate rent based on occupied rooms
+            const estimatedRent = prop.rooms
+                .filter(r => r.status === 'occupied')
+                .reduce((acc, r) => acc + r.price, 0);
+            
+            setIncomes([{ id: 1, concept: `Rentas ${month}`, amount: estimatedRent }]);
+            setCommissionRate(prop.managementCommission || 10);
         }
+    }, [selectedPropId, properties, month]);
 
-        if (prop.managementCommission) {
-             setConfig(prev => ({ ...prev, commissionPercent: prop.managementCommission! }));
-        }
+    // Calculations
+    const totalIncome = incomes.reduce((acc, curr) => acc + curr.amount, 0);
+    const totalExpenses = expenses.reduce((acc, curr) => acc + curr.amount, 0);
+    
+    const commissionBase = totalIncome * (commissionRate / 100);
+    const commissionVat = commissionBase * (vatRate / 100);
+    const totalCommission = commissionBase + commissionVat;
+    
+    const netToOwner = totalIncome - totalExpenses - totalCommission;
 
-        // --- LÓGICA DE CONTRATOS ---
-        let activeTenantsMap: Record<string, string> = {};
+    const handleSave = async () => {
+        if (!selectedPropId) return alert("Selecciona una propiedad");
+        const prop = properties.find(p => p.id === selectedPropId);
+        
         try {
-            const qContracts = query(collection(db, "contracts"), where("propertyId", "==", propId), where("status", "==", "active"));
-            const snap = await getDocs(qContracts);
-            snap.forEach(doc => {
-                const d = doc.data();
-                if (d.roomId && d.tenantName) {
-                    activeTenantsMap[d.roomId] = d.tenantName;
-                }
-            });
-        } catch (error) {
-            console.error("Error sincronizando contratos:", error);
-        }
-
-        const newTenants = prop.rooms.map(r => ({
-            id: r.id,
-            roomName: r.name,
-            tenantName: activeTenantsMap[r.id] || (r.status === 'occupied' ? 'Ocupado' : 'Vacío'),
-            baseRent: Number(r.price) || 0,
-            supplies: prop.suppliesConfig?.type === 'fixed' ? (prop.suppliesConfig.fixedAmount || 0) : 0,
-            hasCleaning: false,
-            cleaningAmount: 0
-        }));
-        setTenants(newTenants);
-    };
-
-    const handleSelectOwner = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const ownerId = e.target.value;
-        const owner = owners.find(o => o.id === ownerId);
-        
-        setConfig(prev => ({ ...prev, selectedOwnerId: ownerId }));
-        
-        if (owner) {
-            setClientData(prev => ({
-                ...prev,
-                name: owner.name || '',
-                nif: owner.dni || '',
-                address: owner.address || '',
-                iban: owner.bankAccount || ''
-            }));
-        }
-    };
-
-    const handleSaveInvoice = async () => {
-        if (!config.selectedOwnerId) return alert("ATENCIÓN: Debes seleccionar un 'Vincular Propietario' en la barra superior. Sin esto, la factura no se asignará a ninguna cuenta.");
-        
-        const finalOwnerName = clientData.name || "Cliente Sin Nombre";
-
-        setIsSaving(true);
-        try {
-            const safeTenants = tenants.map(t => ({
-                id: t.id || 'unknown',
-                roomName: t.roomName || 'Hab',
-                tenantName: t.tenantName || '-',
-                baseRent: Number(t.baseRent) || 0,
-                supplies: Number(t.supplies) || 0,
-                hasCleaning: !!t.hasCleaning,
-                cleaningAmount: Number(t.cleaningAmount) || 0
-            }));
-
-            const safeAdjustments = adjustments.map(a => ({
-                id: a.id || 'unknown',
-                concept: a.concept || 'Ajuste',
-                amount: Number(a.amount) || 0,
-                type: a.type
-            }));
-
-            const invoicePayload = {
-                invoiceNumber: config.invoiceNumber,
-                date: config.invoiceDate,
-                ownerId: config.selectedOwnerId, 
-                ownerName: finalOwnerName,       
-                propertyAddress: clientData.propertyAddress || '',
-                totalAmount: Number(totals.netToOwner) || 0, 
-                agencyFee: Number(totals.totalAgencyFee) || 0, 
-                ivaAmount: Number(totals.feeVAT) || 0,
+            await addDoc(collection(db, "agency_invoices"), {
+                invoiceNumber,
+                date: new Date().toISOString().split('T')[0],
+                ownerId: prop?.ownerId || 'unknown',
+                ownerName: prop?.address || 'Propietario',
+                propertyId: prop?.id,
+                propertyAddress: prop?.address,
+                totalAmount: netToOwner,
+                agencyFee: totalCommission,
+                ivaAmount: commissionVat,
                 details: {
-                    month: config.month,
-                    tenants: safeTenants,
-                    adjustments: safeAdjustments,
-                    totals: {
-                        totalBaseRent: Number(totals.totalBaseRent) || 0,
-                        totalSupplies: Number(totals.totalSupplies) || 0,
-                        totalCleaning: Number(totals.totalCleaning) || 0,
-                        totalCashIn: Number(totals.totalCashIn) || 0,
-                        feeBase: Number(totals.feeBase) || 0,
-                        feeNet: Number(totals.feeNet) || 0,
-                        feeVAT: Number(totals.feeVAT) || 0,
-                        totalAgencyFee: Number(totals.totalAgencyFee) || 0,
-                        totalSuplidos: Number(totals.totalSuplidos) || 0,
-                        totalDiscounts: Number(totals.totalDiscounts) || 0,
-                        netToOwner: Number(totals.netToOwner) || 0
-                    },
-                    agencyData,
-                    clientData
+                    month,
+                    incomes,
+                    expenses,
+                    commissionRate,
+                    vatRate,
+                    agencyData
                 },
                 status: 'issued',
                 createdAt: serverTimestamp()
-            };
-
-            await addDoc(collection(db, "agency_invoices"), invoicePayload);
-            alert("Liquidación guardada y enviada a la cuenta del propietario seleccionado.");
-        } catch (error: any) {
-            console.error("Error saving invoice:", error);
-            if (error.code === 'permission-denied') {
-                 alert("Error de Permisos: El sistema ha denegado la escritura. Asegúrate de estar logueado como Staff o Admin.");
-            } else {
-                 alert(`Error al guardar: ${error.message || 'Datos inválidos'}`);
-            }
-        } finally {
-            setIsSaving(false);
+            });
+            alert("Liquidación guardada correctamente");
+        } catch (e) {
+            console.error(e);
+            alert("Error al guardar");
         }
     };
 
-    const updateTenant = (id: string, field: keyof TenantInput, value: any) => {
-        setTenants(prev => prev.map(t => t.id === id ? { ...t, [field]: value } : t));
+    const handlePrint = () => {
+        window.print();
     };
-
-    const addTenantRow = () => {
-        setTenants([...tenants, { 
-            id: Date.now().toString(), 
-            roomName: `H${tenants.length + 1}`, 
-            tenantName: '', 
-            baseRent: 0, 
-            supplies: 0, 
-            hasCleaning: false, 
-            cleaningAmount: 0 
-        }]);
-    };
-
-    const removeTenantRow = (id: string) => setTenants(prev => prev.filter(t => t.id !== id));
-
-    const addAdjustment = (type: Adjustment['type']) => {
-        setAdjustments([...adjustments, {
-            id: Date.now().toString(),
-            concept: '',
-            amount: 0,
-            type
-        }]);
-    };
-
-    const updateAdjustment = (id: string, field: keyof Adjustment, value: any) => {
-        setAdjustments(prev => prev.map(a => a.id === id ? { ...a, [field]: value } : a));
-    };
-
-    const removeAdjustment = (id: string) => setAdjustments(prev => prev.filter(a => a.id !== id));
-
-    const handlePrint = () => window.print();
-    
-    // Obtener nombre del propietario vinculado para mostrar feedback visual
-    const linkedOwnerName = owners.find(o => o.id === config.selectedOwnerId)?.name;
-
-    // --- RENDER ---
 
     return (
-        <div className="flex flex-col h-full bg-gray-100 font-sans">
-            
-            {/* ESTILOS DE IMPRESIÓN */}
-            <style>{`
-                @media print {
-                    body * {
-                        visibility: hidden;
-                    }
-                    #printable-area, #printable-area * {
-                        visibility: visible;
-                    }
-                    #printable-area {
-                        position: absolute;
-                        left: 0;
-                        top: 0;
-                        width: 100%;
-                        margin: 0;
-                        padding: 0;
-                        background: white;
-                    }
-                    /* Ocultar botones de acción en impresión dentro del área */
-                    .no-print {
-                        display: none !important;
-                    }
-                }
-            `}</style>
-            
-            {/* TOOLBAR (No se imprime) */}
-            <div className="bg-white border-b border-gray-200 p-4 flex flex-col md:flex-row justify-between items-center gap-4 no-print shrink-0 shadow-sm z-10 sticky top-0">
-                <div className="flex items-center gap-3">
-                    <div className="p-2 bg-gradient-to-br from-rentia-black to-gray-800 rounded-lg text-white shadow-md">
-                        <Scale className="w-5 h-5" />
-                    </div>
-                    <div>
-                        <h2 className="text-lg font-bold text-gray-800 leading-tight">Facturación & Liquidación</h2>
-                        <p className="text-xs text-gray-500">Modelo Oficial</p>
-                    </div>
+        <div className="flex flex-col h-full bg-gray-50">
+            {/* Header / Toolbar */}
+            <div className="p-4 bg-white border-b border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4 no-print">
+                <div className="flex items-center gap-2">
+                    <Calculator className="w-5 h-5 text-rentia-blue" />
+                    <h2 className="font-bold text-gray-800">Generador de Liquidaciones</h2>
                 </div>
                 
-                <div className="flex gap-3 w-full md:w-auto items-center flex-wrap">
-                    <div className="relative">
-                        <select onChange={handleLoadProperty} className="bg-gray-50 border border-gray-200 text-sm rounded-lg py-2 pl-3 pr-8 focus:ring-2 focus:ring-rentia-blue outline-none cursor-pointer hover:bg-white transition-colors">
-                            <option value="">Cargar Propiedad...</option>
-                            {properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}
-                        </select>
-                        <ChevronDown className="w-4 h-4 text-gray-400 absolute right-2 top-2.5 pointer-events-none"/>
-                    </div>
+                <div className="flex gap-2 w-full md:w-auto">
+                    <select 
+                        value={selectedPropId} 
+                        onChange={(e) => setSelectedPropId(e.target.value)}
+                        className="p-2 border rounded-lg text-sm bg-white flex-grow md:w-64"
+                    >
+                        <option value="">Seleccionar Propiedad...</option>
+                        {properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}
+                    </select>
+                    <input 
+                        type="month" 
+                        value={month} 
+                        onChange={(e) => setMonth(e.target.value)}
+                        className="p-2 border rounded-lg text-sm bg-white"
+                    />
+                </div>
 
-                    <div className="flex flex-col relative">
-                        <div className="relative">
-                            <select 
-                                value={config.selectedOwnerId} 
-                                onChange={handleSelectOwner}
-                                className={`text-sm rounded-lg py-2 pl-3 pr-8 outline-none cursor-pointer transition-colors border ${!config.selectedOwnerId ? 'bg-red-50 border-red-300 text-red-700 animate-pulse font-bold' : 'bg-green-50 border-green-300 text-green-700 font-bold'}`}
-                            >
-                                <option value="">Vincular Propietario (Obligatorio)...</option>
-                                {owners.map(o => <option key={o.id} value={o.id!}>{o.name}</option>)}
-                            </select>
-                            <User className="w-4 h-4 text-gray-500 absolute right-2 top-2.5 pointer-events-none"/>
-                        </div>
-                        {config.selectedOwnerId ? (
-                            <span className="absolute -bottom-3 left-1 text-[9px] text-green-600 font-bold flex items-center gap-1 animate-in fade-in">
-                                <LinkIcon className="w-2 h-2"/> Se enviará a: {linkedOwnerName}
-                            </span>
-                        ) : (
-                            <span className="absolute -bottom-3 left-1 text-[9px] text-red-500 font-bold flex items-center gap-1 animate-in fade-in">
-                                <AlertTriangle className="w-2 h-2"/> Selecciona destinatario
-                            </span>
-                        )}
-                    </div>
-                    
-                    <button onClick={handlePrint} className="flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-all text-sm font-bold">
-                        <Printer className="w-4 h-4" /> Imprimir PDF
+                <div className="flex gap-2">
+                    <button onClick={handleSave} className="flex items-center gap-2 px-4 py-2 bg-rentia-black text-white rounded-lg text-sm font-bold hover:bg-gray-800 transition-colors">
+                        <Save className="w-4 h-4" /> Guardar
                     </button>
-
-                    <button onClick={handleSaveInvoice} disabled={isSaving} className="flex items-center gap-2 bg-rentia-blue text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-all shadow-md active:scale-95 text-sm font-bold disabled:opacity-50">
-                        {isSaving ? <Loader2 className="w-4 h-4 animate-spin"/> : <Save className="w-4 h-4" />} Guardar y Enviar
+                    <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 transition-colors">
+                        <Printer className="w-4 h-4" /> Imprimir
                     </button>
                 </div>
             </div>
 
-            {/* DOCUMENTO (Visual de Factura) */}
-            <div className="flex-grow overflow-auto p-4 md:p-8 custom-scrollbar">
-                <div id="printable-area" className="max-w-[210mm] mx-auto bg-white shadow-2xl border border-gray-200 min-h-[297mm] print:shadow-none print:border-none print:w-full print:max-w-none print:m-0 relative">
+            {/* Main Content (Preview / Editor) */}
+            <div className="flex-grow overflow-y-auto p-4 md:p-8">
+                <div className="max-w-4xl mx-auto bg-white shadow-lg rounded-none md:rounded-xl p-8 min-h-[1000px] print:shadow-none print:w-full print:max-w-none print:p-0">
                     
-                    {/* 1. CABECERA FACTURA */}
-                    <div className="p-12 pb-6 border-b border-gray-100 flex justify-between items-start">
-                        {/* EMISOR (Agencia) */}
-                        <div className="w-1/2">
-                            <img src="https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/IMAGENES%20DE%20EMPRESA%2FLOGOS%2FPNG%2FLogo.png?alt=media&token=3d8358f0-2acc-4b82-824f-9e0a3c940240" alt="RentiaRoom" className="h-12 mb-4" />
+                    {/* INVOICE HEADER */}
+                    <div className="flex flex-col sm:flex-row justify-between items-start mb-12 gap-6">
+                        <div className="w-full sm:w-1/2">
+                            <img src="https://i.ibb.co/QvzK6db3/Logo-Negativo.png" alt="RentiaRoom" className="h-12 filter invert mb-4 object-contain" />
                             <div className="text-sm text-gray-600 space-y-1">
-                                <textarea className="font-bold text-gray-900 border-none bg-transparent w-full focus:bg-gray-50 resize-none h-6 overflow-hidden" value={agencyData.name} onChange={e => setAgencyData({...agencyData, name: e.target.value})} rows={1} />
-                                <div className="flex gap-2 items-center"><span className="font-bold text-xs w-16">NIF:</span> <input className="border-none bg-transparent w-full focus:bg-gray-50" value={agencyData.cif} onChange={e => setAgencyData({...agencyData, cif: e.target.value})} /></div>
-                                {/* Address as textarea to allow wrapping */}
-                                <div className="flex gap-2 items-start"><span className="font-bold text-xs w-16 mt-1">Dirección:</span> <textarea className="border-none bg-transparent w-full focus:bg-gray-50 resize-none overflow-hidden h-10 text-xs" value={agencyData.address} onChange={e => setAgencyData({...agencyData, address: e.target.value})} rows={2} /></div>
+                                <input className="font-bold text-gray-900 border-none bg-transparent w-full focus:bg-gray-50 focus:ring-1 focus:ring-blue-200 rounded px-1" value={agencyData.name} onChange={e => setAgencyData({...agencyData, name: e.target.value})} />
+                                <div className="flex gap-2 items-center"><span className="font-bold text-xs w-16">NIF:</span> <input className="border-none bg-transparent w-full focus:bg-gray-50 text-xs focus:ring-1 focus:ring-blue-200 rounded px-1" value={agencyData.cif} onChange={e => setAgencyData({...agencyData, cif: e.target.value})} /></div>
+                                <div className="flex gap-2 items-center"><span className="font-bold text-xs w-16">Dirección:</span> <input className="border-none bg-transparent w-full focus:bg-gray-50 text-xs focus:ring-1 focus:ring-blue-200 rounded px-1" value={agencyData.address} onChange={e => setAgencyData({...agencyData, address: e.target.value})} /></div>
+                                <div className="flex gap-2 items-center"><span className="font-bold text-xs w-16">Admin:</span> <input className="border-none bg-transparent w-full focus:bg-gray-50 text-xs focus:ring-1 focus:ring-blue-200 rounded px-1" value={agencyData.representative} onChange={e => setAgencyData({...agencyData, representative: e.target.value})} /></div>
                             </div>
                         </div>
-
-                        {/* DATOS FACTURA */}
-                        <div className="w-1/3 text-right">
-                            <h1 className="text-2xl font-bold text-gray-900 font-display uppercase tracking-widest mb-1">LIQUIDACIÓN</h1>
-                            <h2 className="text-xs text-gray-500 uppercase tracking-widest mb-4">Y FACTURA DE HONORARIOS</h2>
-                            <div className="space-y-2">
-                                <div className="flex justify-between items-center bg-gray-50 p-2 rounded">
-                                    <span className="text-xs font-bold text-gray-500 uppercase">Nº Factura</span>
-                                    <input type="text" className="text-right font-mono font-bold bg-transparent outline-none w-24" value={config.invoiceNumber} onChange={e => setConfig({...config, invoiceNumber: e.target.value})} />
-                                </div>
-                                <div className="flex justify-between items-center bg-gray-50 p-2 rounded">
-                                    <span className="text-xs font-bold text-gray-500 uppercase">Fecha</span>
-                                    <input type="date" className="text-right font-mono font-bold bg-transparent outline-none" value={config.invoiceDate} onChange={e => setConfig({...config, invoiceDate: e.target.value})} />
-                                </div>
-                                <div className="flex justify-between items-center bg-gray-50 p-2 rounded">
-                                    <span className="text-xs font-bold text-gray-500 uppercase">Periodo</span>
-                                    <input type="month" className="text-right font-mono font-bold bg-transparent outline-none" value={config.month} onChange={e => setConfig({...config, month: e.target.value})} />
-                                </div>
+                        <div className="text-right">
+                            <h1 className="text-2xl font-bold text-rentia-blue mb-2">LIQUIDACIÓN</h1>
+                            <div className="text-sm text-gray-600">
+                                <p>Nº Documento: <span className="font-mono font-bold text-gray-900">{invoiceNumber}</span></p>
+                                <p>Fecha: {new Date().toLocaleDateString()}</p>
+                                <p className="mt-2 font-bold bg-gray-100 px-2 py-1 rounded inline-block">Mes: {month}</p>
                             </div>
                         </div>
                     </div>
 
-                    {/* 2. RECEPTOR (Cliente) */}
-                    <div className="px-12 py-6 bg-gray-50/30 flex justify-between">
-                        <div className="w-1/2">
-                            <h3 className="text-xs font-bold text-rentia-blue uppercase tracking-wider mb-2">Receptor (Cliente):</h3>
-                            <div className="space-y-1">
-                                <input placeholder="Nombre / Razón Social" className="block w-full font-bold text-lg bg-transparent border-b border-dashed border-gray-300 focus:border-rentia-blue outline-none py-1" value={clientData.name} onChange={e => setClientData({...clientData, name: e.target.value})} />
-                                <div className="flex gap-2"><span className="text-xs font-bold w-16 pt-1">NIF/DNI:</span> <input placeholder="DNI..." className="w-full bg-transparent border-b border-dashed border-gray-300 focus:border-rentia-blue outline-none text-sm" value={clientData.nif} onChange={e => setClientData({...clientData, nif: e.target.value})} /></div>
-                                {/* Address textarea */}
-                                <div className="flex gap-2 items-start"><span className="text-xs font-bold w-16 pt-1">Dirección:</span> <textarea placeholder="Dirección fiscal..." className="w-full bg-transparent border-b border-dashed border-gray-300 focus:border-rentia-blue outline-none text-sm resize-none h-10 overflow-hidden" value={clientData.address} onChange={e => setClientData({...clientData, address: e.target.value})} rows={2} /></div>
-                                {/* IBAN FIELD */}
-                                <div className="flex gap-2 items-center bg-yellow-50 p-1 rounded mt-1 border border-yellow-100"><span className="text-xs font-bold w-24 text-rentia-blue shrink-0">Cuenta Abono:</span> <input placeholder="ES00 0000 0000 0000 0000 0000 0000" className="w-full bg-transparent border-b border-dashed border-gray-300 focus:border-rentia-blue outline-none text-sm font-mono" value={clientData.iban} onChange={e => setClientData({...clientData, iban: e.target.value})} /></div>
-                            </div>
+                    {/* PROPERTY INFO */}
+                    <div className="mb-8 p-4 bg-gray-50 rounded-lg border border-gray-100 flex items-start gap-4">
+                        <div className="p-2 bg-white rounded-full text-gray-400 border border-gray-200">
+                            <Building className="w-5 h-5"/>
                         </div>
-                        <div className="w-1/3">
-                            <h3 className="text-xs font-bold text-rentia-blue uppercase tracking-wider mb-2">Propiedad Gestionada:</h3>
-                            <textarea placeholder="Dirección del inmueble..." className="w-full bg-transparent border border-gray-200 rounded p-2 text-sm h-20 resize-none focus:border-rentia-blue outline-none" value={clientData.propertyAddress} onChange={e => setClientData({...clientData, propertyAddress: e.target.value})} />
+                        <div>
+                            <h3 className="text-xs font-bold text-gray-400 uppercase mb-1">Propiedad Gestionada</h3>
+                            <p className="font-bold text-lg text-gray-800">{properties.find(p => p.id === selectedPropId)?.address || 'Seleccione Propiedad'}</p>
+                            <p className="text-sm text-gray-600">{properties.find(p => p.id === selectedPropId)?.city}</p>
                         </div>
                     </div>
 
-                    {/* 3. CUERPO DE LA LIQUIDACIÓN - Fixed Padding */}
-                    <div className="px-12 py-8 pb-64"> 
-                        <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider border-b-2 border-gray-200 pb-2 mb-6">Detalle de Gestión y Liquidación</h3>
-
-                        {/* DISCLAIMER LEGAL IMPORTANTE ACTUALIZADO */}
-                        <div className="mb-6 p-3 bg-blue-50 border border-blue-100 rounded text-[10px] text-blue-800 flex gap-2 items-start text-justify">
-                            <Scale className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                            <p>
-                                <strong>MANDATO DE GESTIÓN:</strong> Conforme al Art. 79.Dos.3º de la Ley del IVA (LIVA), los importes detallados en "Ingresos por Alquileres" son recibidos por cuenta y orden del propietario, teniendo la consideración de <strong>suplidos</strong> a efectos fiscales. Estos fondos no constituyen ingreso para la agencia y son transferidos íntegramente al titular. 
-                                La única operación sujeta a IVA por parte de Rentia Investments S.L. es la detallada en el apartado "Factura por Honorarios de Gestión".
-                            </p>
-                        </div>
-
-                        {/* Tabla Ingresos */}
-                        <div className="mb-8">
-                            <div className="flex justify-between items-center mb-2">
-                                <h4 className="text-xs font-bold text-gray-500 uppercase">1. Cobros por Cuenta del Cliente (Suplidos)</h4>
-                                <button onClick={addTenantRow} className="no-print text-[10px] bg-gray-100 px-2 py-1 rounded hover:bg-gray-200 flex items-center gap-1"><Plus className="w-3 h-3"/> Añadir Hab</button>
+                    {/* TABLES */}
+                    <div className="grid grid-cols-1 gap-8 mb-8">
+                        
+                        {/* INCOMES */}
+                        <div>
+                            <div className="flex justify-between items-center mb-2 border-b border-gray-200 pb-2">
+                                <h4 className="font-bold text-green-700 uppercase text-sm">Ingresos (Cobrados)</h4>
+                                <button onClick={() => setIncomes([...incomes, { id: Date.now(), concept: '', amount: 0 }])} className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded hover:bg-green-100 no-print flex items-center gap-1 transition-colors"><Plus className="w-3 h-3"/> Añadir</button>
                             </div>
                             <table className="w-full text-sm">
-                                <thead className="bg-gray-100 text-xs text-gray-500 font-bold uppercase">
-                                    <tr>
-                                        <th className="p-2 text-left">Habitación</th>
-                                        <th className="p-2 text-left">Inquilino</th>
-                                        <th className="p-2 text-right">Renta</th>
-                                        <th className="p-2 text-right">Suministros</th>
-                                        <th className="p-2 text-right">Limpieza</th>
-                                        <th className="p-2 text-right">Total</th>
-                                        <th className="no-print w-8"></th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100">
-                                    {tenants.map(t => (
-                                        <tr key={t.id}>
-                                            <td className="p-2"><input value={t.roomName} onChange={e => updateTenant(t.id, 'roomName', e.target.value)} className="w-full bg-transparent font-bold" /></td>
-                                            <td className="p-2"><input value={t.tenantName} onChange={e => updateTenant(t.id, 'tenantName', e.target.value)} className="w-full bg-transparent" placeholder="-" /></td>
-                                            <td className="p-2 text-right"><input type="number" value={t.baseRent} onChange={e => updateTenant(t.id, 'baseRent', Number(e.target.value))} className="w-20 text-right bg-transparent outline-none" />€</td>
-                                            <td className="p-2 text-right"><input type="number" value={t.supplies} onChange={e => updateTenant(t.id, 'supplies', Number(e.target.value))} className="w-20 text-right bg-transparent outline-none" />€</td>
-                                            <td className="p-2 text-center">
-                                                <div className="flex justify-end gap-1 items-center">
-                                                    <button onClick={() => updateTenant(t.id, 'hasCleaning', !t.hasCleaning)} className={`no-print ${t.hasCleaning?'text-green-500':'text-gray-300'}`}><ToggleRight className="w-4 h-4"/></button>
-                                                    {t.hasCleaning ? <input type="number" value={t.cleaningAmount} onChange={e => updateTenant(t.id, 'cleaningAmount', Number(e.target.value))} className="w-12 text-right bg-transparent border-b border-gray-200 text-xs"/> : '-'}
-                                                </div>
+                                <tbody>
+                                    {incomes.map((inc, idx) => (
+                                        <tr key={inc.id} className="group hover:bg-gray-50 transition-colors">
+                                            <td className="py-2 pr-2">
+                                                <input className="w-full border-none bg-transparent focus:bg-white focus:ring-1 focus:ring-blue-200 rounded px-2" placeholder="Concepto..." value={inc.concept} onChange={e => { const n = [...incomes]; n[idx].concept = e.target.value; setIncomes(n); }} />
                                             </td>
-                                            <td className="p-2 text-right font-bold">{(Number(t.baseRent||0) + Number(t.supplies||0) + (t.hasCleaning ? Number(t.cleaningAmount||0) : 0)).toLocaleString()}€</td>
-                                            <td className="no-print text-center"><button onClick={() => removeTenantRow(t.id)} className="text-gray-300 hover:text-red-500"><Trash2 className="w-3 h-3"/></button></td>
+                                            <td className="py-2 text-right w-32">
+                                                <input type="number" className="w-full text-right border-none bg-transparent focus:bg-white focus:ring-1 focus:ring-blue-200 rounded px-2 font-mono" value={inc.amount} onChange={e => { const n = [...incomes]; n[idx].amount = Number(e.target.value); setIncomes(n); }} />
+                                            </td>
+                                            <td className="w-8 text-center no-print">
+                                                <button onClick={() => setIncomes(incomes.filter((_, i) => i !== idx))} className="text-red-300 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4"/></button>
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>
-                                <tfoot className="border-t border-gray-300 font-bold bg-gray-50">
-                                    <tr>
-                                        <td colSpan={5} className="p-2 text-right text-xs uppercase">Total Recaudado (Fondo Cliente)</td>
-                                        <td className="p-2 text-right">{totals.totalCashIn.toLocaleString()} €</td>
+                                <tfoot>
+                                    <tr className="border-t border-gray-300 font-bold bg-green-50/50">
+                                        <td className="py-2 px-2">Total Ingresos</td>
+                                        <td className="py-2 px-2 text-right text-green-700">{totalIncome.toLocaleString('es-ES', {minimumFractionDigits: 2})} €</td>
                                         <td className="no-print"></td>
                                     </tr>
                                 </tfoot>
                             </table>
                         </div>
 
-                        {/* Desglose Factura Agencia (Honorarios) - FIXED PADDING */}
-                        <div className="mb-8 px-4 pb-4 pt-8 bg-white border-2 border-rentia-blue rounded-lg relative overflow-hidden">
-                            <div className="absolute top-0 right-0 bg-rentia-blue text-white text-[9px] px-2 py-1 uppercase font-bold rounded-bl">Factura Oficial Honorarios</div>
-                            <h4 className="text-xs font-bold text-rentia-blue uppercase mb-3 border-b border-blue-100 pb-1 flex justify-between items-center">
-                                <span>2. Factura por Honorarios de Gestión</span>
-                                <span className="text-[10px] text-gray-500 font-normal">Factura Nº {config.invoiceNumber}</span>
-                            </h4>
-                            <div className="flex justify-between items-center text-sm mb-2">
-                                <span>Base Imponible (Sobre Renta Base de {totals.totalBaseRent}€)</span>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-xs text-gray-500">% Comisión:</span>
-                                    <input type="number" value={config.commissionPercent} onChange={e => setConfig({...config, commissionPercent: Number(e.target.value)})} className="w-10 text-center border rounded bg-white font-bold" />
-                                    <span className="font-mono">{totals.feeBase.toFixed(2)} €</span>
-                                </div>
+                        {/* EXPENSES */}
+                        <div>
+                            <div className="flex justify-between items-center mb-2 border-b border-gray-200 pb-2">
+                                <h4 className="font-bold text-red-700 uppercase text-sm">Gastos (Pagados por Agencia)</h4>
+                                <button onClick={() => setExpenses([...expenses, { id: Date.now(), concept: '', amount: 0 }])} className="text-xs bg-red-50 text-red-700 px-2 py-1 rounded hover:bg-red-100 no-print flex items-center gap-1 transition-colors"><Plus className="w-3 h-3"/> Añadir</button>
                             </div>
-                            <div className="flex justify-between items-center text-sm mb-2">
-                                <span>IVA ({config.vatPercent}%)</span>
-                                <span className="font-mono">{totals.feeVAT.toFixed(2)} €</span>
-                            </div>
-                            <div className="flex justify-between items-center text-base font-bold text-blue-900 border-t border-blue-100 pt-2 mt-2">
-                                <span>TOTAL FACTURA (A DEDUCIR)</span>
-                                <span>-{totals.totalAgencyFee.toFixed(2)} €</span>
-                            </div>
+                            <table className="w-full text-sm">
+                                <tbody>
+                                    {expenses.map((exp, idx) => (
+                                        <tr key={exp.id} className="group hover:bg-gray-50 transition-colors">
+                                            <td className="py-2 pr-2">
+                                                <input className="w-full border-none bg-transparent focus:bg-white focus:ring-1 focus:ring-blue-200 rounded px-2" placeholder="Concepto..." value={exp.concept} onChange={e => { const n = [...expenses]; n[idx].concept = e.target.value; setExpenses(n); }} />
+                                            </td>
+                                            <td className="py-2 text-right w-32">
+                                                <input type="number" className="w-full text-right border-none bg-transparent focus:bg-white focus:ring-1 focus:ring-blue-200 rounded px-2 font-mono text-red-600" value={exp.amount} onChange={e => { const n = [...expenses]; n[idx].amount = Number(e.target.value); setExpenses(n); }} />
+                                            </td>
+                                            <td className="w-8 text-center no-print">
+                                                <button onClick={() => setExpenses(expenses.filter((_, i) => i !== idx))} className="text-red-300 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4"/></button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {expenses.length === 0 && <tr><td colSpan={3} className="py-4 text-gray-400 italic text-xs text-center border border-dashed border-gray-200 rounded-lg">Sin gastos registrados</td></tr>}
+                                </tbody>
+                                <tfoot>
+                                    <tr className="border-t border-gray-300 font-bold bg-red-50/50">
+                                        <td className="py-2 px-2">Total Gastos</td>
+                                        <td className="py-2 px-2 text-right text-red-700">-{totalExpenses.toLocaleString('es-ES', {minimumFractionDigits: 2})} €</td>
+                                        <td className="no-print"></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
                         </div>
 
-                        {/* Ajustes y Suplidos */}
-                        <div className="mb-8">
+                        {/* COMMISSION */}
+                        <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
                             <div className="flex justify-between items-center mb-2">
-                                <h4 className="text-xs font-bold text-gray-500 uppercase">3. Otros Pagos y Ajustes</h4>
-                                <div className="flex gap-2 no-print">
-                                    <button onClick={() => addAdjustment('suplido')} className="text-[10px] bg-red-50 text-red-700 px-2 py-1 rounded hover:bg-red-100 font-bold border border-red-200">+ Gasto/Suplido (Resta)</button>
-                                    <button onClick={() => addAdjustment('descuento')} className="text-[10px] bg-green-50 text-green-700 px-2 py-1 rounded hover:bg-green-100 font-bold border border-green-200">+ Abono (Suma)</button>
+                                <h4 className="font-bold text-blue-800 uppercase text-sm">Honorarios de Gestión</h4>
+                                <div className="flex items-center gap-2 no-print">
+                                    <span className="text-xs text-blue-600">Comisión %:</span>
+                                    <input type="number" className="w-16 p-1 border rounded text-right text-sm" value={commissionRate} onChange={e => setCommissionRate(Number(e.target.value))} />
                                 </div>
                             </div>
-                            {adjustments.length > 0 ? (
-                                <table className="w-full text-sm">
-                                    <tbody className="divide-y divide-gray-100">
-                                        {adjustments.map(adj => (
-                                            <tr key={adj.id}>
-                                                <td className="p-2 w-24">
-                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${adj.type === 'descuento' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{adj.type}</span>
-                                                </td>
-                                                <td className="p-2"><input value={adj.concept} onChange={e => updateAdjustment(adj.id, 'concept', e.target.value)} className="w-full bg-transparent" placeholder="Concepto..." /></td>
-                                                <td className="p-2 text-right w-32"><input type="number" value={adj.amount} onChange={e => updateAdjustment(adj.id, 'amount', Number(e.target.value))} className={`w-full text-right bg-transparent font-bold ${adj.type === 'descuento' ? 'text-green-600' : 'text-red-600'}`} />€</td>
-                                                <td className="p-2 w-8 text-center no-print"><button onClick={() => removeAdjustment(adj.id)} className="text-gray-400 hover:text-red-500"><Trash2 className="w-3 h-3"/></button></td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            ) : (
-                                <p className="text-xs text-gray-400 italic py-2">Sin ajustes adicionales.</p>
-                            )}
+                            <div className="space-y-1 text-sm">
+                                <div className="flex justify-between">
+                                    <span>Base Honorarios ({commissionRate}%)</span>
+                                    <span>-{commissionBase.toLocaleString('es-ES', {minimumFractionDigits: 2})} €</span>
+                                </div>
+                                <div className="flex justify-between text-gray-500">
+                                    <span>IVA ({vatRate}%)</span>
+                                    <span>-{commissionVat.toLocaleString('es-ES', {minimumFractionDigits: 2})} €</span>
+                                </div>
+                                <div className="flex justify-between font-bold border-t border-blue-200 pt-2 mt-2 text-blue-900">
+                                    <span>Total Honorarios (Inc. IVA)</span>
+                                    <span>-{totalCommission.toLocaleString('es-ES', {minimumFractionDigits: 2})} €</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    {/* 4. TOTAL Y PIE (Compacto y Seguro) */}
-                    <div className="bg-gray-900 text-white px-6 py-4 absolute bottom-0 w-full print:relative">
-                        <div className="flex justify-between items-end mb-3">
-                            <div className="text-xs text-gray-400 space-y-0.5 w-1/2">
-                                <p className="font-bold text-white uppercase text-[10px]">Resultado Liquidación</p>
-                                <p className="text-[9px]">Compensación de saldos y transferencia del remanente.</p>
-                                <p className="text-[9px]">El importe se transferirá a la cuenta indicada.</p>
+                    {/* TOTAL */}
+                    <div className="border-t-4 border-gray-800 pt-6">
+                        <div className="flex justify-between items-end">
+                            <div>
+                                <p className="text-sm font-bold uppercase text-gray-500">Total a Transferir</p>
+                                <p className="text-xs text-gray-400">Neto para el propietario</p>
                             </div>
-                            <div className="text-right leading-none">
-                                <p className="text-[9px] font-bold text-gray-400 uppercase mb-1">A TRANSFERIR</p>
-                                <p className="text-3xl font-bold font-mono">{totals.netToOwner.toLocaleString('es-ES', { minimumFractionDigits: 2 })} €</p>
+                            <div className="text-4xl font-bold font-mono text-gray-900">
+                                {netToOwner.toLocaleString('es-ES', {minimumFractionDigits: 2})} €
                             </div>
                         </div>
-                        
-                        {/* FOOTER LEGAL COMPACTO */}
-                        <div className="border-t border-gray-700 pt-2 text-[8px] text-gray-500 text-justify leading-tight">
-                            <p className="mb-1"><strong>PROTECCIÓN DE DATOS:</strong> Responsable: Rentia Investments S.L. | Finalidad: Gestión de la relación contractual inmobiliaria, administrativa, contable y fiscal. | Legitimación: Ejecución de contrato y cumplimiento legal. | Destinatarios: No se cederán datos a terceros, salvo obligación legal. | Derechos: Acceder, rectificar y suprimir los datos, así como otros derechos, ante info@rentiaroom.com.</p>
-                            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-1 text-gray-400 border-t border-gray-800 mt-1 pt-1">
-                                <span>{agencyData.name} · NIF: {agencyData.cif} · {agencyData.address}</span>
-                                <span className="text-right max-w-lg">{agencyData.registry}</span>
-                            </div>
-                        </div>
+                    </div>
+
+                    {/* FOOTER */}
+                    <div className="mt-12 pt-8 border-t border-gray-100 text-center text-xs text-gray-400">
+                        <p>Rentia Investments S.L. - B75995308</p>
+                        <p>Este documento sirve como justificante de liquidación de alquileres.</p>
                     </div>
 
                 </div>

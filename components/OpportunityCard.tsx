@@ -1,8 +1,9 @@
 
 import React, { useState } from 'react';
 import { Opportunity } from '../types';
-import { MapPin, Bed, Maximize, TrendingUp, PlayCircle, ArrowRight, Building, ExternalLink, Home, Image as ImageIcon } from 'lucide-react';
+import { MapPin, Bed, Maximize, TrendingUp, PlayCircle, ArrowRight, Building, ExternalLink, Home, Image as ImageIcon, MessageSquare } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { ContactLeadModal } from './ContactLeadModal';
 
 interface Props {
   opportunity: Opportunity;
@@ -12,6 +13,7 @@ interface Props {
 export const OpportunityCard: React.FC<Props> = ({ opportunity, onClick }) => {
   const { t } = useLanguage();
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [showContactModal, setShowContactModal] = useState(false);
   
   // Scenarios Logic
   const isLiving = opportunity.scenario === 'sale_living';
@@ -42,6 +44,7 @@ export const OpportunityCard: React.FC<Props> = ({ opportunity, onClick }) => {
   }
 
   return (
+    <>
     <div 
       className="group bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 cursor-pointer border border-gray-200/80 flex flex-col h-full hover:-translate-y-1"
       onClick={() => onClick(opportunity.id)}
@@ -170,18 +173,37 @@ export const OpportunityCard: React.FC<Props> = ({ opportunity, onClick }) => {
             </div>
         </div>
 
-        {/* CTA Button */}
-        <button 
-          onClick={(e) => {
-            e.stopPropagation();
-            onClick(opportunity.id);
-          }}
-          className="w-full mt-auto bg-rentia-black text-white font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 hover:bg-gray-800 transition-all duration-300 shadow-lg hover:shadow-xl group-hover:scale-[1.02]"
-        >
-            {t('opportunities.card.btn')}
-            <ArrowRight className="w-4 h-4" />
-        </button>
+        {/* Buttons */}
+        <div className="mt-auto grid grid-cols-2 gap-3">
+            <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowContactModal(true);
+                }}
+                className="bg-gray-100 text-gray-700 font-bold py-3 px-2 rounded-xl flex items-center justify-center gap-2 hover:bg-gray-200 transition-colors text-xs"
+            >
+                <MessageSquare className="w-4 h-4" /> Contactar
+            </button>
+            <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClick(opportunity.id);
+                }}
+                className="bg-rentia-black text-white font-bold py-3 px-2 rounded-xl flex items-center justify-center gap-2 hover:bg-gray-800 transition-all shadow-md group-hover:scale-[1.02] text-xs"
+            >
+                {t('opportunities.card.btn')}
+                <ArrowRight className="w-4 h-4" />
+            </button>
+        </div>
       </div>
     </div>
+    
+    <ContactLeadModal 
+        isOpen={showContactModal} 
+        onClose={() => setShowContactModal(false)}
+        opportunityId={opportunity.id}
+        opportunityTitle={opportunity.title}
+    />
+    </>
   );
 };

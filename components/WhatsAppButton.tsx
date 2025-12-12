@@ -38,7 +38,8 @@ export const WhatsAppButton: React.FC = () => {
   return (
     // CRITICAL FIX: pointer-events-none on parent ensures the invisible wrapper 
     // doesn't block underlying clicks (footer links, etc) on mobile/desktop.
-    <div className="fixed bottom-6 right-6 z-50 print:hidden flex flex-col items-end pointer-events-none">
+    // ADDED: hidden md:flex to hide on mobile devices
+    <div className="hidden md:flex fixed bottom-6 right-6 z-50 print:hidden flex-col items-end pointer-events-none">
       
       {/* Menu Popup */}
       <div 

@@ -13,11 +13,8 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
-    // Verificación de Rol Robusta
     function hasRole(role) {
-      return isAuthenticated() && 
-             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+      return isAuthenticated() && getUserData().role == role;
     }
 
     // Roles Jerárquicos
@@ -33,6 +30,7 @@ service cloud.firestore {
       return hasRole('worker');
     }
 
+    // Helper combinado para operaciones de gestión diaria
     function isStaffOrWorker() {
       return isStaff() || isWorker();
     }
@@ -46,14 +44,20 @@ service cloud.firestore {
       allow delete: if isStaff();
     }
 
-    // 2. PROPIEDADES
+    // 2. PROPIEDADES (Catálogo y Configuración)
     match /properties/{propertyId} {
+      // Lectura pública para la web
       allow read: if true; 
+      
+      // Permitir edición si es Staff/Worker O si el usuario es el dueño legítimo del documento
       allow update: if isStaffOrWorker() || (isAuthenticated() && resource.data.ownerId == request.auth.uid);
-      allow create, delete: if isStaffOrWorker();
+      
+      // Permitir crear (materializar propiedad estática) si el usuario se asigna como owner legítimo
+      allow create: if isStaffOrWorker() || (isAuthenticated() && request.resource.data.ownerId == request.auth.uid);
+      allow delete: if isStaffOrWorker();
     }
 
-    // 3. DOCUMENTOS
+    // 3. DOCUMENTOS DE PROPIEDAD
     match /property_documents/{docId} {
       allow read: if isStaff() || isOwner() || isWorker();
       allow create: if isAuthenticated();
@@ -61,14 +65,14 @@ service cloud.firestore {
       allow delete: if isStaff() || (isAuthenticated() && resource.data.ownerId == request.auth.uid);
     }
 
-    // 4. FACTURAS SUMINISTROS
+    // 4. FACTURAS DE SUMINISTROS
     match /supply_invoices/{invoiceId} {
       allow read: if isStaff() || isOwner() || isWorker();
       allow create: if isAuthenticated(); 
       allow update, delete: if isStaff();
     }
     
-    // 5. CÁLCULOS SUMINISTROS
+    // 5. CÁLCULOS DE SUMINISTROS
     match /supply_records/{recordId} {
       allow read: if isAuthenticated();
       allow write: if isStaff();
@@ -85,10 +89,10 @@ service cloud.firestore {
       allow read, write: if isStaff();
     }
 
-    // 8. OPORTUNIDADES
+    // 8. OPORTUNIDADES (Venta) - Gestión completa desde CRM
     match /opportunities/{opportunityId} {
-      allow read: if true;
-      allow write: if isStaff();
+      allow read: if true; // Web pública
+      allow write: if isStaff(); // CRM Admin (Crear, Editar, Borrar)
     }
     
     // 9. CONTRATOS
@@ -101,11 +105,12 @@ service cloud.firestore {
     match /tasks/{taskId} {
       allow read, write: if isStaffOrWorker();
     }
+
     match /task_boards/{boardId} {
       allow read, write: if isStaffOrWorker();
     }
 
-    // 11. PIPELINE
+    // 11. PIPELINE CANDIDATOS
     match /candidate_pipeline/{candidateId} {
       allow read: if isStaffOrWorker() || (isAuthenticated() && resource.data.ownerId == request.auth.uid);
       allow write: if isStaffOrWorker();
@@ -116,7 +121,7 @@ service cloud.firestore {
       allow read, write: if isStaffOrWorker();
     }
 
-    // 13. NOTICIAS
+    // 13. NOTICIAS INTERNAS
     match /internal_news/{newsId} {
       allow read: if isAuthenticated();
       allow write: if isStaff();
@@ -130,38 +135,45 @@ service cloud.firestore {
       allow delete: if isStaff() || (isWorker() && resource.data.workerId == request.auth.uid);
     }
 
-    // 15. FORMULARIOS WEB
+    // 15. WEB FORMS (CRM de Compras y Captación)
     match /buyer_requests/{requestId} {
-      allow read: if true; 
-      allow create: if true;
-      allow update, delete: if isStaff();
+      allow read: if true; // Necesario para listado público en BrokerView
+      allow create: if true; // Formulario público
+      allow update, delete: if isStaff(); // Gestión CRM
     }
+
     match /opportunity_requests/{requestId} {
-      allow create: if true;
-      allow read, update, delete: if isStaff();
+      allow create: if true; // Formulario público
+      allow read, update, delete: if isStaff(); // Gestión CRM
     }
+    
     match /pending_transfers/{transferId} {
       allow create: if true;
       allow read, update, delete: if isStaff();
     }
 
-    // 16. TRACKING Y SEGURIDAD
+    // 16. LEADS DE OPORTUNIDADES (Formulario de contacto individual)
+    match /opportunity_leads/{leadId} {
+        allow create: if true; // Público
+        allow read, update, delete: if isStaff(); // Solo CRM
+    }
+
+    // 17. TRACKING Y SEGURIDAD
     match /sales_tracker/{trackId} {
       allow read, write: if isStaff();
     }
+
     match /tenant_blacklist/{entryId} {
       allow read, write: if isStaff();
     }
 
-    // 17. FACTURAS DE AGENCIA (LIQUIDACIONES)
+    // 18. FACTURAS DE AGENCIA (LIQUIDACIONES)
     match /agency_invoices/{invoiceId} {
-        // Staff puede hacer todo
-        allow read, write: if isStaff();
-        // Propietario solo puede leer las suyas
-        allow read: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
+        allow read: if isStaff() || (isAuthenticated() && resource.data.ownerId == request.auth.uid);
+        allow write: if isStaff();
     }
 
-    // Regla por defecto
+    // Regla por defecto de seguridad
     match /{document=**} {
       allow read, write: if false;
     }

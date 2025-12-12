@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Opportunity } from '../types';
-import { TrendingUp, MapPin, Bed, Maximize, ArrowRight, X, ChevronLeft, ChevronRight, Phone, Download, Printer, Lock, Globe } from 'lucide-react';
+import { TrendingUp, MapPin, Bed, Maximize, ArrowRight, X, ChevronLeft, ChevronRight, Phone, Download, Printer, Lock, Globe, Scale, AlertTriangle } from 'lucide-react';
 import { ImageLightbox } from './ImageLightbox';
 
 interface InvestorDossierProps {
@@ -203,6 +203,24 @@ export const InvestorDossier: React.FC<InvestorDossierProps> = ({ opportunities,
                                   Referencia: {opp.id} • Rentia Investments S.L.
                               </p>
                           </div>
+
+                          {/* LEGAL SECTION */}
+                          <div className="mt-8 p-4 bg-white rounded-lg border border-slate-200 text-[10px] text-slate-500 text-justify leading-relaxed">
+                              <h5 className="font-bold text-slate-700 mb-2 uppercase flex items-center gap-1">
+                                  <Scale className="w-3 h-3" /> Términos Legales
+                              </h5>
+                              <p className="mb-2">
+                                  Rentia Investments S.L. facilita la presente información con carácter meramente estimativo. Los datos financieros son proyecciones y no constituyen garantía contractual. No nos hacemos responsables de variaciones, errores u omisiones.
+                              </p>
+                              <p className="mb-2">
+                                  Al contactar, el interesado reconoce la intermediación de Rentia Investments S.L. y se obliga a <strong>no contactar ni negociar directamente con la propiedad</strong> (Pacto de No Elusión).
+                              </p>
+                              <div className="flex items-start gap-1 text-red-800 font-bold">
+                                  <AlertTriangle className="w-3 h-3 flex-shrink-0 mt-0.5" />
+                                  <p>El incumplimiento conlleva una penalización equivalente a la comisión de intermediación (3% + IVA, mín. 3.000€ + IVA), reclamable judicialmente en Murcia.</p>
+                              </div>
+                          </div>
+
                       </div>
                   </div>
               </div>

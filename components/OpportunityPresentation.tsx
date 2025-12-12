@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Opportunity } from '../types';
-import { MapPin, TrendingUp, Maximize, Building, ArrowRight, Phone, Download, ExternalLink, Bed, PlayCircle, Home, CheckCircle } from 'lucide-react';
+import { MapPin, TrendingUp, Maximize, Building, ArrowRight, Phone, Download, ExternalLink, Bed, PlayCircle, Home, CheckCircle, Scale, AlertTriangle, ChevronDown } from 'lucide-react';
 import { ImageLightbox } from './ImageLightbox';
 
 interface Props {
@@ -12,6 +12,7 @@ interface Props {
 export const OpportunityPresentation: React.FC<Props> = ({ opportunity, onClose }) => {
     const [activeImageIndex, setActiveImageIndex] = useState(0);
     const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+    const [showLegal, setShowLegal] = useState(false);
 
     // Cálculos
     const purchasePrice = opportunity.financials.purchasePrice;
@@ -176,32 +177,50 @@ export const OpportunityPresentation: React.FC<Props> = ({ opportunity, onClose 
                         )}
                     </div>
                 </div>
-            </main>
 
-            {/* Sticky Footer CTA */}
-            <div className="fixed bottom-0 w-full bg-white border-t border-gray-200 p-4 z-40 md:hidden">
-                <a href={whatsappLink} target="_blank" className="block w-full bg-rentia-black text-white text-center py-3 rounded-xl font-bold shadow-lg">
-                    Contactar Interés
-                </a>
-            </div>
+                {/* LEGAL & DISCLAIMER SECTION (Collapsible) */}
+                <div className="mt-16 bg-slate-100 rounded-2xl border border-slate-200 overflow-hidden text-xs text-slate-500 text-justify leading-relaxed">
+                    <button 
+                        onClick={() => setShowLegal(!showLegal)}
+                        className="w-full flex items-center justify-between p-6 md:p-8 text-left hover:bg-slate-200/50 transition-colors group"
+                    >
+                        <h5 className="font-bold text-slate-700 uppercase flex items-center gap-2 text-sm group-hover:text-rentia-blue">
+                            <Scale className="w-4 h-4" /> Términos Legales, Condiciones de Contratación y Pacto de No Elusión
+                        </h5>
+                        <ChevronDown className={`w-5 h-5 text-slate-500 transition-transform duration-300 ${showLegal ? 'rotate-180' : ''}`} />
+                    </button>
+                    
+                    {showLegal && (
+                        <div className="px-6 md:px-8 pb-8 text-xs text-slate-500 text-justify leading-relaxed animate-in slide-in-from-top-1 border-t border-slate-200 pt-4">
+                            <div className="space-y-4">
+                                <p>
+                                    <strong className="text-slate-700">1. EXENCIÓN DE RESPONSABILIDAD:</strong> Rentia Investments S.L. facilita la presente información con carácter meramente estimativo y orientativo. Los datos financieros (rentabilidades, gastos, ingresos) son proyecciones basadas en análisis de mercado y no constituyen garantía contractual de resultados futuros. Rentia Investments S.L. no se hace responsable de variaciones en los datos, errores u omisiones, ni de las decisiones de inversión tomadas en base a este documento.
+                                </p>
+                                <p>
+                                    <strong className="text-slate-700">2. RECONOCIMIENTO DE INTERMEDIACIÓN:</strong> Al solicitar información, realizar una visita, contactar o recibir documentación sobre este activo, el interesado reconoce expresa e irrevocablemente la labor de intermediación de Rentia Investments S.L. y acepta las condiciones aquí expuestas.
+                                </p>
+                                
+                                <div className="bg-white p-4 rounded-lg border-l-4 border-red-500 shadow-sm">
+                                    <p className="mb-2 text-red-700 font-bold flex items-center gap-2">
+                                        <AlertTriangle className="w-4 h-4"/> 3. PACTO DE NO ELUSIÓN Y PENALIZACIÓN (NCA)
+                                    </p>
+                                    <p className="text-slate-600">
+                                        En caso de que el activo sea propiedad de un colaborador o tercero representado por Rentia Investments S.L., el interesado se obliga estrictamente a <strong>no contactar, negociar, ni cerrar operaciones directa o indirectamente con la propiedad</strong> eludiendo a esta agencia.
+                                    </p>
+                                    <p className="mt-2 text-slate-600">
+                                        Cualquier intento de elusión, engaño o colusión para evitar el pago de honorarios, devengará automáticamente a favor de Rentia Investments S.L. una <strong>penalización equivalente al importe de la comisión de intermediación habitual</strong> (3% del valor de venta + IVA, con un mínimo de 3.000€ + IVA), sin perjuicio de la reclamación de mayores daños y perjuicios que correspondan en derecho.
+                                    </p>
+                                </div>
 
-            {/* Desktop CTA */}
-            <div className="bg-rentia-blue text-white py-16 mt-12 hidden md:block">
-                <div className="container mx-auto px-4 text-center">
-                    <h2 className="text-3xl font-display font-bold mb-6">¿Te encaja esta inversión?</h2>
-                    <p className="text-blue-100 mb-8 max-w-2xl mx-auto">
-                        Los activos con estas rentabilidades suelen reservarse en menos de 7 días. Contacta con nosotros para bloquear la oportunidad.
-                    </p>
-                    <a href={whatsappLink} target="_blank" className="inline-flex items-center gap-2 bg-white text-rentia-blue px-8 py-4 rounded-full font-bold text-lg hover:bg-gray-100 transition-colors shadow-xl">
-                        <Phone className="w-5 h-5" /> Contactar ahora
-                    </a>
+                                <p>
+                                    <strong className="text-slate-700">4. JURISDICCIÓN:</strong> Para la resolución de cualquier conflicto derivado de la interpretación o cumplimiento de estas condiciones, las partes se someten expresamente a los <strong>Juzgados y Tribunales de la ciudad de Murcia</strong>, con renuncia a cualquier otro fuero que pudiera corresponderles.
+                                </p>
+                            </div>
+                        </div>
+                    )}
                 </div>
-            </div>
 
-            <footer className="bg-slate-900 text-slate-500 py-8 text-center text-xs pb-24 md:pb-8">
-                <p>Rentia Investments S.L. © 2025</p>
-                <p className="mt-2">Documento confidencial. La información contenida son estimaciones basadas en mercado.</p>
-            </footer>
+            </main>
 
             {isLightboxOpen && (
                 <ImageLightbox 

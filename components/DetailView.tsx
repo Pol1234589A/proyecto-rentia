@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { Opportunity } from '../types';
-import { ArrowLeft, Check, MapPin, Users, Printer, TrendingUp, Bed, Maximize, Building, Bath, X, Settings, ChevronLeft, ChevronRight, PlayCircle, ExternalLink, Home } from 'lucide-react';
+import { ArrowLeft, Check, MapPin, Users, TrendingUp, Bed, Maximize, Building, Bath, X, Settings, ChevronLeft, ChevronRight, PlayCircle, ExternalLink, Home, PlusCircle, MessageCircle, Phone, Mail, Scale, AlertTriangle, ChevronDown } from 'lucide-react';
 import { ImageLightbox } from './ImageLightbox';
 import { useLanguage } from '../contexts/LanguageContext';
+import { ContactLeadModal } from './ContactLeadModal';
 
 interface Props {
   opportunity: Opportunity;
@@ -27,7 +28,10 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
   );
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [includeManagementFee, setIncludeManagementFee] = useState(true);
+  const [includeManagementFee, setIncludeManagementFee] = useState(false);
+  const [rentLivingRoom, setRentLivingRoom] = useState(false);
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [showLegal, setShowLegal] = useState(false);
   
   // Check if scenario is meant for living (not investment)
   const isLivingScenario = scenario === 'sale_living';
@@ -43,7 +47,9 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
     } else {
         setRentalStrategy('traditional');
     }
-    setIncludeManagementFee(true);
+    setIncludeManagementFee(false);
+    setRentLivingRoom(false);
+    setShowLegal(false);
     window.scrollTo(0, 0);
   }, [opportunity.id]);
 
@@ -73,7 +79,18 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
 
   // Yields
   const isRoomsStrategy = rentalStrategy === 'rooms';
-  const monthlyIncome = isRoomsStrategy ? financials.monthlyRentProjected : financials.monthlyRentTraditional;
+  
+  // Logic for Living Room Conversion
+  const averageRoomPrice = opportunity.roomConfiguration?.length 
+      ? Math.round(opportunity.roomConfiguration.reduce((acc, r) => acc + r.price, 0) / opportunity.roomConfiguration.length)
+      : 300;
+  
+  const incomeFromLivingRoom = (isRoomsStrategy && rentLivingRoom) ? averageRoomPrice : 0;
+
+  const monthlyIncome = isRoomsStrategy 
+      ? financials.monthlyRentProjected + incomeFromLivingRoom
+      : financials.monthlyRentTraditional;
+      
   const effectiveMonthlyIncome = monthlyIncome > 0 ? monthlyIncome : 0;
 
   const managementFeePercentage = isRoomsStrategy ? 0.15 : 0.10; 
@@ -89,10 +106,6 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
 
   const grossYield = (effectiveMonthlyIncome * 12 / finalTotalInvestment) * 100;
   const netYield = (netYearlyIncome / finalTotalInvestment) * 100;
-
-  const handlePrint = () => {
-    window.print();
-  };
 
   return (
     <>
@@ -111,13 +124,7 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
               </h1>
             </div>
             
-            <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end mt-2 md:mt-0">
-              <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-rentia-black text-white rounded-lg hover:bg-gray-800 transition-colors font-bold text-sm shadow-md flex-shrink-0 touch-manipulation min-h-[40px]">
-                  <Printer className="w-4 h-4" />
-                  <span className="hidden sm:inline">{t('opportunities.detail.print')}</span>
-                  <span className="sm:hidden">{t('common.print')}</span>
-              </button>
-              <div className="h-8 w-px bg-gray-200 mx-1 hidden md:block"></div>
+            <div className="flex items-center gap-3 w-full md:w-auto justify-end mt-2 md:mt-0">
               <div className="flex gap-2">
                 <button onClick={onPrev} disabled={!hasPrev} className="nav-controls p-3 rounded-full bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-gray-200"><ChevronLeft className="w-5 h-5 text-gray-600" /></button>
                 <button onClick={onNext} disabled={!hasNext} className="nav-controls p-3 rounded-full bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-gray-200"><ChevronRight className="w-5 h-5 text-gray-600" /></button>
@@ -126,7 +133,7 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
           </div>
 
           {/* MAIN CONTENT */}
-          <div className="p-4 sm:p-6 md:p-8 print:p-8 print:pt-2">
+          <div className="p-4 sm:p-6 md:p-8 print:p-8 print:pt-2 pb-24 md:pb-8">
             
             {/* Title for Print */}
             <div className="hidden print:block mb-6">
@@ -216,6 +223,20 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
                                         <button onClick={() => setRentalStrategy('rooms')} className={`flex items-center justify-center px-2 text-sm font-semibold rounded-md transition-all touch-manipulation ${rentalStrategy === 'rooms' ? 'bg-white shadow text-rentia-blue' : 'text-gray-600 hover:bg-white/50'}`}>{t('opportunities.detail.rooms_strategy')}</button>
                                         <button onClick={() => setRentalStrategy('traditional')} className={`flex items-center justify-center px-2 text-sm font-semibold rounded-md transition-all touch-manipulation ${rentalStrategy === 'traditional' ? 'bg-white shadow text-rentia-blue' : 'text-gray-600 hover:bg-white/50'}`}>{t('opportunities.detail.traditional_strategy')}</button>
                                     </div>
+                                    
+                                    {isRoomsStrategy && (
+                                        <div className="mt-3 flex items-center justify-between bg-white p-2 rounded border border-purple-100 shadow-sm animate-in slide-in-from-top-1">
+                                            <span className="text-[10px] font-bold text-purple-700 flex items-center gap-1">
+                                                <PlusCircle className="w-3 h-3"/> +1 Hab (Salón)
+                                            </span>
+                                            <button 
+                                                onClick={() => setRentLivingRoom(!rentLivingRoom)}
+                                                className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${rentLivingRoom ? 'bg-purple-600' : 'bg-gray-300'}`}
+                                            >
+                                                <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${rentLivingRoom ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             ) : (
                                 <div>
@@ -223,6 +244,19 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
                                     <div className="flex items-center justify-center bg-gray-100 rounded-lg h-12 text-sm font-bold text-gray-500 border border-gray-200">
                                         {financials.monthlyRentProjected > 0 ? t('opportunities.detail.rooms_strategy') : t('opportunities.detail.traditional_strategy')}
                                     </div>
+                                    {isRoomsStrategy && (
+                                        <div className="mt-3 flex items-center justify-between bg-white p-2 rounded border border-purple-100 shadow-sm animate-in slide-in-from-top-1">
+                                            <span className="text-[10px] font-bold text-purple-700 flex items-center gap-1">
+                                                <PlusCircle className="w-3 h-3"/> +1 Hab (Salón)
+                                            </span>
+                                            <button 
+                                                onClick={() => setRentLivingRoom(!rentLivingRoom)}
+                                                className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${rentLivingRoom ? 'bg-purple-600' : 'bg-gray-300'}`}
+                                            >
+                                                <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${rentLivingRoom ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
@@ -264,6 +298,12 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
                                             <span>{r.price} €</span>
                                         </div>
                                     ))}
+                                    {rentLivingRoom && (
+                                        <div className="flex justify-between text-xs text-purple-600 font-bold bg-purple-50 p-1 rounded">
+                                            <span>Salón (Hab Extra)</span>
+                                            <span>{averageRoomPrice} €</span>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
@@ -317,6 +357,35 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
                         ))}
                     </ul>
                 </div>
+
+                {/* LEGAL SECTION (Collapsible) */}
+                <div className="mt-8 bg-slate-100 rounded-xl border border-slate-200 overflow-hidden break-inside-avoid transition-all duration-300">
+                    <button 
+                        onClick={() => setShowLegal(!showLegal)}
+                        className="w-full flex items-center justify-between p-6 text-left hover:bg-slate-200/50 transition-colors group"
+                    >
+                        <h5 className="font-bold text-slate-700 uppercase flex items-center gap-2 text-sm group-hover:text-rentia-blue">
+                            <Scale className="w-4 h-4" /> AVISO LEGAL Y CONDICIONES
+                        </h5>
+                        <ChevronDown className={`w-5 h-5 text-slate-500 transition-transform duration-300 ${showLegal ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {showLegal && (
+                        <div className="px-6 pb-6 text-xs text-slate-500 text-justify leading-relaxed animate-in slide-in-from-top-1 border-t border-slate-200 pt-4">
+                            <p className="mb-2">
+                                Rentia Investments S.L. facilita la presente información con carácter meramente estimativo y orientativo. Los datos financieros son proyecciones y no constituyen garantía contractual. No nos hacemos responsables de variaciones, errores u omisiones.
+                            </p>
+                            <p className="mb-2">
+                                Al contactar sobre este activo, el interesado reconoce la intermediación de Rentia Investments S.L. En caso de que el activo pertenezca a un colaborador, el interesado se obliga a <strong>no contactar ni negociar directamente con la propiedad</strong> eludiendo a esta agencia.
+                            </p>
+                            <div className="flex items-start gap-2 bg-white p-3 rounded border border-red-100 text-red-800 font-medium">
+                                <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                                <p>Cualquier intento de elusión o engaño devengará automáticamente una penalización equivalente a la comisión de intermediación (3% + IVA, mín. 3.000€ + IVA), reclamable ante los Juzgados de Murcia.</p>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
               </div>
 
               {/* Right Column: Specs & Media */}
@@ -360,7 +429,7 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
                  {/* Media Gallery (Preview) */}
                  <div className="bg-white p-6 rounded-2xl shadow-idealista border border-gray-100 print:hidden">
                      <h3 className="text-lg font-bold font-display text-rentia-black mb-4 flex items-center gap-2">
-                         <Printer className="w-5 h-5 text-rentia-gold" />
+                         <Building className="w-5 h-5 text-rentia-gold" />
                          {t('opportunities.detail.multimedia')}
                      </h3>
                      {hasRealImages ? (
@@ -393,16 +462,20 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
                      )}
                  </div>
 
-                 {/* Contact Card */}
-                 <div className="bg-rentia-blue text-white p-6 rounded-2xl shadow-xl relative overflow-hidden group cursor-pointer hover:shadow-2xl transition-all no-print" onClick={() => onNavigate('contact')}>
-                     <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 group-hover:bg-white/20 transition-colors"></div>
-                     <h3 className="text-xl font-bold font-display mb-2 relative z-10">{t('home.cta.title')}</h3>
-                     <p className="text-blue-100 text-sm mb-6 relative z-10 leading-relaxed">
-                         {t('home.cta.subtitle')}
-                     </p>
-                     <div className="w-full bg-white text-rentia-blue font-bold py-3 px-4 rounded-lg text-center shadow-lg relative z-10 group-hover:scale-105 transition-transform">
-                         {t('opportunities.card.btn')}
-                     </div>
+                 {/* Lead Magnet Card (New) */}
+                 <div className="bg-gradient-to-br from-gray-900 to-black p-6 rounded-2xl shadow-xl text-white text-center relative overflow-hidden no-print">
+                     <div className="absolute top-0 right-0 w-20 h-20 bg-rentia-gold/20 rounded-full blur-xl -translate-y-1/2 translate-x-1/2"></div>
+                     
+                     <h3 className="text-lg font-bold font-display mb-2 relative z-10">¿Te interesa este activo?</h3>
+                     <p className="text-gray-400 text-xs mb-6 relative z-10">Solicita el dossier completo y resuelve tus dudas con nuestro equipo de inversión.</p>
+                     
+                     <button 
+                         onClick={() => setShowContactModal(true)}
+                         className="w-full bg-rentia-gold text-rentia-black font-bold py-3.5 px-6 rounded-xl hover:bg-yellow-400 transition-all shadow-lg flex items-center justify-center gap-2 relative z-10"
+                     >
+                         <MessageCircle className="w-5 h-5" />
+                         Solicitar Información
+                     </button>
                  </div>
 
               </div>
@@ -410,6 +483,27 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
           </div>
         </div>
       </div>
+
+      {/* MOBILE STICKY CTA BAR */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-[0_-4px_20px_rgba(0,0,0,0.15)] z-[60] md:hidden flex gap-3 print:hidden safe-area-bottom animate-in slide-in-from-bottom-2">
+          <button 
+              onClick={() => setShowContactModal(true)}
+              className="flex-1 bg-rentia-black text-white font-bold py-3.5 px-4 rounded-xl shadow-lg flex items-center justify-center gap-2 active:scale-[0.98] transition-transform hover:bg-gray-800"
+          >
+              <MessageCircle className="w-5 h-5 text-rentia-gold fill-current" />
+              Solicitar Información
+          </button>
+          <a 
+            href={`https://api.whatsapp.com/send?phone=34672886369&text=Hola,%20me%20interesa%20la%20oportunidad%20${opportunity.id}%20(${encodeURIComponent(opportunity.title)})`}
+            target="_blank"
+            rel="noreferrer"
+            className="w-14 bg-[#25D366] text-white rounded-xl shadow-lg flex items-center justify-center active:scale-[0.98] transition-transform hover:bg-[#20ba5c]"
+            aria-label="WhatsApp"
+          >
+              <Phone className="w-6 h-6" />
+          </a>
+      </div>
+
       {/* Lightbox Overlay */}
       {isLightboxOpen && (
         <ImageLightbox 
@@ -418,6 +512,14 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
             onClose={() => setIsLightboxOpen(false)} 
         />
       )}
+      
+      {/* Contact Modal Overlay */}
+      <ContactLeadModal 
+        isOpen={showContactModal} 
+        onClose={() => setShowContactModal(false)}
+        opportunityId={opportunity.id}
+        opportunityTitle={opportunity.title}
+      />
     </>
   );
 };

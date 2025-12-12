@@ -60,5 +60,146 @@ export const opportunities: Opportunity[] = [
     },
     status: 'available',
     tags: ['Exclusiva', 'Parcela', 'El Palmar', 'Chalet']
+  },
+  {
+    id: 'DÚPLEX-JAVALI-MAYOR',
+    title: 'Dúplex Estratégico en Calle Mayor - Inversión Patrimonial',
+    address: 'Calle Mayor',
+    city: 'Javalí Viejo (Zona Centro)',
+    description: 'VALOR REFUGIO EN CALLE MAYOR. Dúplex unifamiliar que elimina el mayor enemigo de la rentabilidad: los gastos fijos. Al no tener comunidad de vecinos (solo 35€/año), tu Cashflow Neto es muy superior al de un piso equivalente en un edificio.\n\nUbicación estratégica en el centro de Javalí Viejo, conectada con la UCAM y Murcia.\n\nVersatilidad Total:\n1. Alquiler Familiar (850€/mes): Alta demanda por sus 3 habitaciones, garaje y espacios exteriores (patio + terraza).\n2. Alquiler por Habitaciones (1.080€/mes): Perfecto para estudiantes UCAM que buscan tranquilidad y calidad.\n\nDispone de 104m² distribuidos en salón, cocina con lavadero y patio, 3 habitaciones dobles y una espectacular terraza solarium privada. Plaza de garaje incluida. Inversión segura con costes operativos mínimos.',
+    features: [
+      'Sin Gastos Comunidad',
+      '3 Habitaciones Dobles',
+      'Terraza Solarium',
+      'Patio Privado',
+      'Garaje Incluido',
+      'Trastero',
+      'Zona Lavandería'
+    ],
+    areaBenefits: [
+      'Calle Mayor (Centro)',
+      'Cerca UCAM',
+      'Zona Tranquila',
+      'Servicios a pie'
+    ],
+    images: [
+      'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20JAVALI%20VIEJO%20CALLE%20MAYOR%2052%2FWhatsApp%20Image%202025-12-11%20at%2014.34.10.jpeg?alt=media&token=03c78286-5521-45e8-8bf5-044023e07524',
+      'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20JAVALI%20VIEJO%20CALLE%20MAYOR%2052%2FWhatsApp%20Image%202025-12-11%20at%2014.34.11%20(1).jpeg?alt=media&token=f1a64f5b-c84d-41d8-b075-2ce05bdd9ef4',
+      'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20JAVALI%20VIEJO%20CALLE%20MAYOR%2052%2FWhatsApp%20Image%202025-12-11%20at%2014.34.11%20(10).jpeg?alt=media&token=6f49f650-70b8-43f2-b956-1964e3665a44',
+      'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20JAVALI%20VIEJO%20CALLE%20MAYOR%2052%2FWhatsApp%20Image%202025-12-11%20at%2014.34.11%20(11).jpeg?alt=media&token=89bfe253-2f22-40ef-9c3f-4390b1ff3502',
+      'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20JAVALI%20VIEJO%20CALLE%20MAYOR%2052%2FWhatsApp%20Image%202025-12-11%20at%2014.34.11%20(2).jpeg?alt=media&token=acdf12e4-5a21-4844-a0d5-7220726d6f35',
+      'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20JAVALI%20VIEJO%20CALLE%20MAYOR%2052%2FWhatsApp%20Image%202025-12-11%20at%2014.34.11%20(3).jpeg?alt=media&token=7c9d71cb-5ccb-41b9-8f39-4453da9bbaad',
+      'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20JAVALI%20VIEJO%20CALLE%20MAYOR%2052%2FWhatsApp%20Image%202025-12-11%20at%2014.34.11%20(4).jpeg?alt=media&token=e5631865-8ac4-4dcf-872c-2d19eba07ef9',
+      'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20JAVALI%20VIEJO%20CALLE%20MAYOR%2052%2FWhatsApp%20Image%202025-12-11%20at%2014.34.11%20(5).jpeg?alt=media&token=c004f729-0a90-40b4-991b-07457c4550aa',
+      'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20JAVALI%20VIEJO%20CALLE%20MAYOR%2052%2FWhatsApp%20Image%202025-12-11%20at%2014.34.11%20(6).jpeg?alt=media&token=9d0763ba-5393-4fd7-8366-13bfe1d921ed',
+      'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20JAVALI%20VIEJO%20CALLE%20MAYOR%2052%2FWhatsApp%20Image%202025-12-11%20at%2014.34.11%20(7).jpeg?alt=media&token=18b9d4a1-a3b5-4886-a238-f48438f9a53c',
+      'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20JAVALI%20VIEJO%20CALLE%20MAYOR%2052%2FWhatsApp%20Image%202025-12-11%20at%2014.34.11%20(8).jpeg?alt=media&token=b78d45f8-56aa-4495-ae08-0f69cb505d52',
+      'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20JAVALI%20VIEJO%20CALLE%20MAYOR%2052%2FWhatsApp%20Image%202025-12-11%20at%2014.34.11%20(9).jpeg?alt=media&token=f599ebd0-39d5-40db-a333-e242a7c74402',
+      'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20JAVALI%20VIEJO%20CALLE%20MAYOR%2052%2FWhatsApp%20Image%202025-12-11%20at%2014.34.11.jpeg?alt=media&token=2c70f2d1-d081-40f4-8394-d0e5fa69f57a',
+      'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20JAVALI%20VIEJO%20CALLE%20MAYOR%2052%2FWhatsApp%20Image%202025-12-11%20at%2014.34.12%20(1).jpeg?alt=media&token=b53aad06-156d-4859-83a4-f79e982dcbca',
+      'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20JAVALI%20VIEJO%20CALLE%20MAYOR%2052%2FWhatsApp%20Image%202025-12-11%20at%2014.34.12%20(10).jpeg?alt=media&token=cef1f0d5-2460-4c57-bb46-7c333dcb475f',
+      'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20JAVALI%20VIEJO%20CALLE%20MAYOR%2052%2FWhatsApp%20Image%202025-12-11%20at%2014.34.12%20(12).jpeg?alt=media&token=434e82cd-401b-4af9-b769-34670265fb9a',
+      'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20JAVALI%20VIEJO%20CALLE%20MAYOR%2052%2FWhatsApp%20Image%202025-12-11%20at%2014.34.12%20(13).jpeg?alt=media&token=76363277-b646-4038-8cb8-80ccf23d4aa0',
+      'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20JAVALI%20VIEJO%20CALLE%20MAYOR%2052%2FWhatsApp%20Image%202025-12-11%20at%2014.34.12%20(2).jpeg?alt=media&token=bd78bc24-cc4d-4fc4-a5f8-1ec6aebd540e',
+      'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20JAVALI%20VIEJO%20CALLE%20MAYOR%2052%2FWhatsApp%20Image%202025-12-11%20at%2014.34.12%20(3).jpeg?alt=media&token=b54ca957-093f-4b50-a6d7-2866f8c4fc71',
+      'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20JAVALI%20VIEJO%20CALLE%20MAYOR%2052%2FWhatsApp%20Image%202025-12-11%20at%2014.34.12%20(4).jpeg?alt=media&token=8a9ddf9a-2cf6-4fc4-b9a1-9849b66efea3',
+      'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20JAVALI%20VIEJO%20CALLE%20MAYOR%2052%2FWhatsApp%20Image%202025-12-11%20at%2014.34.12%20(5).jpeg?alt=media&token=c192b939-2900-4ff5-a25e-197aa0d06095',
+      'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20JAVALI%20VIEJO%20CALLE%20MAYOR%2052%2FWhatsApp%20Image%202025-12-11%20at%2014.34.12%20(6).jpeg?alt=media&token=437301e4-83cd-4d51-ad0b-a5a8a75a53ef',
+      'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20JAVALI%20VIEJO%20CALLE%20MAYOR%2052%2FWhatsApp%20Image%202025-12-11%20at%2014.34.12%20(7).jpeg?alt=media&token=c76884f5-9d95-4f4c-a362-ee11ef02beec',
+      'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20JAVALI%20VIEJO%20CALLE%20MAYOR%2052%2FWhatsApp%20Image%202025-12-11%20at%2014.34.12%20(8).jpeg?alt=media&token=44fa7c68-7da7-43e2-a653-113477688511',
+      'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20JAVALI%20VIEJO%20CALLE%20MAYOR%2052%2FWhatsApp%20Image%202025-12-11%20at%2014.34.12%20(9).jpeg?alt=media&token=58e11377-2044-43a8-b6ea-369cb2f978bc',
+      'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20JAVALI%20VIEJO%20CALLE%20MAYOR%2052%2FWhatsApp%20Image%202025-12-11%20at%2014.34.12.jpeg?alt=media&token=dab1f531-6c04-4035-b4e9-d35841f715b4',
+      'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20JAVALI%20VIEJO%20CALLE%20MAYOR%2052%2FWhatsApp%20Image%202025-12-11%20at%2014.34.13%20(1).jpeg?alt=media&token=f6ee2be3-3e99-471a-9317-4b526f574b0a',
+      'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20JAVALI%20VIEJO%20CALLE%20MAYOR%2052%2FWhatsApp%20Image%202025-12-11%20at%2014.34.13.jpeg?alt=media&token=941a1224-55ba-4619-bc35-1e562349617a'
+    ],
+    driveFolder: '#',
+    scenario: 'rent_rooms',
+    visibility: 'exact',
+    specs: {
+      rooms: 3,
+      bathrooms: 2,
+      sqm: 104,
+      floor: 'Dúplex',
+      hasElevator: false // Unifamiliar usually no elevator unless specified
+    },
+    financials: {
+      purchasePrice: 172000,
+      itpPercent: 8,
+      reformCost: 0,
+      furnitureCost: 0,
+      notaryAndTaxes: 15760, // 8% of 172000 is 13760 + 2000 = 15760
+      totalInvestment: 187760,
+      monthlyRentProjected: 1080,
+      monthlyRentTraditional: 850,
+      yearlyExpenses: 383,
+      marketValue: 185000,
+      appreciationRate: 3
+    },
+    status: 'available',
+    tags: ['Eficiencia Neta', 'Sin Comunidad', 'Dúplex', 'Rentabilidad']
+  },
+  {
+    id: 'NORA-JARDIN-UCAM',
+    title: 'Lienzo en Blanco con Jardín Privado en La Ñora - Proyecto Value-Add',
+    address: 'Calle Nuestra Señora del Paso 6',
+    city: 'La Ñora (Murcia)',
+    description: `OPORTUNIDAD VALUE-ADD. ¿Buscas rentabilidad real? Olvídate de pisos cosméticos. Esto es inversión pura en el corazón universitario de Murcia (UCAM).\n\nPresentamos una propiedad singular: Planta baja diáfana de 118 m² sobre una parcela gráfica de 243 m². Estado actual en bruto (obra de 2008), funcionando como el lienzo perfecto para el inversor inteligente.\n\n¿Por qué es una oportunidad única?\n1. El Activo Oculto: Un impresionante patio/jardín privado de 125 m². Un "Unicornio" en el mercado de alquiler estudiantil. Imagina el valor de ofrecer zona chill-out privada, barbacoa o huerto urbano a estudiantes. Permite cobrar el rango más alto de alquiler.\n2. Ventaja del "Bruto": No pagas por lo que vas a tirar. Ahorras costes de demolición. Diseña la distribución EXACTA para maximizar el Cashflow (ej. 5 habitaciones premium iguales, 2/3 baños completos) sin las limitaciones de muros de carga antiguos.\n3. Potencial Futuro: La estructura permite edificar alturas adicionales, multiplicando el valor del suelo a largo plazo.\n\nEstrategia: Compra + Reforma Integral para crear el producto de alquiler más exclusivo de La Ñora.`,
+    features: [
+      'Parcela 243 m²',
+      'Jardín Privado 125 m²',
+      '118 m² Diáfanos',
+      'Potencial 5 Hab',
+      'Junto UCAM',
+      'Obra 2008',
+      'Acceso Independiente',
+      'Ampliación Futura Posible'
+    ],
+    areaBenefits: [
+      'Alta Demanda UCAM',
+      'Zona Tranquila',
+      'Servicios a pie',
+      'Transporte Público'
+    ],
+    images: [
+      'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20CALLE%20MAYOR%205%20-%20JAVALI%20VIEJO%2FWhatsApp%20Image%202025-12-11%20at%2014.44.46%20(1).jpeg?alt=media&token=02b06db6-1474-4dac-89aa-005498145b92',
+      'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20CALLE%20MAYOR%205%20-%20JAVALI%20VIEJO%2FWhatsApp%20Image%202025-12-11%20at%2014.44.46%20(2).jpeg?alt=media&token=b949bd2f-7f57-42ce-a8fd-51c22fb8f4bd',
+      'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20CALLE%20MAYOR%205%20-%20JAVALI%20VIEJO%2FWhatsApp%20Image%202025-12-11%20at%2014.44.46%20(3).jpeg?alt=media&token=a4f65763-8c51-441a-8133-5e2caab0f195',
+      'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20CALLE%20MAYOR%205%20-%20JAVALI%20VIEJO%2FWhatsApp%20Image%202025-12-11%20at%2014.44.46%20(4).jpeg?alt=media&token=e71bcb9d-328c-4ef4-bbd8-f80c14fa83ac',
+      'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20CALLE%20MAYOR%205%20-%20JAVALI%20VIEJO%2FWhatsApp%20Image%202025-12-11%20at%2014.44.46%20(5).jpeg?alt=media&token=aa0f28ac-3252-4ca8-ac83-d54eba9d3f11',
+      'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20CALLE%20MAYOR%205%20-%20JAVALI%20VIEJO%2FWhatsApp%20Image%202025-12-11%20at%2014.44.46%20(6).jpeg?alt=media&token=5a9f012b-86af-4b76-8f21-90540780c647',
+      'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20CALLE%20MAYOR%205%20-%20JAVALI%20VIEJO%2FWhatsApp%20Image%202025-12-11%20at%2014.44.46%20(7).jpeg?alt=media&token=36987fff-b761-4c5c-9024-21c7b3442b74',
+      'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20CALLE%20MAYOR%205%20-%20JAVALI%20VIEJO%2FWhatsApp%20Image%202025-12-11%20at%2014.44.46%20(8).jpeg?alt=media&token=911bdd26-c4a2-43a5-8377-a844479de9ec',
+      'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20CALLE%20MAYOR%205%20-%20JAVALI%20VIEJO%2FWhatsApp%20Image%202025-12-11%20at%2014.44.46%20(9).jpeg?alt=media&token=14ecc5e4-0e24-47e9-9665-6aa2da1b3cce',
+      'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20CALLE%20MAYOR%205%20-%20JAVALI%20VIEJO%2FWhatsApp%20Image%202025-12-11%20at%2014.44.46.jpeg?alt=media&token=02a49467-14de-4f9f-9a88-fe96319c1cea',
+      'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20CALLE%20MAYOR%205%20-%20JAVALI%20VIEJO%2FWhatsApp%20Image%202025-12-11%20at%2014.44.47.jpeg?alt=media&token=d3cd43f3-6c7a-4d83-8c87-77ff9c1e97e4'
+    ],
+    videos: [
+      'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20CALLE%20MAYOR%205%20-%20JAVALI%20VIEJO%2FWhatsApp%20Video%202025-12-11%20at%2014.46.07.mp4?alt=media&token=f300f9ad-5fde-426d-a7e0-35e38be03870'
+    ],
+    driveFolder: '#',
+    scenario: 'rent_rooms',
+    visibility: 'exact',
+    specs: {
+      rooms: 5,
+      bathrooms: 3,
+      sqm: 118,
+      floor: 'Bajo con Jardín',
+      hasElevator: false 
+    },
+    financials: {
+      purchasePrice: 120000,
+      itpPercent: 8,
+      reformCost: 75000,
+      furnitureCost: 5000,
+      notaryAndTaxes: 2500,
+      totalInvestment: 212000,
+      monthlyRentProjected: 1700,
+      monthlyRentTraditional: 900,
+      yearlyExpenses: 600,
+      marketValue: 250000,
+      appreciationRate: 5
+    },
+    status: 'available',
+    tags: ['Value-Add', 'Jardín 125m²', 'UCAM', 'Reforma Integral']
   }
 ];

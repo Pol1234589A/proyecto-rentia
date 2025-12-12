@@ -81,21 +81,24 @@ function AppContent() {
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "opportunities"), (snapshot) => {
         const firestoreOpps: Opportunity[] = [];
+        const allDbIds = new Set<string>();
+
         snapshot.forEach((doc) => {
-            firestoreOpps.push({ ...doc.data(), id: doc.id } as Opportunity);
+            const data = doc.data();
+            allDbIds.add(doc.id);
+
+            // Filter out soft-deleted items
+            if ((data as any).deleted) return;
+
+            firestoreOpps.push({ ...data, id: doc.id } as Opportunity);
         });
         
-        // Fusión: Datos Firestore + Datos Estáticos que no están en Firestore
-        const dbIds = new Set(firestoreOpps.map(o => o.id));
-        const missingStatics = staticOpportunities.filter(o => !dbIds.has(o.id));
-        
+        // Fusión: Datos Firestore (activos) + Datos Estáticos que no están en Firestore (ni como activos ni como borrados)
+        const missingStatics = staticOpportunities.filter(o => !allDbIds.has(o.id));
         const combinedOpps = [...firestoreOpps, ...missingStatics];
         
-        if (combinedOpps.length > 0) {
-            setOpportunities(combinedOpps);
-        } else {
-            setOpportunities(staticOpportunities);
-        }
+        setOpportunities(combinedOpps);
+
     }, (error) => {
         console.warn("Firestore access denied or error. Using static data.", error);
         setOpportunities(staticOpportunities);

@@ -38,10 +38,28 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
 
   // --- SEO INJECTION ---
   useEffect(() => {
-    // ... (Existing SEO logic kept intact)
+    const jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "Product",
+      "name": opportunity.title,
+      "description": opportunity.description,
+      "image": opportunity.images,
+      "offers": {
+        "@type": "Offer",
+        "priceCurrency": "EUR",
+        "price": opportunity.financials.purchasePrice,
+        "availability": opportunity.status === 'available' ? "https://schema.org/InStock" : "https://schema.org/SoldOut"
+      }
+    };
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.text = JSON.stringify(jsonLd);
+    document.head.appendChild(script);
+    return () => { document.head.removeChild(script); };
   }, [opportunity]);
 
   useEffect(() => {
+    // Reset states on opportunity change
     if (opportunity.financials.monthlyRentProjected > 0) {
         setRentalStrategy('rooms');
     } else {
@@ -51,7 +69,17 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
     setRentLivingRoom(false);
     setShowLegal(false);
     window.scrollTo(0, 0);
-  }, [opportunity.id]);
+
+    // --- PRECARGA DE IMÁGENES (Image Preloading) ---
+    // Esto fuerza al navegador a descargar TODAS las fotos en cuanto se abre la ficha
+    // para que la navegación en el lightbox sea instantánea.
+    if (opportunity.images && opportunity.images.length > 0) {
+        opportunity.images.forEach((src) => {
+            const img = new Image();
+            img.src = src;
+        });
+    }
+  }, [opportunity.id, opportunity.images, opportunity.financials]);
 
   const openLightbox = (index: number) => {
     setSelectedImageIndex(index);
@@ -380,7 +408,7 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
                             </p>
                             <div className="flex items-start gap-2 bg-white p-3 rounded border border-red-100 text-red-800 font-medium">
                                 <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                                <p>Cualquier intento de elusión o engaño devengará automáticamente una penalización equivalente a la comisión de intermediación (3% + IVA, mín. 3.000€ + IVA), reclamable ante los Juzgados de Murcia.</p>
+                                <p>Cualquier intento de elusión o engaño devengará automáticamente a favor de Rentia Investments S.L. una penalización equivalente a la comisión de intermediación (3% + IVA, mín. 3.000€ + IVA), reclamable ante los Juzgados de Murcia.</p>
                             </div>
                         </div>
                     )}

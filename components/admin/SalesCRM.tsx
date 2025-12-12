@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom'; 
 import { db, storage } from '../../firebase';
-import { collection, addDoc, serverTimestamp, onSnapshot, deleteDoc, doc, writeBatch, updateDoc, query, orderBy } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, onSnapshot, deleteDoc, doc, writeBatch, updateDoc, query, orderBy, setDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { brokerRequests as staticRequests, BrokerRequest } from '../../data/brokerRequests';
 import { opportunities as staticOpportunities } from '../../data';
@@ -144,20 +144,25 @@ export const SalesCRM: React.FC = () => {
 
     const unsubscribeAssets = onSnapshot(collection(db, "opportunities"), (snapshot) => {
         const firestoreAssets: Opportunity[] = [];
+        const allDbIds = new Set<string>(); // Track all IDs in DB (even deleted ones)
+
         snapshot.forEach((doc) => {
-            firestoreAssets.push({ ...doc.data(), id: doc.id } as Opportunity);
+            const data = doc.data();
+            allDbIds.add(doc.id);
+
+            // Filter out soft-deleted items
+            if ((data as any).deleted) return;
+
+            firestoreAssets.push({ ...data, id: doc.id } as Opportunity);
         });
         
-        // Fusión
-        const dbIds = new Set(firestoreAssets.map(a => a.id));
-        const missingStatics = staticOpportunities.filter(a => !dbIds.has(a.id));
+        // Fusión: Usar datos de Firestore + datos estáticos que NO estén ya en Firestore
+        // Importante: Si está en DB (aunque sea deleted), no lo cogemos del estático.
+        const missingStatics = staticOpportunities.filter(a => !allDbIds.has(a.id));
         const combinedAssets = [...firestoreAssets, ...missingStatics];
         
-        if (combinedAssets.length > 0) {
-            setAssets(combinedAssets);
-        } else {
-            setAssets(staticOpportunities);
-        }
+        setAssets(combinedAssets);
+
     }, (error) => {
         console.log("Error loading assets", error);
         setAssets(staticOpportunities);
@@ -362,7 +367,8 @@ export const SalesCRM: React.FC = () => {
   const handleDeleteAsset = async (id: string) => {
        if (!window.confirm("¿Estás seguro de eliminar este activo?")) return;
        try {
-           await deleteDoc(doc(db, "opportunities", id));
+           // Use soft-delete to properly hide even static items (by creating a 'deleted' record in DB)
+           await setDoc(doc(db, "opportunities", id), { deleted: true }, { merge: true });
        } catch (error) {
            console.error(error);
        }

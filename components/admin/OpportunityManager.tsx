@@ -21,7 +21,9 @@ export const OpportunityManager: React.FC = () => {
       const querySnapshot = await getDocs(collection(db, "opportunities"));
       const props: Opportunity[] = [];
       querySnapshot.forEach((doc) => {
-        props.push({ ...doc.data(), id: doc.id } as Opportunity);
+        const data = doc.data();
+        if ((data as any).deleted) return; // Filter deleted
+        props.push({ ...data, id: doc.id } as Opportunity);
       });
       setOpportunities(props);
     } catch (error: any) {

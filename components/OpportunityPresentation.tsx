@@ -14,6 +14,16 @@ export const OpportunityPresentation: React.FC<Props> = ({ opportunity, onClose 
     const [isLightboxOpen, setIsLightboxOpen] = useState(false);
     const [showLegal, setShowLegal] = useState(false);
 
+    // Image Preloading Effect
+    useEffect(() => {
+        if (opportunity.images && opportunity.images.length > 0) {
+            opportunity.images.forEach((src) => {
+                const img = new Image();
+                img.src = src;
+            });
+        }
+    }, [opportunity.images, opportunity.id]);
+
     // Cálculos
     const purchasePrice = opportunity.financials.purchasePrice;
     const agencyFees = opportunity.financials.agencyFees || (purchasePrice > 100000 ? purchasePrice * 0.03 : 3000);

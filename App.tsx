@@ -23,7 +23,8 @@ import { OpportunityCard } from './components/OpportunityCard';
 import { LandingView } from './components/LandingView';
 import { InvestorDossier } from './components/InvestorDossier'; 
 import { OpportunityPresentation } from './components/OpportunityPresentation'; 
-import { PublishRequestView } from './components/PublishRequestView'; // Nueva Importación
+import { PublishRequestView } from './components/PublishRequestView';
+import { ManagementSubmissionForm } from './components/owners/ManagementSubmissionForm'; // New Import
 import { Opportunity } from './types';
 import { opportunities as staticOpportunities } from './data';
 import { TrendingUp, MessageCircle, Bell } from 'lucide-react';
@@ -32,8 +33,8 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { db } from './firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
 
-// Type alias - Añadidos request-individual y request-agency
-type ViewType = 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts' | 'blog' | 'brokers' | 'intranet' | 'landing' | 'submission' | 'dossier' | 'presentation' | 'request-individual' | 'request-agency';
+// Type alias
+type ViewType = 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts' | 'blog' | 'brokers' | 'intranet' | 'landing' | 'submission' | 'dossier' | 'presentation' | 'request-individual' | 'request-agency' | 'management-submission';
 
 // Mapping Hash paths
 const PATH_MAP: Record<string, ViewType> = {
@@ -51,7 +52,8 @@ const PATH_MAP: Record<string, ViewType> = {
   '#/dossier': 'dossier',
   '#/presentation': 'presentation',
   '#/request/individual': 'request-individual',
-  '#/request/agency': 'request-agency'
+  '#/request/agency': 'request-agency',
+  '#/publicar-propiedad': 'management-submission' // New Route
 };
 
 const VIEW_TO_HASH: Record<ViewType, string> = {
@@ -70,7 +72,8 @@ const VIEW_TO_HASH: Record<ViewType, string> = {
   'submission': '#/colaboradores',
   'presentation': '#/presentation',
   'request-individual': '#/request/individual',
-  'request-agency': '#/request/agency'
+  'request-agency': '#/request/agency',
+  'management-submission': '#/publicar-propiedad'
 };
 
 function AppContent() {
@@ -213,6 +216,11 @@ function AppContent() {
         return <PublishRequestView type="agency" onNavigate={handleNavigate} />;
     }
 
+    // Nuevo Formulario Propietarios
+    if (view === 'management-submission') {
+        return <ManagementSubmissionForm />;
+    }
+
     if (view === 'dossier') {
         return (
             <InvestorDossier 
@@ -339,8 +347,7 @@ function AppContent() {
   };
 
   // Determine if full layout (Header/Footer) should be shown
-  // Added requests views to standalone list
-  const isStandaloneView = view === 'landing' || view === 'dossier' || view === 'presentation' || view === 'request-individual' || view === 'request-agency';
+  const isStandaloneView = view === 'landing' || view === 'dossier' || view === 'presentation' || view === 'request-individual' || view === 'request-agency' || view === 'management-submission';
 
   return (
     <div className="min-h-screen flex flex-col font-sans">

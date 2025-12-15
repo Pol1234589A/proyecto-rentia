@@ -1,73 +1,87 @@
-
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     
+    // Función auxiliar para verificar autenticación
     function isAuth() {
       return request.auth != null;
     }
 
-    // 1. FIRMAS RGPD
-    match /signatures/{userId}/{allPaths=**} {
-      allow read: if isAuth();
-      allow write: if request.auth.uid == userId;
-    }
+    // --- CARPETAS PÚBLICAS (Lectura abierta) ---
 
-    // 2. DOCUMENTOS Y FACTURAS PROPIEDADES (Para Owner Dashboard)
-    // Se permite escritura a autenticados para que los propietarios puedan subir sus archivos.
-    // La seguridad de quién ve qué se maneja principalmente en Firestore (property_documents).
-    match /documents/{propertyId}/{allPaths=**} {
-      allow read: if isAuth();
-      allow write: if isAuth();
-    }
-
-    match /invoices/{propertyId}/{allPaths=**} {
-      allow read: if isAuth();
-      allow write: if isAuth();
-    }
-    
-    // Contratos PDF subidos por Admin/Staff
-    match /contracts/{propertyId}/{allPaths=**} {
-      allow read: if isAuth();
-      allow write: if isAuth();
-    }
-
-    // 3. FACTURAS DE TRABAJADORES
-    match /worker_invoices/{userId}/{allPaths=**} {
-      allow read, write: if isAuth();
-    }
-
-    // 4. IMÁGENES PÚBLICAS (Oportunidades, Propiedades, Habitaciones)
+    // Imágenes de la web pública (Oportunidades de inversión)
     match /opportunities/{allPaths=**} {
       allow read: if true;
-      allow write: if isAuth(); 
+      allow write: if isAuth(); // Solo usuarios logueados (Staff) suben fotos
     }
     
+    // Imágenes de propiedades en alquiler (RoomsView)
     match /properties/{allPaths=**} {
       allow read: if true;
       allow write: if isAuth();
     }
     
+    // Imágenes de habitaciones
     match /rooms/{allPaths=**} {
       allow read: if true;
       allow write: if isAuth();
     }
 
-    // 5. SOLICITUDES COLABORADORES (Subida Pública para formulario web)
-    // Se permite 'create' a todo el mundo para que el formulario público pueda subir fotos.
-    // Se permite 'read' a todo el mundo para poder mostrar la previsualización tras la subida (getDownloadURL).
-    match /requests/{requestId}/{allPaths=**} {
-      allow create: if true;
-      allow read: if true;
-    }
-
-    // 6. FEEDS XML (Público para sincronización con portales)
+    // Feeds XML para portales inmobiliarios
     match /feeds/{fileName} {
       allow read: if true;
       allow write: if isAuth();
     }
 
-    // Regla por defecto para el resto
+    // --- CARPETAS DE SUBIDA PÚBLICA (Formularios Web) ---
+    // Permiten 'create' a cualquiera para que funcionen los formularios sin login.
+    // Permiten 'read' para previsualizar tras la subida.
+
+    // Solicitudes de colaboración (PropertySubmissionForm)
+    match /requests/{requestId}/{allPaths=**} {
+      allow create: if true;
+      allow read: if true;
+    }
+    
+    // Solicitudes de gestión propietarios (ManagementSubmissionForm)
+    match /mgmt/{tempId}/{allPaths=**} {
+      allow create: if true;
+      allow read: if true;
+    }
+
+    // --- CARPETAS PRIVADAS / RESTRINGIDAS ---
+
+    // Firmas RGPD (Privado)
+    match /signatures/{userId}/{allPaths=**} {
+      allow read: if isAuth(); // Staff debe poder verlas
+      allow write: if request.auth.uid == userId; // Solo el usuario firma la suya
+    }
+
+    // Documentos de Propiedad (Escrituras, Seguros...)
+    match /documents/{propertyId}/{allPaths=**} {
+      allow read: if isAuth(); // Staff, Worker y Owner
+      allow write: if isAuth(); // Staff y Owner
+    }
+
+    // Facturas de Suministros (Luz, Agua...)
+    match /invoices/{propertyId}/{allPaths=**} {
+      allow read: if isAuth();
+      allow write: if isAuth();
+    }
+    
+    // Contratos de Alquiler (PDFs)
+    match /contracts/{propertyId}/{allPaths=**} {
+      allow read: if isAuth(); // Staff, Worker, Owner y Tenant (Validado en app)
+      allow write: if isAuth(); // Staff crea contratos
+    }
+
+    // Facturas de Trabajadores (Mantenimiento/Comerciales)
+    match /worker_invoices/{userId}/{allPaths=**} {
+      allow read: if isAuth(); // Staff y el propio Worker
+      allow write: if isAuth(); // Worker sube, Staff gestiona
+    }
+
+    // Regla por defecto: Solo usuarios autenticados pueden escribir o leer cualquier otra cosa no definida
     match /{allPaths=**} {
       allow read, write: if isAuth(); 
     }

@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { db } from '../../firebase';
 import { collection, onSnapshot, addDoc, query, where, orderBy, serverTimestamp } from 'firebase/firestore';
-import { properties as staticProperties, Property } from '../../data/rooms'; 
+import { properties as staticProperties, Property, Room } from '../../data/rooms'; 
 import { useAuth } from '../../contexts/AuthContext';
 import { UserCreator } from '../admin/UserCreator';
 import { UserManager } from '../admin/UserManager'; 
@@ -28,7 +27,8 @@ import { BlacklistManager } from '../admin/tools/BlacklistManager';
 import { WorkerInvoicesPanel } from '../admin/tools/WorkerInvoicesPanel';
 import { TransferRequestManager } from '../admin/TransferRequestManager';
 import { AdvancedCalculator } from '../admin/tools/AdvancedCalculator'; 
-import { LayoutDashboard, Calculator, Briefcase, Wrench, Plus, Search, FileText, Save, X, DollarSign, Calendar as CalendarIcon, Filter, Pencil, PieChart, Landmark, Wallet, Clock, Zap, Settings, Receipt, Split, Info, MessageCircle, Share2, ClipboardList, UserCheck, Mail, Phone, ArrowRight, UserPlus, Inbox, Home, DoorOpen, Menu, Activity, ShieldAlert, UserCog, Siren, Footprints, BarChart3, Building, Grid, Globe, Send, Users } from 'lucide-react';
+import { ManagementLeadsManager } from '../admin/ManagementLeadsManager'; // New Import
+import { LayoutDashboard, Calculator, Briefcase, Wrench, Plus, Search, FileText, Save, X, DollarSign, Calendar as CalendarIcon, Filter, Pencil, PieChart, Landmark, Wallet, Clock, Zap, Settings, Receipt, Split, Info, MessageCircle, Share2, ClipboardList, UserCheck, Mail, Phone, ArrowRight, UserPlus, Inbox, Home, DoorOpen, Menu, Activity, ShieldAlert, UserCog, Siren, Footprints, BarChart3, Building, Grid, Globe, Send, Users, Key } from 'lucide-react';
 
 
 const MOTIVATIONAL_QUOTES = [
@@ -59,8 +59,8 @@ const MotivationalBanner = () => {
 export const StaffDashboard: React.FC = () => {
   const { currentUser } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'real_estate' | 'accounting' | 'tools' | 'contracts' | 'calendar' | 'supplies' | 'calculator' | 'social' | 'tasks' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'transfers' | 'advanced_calc'>('overview');
-  const [activeMobileTab, setActiveMobileTab] = useState<'overview' | 'tasks' | 'candidates' | 'properties' | 'menu' | 'accounting' | 'supplies' | 'calendar' | 'contracts' | 'social' | 'calculator' | 'tools' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'advanced_calc'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'real_estate' | 'accounting' | 'tools' | 'contracts' | 'calendar' | 'supplies' | 'calculator' | 'social' | 'tasks' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'transfers' | 'advanced_calc' | 'management_leads'>('overview');
+  const [activeMobileTab, setActiveMobileTab] = useState<'overview' | 'tasks' | 'candidates' | 'properties' | 'menu' | 'accounting' | 'supplies' | 'calendar' | 'contracts' | 'social' | 'calculator' | 'tools' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'advanced_calc' | 'management_leads'>('overview');
 
   const [stats, setStats] = useState({
     totalRooms: 0,
@@ -75,6 +75,7 @@ export const StaffDashboard: React.FC = () => {
   const [pendingCandidatesCount, setPendingCandidatesCount] = useState(0);
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0); 
   const [pendingTransfersCount, setPendingTransfersCount] = useState(0);
+  const [pendingMgmtLeadsCount, setPendingMgmtLeadsCount] = useState(0);
   const [propertiesList, setPropertiesList] = useState<Property[]>([]);
   const [selectedPropId, setSelectedPropId] = useState<string>(''); 
   const [totalRealBalance, setTotalRealBalance] = useState(0);
@@ -176,8 +177,12 @@ export const StaffDashboard: React.FC = () => {
        setPendingTransfersCount(snap.size);
     });
 
+    const qMgmt = query(collection(db, "management_leads"), where("status", "==", "new"));
+    const unsubMgmt = onSnapshot(qMgmt, (snap) => {
+        setPendingMgmtLeadsCount(snap.size);
+    });
 
-    return () => { unsubscribeProps(); unsubscribeAccounting(); unsubPending(); unsubRequests(); unsubTransfers(); };
+    return () => { unsubscribeProps(); unsubscribeAccounting(); unsubPending(); unsubRequests(); unsubTransfers(); unsubMgmt(); };
   }, []);
 
   const handleSendCandidate = async (e: React.FormEvent) => {
@@ -210,6 +215,7 @@ export const StaffDashboard: React.FC = () => {
     const desktopTools = [
         { id: 'tasks', label: 'Tareas', icon: <ClipboardList className="w-4 h-4" /> },
         { id: 'real_estate', label: 'Oportunidades', icon: <Building className="w-4 h-4" /> },
+        { id: 'management_leads', label: 'Leads Gestión', icon: <Key className="w-4 h-4" />, count: pendingMgmtLeadsCount },
         { id: 'requests', label: 'Solicitudes', icon: <Inbox className="w-4 h-4" />, count: pendingRequestsCount }, 
         { id: 'transfers', label: 'Traspasos', icon: <Share2 className="w-4 h-4" />, count: pendingTransfersCount },
         { id: 'sales_tracker', label: 'Ventas', icon: <Activity className="w-4 h-4" /> },
@@ -217,7 +223,6 @@ export const StaffDashboard: React.FC = () => {
         { id: 'contracts', label: 'Contratos', icon: <FileText className="w-4 h-4" /> },
         { id: 'supplies', label: 'Suministros', icon: <Zap className="w-4 h-4" /> },
         { id: 'worker_invoices', label: 'Facturas Trabajadores', icon: <Receipt className="w-4 h-4" /> },
-        { id: 'social', label: 'Mensajería', icon: <MessageCircle className="w-4 h-4" /> },
         { id: 'calculator', label: 'Reparto Gastos', icon: <Split className="w-4 h-4" /> },
         { id: 'accounting', label: 'Contabilidad', icon: <Calculator className="w-4 h-4" /> },
         { id: 'advanced_calc', label: 'Liquidaciones', icon: <FileText className="w-4 h-4" /> }, 
@@ -228,6 +233,7 @@ export const StaffDashboard: React.FC = () => {
     ];
 
     const mobileMenuOptions = [
+        { id: 'management_leads', label: 'Leads Gestión', icon: <Key className="w-6 h-6"/>, color: 'bg-indigo-100 text-indigo-600', count: pendingMgmtLeadsCount },
         { id: 'requests', label: 'Solicitudes', icon: <Inbox className="w-6 h-6"/>, color: 'bg-green-100 text-green-600', count: pendingRequestsCount }, 
         { id: 'sales_tracker', label: 'Ventas', icon: <Activity className="w-6 h-6"/>, color: 'bg-indigo-100 text-indigo-600' },
         { id: 'worker_invoices', label: 'Facturas Staff', icon: <Receipt className="w-6 h-6"/>, color: 'bg-teal-100 text-teal-600' },
@@ -238,7 +244,6 @@ export const StaffDashboard: React.FC = () => {
         { id: 'calendar', label: 'Calendario', icon: <CalendarIcon className="w-6 h-6"/>, color: 'bg-green-100 text-green-600' },
         { id: 'visits', label: 'Visitas', icon: <Footprints className="w-6 h-6"/>, color: 'bg-red-100 text-red-600' },
         { id: 'contracts', label: 'Contratos', icon: <FileText className="w-6 h-6"/>, color: 'bg-purple-100 text-purple-600' },
-        { id: 'social', label: 'Mensajería', icon: <MessageCircle className="w-6 h-6"/>, color: 'bg-pink-100 text-pink-600' },
         { id: 'user_manager', label: 'Usuarios', icon: <UserCog className="w-6 h-6"/>, color: 'bg-gray-200 text-gray-700' },
         { id: 'calculator', label: 'Reparto Gastos', icon: <Split className="w-6 h-6"/>, color: 'bg-orange-100 text-orange-600' },
         { id: 'tools', label: 'Herramientas', icon: <Wrench className="w-6 h-6"/>, color: 'bg-gray-100 text-gray-600' },
@@ -275,6 +280,7 @@ export const StaffDashboard: React.FC = () => {
                     </div>
                     {pendingCandidatesCount > 0 && <div className="bg-orange-50 p-4 rounded-xl border border-orange-100 flex items-center justify-between shadow-sm" onClick={() => setActiveMobileTab('candidates')}><div className="flex items-center gap-3"><UserCheck className="w-5 h-5 text-orange-600"/><div><p className="font-bold text-orange-900">{pendingCandidatesCount} Candidatos</p><p className="text-xs text-orange-700">Revisar pendientes</p></div></div><ArrowRight className="w-4 h-4 text-orange-400"/></div>}
                     {pendingRequestsCount > 0 && <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex items-center justify-between shadow-sm" onClick={() => setActiveMobileTab('requests')}><div className="flex items-center gap-3"><Inbox className="w-5 h-5 text-blue-600"/><div><p className="font-bold text-blue-900">{pendingRequestsCount} Solicitudes</p><p className="text-xs text-blue-700">Nuevas oportunidades</p></div></div><ArrowRight className="w-4 h-4 text-blue-400"/></div>}
+                    {pendingMgmtLeadsCount > 0 && <div className="bg-purple-50 p-4 rounded-xl border border-purple-100 flex items-center justify-between shadow-sm" onClick={() => setActiveMobileTab('management_leads')}><div className="flex items-center gap-3"><Key className="w-5 h-5 text-purple-600"/><div><p className="font-bold text-purple-900">{pendingMgmtLeadsCount} Leads Gestión</p><p className="text-xs text-purple-700">Propiedades nuevas</p></div></div><ArrowRight className="w-4 h-4 text-purple-400"/></div>}
                 </div>
             );
             case 'tasks': return <div className="h-full overflow-y-auto pb-24"><TaskManager /></div>;
@@ -293,6 +299,7 @@ export const StaffDashboard: React.FC = () => {
             case 'sales_tracker': return <div className="h-full overflow-y-auto pb-24"><SalesTracker /></div>;
             case 'blacklist': return <div className="h-full overflow-y-auto pb-24"><BlacklistManager /></div>;
             case 'requests': return <div className="h-full overflow-y-auto pb-24"><OpportunityRequestManager /></div>;
+            case 'management_leads': return <div className="h-full overflow-y-auto pb-24"><ManagementLeadsManager /></div>;
             case 'worker_invoices': return <div className="h-full overflow-y-auto pb-24"><WorkerInvoicesPanel /></div>;
             case 'user_manager': return <div className="h-full overflow-y-auto pb-24"><UserManager /></div>;
             case 'calculator': return <div className="h-full overflow-y-auto pb-24"><SupplyCalculator properties={propertiesList} preSelectedPropertyId={selectedPropId} /></div>;
@@ -376,6 +383,18 @@ export const StaffDashboard: React.FC = () => {
                                 <ArrowRight className="w-6 h-6 text-blue-400" />
                             </div>
                         )}
+                        {pendingMgmtLeadsCount > 0 && (
+                            <div 
+                                className="bg-purple-50 border border-purple-200 rounded-lg p-6 flex items-center justify-between shadow-sm cursor-pointer hover:bg-purple-100 transition-colors"
+                                onClick={() => setActiveTab('management_leads')}
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div className="bg-white p-3 rounded-full text-purple-600 shadow-sm border border-purple-100"><Key className="w-8 h-8" /></div>
+                                    <div><h4 className="font-bold text-purple-900 text-xl">{pendingMgmtLeadsCount} Leads Gestión</h4><p className="text-sm text-purple-700">Propietarios interesados</p></div>
+                                </div>
+                                <ArrowRight className="w-6 h-6 text-purple-400" />
+                            </div>
+                        )}
                     </div>
 
                     <button onClick={() => setShowCandidateModal(true)} className="w-full bg-green-50 text-green-700 px-6 py-4 rounded-lg font-bold hover:bg-green-100 transition-colors items-center gap-2 border border-green-200 text-left flex justify-between shadow-sm mb-8"><div className="flex items-center gap-3"><UserPlus className="w-5 h-5"/><span>Enviar Nuevo Candidato al Pipeline</span></div><ArrowRight className="w-5 h-5"/></button>
@@ -397,6 +416,7 @@ export const StaffDashboard: React.FC = () => {
             {activeTab === 'sales_tracker' && <div className="animate-in slide-in-from-bottom-4 duration-300"><SalesTracker /></div>}
             {activeTab === 'blacklist' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><BlacklistManager /></div>} 
             {activeTab === 'requests' && <div className="animate-in slide-in-from-bottom-4 duration-300"><OpportunityRequestManager /></div>}
+            {activeTab === 'management_leads' && <div className="animate-in slide-in-from-bottom-4 duration-300"><ManagementLeadsManager /></div>}
             {activeTab === 'worker_invoices' && <div className="animate-in slide-in-from-bottom-4 duration-300"><WorkerInvoicesPanel /></div>}
             {activeTab === 'user_manager' && <div className="animate-in slide-in-from-bottom-4 duration-300"><UserManager /></div>}
             
@@ -441,35 +461,22 @@ export const StaffDashboard: React.FC = () => {
                         <button type="button" onClick={() => setShowCandidateModal(false)} className="p-2 -mr-2"><X className="w-5 h-5 text-gray-400"/></button>
                     </div>
                     <div className="p-4 space-y-4 overflow-y-auto max-h-[70vh]">
-                        {/* Captador (ReadOnly) */}
-                        <div className="bg-blue-50 p-2 rounded-lg border border-blue-100 flex items-center gap-2 text-xs text-blue-800">
-                            <Info className="w-4 h-4" />
-                            <span>Captado por: <strong>{currentUser?.displayName || 'Desconocido'}</strong></span>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Propiedad *</label>
-                                <select required className="w-full p-2 border rounded text-sm" value={newCandidate.propertyId} onChange={e => setNewCandidate({...newCandidate, propertyId: e.target.value, roomId: ''})}><option value="">Seleccionar...</option>{propertiesList.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}</select>
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Habitación (Opcional)</label>
-                                <select disabled={!newCandidate.propertyId} className="w-full p-2 border rounded text-sm" value={newCandidate.roomId} onChange={e => setNewCandidate({...newCandidate, roomId: e.target.value})}><option value="">General / A definir</option>{propertiesList.find(p => p.id === newCandidate.propertyId)?.rooms.map((r:any) => <option key={r.id} value={r.id}>{r.name} ({r.status})</option>)}</select>
-                            </div>
-                        </div>
+                        <div><label className="text-xs font-bold text-gray-500 block mb-1">Propiedad*</label><select required className="w-full p-2 border rounded text-sm" value={newCandidate.propertyId} onChange={e => setNewCandidate({...newCandidate, propertyId: e.target.value, roomId: ''})}><option value="">Seleccionar...</option>{propertiesList.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}</select></div>
                         <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nombre Candidato *</label>
-                            <input required type="text" className="w-full p-2 border rounded text-sm font-bold" value={newCandidate.candidateName} onChange={e => setNewCandidate({...newCandidate, candidateName: e.target.value})} />
+                            <label className="text-xs font-bold text-gray-500 block mb-1">Habitación (Opcional)</label>
+                            <select disabled={!newCandidate.propertyId} className="w-full p-2 border rounded text-sm" value={newCandidate.roomId} onChange={e => setNewCandidate({...newCandidate, roomId: e.target.value})}>
+                                <option value="">Seleccionar...</option>
+                                {(propertiesList.find(p => p.id === newCandidate.propertyId)?.rooms || []).map((r: Room) => (
+                                    <option key={r.id} value={r.id}>{r.name} ({r.status})</option>
+                                ))}
+                            </select>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 block mb-1">Teléfono</label>
-                                <input type="tel" className="w-full p-2 border rounded text-sm" value={newCandidate.candidatePhone} onChange={e => setNewCandidate({...newCandidate, candidatePhone: e.target.value})}/></div>
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 block mb-1">Email</label>
-                                <input type="email" className="w-full p-2 border rounded text-sm" value={newCandidate.candidateEmail} onChange={e => setNewCandidate({...newCandidate, candidateEmail: e.target.value})}/></div>
+                        <div><label className="text-xs font-bold text-gray-500 block mb-1">Nombre Candidato*</label><input required type="text" className="w-full p-2 border rounded text-sm" value={newCandidate.candidateName} onChange={e => setNewCandidate({...newCandidate, candidateName: e.target.value})} /></div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div><label className="text-xs font-bold text-gray-500 block mb-1">Teléfono</label><input type="tel" className="w-full p-2 border rounded text-sm" value={newCandidate.candidatePhone} onChange={e => setNewCandidate({...newCandidate, candidatePhone: e.target.value})}/></div>
+                            <div><label className="text-xs font-bold text-gray-500 block mb-1">Email</label><input type="email" className="w-full p-2 border rounded text-sm" value={newCandidate.candidateEmail} onChange={e => setNewCandidate({...newCandidate, candidateEmail: e.target.value})}/></div>
                         </div>
-                        
+                        {/* Selector de Prioridad NUEVO */}
                         <div>
                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1 flex items-center gap-1"><Siren className="w-3 h-3"/> Urgencia / Prioridad</label>
                             <select 
@@ -484,19 +491,17 @@ export const StaffDashboard: React.FC = () => {
                         </div>
 
                         <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1 flex items-center gap-1"><Globe className="w-3 h-3"/> Plataforma de Origen</label>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1 flex items-center gap-1"><Briefcase className="w-3 h-3"/> Plataforma de Origen</label>
                             <input type="text" className="w-full p-2 border rounded text-sm" placeholder="Ej: Idealista, Facebook, Referido..." value={newCandidate.sourcePlatform} onChange={e => setNewCandidate({...newCandidate, sourcePlatform: e.target.value})} />
                         </div>
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Info Adicional</label>
-                            <textarea className="w-full p-2 border rounded text-sm h-20 resize-none" value={newCandidate.additionalInfo} onChange={e => setNewCandidate({...newCandidate, additionalInfo: e.target.value})} />
-                        </div>
+                        <div><label className="text-xs font-bold text-gray-500 block mb-1">Info Adicional</label><textarea className="w-full p-2 border rounded text-sm h-20" value={newCandidate.additionalInfo} onChange={e => setNewCandidate({...newCandidate, additionalInfo: e.target.value})} /></div>
                     </div>
-                    <div className="p-4 bg-gray-50 border-t flex justify-end">
-                        <button type="submit" className="bg-green-600 text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-green-700 shadow-md flex items-center gap-2"><Send className="w-4 h-4"/> Enviar a Pipeline</button>
+                    <div className="p-4 bg-gray-50 border-t flex gap-2">
+                        <button type="button" onClick={() => setShowCandidateModal(false)} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-bold hover:bg-gray-200">Cancelar</button>
+                        <button type="submit" className="flex-1 bg-green-600 text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-green-700"><Send className="w-4 h-4"/> Enviar a Pipeline</button>
                     </div>
                 </form>
-            </div>,
+            </div>, 
             document.body
         )}
       </div>

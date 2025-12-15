@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { ChevronDown, Check, KeyRound, TrendingUp, ClipboardList, Sparkles, Settings, FileBarChart, ArrowRight, ShieldCheck, UserCheck, Home, MessageCircle, X, Megaphone, Star, Quote, CheckCircle, Users, Smartphone, Clock, FileText } from 'lucide-react';
+import { ChevronDown, Check, KeyRound, TrendingUp, ClipboardList, Sparkles, Settings, FileBarChart, ArrowRight, ShieldCheck, UserCheck, Home, MessageCircle, X, Megaphone, Star, Quote, CheckCircle, Users, Smartphone, Clock, FileText, PlusCircle } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { NewsTicker } from './NewsTicker';
 
@@ -211,61 +211,47 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
         </div>
       </section>
 
-      {/* --- NEWS TICKER (INSERTED HERE) --- */}
+      {/* --- NEWS TICKER --- */}
       <NewsTicker />
-
-      {/* --- MODELO DE GESTIÓN --- */}
-      <section className="py-16 md:py-20 bg-white">
-        <div className="container mx-auto px-4 max-w-4xl text-center">
-            <h2 className="text-2xl md:text-4xl font-bold mb-6 text-rentia-black font-display">{t('home.model.title')}</h2>
-            <div className="w-24 h-1 bg-rentia-blue mx-auto mb-8 rounded-full"></div>
-            <div className="text-base md:text-lg text-gray-600 space-y-4 leading-relaxed">
-                <p>
-                    {t('home.model.text1')}
-                </p>
-                <p>
-                    {t('home.model.text2')}
-                </p>
-            </div>
-        </div>
-      </section>
-
-      {/* --- COMUNIDAD PRIVADA (Clean Blue/White Style) --- */}
-      <section className="relative py-16 md:py-20 overflow-hidden">
-          {/* Background */}
-          <div className="absolute inset-0 bg-rentia-black z-0">
-              <div className="absolute inset-0 bg-rentia-blue/10 mix-blend-overlay"></div>
-              <img src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&w=1600&q=80" alt="Background" className="w-full h-full object-cover opacity-20 grayscale" />
-          </div>
-          
-          <div className="relative z-10 container mx-auto px-4">
-             <div className="bg-rentia-blue rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row max-w-5xl mx-auto">
-                 <div className="p-8 md:p-12 flex-1 text-white">
-                     <div className="flex items-center gap-2 mb-4 text-rentia-gold font-bold uppercase tracking-wider text-xs">
-                        <ShieldCheck className="w-4 h-4" />
-                        {t('home.community.badge')}
-                     </div>
-                     <h2 className="text-3xl md:text-4xl font-bold mb-4 leading-tight font-display">
-                         {t('home.community.title')}
-                     </h2>
-                     <p className="text-blue-100 text-lg leading-relaxed mb-8">
-                        {t('home.community.desc')}
-                     </p>
-                     <a href="https://whatsapp.com/channel/0029VbBsvhOIt5rpshbpYN1P" target="_blank" rel="noreferrer" className="inline-flex w-full md:w-auto justify-center items-center bg-white text-rentia-blue hover:bg-gray-50 font-bold py-3 px-8 rounded-lg transition-colors duration-300 shadow-md">
-                        <MessageCircle className="w-5 h-5 mr-2" />
-                        {t('home.community.cta')}
-                     </a>
-                 </div>
-                 <div className="hidden md:block w-1/3 bg-[url('https://rentiaroom.com/wp-content/uploads/2024/12/RentiaRoom-300x300.png')] bg-cover bg-center opacity-30 mix-blend-luminosity"></div>
-             </div>
+      
+      {/* --- NEW: PROPIETARIOS DIRECT ACTION (ANIMATED) --- */}
+      <section className="bg-gray-50 py-10 border-b border-gray-200 overflow-hidden">
+          <div className="container mx-auto px-4">
+              <div 
+                className="bg-white rounded-2xl border-l-4 border-rentia-gold p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 max-w-5xl mx-auto relative z-30 mt-4 animate-in slide-in-from-bottom-8 duration-700 fade-in group hover:-translate-y-1 transition-all animate-pulse-glow"
+              >
+                  <div className="flex items-start gap-5">
+                      <div className="bg-rentia-black text-white p-4 rounded-2xl hidden sm:flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                          <Home className="w-8 h-8 text-rentia-gold" />
+                      </div>
+                      <div>
+                          <h3 className="text-xl font-bold text-gray-900 mb-1 flex items-center gap-2">
+                              ¿Tienes una propiedad vacía?
+                              <span className="relative flex h-3 w-3">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rentia-gold opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-3 w-3 bg-rentia-gold"></span>
+                              </span>
+                          </h3>
+                          <p className="text-gray-600 text-sm mt-1">
+                              Gestionamos tu alquiler y garantizamos tu tranquilidad. <br className="hidden sm:block"/>
+                              <span className="font-bold text-rentia-blue">Calcula tu rentabilidad ahora.</span>
+                          </p>
+                      </div>
+                  </div>
+                  <button 
+                    onClick={() => window.location.hash = '#/publicar-propiedad'}
+                    className="w-full md:w-auto bg-rentia-black hover:bg-gray-900 text-white px-8 py-4 rounded-xl font-bold transition-all shadow-lg hover:shadow-rentia-blue/20 flex items-center justify-center gap-2 group/btn active:scale-95"
+                  >
+                      <PlusCircle className="w-5 h-5 text-rentia-gold group-hover/btn:rotate-90 transition-transform duration-300" />
+                      Publicar mi Propiedad
+                  </button>
+              </div>
           </div>
       </section>
 
-      {/* --- RESTO DEL CONTENIDO (SIN CAMBIOS) --- */}
+      {/* --- REST OF THE HOME CONTENT --- */}
       {/* ... (Solutions, Process, Steps, CTA, Testimonials, FAQ, Contact) */}
-      <section className="py-20 md:py-24 bg-gray-50 relative">
-          <div className="absolute top-0 left-0 w-full h-96 md:h-64 bg-white"></div> {/* Top white spacing fix */}
-          
+      <section className="py-20 md:py-24 bg-white relative">
           <div className="container mx-auto px-4 relative z-10">
               <div className="text-center max-w-3xl mx-auto mb-12 md:mb-16">
                   <h2 className="text-2xl md:text-4xl font-bold mb-4 text-rentia-black font-display">{t('home.solutions.title')}</h2>
@@ -295,7 +281,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
       </section>
 
       {/* --- PROCESS ICONS (INTERACTIVE) --- */}
-       <section className="py-16 md:py-20 bg-white border-b border-gray-100">
+       <section className="py-16 md:py-20 bg-gray-50 border-b border-gray-100">
           <div className="container mx-auto px-4">
              <div className="text-center mb-10 md:mb-12">
                  <h2 className="text-2xl md:text-3xl font-bold text-rentia-black font-display">{t('home.process.title')}</h2>
@@ -371,7 +357,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
         )}
 
       {/* --- STEPS SECTION --- */}
-      <section className="py-16 md:py-24 bg-gray-50">
+      <section className="py-16 md:py-24 bg-white">
           <div className="container mx-auto px-4">
               <div className="text-center mb-12 md:mb-16 max-w-3xl mx-auto">
                   <h2 className="text-2xl md:text-4xl font-bold text-rentia-black font-display mb-4">{t('home.steps.title')}</h2>

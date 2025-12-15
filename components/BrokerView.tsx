@@ -1,11 +1,11 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { brokerRequests as staticRequests, BrokerRequest, RequestTag } from '../data/brokerRequests';
-import { Briefcase, Search, MapPin, FileText, MessageCircle, ArrowRight, Building2, ShieldCheck, Filter, X, AlertCircle, Handshake, Crown, Star, Network, PlusCircle, SearchCheck, CheckCircle, Lock, Send, Loader2, User, Users, Grid, List, Home, Megaphone, TrendingUp, Layers, MousePointerClick } from 'lucide-react';
+import { Briefcase, Search, MapPin, FileText, ArrowRight, Building2, Filter, X, Handshake, Crown, Star, Network, PlusCircle, SearchCheck, Lock, Grid, List, Home, Layers, MousePointerClick, TrendingUp, Eye } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { ModalType } from './LegalModals';
 import { db } from '../firebase';
-import { collection, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, onSnapshot } from 'firebase/firestore';
 import { PropertySubmissionForm } from './collaborators/PropertySubmissionForm';
 
 interface BrokerViewProps {
@@ -54,16 +54,13 @@ export const BrokerView: React.FC<BrokerViewProps> = ({ openLegalModal }) => {
   }, []);
 
   const scrollToContent = () => {
-      const element = document.getElementById('broker-content');
-      if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Si estamos en el formulario, volver a la lista primero
+      if (activeTab === 'submission') {
+          setActiveTab('requests');
       }
-  };
-
-  const scrollToMarketplace = () => {
-      // Small timeout to allow render if tab changes
+      // Pequeño timeout para permitir renderizado
       setTimeout(() => {
-          const element = document.getElementById('marketplace-header');
+          const element = document.getElementById('broker-content');
           if (element) {
               element.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }
@@ -169,63 +166,83 @@ export const BrokerView: React.FC<BrokerViewProps> = ({ openLegalModal }) => {
          </div>
       </section>
 
-      {/* --- ACTION CARDS SECTION --- */}
+      {/* --- ACTION SELECTOR SECTION (4 ACTIONS) --- */}
       <section className="container mx-auto px-4 -mt-20 relative z-20 mb-16">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-5xl mx-auto">
               
-              {/* Card 1: Tengo una Propiedad (VENDEDOR) */}
-              <div 
-                onClick={() => scrollToContent()}
-                className={`
-                    group cursor-pointer rounded-2xl p-5 border-2 relative overflow-hidden
-                    transform transition-all duration-300 ease-out
-                    hover:-translate-y-2 hover:shadow-2xl active:scale-[0.98]
-                    ${activeTab === 'requests' || activeTab === 'submission' 
-                        ? 'bg-slate-900 text-white border-slate-900 shadow-xl' 
-                        : 'bg-white text-slate-800 border-white shadow-lg hover:border-slate-300'
-                    }
-                `}
-              >
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
-                  <div className={`
-                    w-10 h-10 rounded-lg flex items-center justify-center mb-4 transition-all duration-300
-                    group-hover:scale-110 group-hover:rotate-3
-                    ${activeTab === 'requests' || activeTab === 'submission' 
-                        ? 'bg-white text-slate-900' 
-                        : 'bg-gray-100 text-gray-600 group-hover:bg-slate-900 group-hover:text-white'
-                    }
-                  `}>
-                      <Home className="w-5 h-5" />
+              {/* CARD 1: ZONA PROPIETARIOS (VENDER) */}
+              <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 flex flex-col md:flex-row group hover:shadow-2xl transition-all">
+                  {/* Left Icon Area */}
+                  <div className="bg-slate-900 p-6 flex flex-col justify-center items-center text-white md:w-1/3 relative overflow-hidden">
+                      <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                      <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mb-3 backdrop-blur-sm border border-white/10">
+                         <Building2 className="w-6 h-6 text-rentia-gold" />
+                      </div>
+                      <h3 className="font-bold text-lg text-center leading-tight">Tienes un<br/>Inmueble</h3>
+                      <p className="text-xs text-slate-400 mt-2 text-center px-2">Vender</p>
                   </div>
-                  <h3 className="text-lg font-bold font-display mb-1">Soy Propietario / Agente</h3>
-                  <p className={`text-xs mb-4 leading-relaxed ${activeTab === 'requests' || activeTab === 'submission' ? 'text-gray-300' : 'text-gray-500'}`}>
-                      Publica tu inmueble para venta o consulta nuestra lista de compradores activos.
-                  </p>
-                  <div className="flex items-center font-bold text-xs">
-                      Gestionar mi Inmueble <ArrowRight className="w-3 h-3 ml-2 transition-transform duration-300 group-hover:translate-x-2" />
+                  
+                  {/* Right Actions Area */}
+                  <div className="p-6 flex-1 flex flex-col justify-center gap-3 bg-white">
+                      {/* ACTION 1: PUBLICAR ACTIVO */}
+                      <button 
+                        onClick={() => setActiveTab('submission')}
+                        className="w-full flex items-center justify-between p-3 rounded-xl border-2 border-slate-900 bg-slate-900 text-white hover:bg-slate-800 transition-all group/btn shadow-md active:scale-[0.98]"
+                      >
+                          <span className="flex items-center gap-3 font-bold text-sm">
+                              <PlusCircle className="w-5 h-5" /> Publicar mi Propiedad
+                          </span>
+                          <ArrowRight className="w-4 h-4 transform group-hover/btn:translate-x-1 transition-transform" />
+                      </button>
+
+                      {/* ACTION 2: VER DEMANDAS */}
+                      <button 
+                        onClick={scrollToContent}
+                        className="w-full flex items-center justify-between p-3 rounded-xl border border-gray-200 text-gray-600 hover:border-slate-300 hover:bg-gray-50 transition-all group/btn"
+                      >
+                          <span className="flex items-center gap-3 font-medium text-sm">
+                              <Layers className="w-5 h-5 text-gray-400 group-hover/btn:text-slate-600" /> Ver quién busca casa
+                          </span>
+                          <ArrowRight className="w-4 h-4 text-gray-300 group-hover/btn:text-gray-500" />
+                      </button>
                   </div>
               </div>
 
-              {/* Card 2: Busco Inversión (COMPRADOR) */}
-              <div 
-                onClick={() => window.location.hash = '#/oportunidades'}
-                className="
-                    group cursor-pointer rounded-2xl p-5 border-2 relative overflow-hidden 
-                    bg-white text-slate-800 border-white shadow-lg 
-                    transform transition-all duration-300 ease-out
-                    hover:-translate-y-2 hover:shadow-2xl hover:border-rentia-gold hover:bg-orange-50/20 active:scale-[0.98]
-                "
-              >
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-rentia-gold/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 transition-opacity group-hover:opacity-100 opacity-50"></div>
-                  <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-4 transition-all duration-300 bg-blue-50 text-rentia-blue group-hover:bg-rentia-blue group-hover:text-white group-hover:scale-110 group-hover:rotate-3">
-                      <TrendingUp className="w-5 h-5" />
+              {/* CARD 2: ZONA INVERSORES (COMPRAR) */}
+              <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 flex flex-col md:flex-row group hover:shadow-2xl transition-all">
+                  {/* Left Icon Area */}
+                  <div className="bg-rentia-blue p-6 flex flex-col justify-center items-center text-white md:w-1/3 relative overflow-hidden">
+                      <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                      <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mb-3 backdrop-blur-sm border border-white/10">
+                         <TrendingUp className="w-6 h-6 text-rentia-gold" />
+                      </div>
+                      <h3 className="font-bold text-lg text-center leading-tight">Buscas<br/>Inversión</h3>
+                      <p className="text-xs text-blue-200 mt-2 text-center px-2">Comprar o Invertir</p>
                   </div>
-                  <h3 className="text-lg font-bold font-display mb-1 group-hover:text-rentia-blue transition-colors">Soy Inversor</h3>
-                  <p className="text-xs mb-4 leading-relaxed text-gray-500">
-                      Accede a nuestro catálogo exclusivo de activos en rentabilidad. Viviendas listas para invertir.
-                  </p>
-                  <div className="flex items-center font-bold text-xs text-rentia-blue">
-                      Ver Oportunidades <ArrowRight className="w-3 h-3 ml-2 transition-transform duration-300 group-hover:translate-x-2" />
+                  
+                  {/* Right Actions Area */}
+                  <div className="p-6 flex-1 flex flex-col justify-center gap-3 bg-white">
+                      {/* ACTION 3: PUBLICAR BÚSQUEDA */}
+                      <button 
+                        onClick={() => setIsPublishModalOpen(true)}
+                        className="w-full flex items-center justify-between p-3 rounded-xl border-2 border-rentia-blue bg-rentia-blue text-white hover:bg-blue-700 hover:border-blue-700 transition-all group/btn shadow-md active:scale-[0.98]"
+                      >
+                          <span className="flex items-center gap-3 font-bold text-sm">
+                              <SearchCheck className="w-5 h-5" /> Publicar mi Búsqueda
+                          </span>
+                          <ArrowRight className="w-4 h-4 transform group-hover/btn:translate-x-1 transition-transform" />
+                      </button>
+
+                      {/* ACTION 4: VER OPORTUNIDADES */}
+                      <button 
+                        onClick={() => window.location.hash = '#/oportunidades'}
+                        className="w-full flex items-center justify-between p-3 rounded-xl border border-gray-200 text-gray-600 hover:border-blue-300 hover:bg-blue-50/50 transition-all group/btn"
+                      >
+                          <span className="flex items-center gap-3 font-medium text-sm">
+                              <Eye className="w-5 h-5 text-gray-400 group-hover/btn:text-rentia-blue" /> Ver Oportunidades
+                          </span>
+                          <ArrowRight className="w-4 h-4 text-gray-300 group-hover/btn:text-rentia-blue" />
+                      </button>
                   </div>
               </div>
 
@@ -235,30 +252,6 @@ export const BrokerView: React.FC<BrokerViewProps> = ({ openLegalModal }) => {
       {/* --- MAIN CONTENT AREA --- */}
       <section id="broker-content" className="container mx-auto px-4 pb-24 max-w-7xl">
           
-          <div className="flex flex-col sm:flex-row justify-center mb-10 gap-3 sm:gap-6">
-              <button 
-                  onClick={() => {
-                      setActiveTab('requests');
-                      scrollToMarketplace();
-                  }}
-                  className={`flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl text-sm font-bold transition-all border-2 ${
-                      activeTab === 'requests' 
-                      ? 'bg-white text-rentia-black border-gray-200 shadow-sm' 
-                      : 'bg-transparent border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                  }`}
-              >
-                  <Layers className="w-4 h-4" />
-                  Match con Compradores
-              </button>
-              <button 
-                  onClick={() => setActiveTab('submission')}
-                  className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl text-sm font-bold transition-all shadow-md hover:shadow-xl hover:-translate-y-0.5 bg-rentia-blue text-white border-2 border-rentia-blue hover:bg-blue-600 hover:border-blue-600"
-              >
-                  <PlusCircle className="w-5 h-5" />
-                  Publicar mi Propiedad
-              </button>
-          </div>
-
           {activeTab === 'submission' ? (
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                   <PropertySubmissionForm onBack={() => setActiveTab('requests')} />
@@ -274,24 +267,18 @@ export const BrokerView: React.FC<BrokerViewProps> = ({ openLegalModal }) => {
                           <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full border border-green-200">En Tiempo Real</span>
                       </div>
                       <p className="text-gray-500 text-sm leading-relaxed">
-                          Estos compradores e inversores buscan activamente. Si tienes un inmueble que encaje, contáctanos.
+                          Estos compradores e inversores buscan activamente. Si tienes un inmueble que encaje, contáctanos indicando la referencia.
                       </p>
                   </div>
 
                   <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto items-end">
-                      <button 
-                         onClick={() => setIsPublishModalOpen(true)}
-                         className="bg-rentia-gold text-rentia-black border border-transparent px-5 py-3 rounded-xl text-sm font-bold hover:bg-yellow-400 transition-all flex items-center justify-center gap-2 active:scale-95 shadow-md"
-                      >
-                         <SearchCheck className="w-4 h-4" /> Publicar Búsqueda
-                      </button>
-
                       <button 
                          onClick={() => setViewMode(viewMode === 'grid' ? 'table' : 'grid')}
                          className="bg-white text-gray-700 border border-gray-200 px-4 py-3 rounded-xl text-sm font-bold hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
                          title={viewMode === 'grid' ? "Cambiar a Vista Tabla" : "Cambiar a Vista Galería"}
                       >
                          {viewMode === 'grid' ? <List className="w-4 h-4" /> : <Grid className="w-4 h-4" />}
+                         {viewMode === 'grid' ? 'Vista Lista' : 'Vista Tarjetas'}
                       </button>
                   </div>
               </div>
@@ -452,7 +439,7 @@ export const BrokerView: React.FC<BrokerViewProps> = ({ openLegalModal }) => {
           )}
       </section>
 
-      {/* --- MODAL SELECCIÓN --- */}
+      {/* --- MODAL SELECCIÓN DE PERFIL DE BÚSQUEDA --- */}
       {isPublishModalOpen && (
           <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
               <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl flex flex-col animate-in slide-in-from-bottom-10 overflow-hidden relative">
@@ -472,7 +459,7 @@ export const BrokerView: React.FC<BrokerViewProps> = ({ openLegalModal }) => {
                         className="w-full flex items-center gap-4 p-4 rounded-xl border border-gray-200 hover:border-green-300 hover:bg-green-50 transition-all group text-left shadow-sm hover:shadow-md"
                       >
                           <div className="w-12 h-12 rounded-full bg-green-100 text-green-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                              <User className="w-6 h-6" />
+                              <Home className="w-6 h-6" />
                           </div>
                           <div>
                               <h4 className="font-bold text-gray-800 text-lg group-hover:text-green-800">Soy Particular</h4>

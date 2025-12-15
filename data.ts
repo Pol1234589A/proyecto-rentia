@@ -3,6 +3,88 @@ import { Opportunity } from './types';
 
 export const opportunities: Opportunity[] = [
   {
+    id: 'JAVALI-REFORMA-30',
+    title: 'Casa Señorial 257m² con Patio: Proyecto Coliving UCAM',
+    address: 'Calle Mayor 5',
+    city: 'Javalí Viejo (Murcia)',
+    description: `OPORTUNIDAD VALUE-ADD: LIENZO EN BLANCO ESTRATÉGICO.
+
+Presentamos una oportunidad única para inversores con visión: una casa señorial de 257 m² ubicada a escasos minutos de la UCAM. Esta propiedad no es una simple casa para reformar; es un activo de alto rendimiento en potencia ("Vaca Lechera").
+
+SU VERDADERO VALOR:
+1. Versatilidad Legal: Cuenta con dos entradas independientes desde la calle, permitiendo la segregación física en dos viviendas o la optimización de flujos en un coliving.
+2. Oasis Exterior: Un impresionante patio privado con terrazas y aljibe tradicional funcional. Un lujo difícil de encontrar que dispara el valor de la habitación.
+3. Estructura Diáfana: Techos altos y vigas vistas, ideal para diseño industrial/moderno.
+
+ESTUDIO DE VIABILIDAD (ESCENARIOS):
+
+⭐ ESCENARIO A (RECOMENDADO): COLIVING ESTUDIANTES PREMIUM
+Explotación intensiva para estudiantes UCAM.
+- Distribución: 7 Habitaciones Dobles + Zonas Comunes de calidad.
+- Ingresos Estimados: 2.170 €/mes (26.040 €/año) calculados a un precio conservador de 310€/hab.
+- Rentabilidad Bruta Estimada: >10% sobre inversión total (~250k).
+
+ESCENARIO B: SEGREGACIÓN (DIVISIÓN HORIZONTAL)
+Creación de dos viviendas independientes (dúplex o planta baja).
+- Perfil: Familias larga estancia o profesores.
+- Ingresos Estimados: 1.500 €/mes.
+- Ventaja: Gestión simplificada.
+
+ESCENARIO C: FLIP (COMPRA-REFORMA-VENTA)
+Transformación en vivienda unifamiliar de lujo con jardín.
+- Valor de Reventa (ARV) estimado: 240.000 € - 260.000 €.
+
+CONCLUSIÓN DEL EXPERTO:
+Los 257 m² permiten diluir el coste de la reforma integral entre 7 unidades rentables. El patio es el factor "X" que permitirá alquilar muy rápido en un precio competitivo, garantizando una ocupación plena.`,
+    features: [
+      '257 m² Construidos',
+      '2 Entradas Independientes',
+      'Patio Privado con Aljibe',
+      'Techos Altos',
+      'Estructura Diáfana',
+      'Potencial 7 Habitaciones',
+      'A 5 min UCAM',
+      'Rentabilidad >10%'
+    ],
+    areaBenefits: [
+      'Alta Demanda Estudiantil',
+      'Conexión directa Murcia',
+      'Zona Tranquila',
+      'Servicios a pie'
+    ],
+    images: [
+      'https://images.unsplash.com/photo-1594498653385-d5175c532c38?auto=format&fit=crop&w=1200&q=80', // Patio / Exterior
+      'https://images.unsplash.com/photo-1628624747186-a941c476b7ef?auto=format&fit=crop&w=1200&q=80', // Estructura diáfana
+      'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=1200&q=80'  // Detalle arquitectónico
+    ],
+    driveFolder: '#',
+    scenario: 'rent_rooms', 
+    visibility: 'exact',
+    specs: {
+      rooms: 0, // Estado actual (diáfano)
+      bathrooms: 0, // A construir
+      sqm: 257,
+      floor: 'Casa Señorial',
+      hasElevator: false
+    },
+    financials: {
+      purchasePrice: 105000,
+      itpPercent: 8,
+      // Estimación Reforma Integral (Escenario A): ~500€/m2 x 257m2 = ~128.500€
+      reformCost: 128000, 
+      furnitureCost: 8000, // Equipamiento 7 habitaciones + comunes
+      notaryAndTaxes: 1500 + (105000 * 0.08), // Notaría + ITP
+      totalInvestment: 250900, // Suma aproximada total
+      monthlyRentProjected: 2170, // 7 habs x 310€
+      monthlyRentTraditional: 1500, // Escenario B
+      yearlyExpenses: 1200, // IBI + Seguros estimados
+      marketValue: 260000, // ARV Escenario C
+      appreciationRate: 5
+    },
+    status: 'available',
+    tags: ['Value-Add', 'Rentabilidad >10%', 'Coliving', 'Patio Privado']
+  },
+  {
     id: 'RP1742025141383',
     title: 'Casa Exclusiva con Parcela en Calle Mayor',
     address: 'Calle Mayor',

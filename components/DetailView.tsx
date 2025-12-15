@@ -547,7 +547,7 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
         onClose={() => setShowContactModal(false)}
         opportunityId={opportunity.id}
         opportunityTitle={opportunity.title}
-      />
+    />
     </>
   );
 };

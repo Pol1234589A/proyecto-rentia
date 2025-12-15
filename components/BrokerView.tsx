@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { brokerRequests as staticRequests, BrokerRequest, RequestTag } from '../data/brokerRequests';
-import { Briefcase, Search, MapPin, FileText, MessageCircle, ArrowRight, Building2, ShieldCheck, Filter, X, AlertCircle, Handshake, Crown, Star, Network, PlusCircle, SearchCheck, CheckCircle, Lock, Send, Loader2 } from 'lucide-react';
+import { Briefcase, Search, MapPin, FileText, MessageCircle, ArrowRight, Building2, ShieldCheck, Filter, X, AlertCircle, Handshake, Crown, Star, Network, PlusCircle, SearchCheck, CheckCircle, Lock, Send, Loader2, User, Users, Grid, List, Home, Megaphone, TrendingUp, Layers, MousePointerClick } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { ModalType } from './LegalModals';
 import { db } from '../firebase';
@@ -15,28 +15,16 @@ interface BrokerViewProps {
 export const BrokerView: React.FC<BrokerViewProps> = ({ openLegalModal }) => {
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'requests' | 'submission'>('requests');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterLocation, setFilterLocation] = useState('');
   const [filterTag, setFilterTag] = useState<RequestTag | 'all'>('all');
   const [brokerRequests, setBrokerRequests] = useState<BrokerRequest[]>(staticRequests);
 
-  // Estados para Modal de Publicación de Demanda
+  // Estados para Modal de Selección (COMPRA)
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
-  const [publishing, setPublishing] = useState(false);
-  const [publishForm, setPublishForm] = useState({
-      name: '',
-      contact: '',
-      email: '',
-      userType: 'individual' as 'individual' | 'agency',
-      type: '',
-      specs: '',
-      location: '',
-      budget: '',
-      notes: '',
-      gdprAccepted: false
-  });
 
-  // Load Broker Requests from Firestore and merge with static
+  // Load Broker Requests from Firestore
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "buyer_requests"), (snapshot) => {
         const firestoreRequests: BrokerRequest[] = [];
@@ -57,7 +45,6 @@ export const BrokerView: React.FC<BrokerViewProps> = ({ openLegalModal }) => {
                 email: data.email
             });
         });
-        // Merge: Static first, then Firestore
         setBrokerRequests([...staticRequests, ...firestoreRequests]);
     }, (error) => {
         console.warn("Firestore access error:", error);
@@ -66,54 +53,28 @@ export const BrokerView: React.FC<BrokerViewProps> = ({ openLegalModal }) => {
     return () => unsubscribe();
   }, []);
 
-  // Handle Publish Submit
-  const handlePublishSubmit = async (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!publishForm.gdprAccepted) return alert("Debes aceptar la política de privacidad.");
-      if (!publishForm.name || !publishForm.contact) return alert("Los datos de contacto son obligatorios.");
-
-      setPublishing(true);
-      try {
-          const refCode = `WEB-${Math.floor(1000 + Math.random() * 9000)}`;
-          // Si es particular -> tag 'own' (Propia), Si es agencia -> 'collaboration'
-          const finalTag: RequestTag = publishForm.userType === 'individual' ? 'own' : 'collaboration';
-
-          await addDoc(collection(db, "buyer_requests"), {
-              reference: refCode,
-              name: publishForm.name,
-              contact: publishForm.contact,
-              email: publishForm.email,
-              type: publishForm.type,
-              specs: publishForm.specs,
-              location: publishForm.location,
-              condition: 'Búsqueda Activa',
-              budget: Number(publishForm.budget) || 0,
-              notes: publishForm.notes,
-              tag: finalTag,
-              origin: 'web',
-              gdprAccepted: true,
-              gdprDate: serverTimestamp(),
-              createdAt: serverTimestamp()
-          });
-
-          alert("¡Tu demanda ha sido publicada! Aparecerá en el listado.");
-          setIsPublishModalOpen(false);
-          setPublishForm({ name: '', contact: '', email: '', userType: 'individual', type: '', specs: '', location: '', budget: '', notes: '', gdprAccepted: false });
-      } catch (error) {
-          console.error(error);
-          alert("Error al publicar la demanda.");
-      } finally {
-          setPublishing(false);
+  const scrollToContent = () => {
+      const element = document.getElementById('broker-content');
+      if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
   };
 
-  // Extract unique locations for the dropdown
+  const scrollToMarketplace = () => {
+      // Small timeout to allow render if tab changes
+      setTimeout(() => {
+          const element = document.getElementById('marketplace-header');
+          if (element) {
+              element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+      }, 100);
+  };
+
   const uniqueLocations = useMemo(() => {
       const locs = new Set(brokerRequests.map(req => req.location));
       return Array.from(locs).sort();
   }, [brokerRequests]);
 
-  // Filter logic
   const filteredRequests = useMemo(() => {
       return brokerRequests.filter(req => {
           const term = searchTerm.toLowerCase();
@@ -125,7 +86,6 @@ export const BrokerView: React.FC<BrokerViewProps> = ({ openLegalModal }) => {
           
           const matchesLocation = filterLocation ? req.location === filterLocation : true;
           
-          // New Tag Filter Logic
           let matchesTag = true;
           if (filterTag !== 'all') {
               if (filterTag === 'collaboration') {
@@ -151,508 +111,409 @@ export const BrokerView: React.FC<BrokerViewProps> = ({ openLegalModal }) => {
               return { 
                   style: 'bg-indigo-50 text-indigo-700 border-indigo-100', 
                   icon: <Handshake className="w-3 h-3" />, 
-                  textKey: 'brokers.tags.collaboration' 
+                  textKey: 'brokers.tags.collaboration',
+                  label: 'Colaboración'
               };
           case 'exclusive':
               return { 
                   style: 'bg-amber-50 text-amber-700 border-amber-100', 
                   icon: <Crown className="w-3 h-3" />, 
-                  textKey: 'brokers.tags.exclusive' 
+                  textKey: 'brokers.tags.exclusive',
+                  label: 'Exclusiva'
               };
           case 'own':
               return { 
                   style: 'bg-green-50 text-green-700 border-green-100', 
                   icon: <Star className="w-3 h-3" />, 
-                  textKey: 'brokers.tags.own' 
+                  textKey: 'brokers.tags.own',
+                  label: 'Particular'
               };
           default:
               return { 
                   style: 'bg-gray-50 text-gray-700 border-gray-100', 
                   icon: <Briefcase className="w-3 h-3" />, 
-                  textKey: 'brokers.tags.collaboration' 
+                  textKey: 'brokers.tags.collaboration',
+                  label: 'Colaboración'
               };
       }
   };
 
+  const handleNavigateToForm = (path: string) => {
+      setIsPublishModalOpen(false);
+      window.location.hash = path;
+  };
+
   return (
-    <div className="bg-gray-50 min-h-screen font-sans animate-in fade-in duration-500">
+    <div className="bg-white min-h-screen font-sans animate-in fade-in duration-500">
       
-      {/* Header B2B */}
-      <section className="bg-slate-900 text-white py-16">
-        <div className="container mx-auto px-4 text-center">
-            <div className="inline-flex items-center gap-2 bg-slate-800 border border-slate-700 px-4 py-1.5 rounded-full mb-6">
-                <Briefcase className="w-4 h-4 text-rentia-gold" />
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-200">{t('brokers.hero.badge')}</span>
+      {/* --- HERO SECTION --- */}
+      <section className="relative bg-slate-900 text-white pt-24 pb-32 overflow-hidden">
+         {/* Background Elements */}
+         <div className="absolute inset-0 z-0">
+             <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-rentia-blue/20 rounded-full blur-[100px] pointer-events-none"></div>
+             <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-rentia-gold/10 rounded-full blur-[100px] pointer-events-none"></div>
+         </div>
+
+         <div className="container mx-auto px-4 text-center relative z-10">
+            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/10 px-4 py-1.5 rounded-full mb-6 text-sm font-bold tracking-wide text-gray-200">
+                <Network className="w-4 h-4 text-rentia-gold" />
+                <span>Rentia Connect</span>
             </div>
-            <h1 className="text-3xl md:text-4xl font-bold font-display mb-4">{t('brokers.hero.title')}</h1>
-            <p className="text-slate-400 max-w-2xl mx-auto text-lg leading-relaxed">
-                {t('brokers.hero.subtitle')}
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold font-display mb-6 tracking-tight leading-tight">
+                ¿Vendes o Buscas? <br/>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-rentia-gold to-white">Conectamos Oportunidades</span>
+            </h1>
+            <p className="text-lg md:text-xl text-slate-300 max-w-2xl mx-auto font-light leading-relaxed mb-10">
+                Una plataforma unificada para propietarios, compradores y agentes. Gestiona activos o encuentra tu próxima inversión.
             </p>
-        </div>
+         </div>
       </section>
 
-      {/* Main Tab Navigation */}
-      <section className="container mx-auto px-4 -mt-8 relative z-20 mb-8">
-          <div className="flex justify-center">
-              <div className="bg-white p-1.5 rounded-xl shadow-lg border border-gray-200 inline-flex overflow-x-auto max-w-full">
-                  <button 
-                    onClick={() => setActiveTab('requests')}
-                    className={`px-4 sm:px-6 py-3 rounded-lg text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === 'requests' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'}`}
-                  >
-                      <SearchCheck className="w-4 h-4" />
-                      Demandas de Inversión
-                  </button>
-                  <button 
-                    onClick={() => setActiveTab('submission')}
-                    className={`px-4 sm:px-6 py-3 rounded-lg text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === 'submission' ? 'bg-rentia-blue text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'}`}
-                  >
-                      <PlusCircle className="w-4 h-4" />
-                      Proponer Colaboración
-                  </button>
-              </div>
-          </div>
-      </section>
-
-      {/* Intro Box (Only in requests mode) */}
-      {activeTab === 'requests' && (
-      <section className="container mx-auto px-4 mb-8">
-          <div className="bg-white p-6 md:p-8 rounded-xl shadow-lg border-l-4 border-rentia-gold max-w-4xl mx-auto">
-              <div className="flex items-start gap-4">
-                  <div className="p-3 bg-yellow-50 rounded-full text-rentia-gold hidden md:block">
-                      <Network className="w-6 h-6" />
+      {/* --- ACTION CARDS SECTION --- */}
+      <section className="container mx-auto px-4 -mt-20 relative z-20 mb-16">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto">
+              
+              {/* Card 1: Tengo una Propiedad (VENDEDOR) */}
+              <div 
+                onClick={() => scrollToContent()}
+                className={`
+                    group cursor-pointer rounded-2xl p-5 border-2 relative overflow-hidden
+                    transform transition-all duration-300 ease-out
+                    hover:-translate-y-2 hover:shadow-2xl active:scale-[0.98]
+                    ${activeTab === 'requests' || activeTab === 'submission' 
+                        ? 'bg-slate-900 text-white border-slate-900 shadow-xl' 
+                        : 'bg-white text-slate-800 border-white shadow-lg hover:border-slate-300'
+                    }
+                `}
+              >
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
+                  <div className={`
+                    w-10 h-10 rounded-lg flex items-center justify-center mb-4 transition-all duration-300
+                    group-hover:scale-110 group-hover:rotate-3
+                    ${activeTab === 'requests' || activeTab === 'submission' 
+                        ? 'bg-white text-slate-900' 
+                        : 'bg-gray-100 text-gray-600 group-hover:bg-slate-900 group-hover:text-white'
+                    }
+                  `}>
+                      <Home className="w-5 h-5" />
                   </div>
-                  <div className="flex-1">
-                      <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-2">
-                          <h3 className="text-xl font-bold text-rentia-black">{t('brokers.intro.title')}</h3>
-                          <button 
-                             onClick={() => setIsPublishModalOpen(true)}
-                             className="bg-slate-900 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-md hover:bg-slate-800 transition-colors flex items-center gap-2"
-                          >
-                             <PlusCircle className="w-4 h-4" /> Publicar mi Demanda
-                          </button>
-                      </div>
-                      <p className="text-gray-600 leading-relaxed mb-4">
-                          {t('brokers.intro.text')}
-                      </p>
-                      <button onClick={() => setActiveTab('submission')} className="text-rentia-blue font-bold text-sm hover:underline flex items-center gap-1">
-                          Tengo un inmueble que encaja <ArrowRight className="w-4 h-4"/>
-                      </button>
-                  </div>
-              </div>
-          </div>
-      </section>
-      )}
-
-      {/* Main Content Section */}
-      <section className="container mx-auto px-4 pb-20 max-w-6xl">
-          
-          {activeTab === 'submission' ? (
-              <PropertySubmissionForm onBack={() => setActiveTab('requests')} />
-          ) : (
-          <>
-          {/* Filters Bar */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
-              <div className="flex flex-col gap-4">
-                  
-                  {/* Row 1: Search & Location */}
-                  <div className="flex flex-col md:flex-row gap-4 justify-between items-center w-full">
-                      <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto flex-grow">
-                          {/* Search Input */}
-                          <div className="relative w-full md:max-w-xs">
-                              <input 
-                                  type="text" 
-                                  placeholder={t('brokers.filter.search_placeholder')} 
-                                  value={searchTerm}
-                                  onChange={(e) => setSearchTerm(e.target.value)}
-                                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-rentia-blue/50 text-sm bg-gray-50 focus:bg-white transition-all"
-                              />
-                              <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
-                          </div>
-
-                          {/* Location Dropdown */}
-                          <div className="relative w-full md:max-w-xs">
-                              <select 
-                                  value={filterLocation}
-                                  onChange={(e) => setFilterLocation(e.target.value)}
-                                  className="w-full pl-10 pr-8 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-rentia-blue/50 text-sm bg-gray-50 focus:bg-white transition-all appearance-none cursor-pointer"
-                              >
-                                  <option value="">{t('brokers.filter.all_zones')}</option>
-                                  {uniqueLocations.map(loc => (
-                                      <option key={loc} value={loc}>{loc}</option>
-                                  ))}
-                              </select>
-                              <MapPin className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
-                              <div className="absolute right-3 top-3 pointer-events-none">
-                                  <Filter className="w-4 h-4 text-gray-400" />
-                              </div>
-                          </div>
-                      </div>
-
-                      {/* Results Count & Clear */}
-                      <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 border-gray-100 pt-3 md:pt-0">
-                          <span className="text-xs font-medium text-gray-500">
-                              {filteredRequests.length} {t('brokers.filter.results_count')}
-                          </span>
-                          {(searchTerm || filterLocation || filterTag !== 'all') && (
-                              <button 
-                                  onClick={clearFilters}
-                                  className="text-xs font-bold text-red-500 hover:text-red-700 flex items-center gap-1"
-                              >
-                                  <X className="w-3 h-3" /> {t('common.close')}
-                              </button>
-                          )}
-                      </div>
-                  </div>
-
-                  {/* Row 2: Origin Tags Filter */}
-                  <div className="flex items-center gap-2 pt-2 border-t border-gray-100 w-full overflow-x-auto no-scrollbar">
-                      <span className="text-xs font-bold text-gray-500 uppercase tracking-wide mr-2 flex-shrink-0">
-                          {t('brokers.filter.source_label')}
-                      </span>
-                      <button 
-                          onClick={() => setFilterTag('all')}
-                          className={`px-3 py-1 rounded-full text-xs font-bold transition-all border whitespace-nowrap ${filterTag === 'all' ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}
-                      >
-                          {t('brokers.filter.all_sources')}
-                      </button>
-                      <button 
-                          onClick={() => setFilterTag('own')}
-                          className={`px-3 py-1 rounded-full text-xs font-bold transition-all border whitespace-nowrap flex items-center gap-1 ${filterTag === 'own' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-white text-gray-600 border-gray-200 hover:border-green-200'}`}
-                      >
-                          <Star className="w-3 h-3" />
-                          {t('brokers.filter.own_source')}
-                      </button>
-                      <button 
-                          onClick={() => setFilterTag('collaboration')}
-                          className={`px-3 py-1 rounded-full text-xs font-bold transition-all border whitespace-nowrap flex items-center gap-1 ${filterTag === 'collaboration' ? 'bg-indigo-100 text-indigo-700 border-indigo-200' : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-200'}`}
-                      >
-                          <Handshake className="w-3 h-3" />
-                          {t('brokers.filter.collab_source')}
-                      </button>
-                  </div>
-              </div>
-          </div>
-
-          {/* Status Disclaimer Banner */}
-          <div className="bg-orange-50 border-l-4 border-orange-400 p-4 mb-6 rounded-r-lg flex items-start gap-3 shadow-sm">
-              <AlertCircle className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />
-              <div>
-                  <h4 className="text-sm font-bold text-orange-800 mb-1">{t('brokers.disclaimer.title')}</h4>
-                  <p className="text-xs text-orange-700 leading-relaxed">
-                      {t('brokers.disclaimer.text')}
+                  <h3 className="text-lg font-bold font-display mb-1">Soy Propietario / Agente</h3>
+                  <p className={`text-xs mb-4 leading-relaxed ${activeTab === 'requests' || activeTab === 'submission' ? 'text-gray-300' : 'text-gray-500'}`}>
+                      Publica tu inmueble para venta o consulta nuestra lista de compradores activos.
                   </p>
+                  <div className="flex items-center font-bold text-xs">
+                      Gestionar mi Inmueble <ArrowRight className="w-3 h-3 ml-2 transition-transform duration-300 group-hover:translate-x-2" />
+                  </div>
               </div>
+
+              {/* Card 2: Busco Inversión (COMPRADOR) */}
+              <div 
+                onClick={() => window.location.hash = '#/oportunidades'}
+                className="
+                    group cursor-pointer rounded-2xl p-5 border-2 relative overflow-hidden 
+                    bg-white text-slate-800 border-white shadow-lg 
+                    transform transition-all duration-300 ease-out
+                    hover:-translate-y-2 hover:shadow-2xl hover:border-rentia-gold hover:bg-orange-50/20 active:scale-[0.98]
+                "
+              >
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-rentia-gold/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 transition-opacity group-hover:opacity-100 opacity-50"></div>
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-4 transition-all duration-300 bg-blue-50 text-rentia-blue group-hover:bg-rentia-blue group-hover:text-white group-hover:scale-110 group-hover:rotate-3">
+                      <TrendingUp className="w-5 h-5" />
+                  </div>
+                  <h3 className="text-lg font-bold font-display mb-1 group-hover:text-rentia-blue transition-colors">Soy Inversor</h3>
+                  <p className="text-xs mb-4 leading-relaxed text-gray-500">
+                      Accede a nuestro catálogo exclusivo de activos en rentabilidad. Viviendas listas para invertir.
+                  </p>
+                  <div className="flex items-center font-bold text-xs text-rentia-blue">
+                      Ver Oportunidades <ArrowRight className="w-3 h-3 ml-2 transition-transform duration-300 group-hover:translate-x-2" />
+                  </div>
+              </div>
+
+          </div>
+      </section>
+
+      {/* --- MAIN CONTENT AREA --- */}
+      <section id="broker-content" className="container mx-auto px-4 pb-24 max-w-7xl">
+          
+          <div className="flex flex-col sm:flex-row justify-center mb-10 gap-3 sm:gap-6">
+              <button 
+                  onClick={() => {
+                      setActiveTab('requests');
+                      scrollToMarketplace();
+                  }}
+                  className={`flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl text-sm font-bold transition-all border-2 ${
+                      activeTab === 'requests' 
+                      ? 'bg-white text-rentia-black border-gray-200 shadow-sm' 
+                      : 'bg-transparent border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                  }`}
+              >
+                  <Layers className="w-4 h-4" />
+                  Match con Compradores
+              </button>
+              <button 
+                  onClick={() => setActiveTab('submission')}
+                  className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl text-sm font-bold transition-all shadow-md hover:shadow-xl hover:-translate-y-0.5 bg-rentia-blue text-white border-2 border-rentia-blue hover:bg-blue-600 hover:border-blue-600"
+              >
+                  <PlusCircle className="w-5 h-5" />
+                  Publicar mi Propiedad
+              </button>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="p-4 md:p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                  <h2 className="font-bold text-lg text-rentia-black flex items-center gap-2">
-                      <Building2 className="w-5 h-5 text-slate-500" />
-                      {t('brokers.table.title')}
-                  </h2>
+          {activeTab === 'submission' ? (
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <PropertySubmissionForm onBack={() => setActiveTab('requests')} />
               </div>
+          ) : (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               
-              {/* DESKTOP VIEW: Table */}
-              <div className="hidden md:block overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                      <thead>
-                          <tr className="bg-slate-50 text-slate-600 text-xs uppercase tracking-wider border-b border-gray-200">
-                              <th className="p-4 font-bold min-w-[100px]">{t('brokers.table.ref')}</th>
-                              <th className="p-4 font-bold min-w-[200px]">{t('brokers.table.type')}</th>
-                              <th className="p-4 font-bold min-w-[200px]">{t('brokers.table.location')}</th>
-                              <th className="p-4 font-bold min-w-[120px] text-right">{t('brokers.table.budget')}</th>
-                              <th className="p-4 font-bold min-w-[180px] text-center">{t('brokers.table.action')}</th>
-                          </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100 text-sm text-gray-700">
-                          {filteredRequests.map((req) => {
-                              const tagInfo = getTagStyle(req.tag);
-                              return (
-                                  <tr key={req.id} className="hover:bg-blue-50/30 transition-colors group">
-                                      <td className="p-4 align-top">
-                                          <div className="font-mono font-bold text-rentia-blue mb-1">{req.reference}</div>
-                                          <div className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider ${tagInfo.style}`}>
-                                              {tagInfo.icon}
-                                              {t(tagInfo.textKey)}
-                                          </div>
-                                      </td>
-                                      <td className="p-4 align-top">
-                                          <div className="font-bold text-gray-900 mb-0.5">{req.type}</div>
-                                          <div className="text-xs text-gray-500 flex items-center gap-1">
-                                              <FileText className="w-3 h-3" /> {req.specs}
-                                          </div>
-                                          <div className="text-xs text-gray-500 mt-1 italic opacity-80">
-                                              "{req.condition}"
-                                          </div>
-                                          {req.notes && (
-                                              <div className="mt-2 text-xs text-slate-600 bg-slate-50 p-2 rounded border border-slate-100">
-                                                  <strong>Nota:</strong> {req.notes}
-                                              </div>
-                                          )}
-                                      </td>
-                                      <td className="p-4 align-top">
-                                          <div className="flex items-start gap-1.5">
-                                              <MapPin className="w-3.5 h-3.5 mt-0.5 text-gray-400" />
-                                              <span>{req.location}</span>
-                                          </div>
-                                      </td>
-                                      <td className="p-4 text-right align-top font-bold text-slate-800">
-                                          {req.budget > 0 ? `${req.budget.toLocaleString('es-ES')} €` : <span className="text-green-600">Flexible</span>}
-                                      </td>
-                                      <td className="p-4 text-center align-middle">
-                                          <a 
-                                              href={`https://api.whatsapp.com/send?phone=34672886369&text=Hola%20Pol,%20tengo%20un%20activo%20que%20encaja%20con%20la%20referencia%20${req.reference}%20(${t(tagInfo.textKey)}).`}
-                                              target="_blank"
-                                              rel="noopener noreferrer"
-                                              className="inline-flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20ba5c] text-white px-4 py-2 rounded-lg font-bold transition-all shadow-sm hover:shadow text-xs"
-                                          >
-                                              <MessageCircle className="w-3.5 h-3.5" />
-                                              {t('brokers.table.contact_btn')}
-                                          </a>
-                                      </td>
-                                  </tr>
-                              );
-                          })}
-                      </tbody>
-                  </table>
-              </div>
-
-              {/* MOBILE VIEW: Cards Stack */}
-              <div className="md:hidden bg-gray-50 p-4 space-y-4">
-                  {filteredRequests.map((req) => {
-                      const tagInfo = getTagStyle(req.tag);
-                      return (
-                          <div key={req.id} className="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
-                              <div className="flex justify-between items-start mb-3">
-                                  <div className="flex flex-col gap-1">
-                                      <span className="font-mono text-xs font-bold text-rentia-blue bg-blue-50 px-2 py-1 rounded border border-blue-100 w-fit">
-                                          {req.reference}
-                                      </span>
-                                      <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wider w-fit ${tagInfo.style}`}>
-                                          {tagInfo.icon}
-                                          {t(tagInfo.textKey)}
-                                      </span>
-                                  </div>
-                              </div>
-                              
-                              <h4 className="font-bold text-gray-900 mb-1">{req.type}</h4>
-                              <p className="text-xs text-gray-500 mb-3 flex items-center gap-1">
-                                  <FileText className="w-3 h-3" /> {req.specs}
-                              </p>
-                              
-                              {req.notes && (
-                                  <div className="mb-3 text-xs text-slate-600 bg-slate-50 p-2 rounded border border-slate-100">
-                                      {req.notes}
-                                  </div>
-                              )}
-
-                              <div className="flex items-start gap-2 mb-3 text-sm text-gray-700 bg-gray-50 p-2 rounded">
-                                  <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                                  <span className="leading-snug">{req.location}</span>
-                              </div>
-
-                              <div className="flex justify-between items-center border-t border-gray-100 pt-3 mt-2">
-                                  <div className="flex flex-col">
-                                      <span className="text-[10px] uppercase text-gray-400 font-bold">{t('brokers.table.budget')}</span>
-                                      <span className="font-bold text-lg text-slate-800">
-                                          {req.budget > 0 ? `${req.budget.toLocaleString('es-ES')} €` : <span className="text-green-600 text-base">Flexible</span>}
-                                      </span>
-                                  </div>
-                                  <a 
-                                      href={`https://api.whatsapp.com/send?phone=34672886369&text=Hola%20Pol,%20tengo%20un%20activo%20que%20encaja%20con%20la%20referencia%20${req.reference}%20(${t(tagInfo.textKey)}).`}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="inline-flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20ba5c] text-white px-4 py-2.5 rounded-lg font-bold shadow-sm text-sm"
-                                  >
-                                      <MessageCircle className="w-4 h-4" />
-                                      {t('common.contact')}
-                                  </a>
-                              </div>
-                          </div>
-                      );
-                  })}
-              </div>
-              
-              {filteredRequests.length === 0 && (
-                  <div className="p-12 text-center text-gray-500">
-                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400">
-                          <Filter className="w-8 h-8 opacity-50" />
+              {/* Toolbar & Filters */}
+              <div id="marketplace-header" className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 mb-8 scroll-mt-32">
+                  <div className="max-w-xl">
+                      <div className="flex items-center gap-2 mb-2">
+                          <h2 className="text-2xl font-bold text-rentia-black font-display">Marketplace de Demandas</h2>
+                          <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full border border-green-200">En Tiempo Real</span>
                       </div>
-                      <p>{t('brokers.table.empty')}</p>
-                      {(searchTerm || filterLocation || filterTag !== 'all') && (
-                          <button onClick={clearFilters} className="text-rentia-blue text-sm font-bold mt-2 hover:underline">
-                              Limpiar filtros
-                          </button>
-                      )}
+                      <p className="text-gray-500 text-sm leading-relaxed">
+                          Estos compradores e inversores buscan activamente. Si tienes un inmueble que encaje, contáctanos.
+                      </p>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto items-end">
+                      <button 
+                         onClick={() => setIsPublishModalOpen(true)}
+                         className="bg-rentia-gold text-rentia-black border border-transparent px-5 py-3 rounded-xl text-sm font-bold hover:bg-yellow-400 transition-all flex items-center justify-center gap-2 active:scale-95 shadow-md"
+                      >
+                         <SearchCheck className="w-4 h-4" /> Publicar Búsqueda
+                      </button>
+
+                      <button 
+                         onClick={() => setViewMode(viewMode === 'grid' ? 'table' : 'grid')}
+                         className="bg-white text-gray-700 border border-gray-200 px-4 py-3 rounded-xl text-sm font-bold hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+                         title={viewMode === 'grid' ? "Cambiar a Vista Tabla" : "Cambiar a Vista Galería"}
+                      >
+                         {viewMode === 'grid' ? <List className="w-4 h-4" /> : <Grid className="w-4 h-4" />}
+                      </button>
+                  </div>
+              </div>
+
+              {/* Filters Bar */}
+              <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-8 flex flex-col md:flex-row gap-4 items-center">
+                  <div className="relative flex-grow w-full md:w-auto">
+                      <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
+                      <input 
+                          type="text" 
+                          placeholder="Buscar por referencia, zona o tipo..." 
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rentia-blue/50 focus:bg-white transition-all"
+                      />
+                  </div>
+                  
+                  <div className="flex gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 no-scrollbar">
+                      <select 
+                          value={filterLocation}
+                          onChange={(e) => setFilterLocation(e.target.value)}
+                          className="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rentia-blue/50 cursor-pointer min-w-[150px]"
+                      >
+                          <option value="">Todas las Zonas</option>
+                          {uniqueLocations.map(loc => <option key={loc} value={loc}>{loc}</option>)}
+                      </select>
+
+                      <select 
+                          value={filterTag}
+                          onChange={(e) => setFilterTag(e.target.value as any)}
+                          className="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rentia-blue/50 cursor-pointer min-w-[150px]"
+                      >
+                          <option value="all">Todos los Orígenes</option>
+                          <option value="own">Rentia / Particulares</option>
+                          <option value="collaboration">Agencias / Profesionales</option>
+                      </select>
+                  </div>
+
+                  {(searchTerm || filterLocation || filterTag !== 'all') && (
+                      <button onClick={clearFilters} className="text-red-500 text-xs font-bold hover:underline whitespace-nowrap px-2">
+                          Borrar filtros
+                      </button>
+                  )}
+              </div>
+
+              {/* CONTENT: GRID VIEW (DEFAULT) */}
+              {viewMode === 'grid' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {filteredRequests.map((req) => {
+                          const tagInfo = getTagStyle(req.tag);
+                          return (
+                              <div key={req.id} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-xl hover:border-rentia-blue/30 transition-all duration-300 group flex flex-col h-full relative overflow-hidden hover:-translate-y-1">
+                                  <div className={`absolute top-0 left-0 w-full h-1 ${req.tag === 'own' ? 'bg-green-500' : 'bg-indigo-500'}`}></div>
+                                  
+                                  <div className="flex justify-between items-start mb-4">
+                                      <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border ${tagInfo.style}`}>
+                                          {tagInfo.icon} {t(tagInfo.textKey)}
+                                      </div>
+                                      <span className="font-mono text-[10px] text-gray-400 bg-gray-50 px-2 py-1 rounded">{req.reference}</span>
+                                  </div>
+
+                                  <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-rentia-blue transition-colors">
+                                      {req.type}
+                                  </h3>
+                                  
+                                  <div className="flex items-start gap-2 text-sm text-gray-600 mb-4 bg-gray-50 p-3 rounded-lg">
+                                      <MapPin className="w-4 h-4 text-rentia-blue mt-0.5 flex-shrink-0" />
+                                      <span className="line-clamp-2">{req.location}</span>
+                                  </div>
+
+                                  <div className="space-y-3 mb-6 flex-grow">
+                                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                                          <FileText className="w-3.5 h-3.5" />
+                                          <span className="truncate">{req.specs}</span>
+                                      </div>
+                                      {req.notes && (
+                                          <p className="text-xs text-gray-500 italic line-clamp-2 pl-2 border-l-2 border-gray-200">
+                                              "{req.notes}"
+                                          </p>
+                                      )}
+                                  </div>
+
+                                  <div className="pt-4 border-t border-gray-100 mt-auto flex items-center justify-between">
+                                      <div>
+                                          <p className="text-[10px] font-bold text-gray-400 uppercase">Presupuesto</p>
+                                          <p className="text-xl font-bold text-slate-800">
+                                              {req.budget > 0 ? `${req.budget.toLocaleString('es-ES')}€` : <span className="text-green-600 text-lg">Flexible</span>}
+                                          </p>
+                                      </div>
+                                      <a 
+                                          href={`https://api.whatsapp.com/send?phone=34672886369&text=Hola,%20tengo%20un%20activo%20que%20encaja%20con%20la%20referencia%20${req.reference}.`}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="w-10 h-10 rounded-full bg-slate-900 text-white flex items-center justify-center hover:bg-rentia-blue transition-colors shadow-lg hover:scale-110 transform duration-200"
+                                          title="Tengo este inmueble"
+                                      >
+                                          <ArrowRight className="w-5 h-5" />
+                                      </a>
+                                  </div>
+                              </div>
+                          );
+                      })}
                   </div>
               )}
-              
-              {/* GDPR Compliance Footer for Table */}
-              <div className="bg-gray-50 p-4 border-t border-gray-100 flex items-start gap-2 text-[10px] text-gray-500">
-                  <ShieldCheck className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-gray-400" />
-                  <p>
-                      {t('brokers.table.legal_note')} 
-                      <button 
-                        onClick={() => openLegalModal && openLegalModal('privacy')} 
-                        className="text-rentia-blue hover:underline ml-1 font-medium"
-                      >
-                          {t('footer.privacy')}
-                      </button>.
-                  </p>
-              </div>
+
+              {/* CONTENT: TABLE VIEW */}
+              {viewMode === 'table' && (
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden animate-in fade-in">
+                      <div className="overflow-x-auto">
+                          <table className="w-full text-left border-collapse">
+                              <thead>
+                                  <tr className="bg-slate-50 text-slate-600 text-xs uppercase tracking-wider border-b border-gray-200">
+                                      <th className="p-4 font-bold">{t('brokers.table.ref')}</th>
+                                      <th className="p-4 font-bold">{t('brokers.table.type')}</th>
+                                      <th className="p-4 font-bold">{t('brokers.table.location')}</th>
+                                      <th className="p-4 font-bold text-right">{t('brokers.table.budget')}</th>
+                                      <th className="p-4 font-bold text-center">{t('brokers.table.action')}</th>
+                                  </tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-100 text-sm text-gray-700">
+                                  {filteredRequests.map((req) => (
+                                      <tr key={req.id} className="hover:bg-blue-50/30 transition-colors">
+                                          <td className="p-4 font-mono text-rentia-blue font-bold">{req.reference}</td>
+                                          <td className="p-4">
+                                              <div className="font-bold">{req.type}</div>
+                                              <div className="text-xs text-gray-500">{req.specs}</div>
+                                          </td>
+                                          <td className="p-4">{req.location}</td>
+                                          <td className="p-4 text-right font-bold">
+                                              {req.budget > 0 ? `${req.budget.toLocaleString()}€` : 'Flexible'}
+                                          </td>
+                                          <td className="p-4 text-center">
+                                              <a 
+                                                  href={`https://api.whatsapp.com/send?phone=34672886369&text=Ref:${req.reference}`}
+                                                  target="_blank"
+                                                  rel="noreferrer"
+                                                  className="text-xs bg-green-100 text-green-700 px-3 py-1.5 rounded-lg font-bold hover:bg-green-200 transition-colors"
+                                              >
+                                                  Contactar
+                                              </a>
+                                          </td>
+                                      </tr>
+                                  ))}
+                              </tbody>
+                          </table>
+                      </div>
+                  </div>
+              )}
+
+              {filteredRequests.length === 0 && (
+                  <div className="text-center py-20 bg-white rounded-xl border border-dashed border-gray-300">
+                      <Filter className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                      <h3 className="text-lg font-bold text-gray-600">No se encontraron resultados</h3>
+                      <button onClick={clearFilters} className="text-rentia-blue font-bold text-sm hover:underline mt-2">Limpiar filtros</button>
+                  </div>
+              )}
           </div>
-          </>
           )}
       </section>
 
-      {/* --- MODAL PUBLICAR DEMANDA --- */}
+      {/* --- MODAL SELECCIÓN --- */}
       {isPublishModalOpen && (
           <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-              <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col animate-in slide-in-from-bottom-10 max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
-                  <div className="p-5 bg-slate-900 text-white border-b border-slate-800 flex justify-between items-center sticky top-0 z-10">
-                      <h3 className="font-bold flex items-center gap-2 text-lg">
-                          <PlusCircle className="w-5 h-5 text-rentia-gold" />
-                          Publicar Nueva Demanda
-                      </h3>
-                      <button onClick={() => setIsPublishModalOpen(false)} className="hover:bg-white/20 p-2 rounded-full transition-colors"><X className="w-5 h-5"/></button>
+              <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl flex flex-col animate-in slide-in-from-bottom-10 overflow-hidden relative">
+                  <button onClick={() => setIsPublishModalOpen(false)} className="absolute top-4 right-4 p-2 bg-gray-100 rounded-full hover:bg-gray-200 text-gray-500 z-10"><X className="w-4 h-4"/></button>
+                  
+                  <div className="p-8 text-center bg-slate-900 text-white">
+                      <Search className="w-12 h-12 text-rentia-gold mx-auto mb-4" />
+                      <h3 className="text-2xl font-bold font-display mb-2">Publicar Demanda</h3>
+                      <p className="text-slate-300 text-sm">Elige tu perfil para continuar</p>
                   </div>
 
-                  <div className="p-6 overflow-y-auto">
-                      <form onSubmit={handlePublishSubmit}>
-                          
-                          {/* Tipo de Usuario */}
-                          <div className="mb-6 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                              <label className="block text-xs font-bold text-gray-500 uppercase mb-3">¿Quién eres?</label>
-                              <div className="flex gap-4">
-                                  <label className={`flex-1 flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${publishForm.userType === 'individual' ? 'bg-green-50 border-green-300 ring-1 ring-green-300' : 'bg-white border-gray-200'}`}>
-                                      <input type="radio" name="userType" className="hidden" checked={publishForm.userType === 'individual'} onChange={() => setPublishForm({...publishForm, userType: 'individual'})} />
-                                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${publishForm.userType === 'individual' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
-                                          <Star className="w-5 h-5" />
-                                      </div>
-                                      <div>
-                                          <span className="font-bold text-sm block">Particular</span>
-                                          <span className="text-xs text-gray-500">Busco para mí o familiar</span>
-                                      </div>
-                                  </label>
-
-                                  <label className={`flex-1 flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${publishForm.userType === 'agency' ? 'bg-indigo-50 border-indigo-300 ring-1 ring-indigo-300' : 'bg-white border-gray-200'}`}>
-                                      <input type="radio" name="userType" className="hidden" checked={publishForm.userType === 'agency'} onChange={() => setPublishForm({...publishForm, userType: 'agency'})} />
-                                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${publishForm.userType === 'agency' ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100 text-gray-400'}`}>
-                                          <Building2 className="w-5 h-5" />
-                                      </div>
-                                      <div>
-                                          <span className="font-bold text-sm block">Profesional</span>
-                                          <span className="text-xs text-gray-500">Agencia / Personal Shopper</span>
-                                      </div>
-                                  </label>
-                              </div>
+                  <div className="p-6 md:p-8 space-y-4">
+                      
+                      {/* Opción Particular */}
+                      <button 
+                        onClick={() => handleNavigateToForm('#/request/individual')}
+                        className="w-full flex items-center gap-4 p-4 rounded-xl border border-gray-200 hover:border-green-300 hover:bg-green-50 transition-all group text-left shadow-sm hover:shadow-md"
+                      >
+                          <div className="w-12 h-12 rounded-full bg-green-100 text-green-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                              <User className="w-6 h-6" />
                           </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                              {/* COLUMNA 1: Datos Privados */}
-                              <div className="space-y-4">
-                                  <div className="flex items-center gap-2 mb-2 text-rentia-blue border-b border-gray-100 pb-1">
-                                      <Lock className="w-4 h-4" />
-                                      <span className="text-xs font-bold uppercase">Datos de Contacto (Privados)</span>
-                                  </div>
-                                  <div>
-                                      <label className="block text-xs font-bold text-gray-600 mb-1">Nombre Completo *</label>
-                                      <input required type="text" className="w-full p-2.5 border rounded-lg text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-rentia-blue outline-none" value={publishForm.name} onChange={e => setPublishForm({...publishForm, name: e.target.value})} placeholder="Tu nombre" />
-                                  </div>
-                                  <div>
-                                      <label className="block text-xs font-bold text-gray-600 mb-1">Teléfono *</label>
-                                      <input required type="tel" className="w-full p-2.5 border rounded-lg text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-rentia-blue outline-none" value={publishForm.contact} onChange={e => setPublishForm({...publishForm, contact: e.target.value})} placeholder="+34 600..." />
-                                  </div>
-                                  <div>
-                                      <label className="block text-xs font-bold text-gray-600 mb-1">Email</label>
-                                      <input type="email" className="w-full p-2.5 border rounded-lg text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-rentia-blue outline-none" value={publishForm.email} onChange={e => setPublishForm({...publishForm, email: e.target.value})} placeholder="contacto@email.com" />
-                                  </div>
-                                  <div className="bg-blue-50 p-3 rounded-lg text-[10px] text-blue-800 flex gap-2 items-start border border-blue-100">
-                                      <Lock className="w-3 h-3 mt-0.5 flex-shrink-0" />
-                                      Estos datos NO se publicarán. RentiaRoom actuará como filtro y te contactará solo cuando haya una oportunidad real.
-                                  </div>
-                              </div>
-
-                              {/* COLUMNA 2: Datos Públicos */}
-                              <div className="space-y-4">
-                                  <div className="flex items-center gap-2 mb-2 text-green-600 border-b border-gray-100 pb-1">
-                                      <Send className="w-4 h-4" />
-                                      <span className="text-xs font-bold uppercase">Datos del Encargo (Públicos)</span>
-                                  </div>
-                                  <div>
-                                      <label className="block text-xs font-bold text-gray-600 mb-1">Tipo de Inmueble *</label>
-                                      <input required type="text" className="w-full p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-green-500 outline-none" value={publishForm.type} onChange={e => setPublishForm({...publishForm, type: e.target.value})} placeholder="Ej: Piso para reformar" />
-                                  </div>
-                                  <div>
-                                      <label className="block text-xs font-bold text-gray-600 mb-1">Zona / Ubicación *</label>
-                                      <input required type="text" className="w-full p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-green-500 outline-none" value={publishForm.location} onChange={e => setPublishForm({...publishForm, location: e.target.value})} placeholder="Ej: Centro de Murcia" />
-                                  </div>
-                                  <div className="grid grid-cols-2 gap-3">
-                                      <div>
-                                          <label className="block text-xs font-bold text-gray-600 mb-1">Presupuesto (€)</label>
-                                          <input type="number" className="w-full p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-green-500 outline-none" value={publishForm.budget} onChange={e => setPublishForm({...publishForm, budget: e.target.value})} placeholder="0 = Flexible" />
-                                      </div>
-                                      <div>
-                                          <label className="block text-xs font-bold text-gray-600 mb-1">Características</label>
-                                          <input type="text" className="w-full p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-green-500 outline-none" value={publishForm.specs} onChange={e => setPublishForm({...publishForm, specs: e.target.value})} placeholder="Ej: Min 3 Hab" />
-                                      </div>
-                                  </div>
-                                  <div>
-                                      <label className="block text-xs font-bold text-gray-600 mb-1">Notas Adicionales</label>
-                                      <textarea className="w-full p-2.5 border rounded-lg text-sm h-20 resize-none focus:ring-2 focus:ring-green-500 outline-none" value={publishForm.notes} onChange={e => setPublishForm({...publishForm, notes: e.target.value})} placeholder="Detalles visibles..." />
-                                  </div>
-                              </div>
+                          <div>
+                              <h4 className="font-bold text-gray-800 text-lg group-hover:text-green-800">Soy Particular</h4>
+                              <p className="text-sm text-gray-500">Busco una propiedad para mí o mi familia.</p>
                           </div>
-
-                          {/* GDPR Checkbox */}
-                          <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 mb-6">
-                              <label className="flex items-start gap-3 cursor-pointer">
-                                  <input 
-                                    type="checkbox" 
-                                    className="mt-1 w-4 h-4 text-rentia-blue rounded border-gray-300 focus:ring-rentia-blue"
-                                    checked={publishForm.gdprAccepted}
-                                    onChange={e => setPublishForm({...publishForm, gdprAccepted: e.target.checked})}
-                                  />
-                                  <div className="text-xs text-gray-600 leading-relaxed">
-                                      <span className="font-bold block text-gray-800 mb-1">Consentimiento de Privacidad</span>
-                                      Acepto que mis datos personales sean tratados por Rentia Investments S.L. para gestionar esta solicitud y contactarme con oportunidades. Entiendo que los datos públicos serán visibles en la web. <button type="button" onClick={() => openLegalModal && openLegalModal('privacy')} className="text-rentia-blue underline">Ver Política</button>.
-                                  </div>
-                              </label>
+                          <div className="ml-auto text-gray-300 group-hover:text-green-500">
+                              <MousePointerClick className="w-5 h-5" />
                           </div>
+                      </button>
 
-                          <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
-                              <button type="button" onClick={() => setIsPublishModalOpen(false)} className="px-6 py-2.5 text-gray-600 hover:bg-gray-100 rounded-lg font-bold text-sm transition-colors">Cancelar</button>
-                              <button 
-                                type="submit" 
-                                disabled={publishing || !publishForm.gdprAccepted}
-                                className="bg-rentia-black text-white px-8 py-2.5 rounded-lg font-bold text-sm hover:bg-slate-800 transition-all shadow-md flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                  {publishing ? <Loader2 className="w-4 h-4 animate-spin"/> : <CheckCircle className="w-4 h-4"/>}
-                                  Publicar Demanda
-                              </button>
+                      {/* Opción Agencia */}
+                      <button 
+                        onClick={() => handleNavigateToForm('#/request/agency')}
+                        className="w-full flex items-center gap-4 p-4 rounded-xl border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 transition-all group text-left shadow-sm hover:shadow-md"
+                      >
+                          <div className="w-12 h-12 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                              <Briefcase className="w-6 h-6" />
                           </div>
-                      </form>
+                          <div>
+                              <h4 className="font-bold text-gray-800 text-lg group-hover:text-indigo-800">Soy Agencia / Broker</h4>
+                              <p className="text-sm text-gray-500">Busco para un cliente o inversor.</p>
+                          </div>
+                          <div className="ml-auto text-gray-300 group-hover:text-indigo-500">
+                              <MousePointerClick className="w-5 h-5" />
+                          </div>
+                      </button>
                   </div>
               </div>
           </div>
       )}
 
-      {/* Direct Contact */}
+      {/* Footer Contact */}
       <section className="bg-white border-t border-gray-200 py-12">
           <div className="container mx-auto px-4 text-center">
               <h3 className="text-xl font-bold text-rentia-black mb-4">{t('brokers.footer.title')}</h3>
               <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
                   {t('brokers.footer.text')}
               </p>
-              <a 
-                  href="mailto:info@rentiaroom.com"
-                  className="text-rentia-blue font-bold hover:underline inline-flex items-center gap-2"
-              >
+              <a href="mailto:info@rentiaroom.com" className="text-rentia-blue font-bold hover:underline inline-flex items-center gap-2">
                   info@rentiaroom.com <ArrowRight className="w-4 h-4" />
               </a>
-              <p className="text-[10px] text-gray-400 mt-4">
-                  {t('brokers.footer.legal_contact')}
-              </p>
           </div>
       </section>
 

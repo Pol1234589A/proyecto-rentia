@@ -22,7 +22,8 @@ import { CollaborationBanner } from './components/CollaborationBanner';
 import { OpportunityCard } from './components/OpportunityCard'; 
 import { LandingView } from './components/LandingView';
 import { InvestorDossier } from './components/InvestorDossier'; 
-import { OpportunityPresentation } from './components/OpportunityPresentation'; // Nueva Importación
+import { OpportunityPresentation } from './components/OpportunityPresentation'; 
+import { PublishRequestView } from './components/PublishRequestView'; // Nueva Importación
 import { Opportunity } from './types';
 import { opportunities as staticOpportunities } from './data';
 import { TrendingUp, MessageCircle, Bell } from 'lucide-react';
@@ -31,8 +32,8 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { db } from './firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
 
-// Type alias
-type ViewType = 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts' | 'blog' | 'brokers' | 'intranet' | 'landing' | 'submission' | 'dossier' | 'presentation';
+// Type alias - Añadidos request-individual y request-agency
+type ViewType = 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts' | 'blog' | 'brokers' | 'intranet' | 'landing' | 'submission' | 'dossier' | 'presentation' | 'request-individual' | 'request-agency';
 
 // Mapping Hash paths
 const PATH_MAP: Record<string, ViewType> = {
@@ -48,7 +49,9 @@ const PATH_MAP: Record<string, ViewType> = {
   '#/intranet': 'intranet',
   '#/landing': 'landing',
   '#/dossier': 'dossier',
-  '#/presentation': 'presentation'
+  '#/presentation': 'presentation',
+  '#/request/individual': 'request-individual',
+  '#/request/agency': 'request-agency'
 };
 
 const VIEW_TO_HASH: Record<ViewType, string> = {
@@ -65,7 +68,9 @@ const VIEW_TO_HASH: Record<ViewType, string> = {
   'landing': '#/landing',
   'dossier': '#/dossier',
   'submission': '#/colaboradores',
-  'presentation': '#/presentation'
+  'presentation': '#/presentation',
+  'request-individual': '#/request/individual',
+  'request-agency': '#/request/agency'
 };
 
 function AppContent() {
@@ -116,7 +121,7 @@ function AppContent() {
         if (baseHash === '#/oportunidades' || baseHash === '#/landing' || baseHash === '#/dossier' || baseHash === '#/presentation') {
             if (query) {
                 const params = new URLSearchParams(query);
-                const oppId = params.get('id') || params.get('opp'); // Acepta ambos
+                const oppId = params.get('id') || params.get('opp'); 
                 setSelectedId(oppId);
             } else {
                 setSelectedId(null);
@@ -198,6 +203,14 @@ function AppContent() {
         return <OpportunityPresentation opportunity={selectedOpportunity} />;
     } else if (view === 'presentation' && !selectedOpportunity) {
         return <div className="min-h-screen flex items-center justify-center text-gray-500">Oportunidad no encontrada o enlace roto.</div>;
+    }
+    
+    // Nuevas Vistas Standalone de Formulario
+    if (view === 'request-individual') {
+        return <PublishRequestView type="individual" onNavigate={handleNavigate} />;
+    }
+    if (view === 'request-agency') {
+        return <PublishRequestView type="agency" onNavigate={handleNavigate} />;
     }
 
     if (view === 'dossier') {
@@ -326,7 +339,8 @@ function AppContent() {
   };
 
   // Determine if full layout (Header/Footer) should be shown
-  const isStandaloneView = view === 'landing' || view === 'dossier' || view === 'presentation';
+  // Added requests views to standalone list
+  const isStandaloneView = view === 'landing' || view === 'dossier' || view === 'presentation' || view === 'request-individual' || view === 'request-agency';
 
   return (
     <div className="min-h-screen flex flex-col font-sans">

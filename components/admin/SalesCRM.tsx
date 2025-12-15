@@ -217,6 +217,11 @@ export const SalesCRM: React.FC = () => {
       setAssetForm(prev => ({...prev, images: [...prev.images, url]}));
       setHasUnsavedChanges(true);
   };
+  
+  const handleAddVideo = (url: string) => {
+      setAssetForm(prev => ({...prev, videoUrl: url}));
+      setHasUnsavedChanges(true);
+  };
 
   const handleEditAsset = (opp: Opportunity) => {
       if (hasUnsavedChanges) {
@@ -727,23 +732,49 @@ export const SalesCRM: React.FC = () => {
                                           {/* Sección Multimedia */}
                                           <div>
                                               <h6 className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-1 mb-3">Multimedia</h6>
-                                              <ImageUploader folder="opportunities" onUploadComplete={handleAddImage} label="Subir Foto" />
-                                              <div className="flex flex-wrap gap-2 mt-2">
-                                                  {assetForm.images.map((img, idx) => (
-                                                      <div key={idx} className="relative w-16 h-16 rounded border">
-                                                          <img src={img} className="w-full h-full object-cover" />
-                                                          <button type="button" onClick={() => { setAssetForm(prev => ({...prev, images: prev.images.filter((_, i) => i !== idx)})); setHasUnsavedChanges(true); }} className="absolute top-0 right-0 bg-red-500 text-white p-0.5 rounded-bl"><X className="w-3 h-3"/></button>
-                                                      </div>
-                                                  ))}
+                                              
+                                              {/* 1. UPLOADER DE IMÁGENES */}
+                                              <div className="mb-4">
+                                                  <label className="block text-xs font-bold text-gray-500 mb-1 flex items-center gap-1"><ImageIcon className="w-3 h-3"/> Fotos</label>
+                                                  <ImageUploader folder="opportunities" onUploadComplete={handleAddImage} label="Subir Fotos" />
+                                                  <div className="flex flex-wrap gap-2 mt-2">
+                                                      {assetForm.images.map((img, idx) => (
+                                                          <div key={idx} className="relative w-16 h-16 rounded border">
+                                                              <img src={img} className="w-full h-full object-cover" />
+                                                              <button type="button" onClick={() => { setAssetForm(prev => ({...prev, images: prev.images.filter((_, i) => i !== idx)})); setHasUnsavedChanges(true); }} className="absolute top-0 right-0 bg-red-500 text-white p-0.5 rounded-bl"><X className="w-3 h-3"/></button>
+                                                          </div>
+                                                      ))}
+                                                  </div>
                                               </div>
-                                              <div className="grid grid-cols-2 gap-4 mt-4">
+
+                                              {/* 2. UPLOADER DE VÍDEO + URL INPUT */}
+                                              <div className="grid grid-cols-1 gap-4">
                                                   <div>
                                                       <label className="block text-xs font-bold text-gray-500 mb-1 flex items-center gap-1"><LinkIcon className="w-3 h-3"/> Carpeta Drive</label>
                                                       <input type="text" className="w-full p-2 border rounded-lg text-sm" value={assetForm.driveFolder} onChange={e => updateForm({driveFolder: e.target.value})} />
                                                   </div>
                                                   <div>
-                                                      <label className="block text-xs font-bold text-gray-500 mb-1 flex items-center gap-1"><Video className="w-3 h-3"/> URL Video</label>
-                                                      <input type="text" className="w-full p-2 border rounded-lg text-sm" value={assetForm.videoUrl} onChange={e => updateForm({videoUrl: e.target.value})} />
+                                                      <label className="block text-xs font-bold text-gray-500 mb-1 flex items-center gap-1"><Video className="w-3 h-3"/> Video (URL o Archivo)</label>
+                                                      <div className="flex gap-2">
+                                                          <input 
+                                                            type="text" 
+                                                            className="flex-grow p-2 border rounded-lg text-sm" 
+                                                            placeholder="https://youtube.com/..." 
+                                                            value={assetForm.videoUrl} 
+                                                            onChange={e => updateForm({videoUrl: e.target.value})} 
+                                                          />
+                                                          <div className="flex-shrink-0 w-32">
+                                                              <ImageUploader 
+                                                                folder="opportunities/videos" 
+                                                                label="Subir"
+                                                                compact={true}
+                                                                accept="video/*"
+                                                                maxSizeMB={30}
+                                                                onUploadComplete={handleAddVideo} 
+                                                              />
+                                                          </div>
+                                                      </div>
+                                                      <p className="text-[9px] text-gray-400 mt-1">Usa YouTube para vídeos largos (Tours). Sube aquí solo clips cortos (&lt;30MB).</p>
                                                   </div>
                                               </div>
                                           </div>

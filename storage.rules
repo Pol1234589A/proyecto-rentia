@@ -54,10 +54,11 @@ service firebase.storage {
     }
 
     // 5. SOLICITUDES COLABORADORES (Subida Pública para formulario web)
-    // Se permite 'create' a todo el mundo para que el formulario público pueda subir fotos
+    // Se permite 'create' a todo el mundo para que el formulario público pueda subir fotos.
+    // Se permite 'read' a todo el mundo para poder mostrar la previsualización tras la subida (getDownloadURL).
     match /requests/{requestId}/{allPaths=**} {
       allow create: if true;
-      allow read: if isAuth();
+      allow read: if true;
     }
 
     // 6. FEEDS XML (Público para sincronización con portales)

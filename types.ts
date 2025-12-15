@@ -1,40 +1,4 @@
 
-export interface TransferRoomData {
-    id: number;
-    name: string;
-    rentPrice: number;
-    includedExpenses: string;
-    depositHeld: number;
-    tenantNationality: string;
-    tenantAge: string;
-    tenantProfile: 'Estudiante' | 'Trabajador';
-    paymentDay: number;
-    paymentStatus: 'Al día' | 'Retraso' | 'Impago';
-    paymentHistory: string;
-    hasFridge: boolean;
-    hasAC: boolean;
-    hasFan: boolean;
-    images: string[];
-    observations?: string;
-    currentContractUrl?: string; // New: URL of the uploaded PDF contract
-}
-
-export interface TransferPropertyData {
-    address: string;
-    floor: string;
-    city: string;
-    communityPresident: string;
-    communityAdmin: string;
-    cleaningFreq: string;
-    cleaningCost: string;
-    suppliesType: string;
-    rules: string;
-    organization: string;
-    fridgeCount: number;
-    structuralIssues: string;
-    observations?: string;
-}
-
 export type OpportunityScenario = 'sale_living' | 'rent_rooms' | 'rent_traditional';
 export type Visibility = 'exact' | 'street_only' | 'hidden';
 
@@ -47,7 +11,6 @@ export interface Opportunity {
   features: string[];
   areaBenefits: string[];
   images: string[];
-  videos?: string[];
   driveFolder?: string;
   scenario: OpportunityScenario;
   visibility: Visibility;
@@ -74,42 +37,24 @@ export interface Opportunity {
   };
   status: 'available' | 'reserved' | 'sold';
   tags: string[];
-  roomConfiguration?: { name: string; price: number }[];
-}
-
-export interface UserProfile {
-    id?: string;
-    email: string;
-    role: 'owner' | 'tenant' | 'broker' | 'agency' | 'staff' | 'worker';
-    name: string;
-    phone?: string;
-    dni?: string;
-    address?: string;
-    bankAccount?: string;
-    createdAt?: any;
-    active?: boolean;
-    createdBy?: string;
-    gdpr?: {
-        signed: boolean;
-        signedAt?: any;
-        ip?: string;
-        documentVersion?: string;
-        htmlSnapshot?: string;
-    };
+  videos?: string[];
+  roomConfiguration?: {name: string, price: number}[];
 }
 
 export interface Contract {
     id: string;
     propertyId: string;
     roomId: string;
-    roomName?: string;
-    tenantId?: string;
     tenantName: string;
-    status: 'active' | 'ended' | 'reserved';
+    tenantId?: string;
     rentAmount: number;
     depositAmount: number;
     startDate: string;
-    endDate: string;
+    endDate?: string;
+    status: 'active' | 'finished' | 'reserved';
+    fileUrl?: string;
+    propertyName?: string;
+    roomName?: string;
 }
 
 export interface InternalNews {
@@ -128,7 +73,7 @@ export type RentalStatus = 'Sin alquilar' | 'Alquilada completa' | 'Alquilada po
 
 export interface AssetSubmission {
     id: string;
-    type: AssetType;
+    type: string | AssetType;
     title: string;
     province: string;
     region: string;
@@ -136,7 +81,7 @@ export interface AssetSubmission {
     address: string;
     zone: string;
     yearBuilt: number;
-    state: AssetState;
+    state: string | AssetState;
     ibi: number;
     otherTaxes: number;
     communityFees: number;
@@ -151,9 +96,8 @@ export interface AssetSubmission {
     hasParking: boolean;
     hasStorage: boolean;
     energyCertificate: string;
-    rentalStatus: RentalStatus;
+    rentalStatus: string | RentalStatus;
     currentRent?: number;
-    contractDate?: string;
     images: string[];
     documents: string[];
 }
@@ -172,6 +116,7 @@ export interface OpportunityRequest {
     status: 'new' | 'approved' | 'rejected';
     createdAt: any;
     tempRequestId?: string;
+    collaborationType?: 'direct_private' | 'agency_investors_only' | 'agency_mls_open';
 }
 
 export interface PropertyDocument {
@@ -181,21 +126,10 @@ export interface PropertyDocument {
     type: string;
     url: string;
     uploadedAt?: any;
+    ownerId?: string;
 }
 
-export interface SupplyInvoice {
-    id: string;
-    propertyId: string;
-    type: 'luz' | 'agua' | 'gas' | 'internet' | 'limpieza' | 'otro';
-    periodStart: string;
-    periodEnd: string;
-    amount: number;
-    fileUrl: string;
-    status: 'pending' | 'approved' | 'rejected';
-    uploadedAt?: any;
-}
-
-export type StaffMember = 'Pol' | 'Sandra' | 'Víctor' | 'Ayoub' | 'Hugo' | 'Colaboradores' | string;
+export type StaffMember = 'Pol' | 'Sandra' | 'Víctor' | 'Ayoub' | 'Hugo' | 'Colaboradores';
 export type TaskPriority = 'Alta' | 'Media' | 'Baja';
 export type TaskStatus = 'Pendiente' | 'En Curso' | 'Completada' | 'Bloqueada';
 export type TaskCategory = 'Gestión' | 'Marketing' | 'Legal' | 'Operaciones' | 'Reformas' | 'Contabilidad' | 'Mantenimiento';
@@ -215,8 +149,8 @@ export interface Task {
     priority: TaskPriority;
     status: TaskStatus;
     category: TaskCategory;
-    boardId?: string;
     dueDate?: string;
+    boardId?: string;
     createdAt?: any;
     updatedAt?: any;
 }
@@ -237,24 +171,35 @@ export type CandidateStatus = 'pending_review' | 'approved' | 'rejected' | 'arch
 
 export interface Candidate {
     id: string;
-    propertyId: string;
-    propertyName: string;
-    roomId?: string;
-    roomName?: string;
-    ownerId?: string | null;
     candidateName: string;
-    candidatePhone?: string;
+    candidatePhone: string;
     candidateEmail?: string;
+    propertyName?: string;
+    propertyId?: string;
+    roomName?: string;
+    roomId?: string;
     status: CandidateStatus;
     priority?: 'Alta' | 'Media' | 'Baja';
     submittedBy?: string;
     submittedAt?: any;
-    assignedTo?: string;
-    assignedRoomId?: string;
-    assignedDate?: any;
-    closureReason?: string;
     additionalInfo?: string;
+    assignedTo?: StaffMember;
+    closureReason?: string;
+    assignedDate?: any;
+    assignedRoomId?: string;
     sourcePlatform?: string;
+}
+
+export interface SupplyInvoice {
+    id: string;
+    propertyId: string;
+    type: 'luz' | 'agua' | 'gas' | 'internet' | 'otro';
+    amount: number;
+    periodStart: string;
+    periodEnd: string;
+    fileUrl: string;
+    status: 'pending' | 'approved';
+    uploadedAt?: any;
 }
 
 export type VisitOutcome = 'successful' | 'unsuccessful' | 'pending';
@@ -280,25 +225,31 @@ export interface WorkerInvoice {
     concept: string;
     date: string;
     status: 'pending' | 'paid';
-    fileUrl: string;
-    fileName: string;
-    paymentProofUrl?: string | null;
+    fileUrl?: string;
+    paymentProofUrl?: string;
+    fileName?: string;
     createdAt?: any;
 }
 
-export interface AgencyInvoice {
-    id: string;
-    invoiceNumber: string;
-    date: string;
-    ownerId: string;
-    ownerName: string;
-    propertyAddress: string;
-    totalAmount: number; // El total que se transfiere
-    agencyFee: number; // La comisión cobrada
-    ivaAmount: number; // El IVA de la comisión
-    details: any; // JSON completo de la liquidación para reconstruirla
-    createdAt: any;
-    status: 'issued';
+export interface UserProfile {
+    id?: string;
+    uid?: string;
+    name: string;
+    email: string;
+    role: string;
+    phone?: string;
+    dni?: string;
+    address?: string;
+    bankAccount?: string;
+    active?: boolean;
+    createdAt?: any;
+    gdpr?: {
+        signed: boolean;
+        signedAt?: any;
+        documentVersion?: string;
+        htmlSnapshot?: string;
+        ip?: string;
+    };
 }
 
 export const ITP_RATES: Record<string, number> = {
@@ -307,7 +258,71 @@ export const ITP_RATES: Record<string, number> = {
     'Comunidad Valenciana': 10,
     'Madrid': 6,
     'Cataluña': 10,
+    'Castilla-La Mancha': 9,
+    'Castilla y León': 8,
+    'Aragón': 8,
+    'Galicia': 9,
+    'Canarias': 6.5,
+    'Extremadura': 8,
+    'Baleares': 8,
+    'Asturias': 8,
+    'Cantabria': 10,
+    'La Rioja': 7,
+    'Navarra': 6,
+    'País Vasco': 4
 };
+
+export interface AgencyInvoice {
+    id: string;
+    invoiceNumber: string;
+    date: string;
+    ownerId: string;
+    ownerName: string;
+    propertyId?: string;
+    propertyAddress?: string;
+    totalAmount: number;
+    agencyFee: number;
+    ivaAmount: number;
+    details?: any;
+    status: 'issued' | 'paid';
+    createdAt?: any;
+}
+
+export interface TransferRoomData {
+    id: number;
+    name: string;
+    rentPrice: number;
+    includedExpenses: string;
+    depositHeld: number;
+    tenantNationality: string;
+    tenantAge: string;
+    tenantProfile: string;
+    paymentDay: number;
+    paymentStatus: string;
+    paymentHistory: string;
+    hasFridge: boolean;
+    hasAC: boolean;
+    hasFan: boolean;
+    images: string[];
+    observations: string;
+    currentContractUrl: string;
+}
+
+export interface TransferPropertyData {
+    address: string;
+    floor: string;
+    city: string;
+    communityPresident: string;
+    communityAdmin: string;
+    cleaningFreq: string;
+    cleaningCost: string;
+    suppliesType: string;
+    rules: string;
+    organization: string;
+    fridgeCount: number;
+    structuralIssues: string;
+    observations: string;
+}
 
 export interface TransferAsset {
     id: number;
@@ -325,6 +340,13 @@ export interface PartnerTransferSubmission {
         email: string;
     };
     assets: TransferAsset[];
+    // Deprecated single prop fields just in case (optional)
+    property?: TransferPropertyData;
+    rooms?: TransferRoomData[];
+    
+    isPack?: boolean;
+    packPrice?: number;
+    status: 'pending_review' | 'contacted' | 'integrated';
     createdAt: any;
-    status: string; // 'pending_review' | 'contacted' | 'integrated'
+    tempRequestId?: string;
 }

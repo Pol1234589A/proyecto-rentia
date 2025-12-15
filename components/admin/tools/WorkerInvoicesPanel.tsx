@@ -5,6 +5,7 @@ import { collection, query, orderBy, onSnapshot, deleteDoc, doc, updateDoc, wher
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Receipt, Trash2, CheckCircle, Download, User, Calendar, Filter, X, Upload, Loader2, FileCheck, Plus } from 'lucide-react';
 import { WorkerInvoice, UserProfile } from '../../../types';
+import { compressImage } from '../../../utils/imageOptimizer';
 
 export const WorkerInvoicesPanel: React.FC = () => {
     const [invoices, setInvoices] = useState<WorkerInvoice[]>([]);
@@ -80,12 +81,24 @@ export const WorkerInvoicesPanel: React.FC = () => {
         try {
             let proofUrl = '';
             
-            // Si hay fichero de justificante, subirlo
+            // Si hay fichero de justificante, subirlo (CON COMPRESIÓN)
             if (paymentProofFile) {
-                const fileName = `proof_${Date.now()}_${paymentProofFile.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+                let blobToUpload: Blob = paymentProofFile;
+                let fileName = paymentProofFile.name;
+
+                if (paymentProofFile.type.startsWith('image/') && !paymentProofFile.type.includes('gif')) {
+                    try {
+                        blobToUpload = await compressImage(paymentProofFile);
+                        fileName = fileName.substring(0, fileName.lastIndexOf('.')) + '.webp';
+                    } catch(e) {
+                        console.warn("Error comprimiendo justificante", e);
+                    }
+                }
+
+                const finalName = `proof_${Date.now()}_${fileName.replace(/[^a-zA-Z0-9.]/g, '_')}`;
                 // Subir a la carpeta del trabajador para mantener orden
-                const storageRef = ref(storage, `worker_invoices/${paymentModalInvoice.workerId}/proofs/${fileName}`);
-                await uploadBytes(storageRef, paymentProofFile);
+                const storageRef = ref(storage, `worker_invoices/${paymentModalInvoice.workerId}/proofs/${finalName}`);
+                await uploadBytes(storageRef, blobToUpload);
                 proofUrl = await getDownloadURL(storageRef);
             }
 
@@ -116,10 +129,23 @@ export const WorkerInvoicesPanel: React.FC = () => {
             const selectedWorker = workers.find(w => w.id === uploadForm.workerId);
             const workerName = selectedWorker?.name || 'Desconocido';
 
-            const fileName = `invoice_admin_${Date.now()}_${uploadFile.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+            let blobToUpload: Blob = uploadFile;
+            let fileName = uploadFile.name;
+
+            // COMPRESIÓN FACTURA
+            if (uploadFile.type.startsWith('image/') && !uploadFile.type.includes('gif')) {
+                try {
+                    blobToUpload = await compressImage(uploadFile);
+                    fileName = fileName.substring(0, fileName.lastIndexOf('.')) + '.webp';
+                } catch(e) {
+                    console.warn("Error comprimiendo factura", e);
+                }
+            }
+
+            const finalName = `invoice_admin_${Date.now()}_${fileName.replace(/[^a-zA-Z0-9.]/g, '_')}`;
             // Guardar en la carpeta del trabajador para que él tenga acceso por reglas de storage
-            const storageRef = ref(storage, `worker_invoices/${uploadForm.workerId}/${fileName}`);
-            await uploadBytes(storageRef, uploadFile);
+            const storageRef = ref(storage, `worker_invoices/${uploadForm.workerId}/${finalName}`);
+            await uploadBytes(storageRef, blobToUpload);
             const url = await getDownloadURL(storageRef);
 
             await addDoc(collection(db, "worker_invoices"), {
@@ -130,7 +156,7 @@ export const WorkerInvoicesPanel: React.FC = () => {
                 date: uploadForm.date,
                 status: 'pending', // Se crea como pendiente de pago
                 fileUrl: url,
-                fileName: uploadFile.name,
+                fileName: fileName,
                 createdAt: serverTimestamp()
             });
 

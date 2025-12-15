@@ -8,7 +8,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import { UserCreator } from '../admin/UserCreator';
 import { UserManager } from '../admin/UserManager'; 
 import { FileAnalyzer } from '../admin/FileAnalyzer';
-import { RoomManager } from '../admin/RoomManager';
 import { SalesCRM } from '../admin/SalesCRM';
 import { OpportunityManager } from '../admin/OpportunityManager';
 import { OpportunityRequestManager } from '../admin/OpportunityRequestManager';
@@ -28,8 +27,7 @@ import { SalesTracker } from '../admin/SalesTracker';
 import { BlacklistManager } from '../admin/tools/BlacklistManager';
 import { WorkerInvoicesPanel } from '../admin/tools/WorkerInvoicesPanel';
 import { TransferRequestManager } from '../admin/TransferRequestManager';
-import { AdvancedCalculator } from '../admin/tools/AdvancedCalculator'; // Importar nueva herramienta
-// FIX: Added Globe and Send icons to lucide-react import
+import { AdvancedCalculator } from '../admin/tools/AdvancedCalculator'; 
 import { LayoutDashboard, Calculator, Briefcase, Wrench, Plus, Search, FileText, Save, X, DollarSign, Calendar as CalendarIcon, Filter, Pencil, PieChart, Landmark, Wallet, Clock, Zap, Settings, Receipt, Split, Info, MessageCircle, Share2, ClipboardList, UserCheck, Mail, Phone, ArrowRight, UserPlus, Inbox, Home, DoorOpen, Menu, Activity, ShieldAlert, UserCog, Siren, Footprints, BarChart3, Building, Grid, Globe, Send, Users } from 'lucide-react';
 
 
@@ -63,7 +61,6 @@ export const StaffDashboard: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<'overview' | 'real_estate' | 'accounting' | 'tools' | 'contracts' | 'calendar' | 'supplies' | 'calculator' | 'social' | 'tasks' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'transfers' | 'advanced_calc'>('overview');
   const [activeMobileTab, setActiveMobileTab] = useState<'overview' | 'tasks' | 'candidates' | 'properties' | 'menu' | 'accounting' | 'supplies' | 'calendar' | 'contracts' | 'social' | 'calculator' | 'tools' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'advanced_calc'>('overview');
-  const [mobilePropertyView, setMobilePropertyView] = useState<'rent' | 'sale'>('rent');
 
   const [stats, setStats] = useState({
     totalRooms: 0,
@@ -212,7 +209,7 @@ export const StaffDashboard: React.FC = () => {
 
     const desktopTools = [
         { id: 'tasks', label: 'Tareas', icon: <ClipboardList className="w-4 h-4" /> },
-        { id: 'real_estate', label: 'Inmobiliaria', icon: <Building className="w-4 h-4" /> },
+        { id: 'real_estate', label: 'Oportunidades', icon: <Building className="w-4 h-4" /> },
         { id: 'requests', label: 'Solicitudes', icon: <Inbox className="w-4 h-4" />, count: pendingRequestsCount }, 
         { id: 'transfers', label: 'Traspasos', icon: <Share2 className="w-4 h-4" />, count: pendingTransfersCount },
         { id: 'sales_tracker', label: 'Ventas', icon: <Activity className="w-4 h-4" /> },
@@ -223,7 +220,7 @@ export const StaffDashboard: React.FC = () => {
         { id: 'social', label: 'Mensajería', icon: <MessageCircle className="w-4 h-4" /> },
         { id: 'calculator', label: 'Reparto Gastos', icon: <Split className="w-4 h-4" /> },
         { id: 'accounting', label: 'Contabilidad', icon: <Calculator className="w-4 h-4" /> },
-        { id: 'advanced_calc', label: 'Liquidaciones', icon: <FileText className="w-4 h-4" /> }, // New Tool
+        { id: 'advanced_calc', label: 'Liquidaciones', icon: <FileText className="w-4 h-4" /> }, 
         { id: 'calendar', label: 'Calendario', icon: <CalendarIcon className="w-4 h-4" /> },
         { id: 'visits', label: 'Visitas', icon: <Footprints className="w-4 h-4" /> }, 
         { id: 'user_manager', label: 'Usuarios', icon: <UserCog className="w-4 h-4" /> }, 
@@ -237,7 +234,7 @@ export const StaffDashboard: React.FC = () => {
         { id: 'blacklist', label: 'Riesgos', icon: <ShieldAlert className="w-6 h-6"/>, color: 'bg-red-100 text-red-600' }, 
         { id: 'accounting', label: 'Contabilidad', icon: <Calculator className="w-6 h-6"/>, color: 'bg-blue-100 text-blue-600' },
         { id: 'supplies', label: 'Suministros', icon: <Zap className="w-6 h-6"/>, color: 'bg-yellow-100 text-yellow-600' },
-        { id: 'advanced_calc', label: 'Liquidaciones', icon: <FileText className="w-6 h-6"/>, color: 'bg-indigo-100 text-indigo-600' }, // New Tool Mobile
+        { id: 'advanced_calc', label: 'Liquidaciones', icon: <FileText className="w-6 h-6"/>, color: 'bg-indigo-100 text-indigo-600' }, 
         { id: 'calendar', label: 'Calendario', icon: <CalendarIcon className="w-6 h-6"/>, color: 'bg-green-100 text-green-600' },
         { id: 'visits', label: 'Visitas', icon: <Footprints className="w-6 h-6"/>, color: 'bg-red-100 text-red-600' },
         { id: 'contracts', label: 'Contratos', icon: <FileText className="w-6 h-6"/>, color: 'bg-purple-100 text-purple-600' },
@@ -284,11 +281,7 @@ export const StaffDashboard: React.FC = () => {
             case 'candidates': return <div className="h-full overflow-y-auto pb-24"><CandidateManager /></div>;
             case 'properties': return (
                 <div className="h-full overflow-y-auto p-4 space-y-4 pb-24">
-                    <div className="flex bg-gray-100 p-1 rounded-lg mb-4">
-                        <button onClick={() => setMobilePropertyView('rent')} className={`flex-1 py-2 text-xs font-bold rounded-md ${mobilePropertyView === 'rent' ? 'bg-white shadow text-rentia-blue' : 'text-gray-500'}`}>Alquiler</button>
-                        <button onClick={() => setMobilePropertyView('sale')} className={`flex-1 py-2 text-xs font-bold rounded-md ${mobilePropertyView === 'sale' ? 'bg-white shadow text-rentia-blue' : 'text-gray-500'}`}>Venta</button>
-                    </div>
-                    {mobilePropertyView === 'rent' ? <RoomManager /> : <SalesCRM />}
+                    <SalesCRM />
                 </div>
             );
             case 'contracts': return <div className="h-full overflow-y-auto pb-24"><ContractManager onClose={() => setActiveMobileTab('menu')} /></div>;
@@ -302,7 +295,7 @@ export const StaffDashboard: React.FC = () => {
             case 'requests': return <div className="h-full overflow-y-auto pb-24"><OpportunityRequestManager /></div>;
             case 'worker_invoices': return <div className="h-full overflow-y-auto pb-24"><WorkerInvoicesPanel /></div>;
             case 'user_manager': return <div className="h-full overflow-y-auto pb-24"><UserManager /></div>;
-            case 'calculator': return <div className="h-full overflow-y-auto pb-24"><SupplyCalculator properties={propertiesList} /></div>;
+            case 'calculator': return <div className="h-full overflow-y-auto pb-24"><SupplyCalculator properties={propertiesList} preSelectedPropertyId={selectedPropId} /></div>;
             case 'social': return <div className="h-full overflow-y-auto pb-24"><SocialInbox /></div>;
             case 'tools': return <div className="h-full overflow-y-auto p-4 space-y-4 pb-24"><NewsManager /><ProfitCalculator /></div>;
             default: return null;
@@ -392,7 +385,7 @@ export const StaffDashboard: React.FC = () => {
             
             {activeTab === 'transfers' && <div className="animate-in slide-in-from-bottom-4 duration-300"><TransferRequestManager /></div>}
             {activeTab === 'tasks' && <div className="animate-in slide-in-from-bottom-4 duration-300"><TaskManager /></div>}
-            {activeTab === 'real_estate' && <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-300"><RoomManager /><SalesCRM /></div>}
+            {activeTab === 'real_estate' && <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-300"><SalesCRM /></div>}
             {activeTab === 'contracts' && <div className="animate-in slide-in-from-bottom-4 duration-300"><ContractManager onClose={() => setActiveTab('real_estate')} /></div>}
             {activeTab === 'calendar' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><CalendarManager /></div>}
             {activeTab === 'calculator' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><SupplyCalculator properties={propertiesList} preSelectedPropertyId={selectedPropId} /></div>}
@@ -405,7 +398,6 @@ export const StaffDashboard: React.FC = () => {
             {activeTab === 'blacklist' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><BlacklistManager /></div>} 
             {activeTab === 'requests' && <div className="animate-in slide-in-from-bottom-4 duration-300"><OpportunityRequestManager /></div>}
             {activeTab === 'worker_invoices' && <div className="animate-in slide-in-from-bottom-4 duration-300"><WorkerInvoicesPanel /></div>}
-            {/* FIX: Corrected typo from Users icon to UserManager component */}
             {activeTab === 'user_manager' && <div className="animate-in slide-in-from-bottom-4 duration-300"><UserManager /></div>}
             
             {activeTab === 'tools' && ( 

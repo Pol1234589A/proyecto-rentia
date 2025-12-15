@@ -1,6 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
-import { db } from '../../firebase';
+import { db, storage } from '../../firebase';
 import { collection, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc, addDoc, where, serverTimestamp } from 'firebase/firestore';
+import { ref, listAll, deleteObject } from 'firebase/storage';
 import { PartnerTransferSubmission, UserProfile, TransferAsset } from '../../types';
 import { Property, Room } from '../../data/rooms';
 import { Inbox, User, Home, Bed, Phone, Mail, Fingerprint, CheckCircle, XCircle, Trash2, Loader2, Share2, MessageCircle, Check, PlusCircle, AlertCircle, Building, UserPlus, ChevronDown, Layers, Image as ImageIcon, Download, EyeOff, FileText } from 'lucide-react';
@@ -58,6 +60,24 @@ export const TransferRequestManager: React.FC = () => {
             unsubOwners();
         };
     }, []);
+
+    // Función auxiliar para borrado recursivo en Storage
+    const deleteFolderRecursive = async (path: string) => {
+        const listRef = ref(storage, path);
+        try {
+            const res = await listAll(listRef);
+            // 1. Borrar archivos en este nivel
+            const filePromises = res.items.map((itemRef) => deleteObject(itemRef));
+            // 2. Borrar subcarpetas recursivamente
+            const folderPromises = res.prefixes.map((folderRef) => deleteFolderRecursive(folderRef.fullPath));
+            
+            await Promise.all([...filePromises, ...folderPromises]);
+            console.log(`Carpeta ${path} eliminada correctamente.`);
+        } catch (error) {
+            console.warn(`Error limpiando carpeta ${path} (puede que no exista o esté vacía):`, error);
+            // No lanzamos error para no bloquear el borrado del documento en Firestore
+        }
+    };
 
     const handleApproveAndCreate = async (request: PartnerTransferSubmission) => {
         setNotification(null);
@@ -176,13 +196,26 @@ export const TransferRequestManager: React.FC = () => {
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm("¿Eliminar este traspaso permanentemente?")) return;
+        if (!confirm("¿Eliminar este traspaso permanentemente? \n\nAVISO: Si rechazas este traspaso, se borrarán también todas las imágenes y documentos adjuntos del servidor para liberar espacio.")) return;
+        
         setProcessingStep('deleting');
         try {
+            // 1. Obtener la solicitud para buscar el ID de carpeta Storage
+            const requestToDelete = requests.find(r => r.id === id);
+            
+            // 2. Si tiene ID temporal, borrar carpeta recursivamente
+            if (requestToDelete?.tempRequestId) {
+                console.log(`Borrando imágenes de ${requestToDelete.tempRequestId}...`);
+                await deleteFolderRecursive(`requests/${requestToDelete.tempRequestId}`);
+            }
+
+            // 3. Borrar documento Firestore
             await deleteDoc(doc(db, "pending_transfers", id));
+            
             if (selectedRequest?.id === id) setSelectedRequest(null);
         } catch (error) {
             console.error("Error deleting:", error);
+            alert("Error al eliminar. Revisa la consola.");
         } finally {
             setProcessingStep('');
         }

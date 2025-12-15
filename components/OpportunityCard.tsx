@@ -62,6 +62,7 @@ export const OpportunityCard: React.FC<Props> = ({ opportunity, onClick }) => {
           src={opportunity.images[0]} 
           alt={opportunity.title} 
           loading="lazy"
+          decoding="async"
           onLoad={() => setImageLoaded(true)}
           className={`w-full h-full object-cover transform group-hover:scale-105 transition-all duration-700 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
         />

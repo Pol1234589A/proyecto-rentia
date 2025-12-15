@@ -249,7 +249,7 @@ export const translations = {
         s3: { title: 'Optimización de Ingresos', desc: 'Buscamos mejorar la rentabilidad de tus propiedades mediante análisis de mercado y estrategias de precios.', pts: ['Análisis de mercado.', 'Precios competitivos.', 'Estrategias personalizadas.', 'Mejora flujo de caja.'] },
         s4: { title: 'Mantenimiento y Reparaciones', desc: 'Nos encargamos de la recepción de incidencias y la coordinación con seguros o técnicos especializados.', pts: ['Trámites seguros.', 'Coordinación técnicos.', 'Supervisión trabajos.', 'Incidencias cotidianas.'] },
         s5: { title: 'Seguro de Impagos (Opcional)', desc: 'No cubrimos impagos directamente, pero te ponemos en contacto con colaboradores de confianza.', pts: ['Acceso a colaboradores.', 'Gestión externa.', 'Asesoramiento.', 'Protección opcional.'] },
-        s6: { title: 'Supervisión de Reformas', badge: 'Nuevo', desc: 'Supervisamos la reforma con colaboradores externos. Adaptamos las viviendas para ser alquiladas.', pts: ['Adaptación alquiler.', 'Colaboradores verificados.', 'Supervisión técnica.', 'Optimización costes.'] }
+        s6: { title: 'Supervisión de Reformas', badge: 'Nuevo', desc: 'Supervisamos la reforma con colaboradores externos. Adaptamos las viviendas para ser alquiladas.', pts: ['Rental adaptation.', 'Verified collaborators.', 'Supervisión técnica.', 'Optimización costes.'] }
       },
       onboarding: {
         title: 'Protocolo de Activación',
@@ -449,11 +449,12 @@ export const translations = {
         confidential: 'Rentia Investments S.L. • Documento confidencial. La información contenida puede estar sujeta a cambios.'
       }
     },
+    // BROKERS SECTION
     brokers: {
       hero: {
-        badge: 'Solo Profesionales',
+        badge: 'Particulares y Profesionales',
         title: 'Bolsa de Demandas y Colaboración',
-        subtitle: 'Conecta oferta y demanda. Consulta los encargos de compra de nuestros inversores cualificados.'
+        subtitle: 'Conecta oferta y demanda. Consulta los encargos de compra de nuestros compradores e inversores.'
       },
       intro: {
         title: '¿Tienes un inmueble que encaja?',
@@ -1016,14 +1017,14 @@ export const translations = {
         multimedia: 'Multimedia',
         photos: 'Photos',
         see_all: 'See all photos',
-        appendix: 'Annex: Photo Gallery',
+        appendix: 'Anexo: Galería Fotográfica',
         confidential: 'Rentia Investments S.L. • Confidential document. Information contained may be subject to change.'
       }
     },
     // BROKERS SECTION
     brokers: {
       hero: {
-        badge: 'Professionals Only',
+        badge: 'Individuals & Professionals',
         title: 'RentiaRoom Investor Orders',
         subtitle: 'Check in real-time what our qualified investors are looking for and contact us if you have an asset that fits.'
       },

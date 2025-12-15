@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+
+import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { db, storage } from '../../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -13,7 +14,7 @@ interface Props {
 }
 
 const initialRoomState: TransferRoomData = {
-    id: Date.now(),
+    id: 0, // ID placeholder, will be overwritten
     name: 'H1',
     rentPrice: 0,
     includedExpenses: '',
@@ -58,9 +59,33 @@ export const PartnerTransferModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
     // Step 2 State (Multiple Assets)
     const [assets, setAssets] = useState<TransferAsset[]>([
-        { id: Date.now(), property: { ...initialPropertyState }, rooms: [{ ...initialRoomState }], images: [] }
+        { id: Date.now(), property: { ...initialPropertyState }, rooms: [{ ...initialRoomState, id: Date.now() + 1 }], images: [] }
     ]);
     const [activeAssetIndex, setActiveAssetIndex] = useState(0);
+
+    // Reset Form Logic
+    const resetForm = () => {
+        setSuccess(false);
+        setStep(1);
+        setLoading(false);
+        setAssets([{ 
+            id: Date.now(), 
+            property: { ...initialPropertyState }, 
+            rooms: [{ ...initialRoomState, id: Date.now() + 1 }], 
+            images: [] 
+        }]);
+        setCollaborator({ name: '', dni: '', phone: '', email: '' });
+        setGdprAccepted(false);
+        setShowFullLegal(false);
+        setActiveAssetIndex(0);
+    };
+
+    // Auto-reset if opened while in success state
+    useEffect(() => {
+        if (isOpen && success) {
+            resetForm();
+        }
+    }, [isOpen]);
 
     const dynamicLegalText = useMemo(() => {
         const name = collaborator.name || '___________';
@@ -201,7 +226,8 @@ export const PartnerTransferModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 collaborator,
                 assets,
                 createdAt: serverTimestamp(),
-                status: 'pending_review'
+                status: 'pending_review',
+                tempRequestId: tempRequestId // GUARDAR REFERENCIA A CARPETA STORAGE
             };
 
             await addDoc(collection(db, "pending_transfers"), submissionData);
@@ -223,7 +249,12 @@ export const PartnerTransferModal: React.FC<Props> = ({ isOpen, onClose }) => {
                     <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
                     <h2 className="text-xl font-bold text-gray-800">Traspaso Enviado</h2>
                     <p className="text-gray-600 mt-2">Gracias, {collaborator.name}. Hemos recibido los datos de tus {assets.length} vivienda(s) y la documentación adjunta. Nos pondremos en contacto contigo en breve.</p>
-                    <button onClick={onClose} className="mt-6 w-full bg-rentia-black text-white py-3 rounded-lg font-bold">Cerrar</button>
+                    <button 
+                        onClick={() => { resetForm(); onClose(); }} 
+                        className="mt-6 w-full bg-rentia-black text-white py-3 rounded-lg font-bold hover:bg-gray-800 transition-colors"
+                    >
+                        Cerrar
+                    </button>
                 </div>
             </div>,
             document.body

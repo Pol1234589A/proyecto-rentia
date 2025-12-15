@@ -1,13 +1,14 @@
 
 /**
- * Comprime y redimensiona una imagen antes de subirla.
- * - Máximo ancho: 1920px (Full HD es suficiente para inmobiliaria)
- * - Calidad: 0.8 (Buen balance peso/calidad)
- * - Formato: JPEG (Compatibilidad universal)
+ * Comprime, redimensiona y convierte una imagen a WebP antes de subirla.
+ * - Máximo ancho: 1440px (Balance perfecto calidad/velocidad para web)
+ * - Calidad: 0.80
+ * - Formato: WebP (Soportado por navegadores modernos, 30% más ligero que JPEG)
  */
 export const compressImage = (file: File): Promise<Blob> => {
   return new Promise((resolve, reject) => {
-    const maxWidth = 1920;
+    // 1440px es suficiente para pantallas de alta resolución en web
+    const maxWidth = 1440;
     const reader = new FileReader();
     
     reader.readAsDataURL(file);
@@ -35,19 +36,27 @@ export const compressImage = (file: File): Promise<Blob> => {
             return;
         }
         
+        // Suavizado de imagen para mejor calidad al reducir
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Convertir a Blob (JPEG comprimido)
+        // Convertir a Blob (WebP comprimido)
         canvas.toBlob(
           (blob) => {
             if (blob) {
               resolve(blob);
             } else {
-              reject(new Error('Error al comprimir la imagen'));
+              // Fallback a JPEG si WebP falla (raro en navegadores modernos)
+              canvas.toBlob((backupBlob) => {
+                  if (backupBlob) resolve(backupBlob);
+                  else reject(new Error('Error al comprimir la imagen'));
+              }, 'image/jpeg', 0.8);
             }
           },
-          'image/jpeg',
-          0.80 // Calidad del 80%
+          'image/webp',
+          0.80 // Calidad 80% en WebP es excelente y muy ligera
         );
       };
       

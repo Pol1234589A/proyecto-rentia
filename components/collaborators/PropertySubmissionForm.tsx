@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { db, storage } from '../../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { Plus, Trash2, Home, Building2, Briefcase, Camera, FileText, CheckCircle, ShieldCheck, AlertCircle, Info, ChevronRight, ChevronLeft, Upload, Loader2, DollarSign } from 'lucide-react';
+import { Plus, Trash2, Home, Building2, Briefcase, Camera, FileText, CheckCircle, ShieldCheck, AlertCircle, Info, ChevronRight, ChevronLeft, Upload, Loader2, DollarSign, Lock, Users, Handshake } from 'lucide-react';
 import { AssetSubmission, ITP_RATES, AssetType, AssetState, RentalStatus } from '../../types';
 import { ImageUploader } from '../admin/ImageUploader';
 
@@ -53,6 +53,9 @@ export const PropertySubmissionForm: React.FC<Props> = ({ onBack }) => {
     const [collaborator, setCollaborator] = useState({
         name: '', phone: '', email: '', relation: 'propietario' as const
     });
+
+    // Collaboration Logic
+    const [collaborationType, setCollaborationType] = useState<'direct_private' | 'agency_investors_only' | 'agency_mls_open'>('direct_private');
     
     // Pack / Building Logic
     const [isPack, setIsPack] = useState(false);
@@ -90,6 +93,17 @@ export const PropertySubmissionForm: React.FC<Props> = ({ onBack }) => {
         setActiveAssetIndex(Math.max(0, index - 1));
     };
 
+    // Update collaboration type based on relation change
+    const handleRelationChange = (val: string) => {
+        setCollaborator({...collaborator, relation: val as any});
+        if (val === 'propietario' || val === 'amigo') {
+            setCollaborationType('direct_private');
+        } else {
+            // Default for agencies
+            setCollaborationType('agency_investors_only');
+        }
+    };
+
     const calculateProfitability = (asset: AssetSubmission) => {
         if (asset.price === 0) return 0;
         let annualRent = 0;
@@ -109,6 +123,7 @@ export const PropertySubmissionForm: React.FC<Props> = ({ onBack }) => {
                 isPack,
                 packPrice: isPack ? packPrice : null,
                 status: 'new',
+                collaborationType, // New field saved
                 createdAt: serverTimestamp(),
                 gdprAccepted,
                 dataPolicyAccepted,
@@ -132,12 +147,15 @@ export const PropertySubmissionForm: React.FC<Props> = ({ onBack }) => {
                 </div>
                 <h2 className="text-2xl font-bold text-slate-900 mb-2">¡Información Recibida!</h2>
                 <p className="text-slate-600 mb-6 max-w-lg mx-auto">
-                    Gracias {collaborator.name}. Hemos recibido los datos de tus activos correctamente. Nuestro equipo de análisis revisará la información y te contactará en breve.
+                    Gracias {collaborator.name}. Hemos recibido los datos correctamente.
+                    {collaborationType === 'direct_private' 
+                        ? ' Al ser particular, gestionaremos tu propiedad con total confidencialidad.' 
+                        : ' Nuestro equipo de inversiones contactará contigo para coordinar la colaboración.'}
                 </p>
                 <div className="flex justify-center gap-4">
                     {onBack && (
                         <button onClick={onBack} className="inline-block bg-white text-slate-600 border border-slate-300 px-6 py-3 rounded-xl font-bold hover:bg-slate-50 transition-colors">
-                            Volver a Demandas
+                            Volver a Panel
                         </button>
                     )}
                     <a href="#/" className="inline-block bg-rentia-blue text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors">
@@ -174,34 +192,81 @@ export const PropertySubmissionForm: React.FC<Props> = ({ onBack }) => {
                         <div className="bg-rentia-blue h-full transition-all duration-500" style={{ width: `${(step/3)*100}%` }}></div>
                     </div>
 
-                    {/* STEP 1: COLLABORATOR INFO */}
+                    {/* STEP 1: COLLABORATOR INFO & TYPE */}
                     {step === 1 && (
                         <div className="p-8 animate-in slide-in-from-right-4">
                             <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
                                 <span className="w-7 h-7 bg-slate-900 text-white rounded-full flex items-center justify-center text-sm">1</span>
-                                Datos del Colaborador
+                                ¿Quién eres?
                             </h3>
                             
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                <div className="md:col-span-2">
+                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Relación con la propiedad *</label>
+                                    <select 
+                                        className="w-full p-3 border rounded-xl bg-slate-50 focus:bg-white text-lg font-medium" 
+                                        value={collaborator.relation} 
+                                        onChange={e => handleRelationChange(e.target.value)}
+                                    >
+                                        <option value="propietario">Soy el Propietario (Particular)</option>
+                                        <option value="amigo">Soy amigo/familiar del propietario</option>
+                                        <option value="agencia">Soy Agente Inmobiliario / Profesional</option>
+                                        <option value="mediador">Soy Mediador / Personal Shopper</option>
+                                    </select>
+                                </div>
+
+                                {/* CONDITIONAL LOGIC FOR COLLABORATION TYPE */}
+                                {(collaborator.relation === 'agencia' || collaborator.relation === 'mediador') ? (
+                                    <div className="md:col-span-2 bg-indigo-50 p-6 rounded-xl border border-indigo-100">
+                                        <h4 className="font-bold text-indigo-900 mb-4 flex items-center gap-2">
+                                            <Handshake className="w-5 h-5"/> Tipo de Colaboración B2B
+                                        </h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <label className={`cursor-pointer p-4 rounded-lg border-2 transition-all ${collaborationType === 'agency_investors_only' ? 'border-indigo-500 bg-white shadow-md' : 'border-indigo-100 bg-white/50'}`}>
+                                                <input type="radio" name="collabType" className="hidden" checked={collaborationType === 'agency_investors_only'} onChange={() => setCollaborationType('agency_investors_only')} />
+                                                <div className="flex items-center gap-3 mb-2">
+                                                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${collaborationType === 'agency_investors_only' ? 'border-indigo-600' : 'border-gray-300'}`}>
+                                                        {collaborationType === 'agency_investors_only' && <div className="w-2.5 h-2.5 bg-indigo-600 rounded-full"></div>}
+                                                    </div>
+                                                    <span className="font-bold text-indigo-900">Solo Inversores Rentia</span>
+                                                </div>
+                                                <p className="text-xs text-indigo-700 ml-8">Ofrecer únicamente a vuestra cartera de compradores. No publicar abiertamente.</p>
+                                            </label>
+
+                                            <label className={`cursor-pointer p-4 rounded-lg border-2 transition-all ${collaborationType === 'agency_mls_open' ? 'border-indigo-500 bg-white shadow-md' : 'border-indigo-100 bg-white/50'}`}>
+                                                <input type="radio" name="collabType" className="hidden" checked={collaborationType === 'agency_mls_open'} onChange={() => setCollaborationType('agency_mls_open')} />
+                                                <div className="flex items-center gap-3 mb-2">
+                                                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${collaborationType === 'agency_mls_open' ? 'border-indigo-600' : 'border-gray-300'}`}>
+                                                        {collaborationType === 'agency_mls_open' && <div className="w-2.5 h-2.5 bg-indigo-600 rounded-full"></div>}
+                                                    </div>
+                                                    <span className="font-bold text-indigo-900">Compartir con MLS</span>
+                                                </div>
+                                                <p className="text-xs text-indigo-700 ml-8">Autorizo a Rentia a mover la propiedad con otras agencias colaboradoras también.</p>
+                                            </label>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="md:col-span-2 bg-green-50 p-4 rounded-xl border border-green-100 flex items-start gap-3">
+                                        <Lock className="w-5 h-5 text-green-700 mt-0.5 flex-shrink-0" />
+                                        <div>
+                                            <h4 className="font-bold text-green-900 text-sm">Privacidad Garantizada</h4>
+                                            <p className="text-xs text-green-800 mt-1">
+                                                Tus datos de contacto son confidenciales y solo visibles para la administración de Rentia.
+                                                La propiedad se ofrecerá directamente a nuestros inversores como gestión de RentiaRoom.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Nombre Completo *</label>
                                     <input required type="text" className="w-full p-3 border rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-rentia-blue outline-none transition-all" value={collaborator.name} onChange={e => setCollaborator({...collaborator, name: e.target.value})} placeholder="Tu nombre" />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Relación con la propiedad *</label>
-                                    <select className="w-full p-3 border rounded-xl bg-slate-50 focus:bg-white" value={collaborator.relation} onChange={e => setCollaborator({...collaborator, relation: e.target.value as any})}>
-                                        <option value="propietario">Soy el Propietario</option>
-                                        <option value="agencia">Soy Agente Inmobiliario</option>
-                                        <option value="mediador">Soy Mediador / Personal Shopper</option>
-                                        <option value="amigo">Soy amigo/familiar del propietario</option>
-                                        <option value="otro">Otro</option>
-                                    </select>
-                                </div>
-                                <div>
                                     <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Teléfono *</label>
                                     <input required type="tel" className="w-full p-3 border rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-rentia-blue outline-none transition-all" value={collaborator.phone} onChange={e => setCollaborator({...collaborator, phone: e.target.value})} placeholder="+34 600..." />
                                 </div>
-                                <div>
+                                <div className="md:col-span-2">
                                     <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Email *</label>
                                     <input required type="email" className="w-full p-3 border rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-rentia-blue outline-none transition-all" value={collaborator.email} onChange={e => setCollaborator({...collaborator, email: e.target.value})} placeholder="contacto@email.com" />
                                 </div>
@@ -215,7 +280,7 @@ export const PropertySubmissionForm: React.FC<Props> = ({ onBack }) => {
                         </div>
                     )}
 
-                    {/* STEP 2: ASSETS DATA */}
+                    {/* STEP 2: ASSETS DATA (Keep existing logic mostly) */}
                     {step === 2 && (
                         <div className="p-8 animate-in slide-in-from-right-4">
                             <div className="flex justify-between items-center mb-6">
@@ -278,7 +343,6 @@ export const PropertySubmissionForm: React.FC<Props> = ({ onBack }) => {
                                     </div>
                                 </div>
 
-                                {/* ... (Resto de inputs se mantienen igual) ... */}
                                 <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide mb-4 border-b border-slate-200 pb-2">Ubicación & Legal</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                                     <div className="md:col-span-2">
@@ -330,25 +394,6 @@ export const PropertySubmissionForm: React.FC<Props> = ({ onBack }) => {
                                     </div>
                                 </div>
 
-                                {assets[activeAssetIndex].rentalStatus !== 'Sin alquilar' && (
-                                    <div className="bg-blue-50 p-4 rounded-xl mb-6 border border-blue-100 animate-in fade-in">
-                                        <h4 className="text-xs font-bold text-blue-800 uppercase mb-2">Detalles del Alquiler</h4>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="block text-xs font-bold text-blue-600 mb-1">Renta Mensual Total (€)</label>
-                                                <input type="number" className="w-full p-2 border rounded-lg" value={assets[activeAssetIndex].currentRent} onChange={e => updateAsset(activeAssetIndex, 'currentRent', Number(e.target.value))} />
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs font-bold text-blue-600 mb-1">Fin de Contrato</label>
-                                                <input type="date" className="w-full p-2 border rounded-lg" value={assets[activeAssetIndex].contractDate} onChange={e => updateAsset(activeAssetIndex, 'contractDate', e.target.value)} />
-                                            </div>
-                                        </div>
-                                        <div className="mt-2 text-xs text-blue-800 font-bold">
-                                            Rentabilidad Bruta Actual: {calculateProfitability(assets[activeAssetIndex])}%
-                                        </div>
-                                    </div>
-                                )}
-
                                 <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide mb-4 border-b border-slate-200 pb-2">Características</h3>
                                 <div className="grid grid-cols-3 md:grid-cols-6 gap-3 mb-6">
                                     <div>
@@ -377,25 +422,18 @@ export const PropertySubmissionForm: React.FC<Props> = ({ onBack }) => {
                                     </div>
                                 </div>
 
-                                <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide mb-4 border-b border-slate-200 pb-2">Fotografías y Documentos</h3>
+                                <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide mb-4 border-b border-slate-200 pb-2">Fotografías</h3>
                                 <div className="mb-4">
                                     <ImageUploader 
                                         folder={`requests/${tempRequestId}/${assets[activeAssetIndex].id}`} 
                                         label="Subir Fotos (Múltiple)"
                                         onUploadComplete={(url) => {
-                                            // FIX: Usar functional state update para evitar "stale closure"
                                             setAssets(prevAssets => {
                                                 const newAssets = [...prevAssets];
-                                                // Acceder al activo correcto usando el índice (que es estable en este contexto)
                                                 const targetAsset = newAssets[activeAssetIndex];
                                                 const currentImages = targetAsset.images || [];
-                                                
-                                                // Evitar duplicados (opcional pero recomendado)
                                                 if (!currentImages.includes(url)) {
-                                                    newAssets[activeAssetIndex] = {
-                                                        ...targetAsset,
-                                                        images: [...currentImages, url]
-                                                    };
+                                                    newAssets[activeAssetIndex] = { ...targetAsset, images: [...currentImages, url] };
                                                 }
                                                 return newAssets;
                                             });
@@ -407,7 +445,6 @@ export const PropertySubmissionForm: React.FC<Props> = ({ onBack }) => {
                                             <div key={idx} className="w-20 h-20 relative rounded-lg overflow-hidden border group">
                                                 <img src={img} className="w-full h-full object-cover" alt="Preview"/>
                                                 <button type="button" onClick={() => {
-                                                    // Aquí removeAsset usa setState directamente, así que es seguro
                                                     const newImages = assets[activeAssetIndex].images.filter((_, i) => i !== idx);
                                                     updateAsset(activeAssetIndex, 'images', newImages);
                                                 }} className="absolute top-0 right-0 bg-red-500 text-white p-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -419,7 +456,6 @@ export const PropertySubmissionForm: React.FC<Props> = ({ onBack }) => {
                                 </div>
                             </div>
 
-                            {/* Footer Controls */}
                             <div className="flex justify-between mt-8 border-t pt-6">
                                 <button type="button" onClick={() => setStep(1)} className="text-slate-500 hover:text-slate-800 font-bold flex items-center gap-2">
                                     <ChevronLeft className="w-4 h-4"/> Volver
@@ -442,7 +478,15 @@ export const PropertySubmissionForm: React.FC<Props> = ({ onBack }) => {
                                         <p className="text-xs font-bold text-slate-400 uppercase">Colaborador</p>
                                         <p className="font-bold text-lg text-slate-800">{collaborator.name}</p>
                                         <p className="text-sm text-slate-600">{collaborator.email} • {collaborator.phone}</p>
-                                        <p className="text-xs text-rentia-blue bg-blue-50 inline-block px-2 py-0.5 rounded mt-1 capitalize">{collaborator.relation}</p>
+                                        <div className="mt-1 flex gap-2">
+                                            <span className="text-xs text-rentia-blue bg-blue-50 px-2 py-0.5 rounded capitalize border border-blue-100">{collaborator.relation}</span>
+                                            {collaborationType === 'direct_private' ? 
+                                                <span className="text-xs text-green-700 bg-green-50 px-2 py-0.5 rounded border border-green-100 font-bold">Privado (Solo Rentia)</span> :
+                                                <span className="text-xs text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100 font-bold">
+                                                    {collaborationType === 'agency_mls_open' ? 'Compartir MLS' : 'Solo Inversores'}
+                                                </span>
+                                            }
+                                        </div>
                                     </div>
                                     <button onClick={() => setStep(1)} className="text-xs text-rentia-blue underline">Editar</button>
                                 </div>
@@ -481,7 +525,7 @@ export const PropertySubmissionForm: React.FC<Props> = ({ onBack }) => {
                                 <label className="flex items-start gap-3 cursor-pointer p-3 hover:bg-slate-50 rounded-lg transition-colors">
                                     <input type="checkbox" className="mt-1 w-4 h-4 text-rentia-blue rounded border-slate-300 focus:ring-rentia-blue" checked={gdprAccepted} onChange={e => setGdprAccepted(e.target.checked)} />
                                     <div className="text-xs text-slate-600 leading-relaxed">
-                                        <strong>Política de Privacidad (RGPD):</strong> Acepto que mis datos sean tratados por Rentia Investments S.L. para la gestión de esta oportunidad de colaboración. Entiendo que puedo ejercer mis derechos de acceso, rectificación y supresión en cualquier momento.
+                                        <strong>Política de Privacidad (RGPD):</strong> Acepto que mis datos sean tratados por Rentia Investments S.L. para la gestión de esta oportunidad. Entiendo que puedo ejercer mis derechos de acceso, rectificación y supresión en cualquier momento.
                                     </div>
                                 </label>
                                 <label className="flex items-start gap-3 cursor-pointer p-3 hover:bg-slate-50 rounded-lg transition-colors">

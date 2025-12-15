@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { Home, MapPin, CheckCircle, User, MessageCircle, Filter, AlertCircle, Receipt, Sparkles, Hammer, HelpCircle, Building, Gift, Users as UsersIcon, Wallet, PlayCircle, Camera, Timer, Bath, Wind, ExternalLink, GraduationCap, Briefcase, Users, ZoomIn, DoorClosed, DoorOpen, ChevronDown, Info, Layout, X, Euro, BedDouble, Bed, Tv, Lock, Sun, Monitor } from 'lucide-react';
 import { db } from '../firebase';
@@ -615,6 +616,8 @@ export const RoomsView: React.FC = () => {
                                         <img 
                                             src={property.image} 
                                             alt={`Habitación en alquiler ${property.address}`} 
+                                            loading="lazy"
+                                            decoding="async"
                                             className="absolute inset-0 w-full h-full object-cover cursor-zoom-in transition-transform duration-700 group-hover/main-img:scale-105"
                                         />
                                         <div className="absolute inset-0 bg-black/0 group-hover/main-img:bg-black/20 transition-all flex items-center justify-center pointer-events-none">
@@ -827,7 +830,9 @@ export const RoomsView: React.FC = () => {
                                                           >
                                                               <img 
                                                                 src={room.images[0]} 
-                                                                alt={`${displayName}`} 
+                                                                alt={`${displayName}`}
+                                                                loading="lazy"
+                                                                decoding="async" 
                                                                 className="w-full h-full object-cover transition-transform group-hover:scale-110" 
                                                               />
                                                               {room.images.length > 1 && (

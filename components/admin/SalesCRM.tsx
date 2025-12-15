@@ -351,7 +351,8 @@ export const SalesCRM: React.FC = () => {
           };
 
           if (editingAssetId) {
-              await updateDoc(doc(db, "opportunities", editingAssetId), opportunityPayload as any);
+              // Uso setDoc con merge=true para crear el documento si no existe (caso de activos estáticos)
+              await setDoc(doc(db, "opportunities", editingAssetId), opportunityPayload, { merge: true });
               alert('Activo actualizado correctamente.');
           } else {
               await addDoc(collection(db, "opportunities"), opportunityPayload);

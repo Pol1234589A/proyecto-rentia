@@ -350,3 +350,31 @@ export interface PartnerTransferSubmission {
     createdAt: any;
     tempRequestId?: string;
 }
+
+export interface ManagementLead {
+    id: string;
+    contact: { name: string; email: string; phone: string; dni: string };
+    property: {
+        address: string;
+        city: string;
+        type: string;
+        rentalStrategy: 'rooms' | 'traditional';
+        catastralRef: string;
+        ibi: string;
+        communityFee: string;
+        derramas: string;
+        observations: string;
+    };
+    pricing: {
+        strategy: string;
+        traditionalPrice: number | null;
+        rooms: { id: number; name: string; price: number; images: string[] }[] | null;
+    };
+    images: { common: string[] };
+    calculatorData: { estimatedFee: number; declaredProperties: number };
+    status: string;
+    createdAt: any;
+    consent?: any;
+    tempId?: string;
+    linkedOwnerId?: string; // New field for linked user ID
+}

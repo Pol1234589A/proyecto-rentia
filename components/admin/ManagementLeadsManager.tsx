@@ -1,38 +1,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { db } from '../../firebase';
-import { collection, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc, addDoc } from 'firebase/firestore';
-import { Building, User, FileText, CheckCircle, X, Trash2, Eye, Bed, Euro, Calculator, AlertTriangle, PlusCircle, EyeOff } from 'lucide-react';
-import { Property } from '../../data/rooms';
-
-interface ManagementLead {
-    id: string;
-    contact: { name: string; email: string; phone: string; dni: string };
-    property: {
-        address: string;
-        city: string;
-        type: string;
-        rentalStrategy: 'rooms' | 'traditional';
-        catastralRef: string;
-        ibi: string;
-        communityFee: string;
-        derramas: string;
-        observations: string;
-    };
-    pricing: {
-        strategy: string;
-        traditionalPrice: number | null;
-        rooms: { id: number; name: string; price: number; images: string[] }[] | null;
-    };
-    images: { common: string[] };
-    calculatorData: { estimatedFee: number; declaredProperties: number };
-    status: string;
-    createdAt: any;
-}
+import { collection, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc, addDoc, getDocs, where, serverTimestamp } from 'firebase/firestore';
+import { Building, User, FileText, CheckCircle, X, Trash2, Eye, Bed, Euro, Calculator, AlertTriangle, PlusCircle, EyeOff, Loader2 } from 'lucide-react';
+import { ManagementLead } from '../../types';
 
 export const ManagementLeadsManager: React.FC = () => {
     const [leads, setLeads] = useState<ManagementLead[]>([]);
     const [selectedLead, setSelectedLead] = useState<ManagementLead | null>(null);
+    const [isProcessing, setIsProcessing] = useState(false);
 
     useEffect(() => {
         const q = query(collection(db, "management_leads"), orderBy("createdAt", "desc"));
@@ -48,14 +24,51 @@ export const ManagementLeadsManager: React.FC = () => {
 
     const handleApprove = async () => {
         if (!selectedLead) return;
-        if (!confirm("¿Seguro que quieres aprobar este lead y convertirlo en PROPIEDAD ACTIVA?")) return;
+        if (!confirm("¿Seguro que quieres aprobar este lead?\n\nSe verificará el Propietario (o creará si no existe) y se creará la Propiedad vinculada.")) return;
 
+        setIsProcessing(true);
         try {
-            // 1. Convert to Property Structure
             const lead = selectedLead;
+            let ownerId = '';
+
+            // 1. Check if we already have the ID (Public Registration) OR Find by Email (Legacy/Manual)
+            if (lead.linkedOwnerId) {
+                ownerId = lead.linkedOwnerId;
+                console.log("Usuario vinculado detectado:", ownerId);
+            } else {
+                const qUsers = query(collection(db, "users"), where("email", "==", lead.contact.email));
+                const userSnap = await getDocs(qUsers);
+
+                if (!userSnap.empty) {
+                    ownerId = userSnap.docs[0].id;
+                    console.log("Usuario existente encontrado por email:", ownerId);
+                } else {
+                    // Create new User Profile ONLY (No Auth - Admin must set password manually later or send invite)
+                    // NOTA: Si el usuario no se creó en el paso público, aquí creamos solo el registro en Firestore.
+                    // Para que pueda acceder, necesitaría un proceso de alta de Auth separado.
+                    const newUserRef = await addDoc(collection(db, "users"), {
+                        name: lead.contact.name,
+                        email: lead.contact.email,
+                        phone: lead.contact.phone,
+                        dni: lead.contact.dni,
+                        role: 'owner',
+                        createdAt: serverTimestamp(),
+                        active: true,
+                        gdpr: lead.consent ? {
+                            signed: true,
+                            signedAt: lead.consent.date,
+                            documentVersion: lead.consent.version
+                        } : { signed: false }
+                    });
+                    ownerId = newUserRef.id;
+                    console.log("Nuevo perfil de usuario creado (Sin Auth):", ownerId);
+                }
+            }
+
+            // 2. Convert to Property Structure
             const roomsData = lead.pricing.rooms 
                 ? lead.pricing.rooms.map((r, idx) => ({
-                    id: `${lead.property.address.replace(/\s+/g,'').slice(0,5)}_H${idx+1}`,
+                    id: `${lead.property.address.replace(/[^a-zA-Z0-9]/g,'').slice(0,5)}_H${idx+1}`,
                     name: r.name,
                     price: r.price,
                     status: 'available',
@@ -64,35 +77,39 @@ export const ManagementLeadsManager: React.FC = () => {
                     targetProfile: 'both',
                     expenses: 'Gastos fijos aparte'
                 }))
-                : []; // Should generate rooms even if traditional? Or just 1 big room?
+                : []; 
 
             const newProperty: any = {
+                ownerId: ownerId, // LINK TO OWNER
                 address: lead.property.address,
                 city: lead.property.city,
-                // Using first common image as cover
                 image: lead.images.common.length > 0 ? lead.images.common[0] : '',
                 googleMapsLink: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lead.property.address)}`,
                 rooms: roomsData,
-                internalNotes: `IBI: ${lead.property.ibi}, Com: ${lead.property.communityFee}. RefCat: ${lead.property.catastralRef}`,
-                managementCommission: lead.calculatorData.estimatedFee
+                internalNotes: `IBI: ${lead.property.ibi}, Com: ${lead.property.communityFee}. RefCat: ${lead.property.catastralRef}. Observaciones: ${lead.property.observations}`,
+                managementCommission: lead.calculatorData.estimatedFee,
+                cleaningConfig: { enabled: false, days: [], hours: '', costPerHour: 10, included: false }
             };
 
-            // 2. Add to properties
+            // 3. Add to properties
             await addDoc(collection(db, "properties"), newProperty);
             
-            // 3. Update status
-            await updateDoc(doc(db, "management_leads", lead.id), { status: 'approved' });
+            // 4. Update lead status
+            await updateDoc(doc(db, "management_leads", lead.id), { status: 'approved', linkedOwnerId: ownerId });
             
-            alert("Propiedad creada y lead aprobado.");
+            alert("Propietario verificado y Activo creado correctamente. Lead archivado.");
             setSelectedLead(null);
+
         } catch (e) {
             console.error(e);
-            alert("Error al convertir.");
+            alert("Error crítico al procesar. Revisa la consola.");
+        } finally {
+            setIsProcessing(false);
         }
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm("¿Eliminar solicitud?")) return;
+        if (!confirm("¿Eliminar solicitud permanentemente?")) return;
         await deleteDoc(doc(db, "management_leads", id));
         if (selectedLead?.id === id) setSelectedLead(null);
     };
@@ -101,16 +118,17 @@ export const ManagementLeadsManager: React.FC = () => {
         <div className="flex h-[calc(100vh-120px)] bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
             {/* Sidebar */}
             <div className="w-1/3 border-r border-gray-200 bg-gray-50 flex flex-col">
-                <div className="p-4 border-b bg-white font-bold text-gray-800">Solicitudes Gestión ({leads.length})</div>
-                <div className="overflow-y-auto p-2 space-y-2">
+                <div className="p-4 border-b bg-white font-bold text-gray-800">Solicitudes Gestión ({leads.filter(l => l.status === 'new').length})</div>
+                <div className="overflow-y-auto p-2 space-y-2 flex-grow">
                     {leads.map(lead => (
                         <div key={lead.id} onClick={() => setSelectedLead(lead)} className={`p-3 rounded-lg border cursor-pointer transition-all ${selectedLead?.id === lead.id ? 'bg-white border-rentia-blue shadow-md' : 'bg-white border-gray-200 hover:border-gray-300'}`}>
                             <div className="flex justify-between items-start mb-1">
                                 <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${lead.status === 'new' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>{lead.status}</span>
-                                <span className="text-[10px] text-gray-400">{lead.createdAt?.toDate().toLocaleDateString()}</span>
+                                <span className="text-[10px] text-gray-400">{lead.createdAt?.toDate ? lead.createdAt.toDate().toLocaleDateString() : ''}</span>
                             </div>
                             <h4 className="font-bold text-sm text-gray-900 truncate">{lead.property.address}</h4>
                             <p className="text-xs text-gray-500">{lead.contact.name}</p>
+                            {lead.linkedOwnerId && <span className="text-[9px] bg-purple-100 text-purple-700 px-1 rounded border border-purple-200 mt-1 inline-block">Usuario Registrado</span>}
                         </div>
                     ))}
                 </div>
@@ -132,13 +150,21 @@ export const ManagementLeadsManager: React.FC = () => {
                             
                             {/* Contact Info */}
                             <div className="bg-white p-4 rounded-xl border border-gray-200">
-                                <h3 className="text-xs font-bold uppercase text-gray-400 mb-3 flex items-center gap-2"><User className="w-4 h-4"/> Propietario</h3>
+                                <div className="flex justify-between items-start mb-3">
+                                    <h3 className="text-xs font-bold uppercase text-gray-400 flex items-center gap-2"><User className="w-4 h-4"/> Propietario</h3>
+                                    {selectedLead.linkedOwnerId && <span className="text-xs font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded border border-purple-100">Cuenta Activa</span>}
+                                </div>
                                 <div className="grid grid-cols-2 gap-4 text-sm">
                                     <p><strong>Nombre:</strong> {selectedLead.contact.name}</p>
                                     <p><strong>DNI:</strong> {selectedLead.contact.dni}</p>
                                     <p><strong>Tel:</strong> {selectedLead.contact.phone}</p>
                                     <p><strong>Email:</strong> {selectedLead.contact.email}</p>
                                 </div>
+                                {selectedLead.consent && (
+                                    <div className="mt-3 text-xs text-green-600 bg-green-50 p-2 rounded flex items-center gap-2">
+                                        <CheckCircle className="w-3 h-3"/> RGPD Aceptado: {selectedLead.consent.date?.toDate().toLocaleString()}
+                                    </div>
+                                )}
                             </div>
 
                             {/* Financials & Strategy */}
@@ -204,8 +230,13 @@ export const ManagementLeadsManager: React.FC = () => {
                         {/* Footer Actions */}
                         {selectedLead.status === 'new' && (
                             <div className="p-4 border-t bg-gray-50 flex justify-end gap-3">
-                                <button onClick={handleApprove} className="bg-green-600 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-green-700 shadow-lg">
-                                    <CheckCircle className="w-4 h-4"/> Aprobar y Crear Propiedad
+                                <button 
+                                    onClick={handleApprove} 
+                                    disabled={isProcessing}
+                                    className="bg-green-600 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-green-700 shadow-lg disabled:opacity-50"
+                                >
+                                    {isProcessing ? <Loader2 className="w-4 h-4 animate-spin"/> : <CheckCircle className="w-4 h-4"/>}
+                                    {isProcessing ? 'Procesando...' : selectedLead.linkedOwnerId ? 'Aprobar y Vincular' : 'Aprobar y Crear Todo'}
                                 </button>
                             </div>
                         )}

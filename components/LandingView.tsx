@@ -1,9 +1,8 @@
-
 import React, { useState, useMemo } from 'react';
 import { Opportunity } from '../types';
 import { OpportunityCard } from './OpportunityCard';
 import { useLanguage } from '../contexts/LanguageContext';
-import { TrendingUp, Phone, Mail, Globe, Lock, ChevronDown, Check, Filter, Search, X, Calendar, ArrowRight } from 'lucide-react';
+import { TrendingUp, Phone, Mail, Globe, Lock, ChevronDown, Check, Filter, Search, X, Calendar, ArrowRight, ShieldCheck, BarChart3, Building } from 'lucide-react';
 
 interface LandingViewProps {
   opportunities: Opportunity[];
@@ -16,14 +15,18 @@ export const LandingView: React.FC<LandingViewProps> = ({ opportunities, onClick
   const [maxPrice, setMaxPrice] = useState<number>(0);
   const [showFilters, setShowFilters] = useState(false);
 
-  const handleScrollToGrid = () => {
-      document.getElementById('opp-grid')?.scrollIntoView({ behavior: 'smooth' });
+  // FIX: Define clearFilters function to reset filtering states
+  const clearFilters = () => {
+      setFilterYield(0);
+      setMaxPrice(0);
   };
 
-  // Filter Logic
+  const handleScrollToGrid = () => {
+      document.getElementById('opp-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   const filteredOpps = useMemo(() => {
       return opportunities.filter(opp => {
-          // Calculate Yield
           const monthlyIncome = opp.financials.monthlyRentProjected > 0 
             ? opp.financials.monthlyRentProjected 
             : opp.financials.monthlyRentTraditional;
@@ -37,7 +40,6 @@ export const LandingView: React.FC<LandingViewProps> = ({ opportunities, onClick
           const finalTotalInvestment = opp.financials.totalInvestment + agencyFeeTotal;
           const grossYield = ((monthlyIncome * 12) / finalTotalInvestment) * 100;
 
-          // Apply filters
           if (filterYield > 0 && grossYield < filterYield) return false;
           if (maxPrice > 0 && opp.financials.purchasePrice > maxPrice) return false;
           
@@ -46,139 +48,149 @@ export const LandingView: React.FC<LandingViewProps> = ({ opportunities, onClick
   }, [opportunities, filterYield, maxPrice]);
 
   const activeFilters = (filterYield > 0 ? 1 : 0) + (maxPrice > 0 ? 1 : 0);
-
-  // URL del calendario público de RentiaRoom
   const calendarUrl = "https://calendar.google.com/calendar/embed?src=rentiaroom%40gmail.com&ctz=UTC";
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
+    <div className="min-h-screen bg-[#fcfcfc] flex flex-col font-sans selection:bg-rentia-gold selection:text-rentia-black">
       
-      {/* Minimal Sticky Header */}
-      <header className="bg-white/95 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50 transition-all duration-300 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-between items-center">
+      {/* Header Minimalista y Elegante */}
+      <header className="bg-white/80 backdrop-blur-xl border-b border-gray-100 sticky top-0 z-50 h-16 sm:h-20 flex items-center transition-all duration-300 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full flex justify-between items-center">
           <div className="flex items-center gap-4">
-             <img 
-               src="https://i.ibb.co/QvzK6db3/Logo-Negativo.png" 
-               alt="RentiaRoom" 
-               className="h-8 w-auto object-contain filter invert" 
-             />
-             <div className="hidden sm:block w-px h-6 bg-gray-300"></div>
-             <span className="hidden sm:block text-slate-500 text-xs font-bold tracking-widest uppercase">Private Investment Portfolio</span>
+             <div className="bg-rentia-black p-1.5 rounded-lg shadow-lg">
+                <img 
+                  src="https://i.ibb.co/QvzK6db3/Logo-Negativo.png" 
+                  alt="RentiaRoom" 
+                  className="h-6 sm:h-8 w-auto object-contain" 
+                />
+             </div>
+             <div className="hidden md:block w-px h-6 bg-gray-200"></div>
+             <span className="hidden md:block text-slate-400 text-[10px] font-bold tracking-[0.2em] uppercase">Private Equity Portfolio</span>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
               <a 
                 href={calendarUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="hidden md:flex items-center gap-2 text-xs font-bold bg-slate-900 text-white px-4 py-2 rounded-lg hover:bg-slate-800 transition-colors"
+                className="hidden sm:flex items-center gap-2 text-xs font-bold bg-rentia-blue text-white px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-all shadow-md hover:shadow-blue-200 active:scale-95"
               >
-                  <Calendar className="w-3 h-3" /> Agendar Reunión
+                  <Calendar className="w-3.5 h-3.5" /> Agendar Reunión
               </a>
-              <a 
-                href="https://www.rentiaroom.com" 
-                className="text-xs font-bold text-slate-600 hover:text-rentia-blue transition-colors flex items-center gap-1"
+              <button 
+                onClick={() => window.location.hash = '#/'}
+                className="text-xs font-bold text-slate-600 hover:text-rentia-black transition-colors flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-gray-50"
               >
-                <Globe className="w-3 h-3" /> Web Principal
-              </a>
+                <Globe className="w-3.5 h-3.5" /> Web Pública
+              </button>
           </div>
         </div>
       </header>
 
-      {/* Hero Section - Dossier Style */}
-      <section className="bg-slate-900 text-white pt-20 pb-24 md:pt-32 md:pb-40 relative overflow-hidden">
-         {/* Abstract Geometric Background */}
-         <div className="absolute inset-0 opacity-20 pointer-events-none">
-             <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-rentia-blue/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-             <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-rentia-gold/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
+      {/* Hero Section - Estilo Dossier Institucional */}
+      <section className="bg-[#0f172a] text-white pt-16 pb-24 md:pt-28 md:pb-44 relative overflow-hidden">
+         {/* Capas de fondo abstractas */}
+         <div className="absolute inset-0 z-0">
+             <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-rentia-blue/10 rounded-full blur-[120px] animate-pulse"></div>
+             <div className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-rentia-gold/5 rounded-full blur-[100px]"></div>
+             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
          </div>
          
-         <div className="container mx-auto px-4 relative z-10 max-w-4xl text-center">
-            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur border border-white/20 px-4 py-1.5 rounded-full mb-8 shadow-lg shadow-white/5 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <Lock className="w-3 h-3 text-rentia-gold" />
-                <span className="text-xs font-bold tracking-widest uppercase text-gray-200">Acceso Exclusivo Inversores</span>
+         <div className="container mx-auto px-4 relative z-10 max-w-5xl text-center">
+            <div className="inline-flex items-center gap-2 bg-white/5 backdrop-blur-md border border-white/10 px-5 py-2 rounded-full mb-10 shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <ShieldCheck className="w-4 h-4 text-rentia-gold" />
+                <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-gray-300">Investor Access Restricted</span>
             </div>
             
-            <h1 className="text-4xl md:text-6xl font-bold font-display mb-6 tracking-tight leading-tight animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-100">
-                Cartera de Activos <br/>
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-rentia-gold to-white">High Yield Murcia</span>
+            <h1 className="text-4xl md:text-7xl font-bold font-display mb-8 tracking-tight leading-[1.1] animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-100">
+                Oportunidades de <br className="hidden md:block"/>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-rentia-gold via-yellow-200 to-white">Inversión Inmobiliaria</span>
             </h1>
             
-            <p className="text-lg md:text-xl text-slate-300 max-w-2xl mx-auto font-light leading-relaxed mb-10 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-200">
-                Selección curada de oportunidades inmobiliarias con rentabilidades proyectadas superiores al <strong>8%</strong>. 
-                Gestión integral 360º incluida.
+            <p className="text-lg md:text-xl text-slate-400 max-w-3xl mx-auto font-light leading-relaxed mb-12 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-200">
+                Cartera exclusiva de activos residenciales en Murcia optimizados para el alquiler por habitaciones. 
+                Rentabilidades netas auditadas superiores al <strong className="text-white">8.5% anual</strong>.
             </p>
 
-            <div className="flex flex-col sm:flex-row justify-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-300">
+            <div className="flex flex-col sm:flex-row justify-center gap-5 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-300">
                 <button 
                     onClick={handleScrollToGrid}
-                    className="bg-white text-slate-900 px-8 py-3.5 rounded-lg font-bold text-sm hover:bg-slate-100 transition-all flex items-center justify-center gap-2 group shadow-lg shadow-white/10"
+                    className="bg-white text-slate-900 px-10 py-4 rounded-2xl font-bold text-base hover:bg-rentia-gold hover:text-rentia-black transition-all flex items-center justify-center gap-3 group shadow-2xl shadow-white/5 hover:shadow-rentia-gold/20 transform hover:-translate-y-1"
                 >
-                    Ver Oportunidades
-                    <ChevronDown className="w-4 h-4 group-hover:translate-y-1 transition-transform" />
+                    Explorar Cartera
+                    <ChevronDown className="w-5 h-5 group-hover:translate-y-1 transition-transform" />
+                </button>
+                <button 
+                    onClick={() => window.location.hash = '#/nosotros'}
+                    className="px-10 py-4 rounded-2xl font-bold text-base bg-white/5 hover:bg-white/10 backdrop-blur-sm border border-white/10 transition-all"
+                >
+                    Sobre RentiaRoom
                 </button>
             </div>
          </div>
       </section>
 
-      {/* Trust Indicators Bar */}
-      <div className="bg-white border-b border-gray-200 py-4 relative z-20 -mt-8 mx-4 sm:mx-auto max-w-5xl rounded-xl shadow-lg flex justify-around items-center text-center animate-in fade-in slide-in-from-bottom-8 duration-700 delay-500">
-          <div className="px-4">
-              <p className="text-2xl font-bold text-slate-800 font-display">8.5%</p>
-              <p className="text-[10px] text-gray-500 uppercase tracking-wide font-bold">Rentabilidad Media</p>
-          </div>
-          <div className="w-px h-8 bg-gray-200"></div>
-          <div className="px-4">
-              <p className="text-2xl font-bold text-slate-800 font-display">100%</p>
-              <p className="text-[10px] text-gray-500 uppercase tracking-wide font-bold">Gestión Integral</p>
-          </div>
-          <div className="w-px h-8 bg-gray-200"></div>
-          <div className="px-4">
-              <p className="text-2xl font-bold text-slate-800 font-display">Murcia</p>
-              <p className="text-[10px] text-gray-500 uppercase tracking-wide font-bold">Ubicación Prime</p>
+      {/* Barra de Indicadores Clave */}
+      <div className="container mx-auto px-4 relative z-20 -mt-10 md:-mt-14 max-w-6xl">
+          <div className="bg-white border border-gray-100 p-6 md:p-10 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-gray-100 text-center animate-in fade-in slide-in-from-bottom-8 duration-700 delay-500">
+              <div className="px-6 py-4 sm:py-0">
+                  <div className="flex items-center justify-center gap-2 text-rentia-blue mb-2">
+                      <TrendingUp className="w-5 h-5" />
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Yield Medio</span>
+                  </div>
+                  <p className="text-4xl font-bold text-slate-900 font-display">8.7<span className="text-rentia-gold text-2xl">%</span></p>
+              </div>
+              <div className="px-6 py-4 sm:py-0">
+                  <div className="flex items-center justify-center gap-2 text-rentia-blue mb-2">
+                      <ShieldCheck className="w-5 h-5" />
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Gestión Integral</span>
+                  </div>
+                  <p className="text-4xl font-bold text-slate-900 font-display">100<span className="text-rentia-gold text-2xl">%</span></p>
+              </div>
+              <div className="px-6 py-4 sm:py-0">
+                  <div className="flex items-center justify-center gap-2 text-rentia-blue mb-2">
+                      <Building className="w-5 h-5" />
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Mercado Foco</span>
+                  </div>
+                  <p className="text-4xl font-bold text-slate-900 font-display">Murcia</p>
+              </div>
           </div>
       </div>
 
-      {/* Grid */}
-      <main id="opp-grid" className="flex-grow container mx-auto px-4 py-20 max-w-7xl">
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 pb-4 border-b border-gray-200 gap-4">
-            <div>
-                <h2 className="text-2xl font-bold text-slate-900 font-display">Oportunidades Disponibles</h2>
-                <p className="text-sm text-gray-500 mt-1">Actualizado en tiempo real</p>
+      {/* Grid de Oportunidades */}
+      <main id="opp-grid" className="flex-grow container mx-auto px-4 py-24 max-w-7xl">
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
+            <div className="max-w-xl">
+                <h2 className="text-3xl md:text-4xl font-bold text-slate-900 font-display mb-3">Portfolio de Activos</h2>
+                <p className="text-slate-500 text-sm leading-relaxed">Seleccionamos únicamente inmuebles con potencial de optimización mediante el modelo de coliving.</p>
             </div>
             
-            <div className="flex items-center gap-3">
-                <div className={`flex items-center gap-2 bg-white border border-gray-200 rounded-lg p-1 ${showFilters ? 'ring-2 ring-rentia-blue/20 border-rentia-blue' : ''}`}>
-                    <button 
-                        onClick={() => setShowFilters(!showFilters)}
-                        className="flex items-center gap-2 px-3 py-1.5 text-sm font-bold text-slate-600 hover:text-rentia-black transition-colors"
-                    >
-                        <Filter className="w-4 h-4" />
-                        Filtros
-                        {activeFilters > 0 && <span className="bg-rentia-black text-white text-[10px] px-1.5 rounded-full">{activeFilters}</span>}
-                    </button>
+            <div className="flex items-center gap-3 self-end">
+                <button 
+                    onClick={() => setShowFilters(!showFilters)}
+                    className={`flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${showFilters ? 'bg-rentia-black text-white border-rentia-black' : 'bg-white text-slate-600 border-gray-200 hover:bg-gray-50'}`}
+                >
+                    <Filter className="w-4 h-4" />
+                    Filtrar
+                    {activeFilters > 0 && <span className="bg-rentia-gold text-rentia-black text-[10px] px-2 py-0.5 rounded-full ml-1">{activeFilters}</span>}
+                </button>
+                <div className="hidden sm:flex items-center px-4 py-3 bg-slate-100 text-slate-500 rounded-2xl text-xs font-bold uppercase tracking-wider">
+                    {filteredOpps.length} Activos Disponibles
                 </div>
-                <span className="text-xs font-bold bg-slate-100 text-slate-600 px-3 py-2 rounded-lg">
-                    {filteredOpps.length} Activos
-                </span>
             </div>
         </div>
 
-        {/* Filters Panel */}
+        {/* Panel de Filtros Expandible */}
         {showFilters && (
-            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm mb-8 animate-in slide-in-from-top-2">
-                <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide">Filtrar Inversiones</h3>
-                    <button onClick={() => { setFilterYield(0); setMaxPrice(0); }} className="text-xs text-rentia-blue font-bold hover:underline">Limpiar todo</button>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-xl mb-12 animate-in slide-in-from-top-4 duration-300">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
                     <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-2">Rentabilidad Bruta Mínima</label>
-                        <div className="flex gap-2">
-                            {[0, 7, 8, 9, 10].map(val => (
+                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Rentabilidad Mínima</label>
+                        <div className="flex flex-wrap gap-2">
+                            {[0, 8, 9, 10].map(val => (
                                 <button
                                     key={val}
                                     onClick={() => setFilterYield(val)}
-                                    className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all ${filterYield === val ? 'bg-rentia-black text-white border-rentia-black' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}
+                                    className={`px-4 py-2 text-xs font-bold rounded-xl border transition-all ${filterYield === val ? 'bg-rentia-blue text-white border-rentia-blue shadow-lg shadow-blue-200' : 'bg-white text-slate-500 border-gray-200 hover:border-blue-300'}`}
                                 >
                                     {val === 0 ? 'Todas' : `+${val}%`}
                                 </button>
@@ -186,25 +198,32 @@ export const LandingView: React.FC<LandingViewProps> = ({ opportunities, onClick
                         </div>
                     </div>
                     <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-2">Precio Máximo Compra</label>
+                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Inversión Máxima</label>
                         <select 
                             value={maxPrice} 
                             onChange={(e) => setMaxPrice(Number(e.target.value))}
-                            className="w-full p-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:border-rentia-blue outline-none"
+                            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-rentia-blue/20 outline-none appearance-none cursor-pointer"
                         >
-                            <option value="0">Cualquier precio</option>
-                            <option value="100000">Hasta 100.000 €</option>
-                            <option value="150000">Hasta 150.000 €</option>
-                            <option value="200000">Hasta 200.000 €</option>
-                            <option value="300000">Hasta 300.000 €</option>
+                            <option value="0">Sin límite de precio</option>
+                            <option value="120000">Hasta 120.000 €</option>
+                            <option value="180000">Hasta 180.000 €</option>
+                            <option value="250000">Hasta 250.000 €</option>
                         </select>
+                    </div>
+                    <div className="flex items-end">
+                        <button 
+                            onClick={clearFilters}
+                            className="w-full py-3 text-sm font-bold text-red-500 hover:bg-red-50 rounded-xl transition-colors border border-transparent hover:border-red-100"
+                        >
+                            Limpiar todos los filtros
+                        </button>
                     </div>
                 </div>
             </div>
         )}
 
         {filteredOpps.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10">
                 {filteredOpps.map(opportunity => (
                     <OpportunityCard 
                         key={opportunity.id} 
@@ -214,62 +233,61 @@ export const LandingView: React.FC<LandingViewProps> = ({ opportunities, onClick
                 ))}
             </div>
         ) : (
-            <div className="bg-white p-16 rounded-2xl shadow-sm text-center border border-gray-200 max-w-2xl mx-auto">
-                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-300">
-                    <TrendingUp className="w-8 h-8" />
+            <div className="bg-white p-20 rounded-[3rem] shadow-sm text-center border border-dashed border-gray-200 max-w-2xl mx-auto">
+                <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-200">
+                    <BarChart3 className="w-10 h-10" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">No se encontraron activos</h3>
-                <p className="text-gray-500 leading-relaxed mb-8">
-                    Prueba a ajustar los filtros para ver más resultados.
-                </p>
+                <h3 className="text-2xl font-bold text-slate-900 mb-2">No hay activos coincidentes</h3>
+                <p className="text-slate-500 leading-relaxed mb-10">Intenta ajustar los criterios de búsqueda o revisa nuestra cartera completa.</p>
                 <button 
-                    onClick={() => { setFilterYield(0); setMaxPrice(0); }}
-                    className="inline-flex items-center justify-center gap-2 bg-rentia-blue text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-md"
+                    onClick={clearFilters}
+                    className="inline-flex items-center justify-center gap-3 bg-rentia-black text-white px-8 py-4 rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-xl active:scale-95"
                 >
-                    Ver todas las oportunidades
+                    Ver todo el portfolio
                 </button>
             </div>
         )}
       </main>
 
-      {/* Professional Footer */}
-      <footer className="bg-white border-t border-gray-200 pt-12 pb-8">
-          <div className="container mx-auto px-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-                  <div>
-                      <img src="https://i.ibb.co/QvzK6db3/Logo-Negativo.png" alt="RentiaRoom" className="h-8 filter invert mb-4 opacity-80" />
-                      <p className="text-sm text-gray-500 leading-relaxed">
-                          Especialistas en inversión inmobiliaria de alta rentabilidad y gestión de activos residenciales en Murcia.
+      {/* Footer del Portal de Inversión */}
+      <footer className="bg-white border-t border-gray-100 pt-20 pb-12">
+          <div className="container mx-auto px-4 max-w-7xl">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-12 mb-16">
+                  <div className="md:col-span-5">
+                      <div className="bg-rentia-black p-2 rounded-xl inline-block mb-6">
+                        <img src="https://i.ibb.co/QvzK6db3/Logo-Negativo.png" alt="Rentia" className="h-8" />
+                      </div>
+                      <p className="text-slate-500 text-sm leading-relaxed max-w-md">
+                          Rentia Investments S.L. es una firma boutique especializada en la creación de activos inmobiliarios de alta rentabilidad. Transformamos viviendas convencionales en productos financieros eficientes.
                       </p>
                   </div>
-                  <div>
-                      <h4 className="font-bold text-slate-900 mb-4 text-sm uppercase tracking-wide">Contacto Directo</h4>
-                      <ul className="space-y-3 text-sm text-gray-600">
-                          <li>
-                              <a href="mailto:info@rentiaroom.com" className="flex items-center gap-2 hover:text-rentia-blue transition-colors">
-                                  <Mail className="w-4 h-4" /> info@rentiaroom.com
-                              </a>
-                          </li>
-                          <li>
-                              <a href="tel:+34672886369" className="flex items-center gap-2 hover:text-rentia-blue transition-colors">
-                                  <Phone className="w-4 h-4" /> +34 672 88 63 69
-                              </a>
-                          </li>
-                      </ul>
-                  </div>
-                  <div>
-                      <h4 className="font-bold text-slate-900 mb-4 text-sm uppercase tracking-wide">Garantías</h4>
-                      <ul className="space-y-3 text-sm text-gray-600">
-                          <li className="flex items-center gap-2"><Check className="w-4 h-4 text-green-500"/> Análisis de mercado verificado</li>
-                          <li className="flex items-center gap-2"><Check className="w-4 h-4 text-green-500"/> Gestión integral opcional</li>
-                          <li className="flex items-center gap-2"><Check className="w-4 h-4 text-green-500"/> Rentabilidad neta real</li>
-                      </ul>
+                  <div className="md:col-span-7 grid grid-cols-2 sm:grid-cols-3 gap-8">
+                      <div>
+                          <h4 className="font-bold text-slate-900 text-sm uppercase tracking-widest mb-6">Legal</h4>
+                          <ul className="space-y-4 text-sm text-slate-500">
+                              <li><button onClick={() => window.location.hash = '#/nosotros'} className="hover:text-rentia-blue transition-colors">Sobre Nosotros</button></li>
+                              <li><button className="hover:text-rentia-blue transition-colors">Aviso Legal</button></li>
+                              <li><button className="hover:text-rentia-blue transition-colors">Privacidad</button></li>
+                          </ul>
+                      </div>
+                      <div>
+                          <h4 className="font-bold text-slate-900 text-sm uppercase tracking-widest mb-6">Contacto</h4>
+                          <ul className="space-y-4 text-sm text-slate-500">
+                              <li className="flex items-center gap-2"><Phone className="w-4 h-4" /> 672 88 63 69</li>
+                              <li className="flex items-center gap-2"><Mail className="w-4 h-4" /> info@rentiaroom.com</li>
+                          </ul>
+                      </div>
+                      <div className="col-span-2 sm:col-span-1">
+                          <h4 className="font-bold text-slate-900 text-sm uppercase tracking-widest mb-6">Social</h4>
+                          <div className="flex gap-4">
+                              <a href="#" className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-rentia-blue hover:text-white transition-all"><TrendingUp className="w-5 h-5" /></a>
+                              <a href="#" className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-rentia-blue hover:text-white transition-all"><Globe className="w-5 h-5" /></a>
+                          </div>
+                      </div>
                   </div>
               </div>
-              
-              <div className="border-t border-gray-100 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-gray-400">
-                  <p>© 2025 Rentia Investments S.L.</p>
-                  <p className="mt-2 md:mt-0">Documento confidencial para uso exclusivo del destinatario.</p>
+              <div className="border-t border-gray-100 pt-8 text-center">
+                  <p className="text-slate-400 text-xs">© 2025 Rentia Investments S.L. • Institutional Real Estate Portfolio</p>
               </div>
           </div>
       </footer>

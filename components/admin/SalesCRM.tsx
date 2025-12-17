@@ -10,6 +10,7 @@ import { Opportunity, OpportunityScenario, Visibility } from '../../types';
 import { Briefcase, Building2, UserPlus, Search, Filter, TrendingUp, MapPin, DollarSign, Save, ArrowRight, Users, Eye, EyeOff, Plus, Image as ImageIcon, Trash2, Home, Bed, Layout, Bath, Phone, FileText, Tag, AlertCircle, Handshake, Star, Crown, X, UploadCloud, RefreshCw, Pencil, Sparkles, Wand2, Loader2, Link as LinkIcon, AlertTriangle, MonitorPlay, Video, MessageSquare, Mail, Calendar } from 'lucide-react';
 import { ImageUploader } from './ImageUploader';
 import { compressImage } from '../../utils/imageOptimizer';
+import { InmovillaImporter, InmovillaData } from '../common/InmovillaImporter';
 
 interface ExtendedBrokerRequest extends BrokerRequest {
     name?: string;
@@ -180,6 +181,23 @@ export const SalesCRM: React.FC = () => {
 
     return () => { unsubscribeBuyers(); unsubscribeAssets(); unsubscribeLeads(); };
   }, []);
+
+  // -- INMOVILLA IMPORT HANDLER --
+  const handleInmovillaImport = (data: InmovillaData) => {
+      updateForm({
+          title: data.title,
+          streetName: data.address,
+          city: data.city,
+          purchasePrice: data.price,
+          rooms: data.rooms,
+          bathrooms: data.baths,
+          sqm: data.surface,
+          description: data.description,
+          floor: data.floor,
+          features: data.features.join('\n')
+      });
+      alert(`Datos importados para: ${data.address}`);
+  };
 
   const handleAddBuyer = async (e: React.FormEvent) => {
       e.preventDefault();
@@ -635,6 +653,7 @@ export const SalesCRM: React.FC = () => {
                       <Building2 className="w-5 h-5 text-rentia-blue" /> Cartera de Activos
                   </h4>
                   <div className="flex gap-2">
+                      {/* INMOVILLA IMPORTER ADDED HERE IN THE MAIN TAB (OPTIONAL) OR INSIDE THE MODAL */}
                       <button 
                         onClick={() => { setIsAddingAsset(true); setEditingAssetId(null); setAssetForm(initialAssetFormState); setHasUnsavedChanges(false); }} 
                         className="bg-rentia-black text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-gray-800 transition-colors"
@@ -657,6 +676,19 @@ export const SalesCRM: React.FC = () => {
                           </div>
 
                           <div className="flex-grow overflow-y-auto">
+                              
+                              {/* --- INMOVILLA IMPORTER WIDGET --- */}
+                              {!editingAssetId && (
+                                  <div className="px-6 pt-6 pb-2">
+                                      <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-4 mb-4">
+                                          <p className="text-xs font-bold text-indigo-800 mb-2 uppercase flex items-center gap-2">
+                                              <Sparkles className="w-4 h-4" /> Autocompletar con IA
+                                          </p>
+                                          <InmovillaImporter onDataExtracted={handleInmovillaImport} />
+                                      </div>
+                                  </div>
+                              )}
+
                               <form id="asset-form" onSubmit={handleSaveAsset}>
                                   <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
                                       

@@ -7,6 +7,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { X, ArrowRight, User, Phone, Mail, FileText, ChevronDown, ChevronUp, Home, Building, PlusCircle, Trash2, Loader2, CheckCircle, Image as ImageIcon, EyeOff, Upload, FileCheck } from 'lucide-react';
 import { PartnerTransferSubmission, TransferRoomData, TransferPropertyData, TransferAsset } from '../../types';
 import { ImageUploader } from '../admin/ImageUploader';
+import { InmovillaImporter, InmovillaData } from '../common/InmovillaImporter';
 
 interface Props {
   isOpen: boolean;
@@ -114,6 +115,44 @@ export const PartnerTransferModal: React.FC<Props> = ({ isOpen, onClose }) => {
         setAssets(newAssets);
         setActiveAssetIndex(prev => (prev >= newAssets.length ? newAssets.length - 1 : prev));
     };
+
+    // -- INMOVILLA IMPORT HANDLER --
+    const handleInmovillaImport = (data: InmovillaData) => {
+        // Create rooms array based on detected room count
+        const numRooms = data.rooms > 0 ? data.rooms : 3; // Default to 3 if 0
+        const newRooms: TransferRoomData[] = [];
+        for (let i = 0; i < numRooms; i++) {
+            newRooms.push({
+                ...initialRoomState,
+                id: Date.now() + i,
+                name: `H${i + 1}`,
+                // If price is low (<1000) it might be per room, if high, divide it.
+                // Assuming Inmovilla PDF has total sale/rent price. 
+                // We'll put 0 for safety or estimate if needed.
+                rentPrice: 0 
+            });
+        }
+
+        // Prepare new asset
+        const newAsset: TransferAsset = {
+            id: Date.now(),
+            property: {
+                ...initialPropertyState,
+                address: data.address,
+                city: data.city,
+                floor: data.floor,
+                observations: `${data.description}\n\nCaracterísticas detectadas: ${data.features.join(', ')}`,
+            },
+            rooms: newRooms,
+            images: []
+        };
+
+        // Add to list and select it
+        setAssets(prev => [...prev, newAsset]);
+        setActiveAssetIndex(assets.length); // Index of the new item
+        alert(`Ficha importada: ${data.address}. Se han generado ${numRooms} habitaciones.`);
+    };
+
 
     // -- GENERAL IMAGE MANAGEMENT --
     const addImageToActiveAsset = (url: string) => {
@@ -335,9 +374,18 @@ export const PartnerTransferModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
                     {step === 2 && (
                         <div className="space-y-6 animate-in fade-in">
-                           <div className="flex justify-between items-center mb-2">
-                                <h3 className="font-bold text-lg flex items-center gap-2 text-rentia-black"><Home className="w-5 h-5 text-rentia-blue"/> Viviendas a Traspasar</h3>
-                                <div className="text-xs font-bold bg-blue-50 text-blue-700 px-2 py-1 rounded-lg">Total: {assets.length}</div>
+                           
+                           {/* HEADER WITH IMPORT BUTTON */}
+                           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
+                                <div className="flex items-center gap-2">
+                                    <h3 className="font-bold text-lg flex items-center gap-2 text-rentia-black"><Home className="w-5 h-5 text-rentia-blue"/> Viviendas a Traspasar</h3>
+                                    <div className="text-xs font-bold bg-blue-50 text-blue-700 px-2 py-1 rounded-lg">Total: {assets.length}</div>
+                                </div>
+                                
+                                {/* AI IMPORTER */}
+                                <div className="w-full sm:w-auto">
+                                    <InmovillaImporter onDataExtracted={handleInmovillaImport} />
+                                </div>
                            </div>
 
                            {/* ASSET TABS */}
@@ -356,7 +404,7 @@ export const PartnerTransferModal: React.FC<Props> = ({ isOpen, onClose }) => {
                                     </button>
                                 ))}
                                 <button onClick={addAsset} className="px-3 py-2 rounded-lg text-sm font-bold border border-dashed border-gray-300 text-gray-500 hover:border-rentia-blue hover:text-rentia-blue transition-colors flex items-center gap-1">
-                                    <PlusCircle className="w-4 h-4"/> Añadir Vivienda
+                                    <PlusCircle className="w-4 h-4"/> Manual
                                 </button>
                            </div>
 

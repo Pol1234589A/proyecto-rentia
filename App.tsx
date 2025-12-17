@@ -24,7 +24,7 @@ import { LandingView } from './components/LandingView';
 import { InvestorDossier } from './components/InvestorDossier'; 
 import { OpportunityPresentation } from './components/OpportunityPresentation'; 
 import { PublishRequestView } from './components/PublishRequestView';
-import { ManagementSubmissionForm } from './components/owners/ManagementSubmissionForm'; // New Import
+import { ManagementSubmissionForm } from './components/owners/ManagementSubmissionForm';
 import { Opportunity } from './types';
 import { opportunities as staticOpportunities } from './data';
 import { TrendingUp, MessageCircle, Bell } from 'lucide-react';
@@ -53,7 +53,7 @@ const PATH_MAP: Record<string, ViewType> = {
   '#/presentation': 'presentation',
   '#/request/individual': 'request-individual',
   '#/request/agency': 'request-agency',
-  '#/publicar-propiedad': 'management-submission' // New Route
+  '#/publicar-propiedad': 'management-submission'
 };
 
 const VIEW_TO_HASH: Record<ViewType, string> = {
@@ -81,8 +81,7 @@ function AppContent() {
   const [view, setView] = useState<ViewType>('home');
   const [activeLegalModal, setActiveLegalModal] = useState<ModalType>(null);
   const { t } = useLanguage();
-  const { userRole, currentUser } = useAuth();
-  
+  const { userRole } = useAuth();
   const [opportunities, setOpportunities] = useState<Opportunity[]>(staticOpportunities); 
 
   // Firestore connection for Opportunities with Merge Logic
@@ -94,21 +93,14 @@ function AppContent() {
         snapshot.forEach((doc) => {
             const data = doc.data();
             allDbIds.add(doc.id);
-
-            // Filter out soft-deleted items
             if ((data as any).deleted) return;
-
             firestoreOpps.push({ ...data, id: doc.id } as Opportunity);
         });
         
-        // Fusión: Datos Firestore (activos) + Datos Estáticos que no están en Firestore (ni como activos ni como borrados)
         const missingStatics = staticOpportunities.filter(o => !allDbIds.has(o.id));
-        const combinedOpps = [...firestoreOpps, ...missingStatics];
-        
-        setOpportunities(combinedOpps);
-
+        setOpportunities([...firestoreOpps, ...missingStatics]);
     }, (error) => {
-        console.warn("Firestore access denied or error. Using static data.", error);
+        console.warn("Firestore error, using static data.", error);
         setOpportunities(staticOpportunities);
     });
     return () => unsubscribe();
@@ -117,18 +109,14 @@ function AppContent() {
   // Initialize view based on Hash
   useEffect(() => {
     const handleHashChange = () => {
-        let hash = window.location.hash || '#/';
+        const hash = window.location.hash || '#/';
         const [baseHash, query] = hash.split('?');
 
-        // Soporte para detalles y presentación
-        if (baseHash === '#/oportunidades' || baseHash === '#/landing' || baseHash === '#/dossier' || baseHash === '#/presentation') {
-            if (query) {
-                const params = new URLSearchParams(query);
-                const oppId = params.get('id') || params.get('opp'); 
-                setSelectedId(oppId);
-            } else {
-                setSelectedId(null);
-            }
+        // Robust parameter handling
+        if (query) {
+            const params = new URLSearchParams(query);
+            const oppId = params.get('id') || params.get('opp'); 
+            setSelectedId(oppId);
         } else {
             setSelectedId(null);
         }
@@ -136,6 +124,8 @@ function AppContent() {
         const matchedView = PATH_MAP[baseHash] || 'home';
         
         if (matchedView === 'intranet' && !userRole) {
+            // No redirigir bruscamente si estamos en un subdominio de presentación
+            if (baseHash !== '#/intranet') return; 
             window.location.hash = '#/';
             return;
         }
@@ -147,39 +137,18 @@ function AppContent() {
     handleHashChange();
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
-  }, [userRole, opportunities]); 
+  }, [userRole]); 
 
   const handleNavigate = (newView: ViewType) => {
     window.location.hash = VIEW_TO_HASH[newView];
-  };
-
-  const openLegalModal = (type: ModalType) => {
-    setActiveLegalModal(type);
-  };
-
-  const handleBackToOpportunities = () => {
-    window.location.hash = '#/oportunidades';
-  };
-
-  const handleBackToLanding = () => {
-    window.location.hash = '#/landing';
-  };
-  
-  const handleBackToDossier = () => {
-    window.location.hash = '#/dossier';
   };
 
   const handleNext = () => {
     const currentIndex = opportunities.findIndex(o => o.id === selectedId);
     if (currentIndex < opportunities.length - 1) {
       const nextId = opportunities[currentIndex + 1].id;
-      if (view === 'landing') {
-          window.location.hash = `#/landing?opp=${nextId}`;
-      } else if (view === 'dossier') {
-          window.location.hash = `#/dossier?opp=${nextId}`;
-      } else {
-          window.location.hash = `#/oportunidades?opp=${nextId}`;
-      }
+      const currentPath = window.location.hash.split('?')[0];
+      window.location.hash = `${currentPath}?opp=${nextId}`;
     }
   };
 
@@ -187,54 +156,31 @@ function AppContent() {
     const currentIndex = opportunities.findIndex(o => o.id === selectedId);
     if (currentIndex > 0) {
       const prevId = opportunities[currentIndex - 1].id;
-      if (view === 'landing') {
-          window.location.hash = `#/landing?opp=${prevId}`;
-      } else if (view === 'dossier') {
-          window.location.hash = `#/dossier?opp=${prevId}`;
-      } else {
-          window.location.hash = `#/oportunidades?opp=${prevId}`;
-      }
+      const currentPath = window.location.hash.split('?')[0];
+      window.location.hash = `${currentPath}?opp=${prevId}`;
     }
   };
 
   const selectedOpportunity = opportunities.find(o => o.id === selectedId);
 
-  // Lógica de renderizado
   const renderContent = () => {
-    // Modo Presentación (Standalone)
     if (view === 'presentation' && selectedOpportunity) {
         return <OpportunityPresentation opportunity={selectedOpportunity} />;
-    } else if (view === 'presentation' && !selectedOpportunity) {
-        return <div className="min-h-screen flex items-center justify-center text-gray-500">Oportunidad no encontrada o enlace roto.</div>;
     }
     
-    // Nuevas Vistas Standalone de Formulario
-    if (view === 'request-individual') {
-        return <PublishRequestView type="individual" onNavigate={handleNavigate} />;
-    }
-    if (view === 'request-agency') {
-        return <PublishRequestView type="agency" onNavigate={handleNavigate} />;
-    }
-
-    // Nuevo Formulario Propietarios
-    if (view === 'management-submission') {
-        return <ManagementSubmissionForm />;
-    }
-
     if (view === 'dossier') {
-        return (
-            <InvestorDossier 
-                opportunities={opportunities} 
-                selectedOpportunity={selectedOpportunity || null}
-            />
-        );
+        return <InvestorDossier opportunities={opportunities} selectedOpportunity={selectedOpportunity || null} />;
     }
 
-    if (selectedOpportunity) {
+    if (view === 'landing') {
+        return <LandingView opportunities={opportunities} onClick={(id) => window.location.hash = `#/landing?opp=${id}`} />;
+    }
+
+    if (selectedOpportunity && (view === 'list' || view === 'home')) {
       return (
         <DetailView 
           opportunity={selectedOpportunity} 
-          onBack={view === 'landing' ? handleBackToLanding : handleBackToOpportunities}
+          onBack={() => window.location.hash = '#/oportunidades'}
           onNext={handleNext}
           onPrev={handlePrev}
           hasNext={opportunities.findIndex(o => o.id === selectedId) < opportunities.length - 1}
@@ -244,127 +190,61 @@ function AppContent() {
       );
     }
 
-    if (view === 'landing') {
-        return (
-            <LandingView 
-                opportunities={opportunities} 
-                onClick={(id) => window.location.hash = `#/landing?opp=${id}`} 
-            />
-        );
-    }
-
     switch (view) {
       case 'home': return <HomeView onNavigate={handleNavigate} />;
       case 'services': return <ServicesView />;
       case 'rooms': return <RoomsView />;
-      case 'contact': return <AboutView />;
       case 'about': return <AboutView />;
       case 'discounts': return <DiscountsView />;
       case 'blog': return <BlogView />;
-      case 'brokers': return <BrokerView openLegalModal={openLegalModal} />;
-      case 'submission': return <BrokerView openLegalModal={openLegalModal} />;
-      
+      case 'brokers': return <BrokerView openLegalModal={(t) => setActiveLegalModal(t)} />;
+      case 'request-individual': return <PublishRequestView type="individual" onNavigate={handleNavigate} />;
+      case 'request-agency': return <PublishRequestView type="agency" onNavigate={handleNavigate} />;
+      case 'management-submission': return <ManagementSubmissionForm />;
       case 'intranet':
         if (userRole === 'owner') return <OwnerDashboard />;
-        if (userRole === 'tenant') return <TenantDashboard />;
-        if (userRole === 'broker') return <BrokerDashboardInternal />;
-        if (userRole === 'agency') return <AgencyDashboard />;
-        if (userRole === 'staff') return <StaffDashboard />;
         if (userRole === 'worker') return <WorkerDashboard />;
+        if (userRole === 'staff') return <StaffDashboard />;
         return <div className="min-h-screen flex items-center justify-center">Cargando perfil...</div>;
-
       case 'list':
         return (
           <>
-            <section className="relative py-20 md:py-24 bg-rentia-black overflow-hidden">
-              <div className="absolute inset-0 w-full h-full z-0">
-                  <img 
-                      src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1600&q=80" 
-                      alt="Oportunidades para Inversores RentiaRoom" 
-                      className="w-full h-full object-cover grayscale opacity-60"
-                  />
+            <section className="relative py-20 bg-rentia-black overflow-hidden">
+              <div className="absolute inset-0 z-0">
+                  <img src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1600&q=80" className="w-full h-full object-cover grayscale opacity-60" alt="Hero"/>
                   <div className="absolute inset-0 bg-rentia-blue/60 mix-blend-multiply"></div>
-                  <div className="absolute inset-0 bg-black/30 backdrop-blur-[1px]"></div>
               </div>
-
               <div className="relative z-10 container mx-auto px-4 text-center text-white">
-                  <div className="inline-flex items-center gap-2 bg-rentia-gold text-rentia-black px-4 py-1 rounded-full mb-6 font-bold text-sm shadow-lg uppercase tracking-wider">
-                      <TrendingUp className="w-4 h-4" />
-                      {t('opportunities.hero.badge')}
+                  <div className="inline-flex items-center gap-2 bg-rentia-gold text-rentia-black px-4 py-1 rounded-full mb-6 font-bold text-sm uppercase tracking-wider">
+                      <TrendingUp className="w-4 h-4" /> {t('opportunities.hero.badge')}
                   </div>
-                  <h1 className="text-3xl md:text-5xl font-bold font-display mb-4 drop-shadow-md">
-                      {t('opportunities.hero.title')}
-                  </h1>
-                  <p className="text-lg md:text-xl text-gray-100 max-w-2xl mx-auto drop-shadow-sm font-light leading-relaxed">
-                      {t('opportunities.hero.subtitle')}
-                  </p>
+                  <h1 className="text-3xl md:text-5xl font-bold font-display mb-4">{t('opportunities.hero.title')}</h1>
+                  <p className="text-lg md:text-xl text-gray-100 max-w-2xl mx-auto font-light leading-relaxed">{t('opportunities.hero.subtitle')}</p>
               </div>
             </section>
-
-            <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-16">
-              {opportunities.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                      {opportunities.map(opportunity => (
-                          <OpportunityCard 
-                              key={opportunity.id} 
-                              opportunity={opportunity} 
-                              onClick={(id) => window.location.hash = `#/oportunidades?opp=${id}`} 
-                          />
-                      ))}
-                  </div>
-              ) : (
-                  <div className="flex flex-col items-center justify-center text-center py-12 px-4">
-                     <div className="bg-blue-50 p-6 rounded-full mb-6">
-                        <Bell className="w-12 h-12 text-rentia-blue" />
-                     </div>
-                     <h2 className="text-2xl md:text-3xl font-bold text-rentia-black font-display mb-4">{t('opportunities.empty.title')}</h2>
-                     <p className="text-gray-600 text-base md:text-lg max-w-2xl mb-8 leading-relaxed">
-                       {t('opportunities.empty.text')}
-                       <br/><br/>
-                       <span className="font-semibold text-rentia-black">{t('opportunities.empty.cta')}</span>
-                     </p>
-                     
-                     <a 
-                        href="https://whatsapp.com/channel/0029VbBsvhOIt5rpshbpYN1P" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-3 bg-[#25D366] hover:bg-[#20ba5c] text-white font-bold py-4 px-8 rounded-xl transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 transform w-full md:w-auto justify-center"
-                     >
-                        <MessageCircle className="w-6 h-6" />
-                        {t('opportunities.empty.btn')}
-                     </a>
-                     <p className="text-xs text-gray-400 mt-4">{t('opportunities.empty.note')}</p>
-                  </div>
-              )}
+            <div className="max-w-[1200px] mx-auto px-4 py-16">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {opportunities.map(opp => (
+                      <OpportunityCard key={opp.id} opportunity={opp} onClick={(id) => window.location.hash = `#/oportunidades?opp=${id}`} />
+                  ))}
+              </div>
             </div>
-
             <CollaborationBanner />
           </>
         );
-      default:
-        return <HomeView onNavigate={handleNavigate} />;
+      default: return <HomeView onNavigate={handleNavigate} />;
     }
   };
 
-  // Determine if full layout (Header/Footer) should be shown
-  const isStandaloneView = view === 'landing' || view === 'dossier' || view === 'presentation' || view === 'request-individual' || view === 'request-agency' || view === 'management-submission';
+  const isStandalone = ['landing', 'dossier', 'presentation', 'request-individual', 'request-agency', 'management-submission'].includes(view);
 
   return (
     <div className="min-h-screen flex flex-col font-sans">
-      {/* Header Global (Hidden for standalone views) */}
-      {!isStandaloneView && <Header onNavigate={handleNavigate} />}
-
-      <main className="flex-grow bg-[#f9f9f9] relative z-0">
-        {renderContent()}
-      </main>
-
-      {/* WhatsApp Button (Hidden for standalone views and internal dashboards) */}
-      {!isStandaloneView && !(view === 'intranet' && (userRole === 'worker' || userRole === 'staff')) && <WhatsAppButton />}
-
+      {!isStandalone && <Header onNavigate={handleNavigate} />}
+      <main className="flex-grow bg-[#f9f9f9]">{renderContent()}</main>
+      {!isStandalone && <WhatsAppButton />}
       <LegalModals activeModal={activeLegalModal} onClose={() => setActiveLegalModal(null)} />
-
-      {/* Footer Global (Hidden for standalone views) */}
-      {!isStandaloneView && <Footer onNavigate={handleNavigate} openLegalModal={openLegalModal} />}
+      {!isStandalone && <Footer onNavigate={handleNavigate} openLegalModal={(t) => setActiveLegalModal(t)} />}
     </div>
   );
 }

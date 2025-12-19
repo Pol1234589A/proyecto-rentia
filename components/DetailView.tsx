@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Opportunity } from '../types';
-import { ArrowLeft, Check, MapPin, Users, TrendingUp, Bed, Maximize, Building, Bath, X, Settings, ChevronLeft, ChevronRight, PlayCircle, ExternalLink, Home, PlusCircle, MessageCircle, Phone, Mail, Scale, AlertTriangle, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Check, MapPin, Users, TrendingUp, Bed, Maximize, Building, Bath, X, Settings, ChevronLeft, ChevronRight, PlayCircle, ExternalLink, Home, PlusCircle, MessageCircle, Phone, Mail, Scale, AlertTriangle, ChevronDown, Loader2 } from 'lucide-react';
 import { ImageLightbox } from './ImageLightbox';
 import { useLanguage } from '../contexts/LanguageContext';
 import { ContactLeadModal } from './ContactLeadModal';
@@ -17,6 +17,39 @@ interface Props {
 }
 
 type RentalStrategy = 'rooms' | 'traditional';
+
+const GalleryThumbnail: React.FC<{ src: string, index: number, onClick: () => void, totalImages: number }> = ({ src, index, onClick, totalImages }) => {
+    const [loaded, setLoaded] = useState(false);
+
+    return (
+        <div 
+            className="aspect-square rounded-lg overflow-hidden cursor-pointer relative group bg-gray-100 border border-gray-200"
+            onClick={onClick}
+        >
+            {!loaded && (
+                 <div className="absolute inset-0 flex items-center justify-center text-gray-300 bg-gray-50">
+                    <Loader2 className="w-6 h-6 animate-spin" />
+                </div>
+            )}
+            <img 
+                src={src} 
+                alt={`Preview ${index}`} 
+                className={`w-full h-full object-cover transition-all duration-500 group-hover:scale-110 ${loaded ? 'opacity-100' : 'opacity-0'}`}
+                onLoad={() => setLoaded(true)}
+            />
+            
+            {/* Dark overlay on hover */}
+            {loaded && <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>}
+
+            {/* +X images overlay */}
+            {index === 5 && totalImages > 6 && (
+                <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white font-bold text-sm backdrop-blur-[1px]">
+                    +{totalImages - 6}
+                </div>
+            )}
+        </div>
+    );
+};
 
 export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPrev, hasNext, hasPrev, onNavigate }) => {
   const { financials, specs, images, videos, driveFolder, scenario } = opportunity;
@@ -135,6 +168,9 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
   const grossYield = (effectiveMonthlyIncome * 12 / finalTotalInvestment) * 100;
   const netYield = (netYearlyIncome / finalTotalInvestment) * 100;
 
+  // --- PUBLIC ADDRESS LOGIC (HIDE NUMBER) ---
+  const publicAddress = opportunity.address.replace(/\d+/g, '').replace(/,/, '').trim();
+
   return (
     <>
       <div className="max-w-7xl mx-auto p-3 sm:p-6 lg:p-8 animate-in fade-in duration-500 print:p-0 print:max-w-none print:bg-white">
@@ -168,7 +204,7 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
                  <h1 className="text-2xl font-bold font-display text-rentia-black leading-tight mb-2">{opportunity.title}</h1>
                  <div className="flex items-center text-gray-500 text-sm border-b border-gray-100 pb-4">
                     <MapPin className="w-4 h-4 mr-1.5" />
-                    {opportunity.city} - {opportunity.address}
+                    {opportunity.city} - {publicAddress}
                  </div>
             </div>
 
@@ -369,9 +405,10 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
                 {/* DESCRIPTION & FEATURES */}
                 <div className="break-inside-avoid">
                     <h3 className="text-xl font-bold font-display text-rentia-black mb-4 border-b border-gray-100 pb-2">{t('opportunities.detail.description')}</h3>
-                    <p className="text-gray-600 leading-relaxed text-justify mb-8 whitespace-pre-line">
-                        {opportunity.description}
-                    </p>
+                    <div 
+                        className="text-gray-600 leading-relaxed text-justify mb-8 text-sm"
+                        dangerouslySetInnerHTML={{ __html: opportunity.description }} 
+                    />
 
                     <h3 className="text-xl font-bold font-display text-rentia-black mb-4 border-b border-gray-100 pb-2">{t('opportunities.detail.key_points')}</h3>
                     <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
@@ -468,18 +505,13 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
                              </div>
                              <div className="grid grid-cols-3 gap-2">
                                  {images.slice(0, 6).map((img, idx) => (
-                                     <div 
-                                        key={idx} 
-                                        className="aspect-square rounded-lg overflow-hidden cursor-pointer relative group"
+                                     <GalleryThumbnail 
+                                        key={idx}
+                                        src={img}
+                                        index={idx}
                                         onClick={() => openLightbox(idx)}
-                                     >
-                                         <img src={img} alt={`Preview ${idx}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                                         {idx === 5 && images.length > 6 && (
-                                             <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white font-bold text-sm backdrop-blur-[1px]">
-                                                 +{images.length - 6}
-                                             </div>
-                                         )}
-                                     </div>
+                                        totalImages={images.length}
+                                     />
                                  ))}
                              </div>
                          </div>

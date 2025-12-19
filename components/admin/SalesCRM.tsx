@@ -7,7 +7,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { brokerRequests as staticRequests, BrokerRequest } from '../../data/brokerRequests';
 import { opportunities as staticOpportunities } from '../../data';
 import { Opportunity, OpportunityScenario, Visibility } from '../../types';
-import { Briefcase, Building2, UserPlus, Search, Filter, TrendingUp, MapPin, DollarSign, Save, ArrowRight, Users, Eye, EyeOff, Plus, Image as ImageIcon, Trash2, Home, Bed, Layout, Bath, Phone, FileText, Tag, AlertCircle, Handshake, Star, Crown, X, UploadCloud, RefreshCw, Pencil, Sparkles, Wand2, Loader2, Link as LinkIcon, AlertTriangle, MonitorPlay, Video, MessageSquare, Mail, Calendar } from 'lucide-react';
+import { Briefcase, Building2, UserPlus, Search, Filter, TrendingUp, MapPin, DollarSign, Save, ArrowRight, Users, Eye, EyeOff, Plus, Image as ImageIcon, Trash2, Home, Bed, Layout, Bath, Phone, FileText, Tag, AlertCircle, Handshake, Star, Crown, X, UploadCloud, RefreshCw, Pencil, Sparkles, Wand2, Loader2, Link as LinkIcon, AlertTriangle, MonitorPlay, Video, MessageSquare, Mail, Calendar, Bold, Italic, ImagePlus, Type } from 'lucide-react';
 import { ImageUploader } from './ImageUploader';
 import { compressImage } from '../../utils/imageOptimizer';
 
@@ -117,6 +117,41 @@ export const SalesCRM: React.FC = () => {
   const updateForm = (updates: Partial<typeof initialAssetFormState>) => {
       setAssetForm(prev => ({ ...prev, ...updates }));
       setHasUnsavedChanges(true);
+  };
+
+  // Helper para insertar tags HTML en la descripción
+  const insertHtmlTag = (tagStart: string, tagEnd: string = '') => {
+      const textarea = document.getElementById('description-editor') as HTMLTextAreaElement;
+      if (!textarea) return;
+
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const text = assetForm.description;
+      
+      const before = text.substring(0, start);
+      const selection = text.substring(start, end);
+      const after = text.substring(end);
+
+      let newText = '';
+      
+      if (tagStart === 'IMG') {
+          const url = prompt("Introduce la URL de la imagen:");
+          if (url) {
+              const imgTag = `<br><img src="${url}" class="w-full rounded-lg my-4 shadow-sm" loading="lazy" /><br>`;
+              newText = before + imgTag + after;
+          } else {
+              return;
+          }
+      } else {
+          newText = before + tagStart + selection + tagEnd + after;
+      }
+
+      updateForm({ description: newText });
+      
+      // Restaurar foco (opcional, básico)
+      setTimeout(() => {
+          textarea.focus();
+      }, 50);
   };
 
   // --- LOAD DATA ---
@@ -697,11 +732,21 @@ export const SalesCRM: React.FC = () => {
 
                                           {/* DETALLES MARKETING */}
                                           <div className="space-y-3">
-                                              <h6 className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-1">Marketing y Detalles</h6>
+                                              <div className="flex justify-between items-center border-b border-gray-100 pb-1">
+                                                  <h6 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Marketing y Detalles</h6>
+                                                  {/* EDITOR TOOLBAR */}
+                                                  <div className="flex items-center gap-1 bg-gray-100 rounded px-1">
+                                                      <button type="button" onClick={() => insertHtmlTag('<b>', '</b>')} className="p-1 hover:bg-white rounded text-gray-600" title="Negrita"><Bold className="w-3 h-3" /></button>
+                                                      <button type="button" onClick={() => insertHtmlTag('<i>', '</i>')} className="p-1 hover:bg-white rounded text-gray-600" title="Cursiva"><Italic className="w-3 h-3" /></button>
+                                                      <button type="button" onClick={() => insertHtmlTag('<br>')} className="p-1 hover:bg-white rounded text-gray-600" title="Salto de línea"><Type className="w-3 h-3" /></button>
+                                                      <button type="button" onClick={() => insertHtmlTag('IMG')} className="p-1 hover:bg-white rounded text-gray-600" title="Insertar Imagen"><ImagePlus className="w-3 h-3" /></button>
+                                                  </div>
+                                              </div>
                                               
                                               <div>
-                                                  <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
-                                                  <textarea className="w-full p-2 border rounded-lg text-sm h-24" value={assetForm.description} onChange={e => updateForm({description: e.target.value})} />
+                                                  <label className="block text-sm font-medium text-gray-700 mb-1">Descripción (HTML Habilitado)</label>
+                                                  <textarea id="description-editor" className="w-full p-2 border rounded-lg text-sm h-48 font-mono text-xs leading-relaxed" value={assetForm.description} onChange={e => updateForm({description: e.target.value})} placeholder="Usa la barra superior para formato..." />
+                                                  <p className="text-[10px] text-gray-400 mt-1">Puedes usar etiquetas HTML básicas para formato.</p>
                                               </div>
 
                                               <div>

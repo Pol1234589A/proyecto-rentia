@@ -1,7 +1,7 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 
 interface ImageLightboxProps {
   images: string[];
@@ -11,6 +11,11 @@ interface ImageLightboxProps {
 
 export const ImageLightbox: React.FC<ImageLightboxProps> = ({ images, selectedIndex, onClose }) => {
   const [currentIndex, setCurrentIndex] = useState(selectedIndex);
+  const [loading, setLoading] = useState(true);
+  const [imgSrc, setImgSrc] = useState<string | null>(null);
+  
+  const xhrRef = useRef<XMLHttpRequest | null>(null);
+  const currentUrlRef = useRef<string | null>(null);
 
   const goToPrevious = (e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -21,6 +26,78 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({ images, selectedIn
     e?.stopPropagation();
     setCurrentIndex((prevIndex) => (prevIndex === images.length - 1 ? 0 : prevIndex + 1));
   };
+
+  // Carga de imagen con XHR para asegurar carga completa antes de mostrar (evita barrido vertical)
+  useEffect(() => {
+    const src = images[currentIndex];
+    
+    // Si es la misma URL que ya tenemos cargada
+    if (src === currentUrlRef.current && imgSrc) {
+        return;
+    }
+
+    // Limpiar blob anterior si existe
+    if (imgSrc && imgSrc.startsWith('blob:')) {
+        URL.revokeObjectURL(imgSrc);
+    }
+    
+    // Abortar petición anterior si existe
+    if (xhrRef.current) {
+        xhrRef.current.abort();
+    }
+
+    setLoading(true);
+    setImgSrc(null);
+    currentUrlRef.current = src;
+
+    // Si es base64, carga inmediata
+    if (src.startsWith('data:')) {
+        setImgSrc(src);
+        setLoading(false);
+        return;
+    }
+
+    const xhr = new XMLHttpRequest();
+    xhrRef.current = xhr;
+
+    xhr.open('GET', src, true);
+    xhr.responseType = 'blob';
+
+    xhr.onload = () => {
+        if (xhr.status === 200) {
+            const blob = xhr.response;
+            const url = URL.createObjectURL(blob);
+            setImgSrc(url);
+            setLoading(false);
+        } else {
+            // Fallback
+            setImgSrc(src);
+            setLoading(false);
+        }
+    };
+
+    xhr.onerror = () => {
+        // Fallback
+        setImgSrc(src);
+        setLoading(false);
+    };
+
+    xhr.send();
+
+    // Precarga de adyacentes
+    if (images.length > 1) {
+        const nextIndex = (currentIndex + 1) % images.length;
+        const prevIndex = (currentIndex - 1 + images.length) % images.length;
+        const imgNext = new Image(); imgNext.src = images[nextIndex];
+        const imgPrev = new Image(); imgPrev.src = images[prevIndex];
+    }
+
+    return () => {
+        if (xhrRef.current) {
+            xhrRef.current.abort();
+        }
+    };
+  }, [currentIndex, images]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -35,14 +112,16 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({ images, selectedIn
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = 'unset';
+      if (imgSrc && imgSrc.startsWith('blob:')) {
+          URL.revokeObjectURL(imgSrc);
+      }
     };
-  }, [onClose, images.length]);
+  }, [onClose, images.length, imgSrc]);
 
   if (images.length === 0 || images[0].includes('placeholder')) {
       return null;
   }
 
-  // Use Portal to ensure it sits on top of EVERYTHING (including other modals)
   return createPortal(
     <div
       className="fixed inset-0 z-[11000] flex items-center justify-center bg-black/95 backdrop-blur-md animate-in fade-in duration-300"
@@ -66,18 +145,30 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({ images, selectedIn
 
       {/* Main Image Display */}
       <div className="relative w-full h-full flex items-center justify-center p-4 md:p-12">
-        <img
-          src={images[currentIndex]}
-          alt={`Imagen ampliada ${currentIndex + 1}`}
-          className="max-w-full max-h-full object-contain shadow-2xl animate-in zoom-in-95 duration-300 select-none"
-          onClick={(e) => e.stopPropagation()}
-        />
+        
+        {/* Loading Indicator Suave (Sin porcentajes) */}
+        {loading && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center z-50">
+                <Loader2 className="w-12 h-12 text-[#edcd20] animate-spin mb-4" />
+                <span className="text-white/70 font-bold uppercase tracking-widest text-xs animate-pulse">
+                    Cargando
+                </span>
+            </div>
+        )}
+
+        {imgSrc && (
+            <img
+              src={imgSrc}
+              alt={`Imagen ampliada ${currentIndex + 1}`}
+              className={`max-w-full max-h-full object-contain shadow-2xl select-none transition-opacity duration-500 ease-in-out ${loading ? 'opacity-0' : 'opacity-100'}`}
+              onClick={(e) => e.stopPropagation()}
+            />
+        )}
       </div>
 
       {/* Navigation Buttons */}
       {images.length > 1 && (
         <>
-          {/* Previous Button */}
           <button
             className="absolute left-4 top-1/2 -translate-y-1/2 z-[11010] p-3 text-white/80 hover:text-white bg-black/30 hover:bg-black/50 rounded-full transition-all backdrop-blur-sm border border-white/10 hover:scale-110"
             onClick={goToPrevious}
@@ -86,7 +177,6 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({ images, selectedIn
             <ChevronLeft className="w-8 h-8" />
           </button>
 
-          {/* Next Button */}
           <button
             className="absolute right-4 top-1/2 -translate-y-1/2 z-[11010] p-3 text-white/80 hover:text-white bg-black/30 hover:bg-black/50 rounded-full transition-all backdrop-blur-sm border border-white/10 hover:scale-110"
             onClick={goToNext}

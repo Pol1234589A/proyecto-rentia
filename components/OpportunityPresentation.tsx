@@ -38,6 +38,9 @@ export const OpportunityPresentation: React.FC<Props> = ({ opportunity, onClose 
 
     const whatsappLink = `https://api.whatsapp.com/send?phone=34672886369&text=Hola,%20estoy%20interesado%20en%20la%20oportunidad%20${opportunity.id}%20(${encodeURIComponent(opportunity.title)})`;
 
+    // --- PUBLIC ADDRESS LOGIC (HIDE NUMBER) ---
+    const publicAddress = opportunity.address.replace(/\d+/g, '').replace(/,/, '').trim();
+
     return (
         <div className="min-h-screen bg-slate-50 font-sans text-slate-800">
             {/* Header / Nav */}
@@ -71,7 +74,7 @@ export const OpportunityPresentation: React.FC<Props> = ({ opportunity, onClose 
                         {opportunity.title}
                     </h1>
                     <p className="text-lg md:text-xl text-slate-300 max-w-2xl mx-auto font-light leading-relaxed">
-                        {opportunity.address}, {opportunity.city}
+                        {publicAddress}, {opportunity.city}
                     </p>
                 </div>
             </header>
@@ -106,9 +109,10 @@ export const OpportunityPresentation: React.FC<Props> = ({ opportunity, onClose 
                                 <Home className="w-6 h-6 text-rentia-blue" />
                                 Sobre el Activo
                             </h3>
-                            <div className="prose prose-slate text-gray-600 leading-relaxed whitespace-pre-line text-justify">
-                                {opportunity.description}
-                            </div>
+                            <div 
+                                className="prose prose-slate text-gray-600 leading-relaxed text-justify"
+                                dangerouslySetInnerHTML={{ __html: opportunity.description }} 
+                            />
                         </div>
 
                         <div>

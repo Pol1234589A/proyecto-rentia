@@ -34,12 +34,10 @@ export const OpportunityCard: React.FC<Props> = ({ opportunity, onClick }) => {
       
   const grossYield = ((monthlyIncome * 12) / finalTotalInvestment) * 100;
 
-  // Visibility Logic
-  let displayAddress = opportunity.address;
-  if (opportunity.visibility === 'street_only') {
-      // Remove numbers (simplistic regex)
-      displayAddress = displayAddress.replace(/\d+/g, '').replace(/,/, '').trim();
-  } else if (opportunity.visibility === 'hidden') {
+  // Visibility Logic: SIEMPRE ocultamos el número exacto para el público
+  let displayAddress = opportunity.address.replace(/\d+/g, '').replace(/,/, '').trim();
+  
+  if (opportunity.visibility === 'hidden') {
       displayAddress = 'Ubicación Privada';
   }
 

@@ -1,10 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
-import { Mail, Clock, MessageCircle, User, Briefcase, CheckCircle, XCircle } from 'lucide-react';
+import { Mail, Clock, MessageCircle, User, Briefcase, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
 export const ContactView: React.FC = () => {
   const [now, setNow] = useState(new Date());
+  const [heroLoaded, setHeroLoaded] = useState(false);
   const { t } = useLanguage();
 
   // Update time every minute to keep status accurate
@@ -42,15 +43,21 @@ export const ContactView: React.FC = () => {
       <section className="bg-rentia-black text-white py-24 relative overflow-hidden">
          {/* Background Image */}
          <div className="absolute inset-0 w-full h-full z-0">
+            {!heroLoaded && (
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-900 z-10">
+                    <Loader2 className="w-12 h-12 animate-spin text-white/20" />
+                </div>
+            )}
             <img 
                 src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&w=1600&q=80" 
                 alt="Contacta con RentiaRoom" 
-                className="w-full h-full object-cover opacity-40" 
+                className={`w-full h-full object-cover grayscale transition-opacity duration-700 ${heroLoaded ? 'opacity-40' : 'opacity-0'}`} 
+                onLoad={() => setHeroLoaded(true)}
             />
             {/* Brand Tint Overlay */}
-            <div className="absolute inset-0 bg-rentia-blue/20 mix-blend-multiply"></div>
+            <div className="absolute inset-0 bg-rentia-blue/20 mix-blend-multiply pointer-events-none"></div>
             {/* Gradient that fades to white at the bottom to blend with the page */}
-            <div className="absolute inset-0 bg-gradient-to-b from-rentia-black/80 via-rentia-black/40 to-white"></div>
+            <div className="absolute inset-0 bg-gradient-to-b from-rentia-black/80 via-rentia-black/40 to-white pointer-events-none"></div>
          </div>
          
          <div className="container mx-auto px-4 relative z-10 text-center mt-8">

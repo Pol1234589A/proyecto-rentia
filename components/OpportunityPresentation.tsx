@@ -110,7 +110,7 @@ export const OpportunityPresentation: React.FC<Props> = ({ opportunity, onClose 
                                 Sobre el Activo
                             </h3>
                             <div 
-                                className="prose prose-slate text-gray-600 leading-relaxed text-justify"
+                                className="prose prose-slate text-gray-600 leading-relaxed text-justify whitespace-pre-line"
                                 dangerouslySetInnerHTML={{ __html: opportunity.description }} 
                             />
                         </div>

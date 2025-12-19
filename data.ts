@@ -1,6 +1,13 @@
 
 import { Opportunity } from './types';
 
+// Helper for dates
+const getRecentDate = (hoursAgo: number) => {
+    const d = new Date();
+    d.setHours(d.getHours() - hoursAgo);
+    return d.toISOString();
+};
+
 export const opportunities: Opportunity[] = [
   {
     id: 'TORREVIEJA-COLIVING-5HAB',
@@ -74,7 +81,8 @@ Es una oportunidad llave en mano para inversores que busquen flujo de caja inmed
       { name: 'Habitación 4', price: 400 },
       { name: 'Habitación 5', price: 400 }
     ],
-    disableLivingRoomExpansion: true // Desactivar salón como habitación extra
+    disableLivingRoomExpansion: true, // Desactivar salón como habitación extra
+    createdAt: getRecentDate(2) // 2 hours ago (Very New)
   },
   {
     id: 'JAVALI-REFORMA-30',
@@ -156,7 +164,8 @@ Los 257 m² permiten diluir el coste de la reforma integral entre 7 unidades ren
       appreciationRate: 5
     },
     status: 'available',
-    tags: ['Value-Add', 'Rentabilidad >10%', 'Coliving', 'Patio Privado']
+    tags: ['Value-Add', 'Rentabilidad >10%', 'Coliving', 'Patio Privado'],
+    createdAt: getRecentDate(48) // 48 hours ago (New)
   },
   {
     id: 'RP1742025141383',
@@ -215,7 +224,8 @@ Los 257 m² permiten diluir el coste de la reforma integral entre 7 unidades ren
       appreciationRate: 3
     },
     status: 'available',
-    tags: ['Exclusiva', 'Parcela', 'El Palmar', 'Chalet']
+    tags: ['Exclusiva', 'Parcela', 'El Palmar', 'Chalet'],
+    createdAt: getRecentDate(120) // Old
   },
   {
     id: 'DÚPLEX-JAVALI-MAYOR',
@@ -292,7 +302,8 @@ Los 257 m² permiten diluir el coste de la reforma integral entre 7 unidades ren
       appreciationRate: 3
     },
     status: 'available',
-    tags: ['Eficiencia Neta', 'Sin Comunidad', 'Dúplex', 'Rentabilidad']
+    tags: ['Eficiencia Neta', 'Sin Comunidad', 'Dúplex', 'Rentabilidad'],
+    createdAt: getRecentDate(120) // Old
   },
   {
     id: 'NORA-JARDIN-UCAM',
@@ -356,6 +367,7 @@ Los 257 m² permiten diluir el coste de la reforma integral entre 7 unidades ren
       appreciationRate: 5
     },
     status: 'available',
-    tags: ['Value-Add', 'Jardín 125m²', 'UCAM', 'Reforma Integral']
+    tags: ['Value-Add', 'Jardín 125m²', 'UCAM', 'Reforma Integral'],
+    createdAt: getRecentDate(120) // Old
   }
 ];

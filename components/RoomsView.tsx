@@ -1,11 +1,34 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Home, MapPin, CheckCircle, User, MessageCircle, Filter, AlertCircle, Receipt, Sparkles, Hammer, HelpCircle, Building, Gift, Users as UsersIcon, Wallet, PlayCircle, Camera, Timer, Bath, Wind, ExternalLink, GraduationCap, Briefcase, Users, ZoomIn, DoorClosed, DoorOpen, ChevronDown, Info, Layout, X, Euro, BedDouble, Bed, Tv, Lock, Sun, Monitor } from 'lucide-react';
+import { Home, MapPin, CheckCircle, User, MessageCircle, Filter, AlertCircle, Receipt, Sparkles, Hammer, HelpCircle, Building, Gift, Users as UsersIcon, Wallet, PlayCircle, Camera, Timer, Bath, Wind, ExternalLink, GraduationCap, Briefcase, Users, ZoomIn, DoorClosed, DoorOpen, ChevronDown, Info, Layout, X, Euro, BedDouble, Bed, Tv, Lock, Sun, Monitor, Loader2 } from 'lucide-react';
 import { db } from '../firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { properties as staticProperties, Property, Room } from '../data/rooms'; 
 import { useLanguage } from '../contexts/LanguageContext';
 import { ImageLightbox } from './ImageLightbox';
+
+// Helper Component for Loading State
+const ImageWithLoader = ({ src, alt, className, onClick }: { src: string, alt: string, className?: string, onClick?: (e: React.MouseEvent) => void }) => {
+    const [loaded, setLoaded] = useState(false);
+    return (
+        <>
+            {!loaded && (
+                <div className={`absolute inset-0 flex items-center justify-center bg-gray-100 z-10`}>
+                    <Loader2 className="w-8 h-8 text-rentia-blue/50 animate-spin" />
+                </div>
+            )}
+            <img 
+                src={src} 
+                alt={alt} 
+                className={`${className} transition-opacity duration-500 ${loaded ? 'opacity-100' : 'opacity-0'}`}
+                onLoad={() => setLoaded(true)}
+                onClick={onClick}
+                loading="lazy"
+                decoding="async"
+            />
+        </>
+    );
+};
 
 const CountdownTimer = ({ targetDateStr }: { targetDateStr: string }) => {
   const [timeLeft, setTimeLeft] = useState<{days: number, hours: number, minutes: number, seconds: number} | null>(null);
@@ -613,11 +636,9 @@ export const RoomsView: React.FC = () => {
                              >
                                 {property.image ? (
                                     <>
-                                        <img 
+                                        <ImageWithLoader 
                                             src={property.image} 
                                             alt={`Habitación en alquiler ${property.address}`} 
-                                            loading="lazy"
-                                            decoding="async"
                                             className="absolute inset-0 w-full h-full object-cover cursor-zoom-in transition-transform duration-700 group-hover/main-img:scale-105"
                                         />
                                         <div className="absolute inset-0 bg-black/0 group-hover/main-img:bg-black/20 transition-all flex items-center justify-center pointer-events-none">
@@ -828,11 +849,9 @@ export const RoomsView: React.FC = () => {
                                                             className="relative w-20 h-20 md:w-24 md:h-24 flex-shrink-0 cursor-zoom-in group rounded-lg overflow-hidden border border-gray-200 shadow-sm"
                                                             onClick={() => openRoomImages(room.images!, 0)}
                                                           >
-                                                              <img 
+                                                              <ImageWithLoader 
                                                                 src={room.images[0]} 
                                                                 alt={`${displayName}`}
-                                                                loading="lazy"
-                                                                decoding="async" 
                                                                 className="w-full h-full object-cover transition-transform group-hover:scale-110" 
                                                               />
                                                               {room.images.length > 1 && (

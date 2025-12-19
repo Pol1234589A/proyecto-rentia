@@ -40,6 +40,7 @@ export interface Opportunity {
   videos?: string[];
   roomConfiguration?: {name: string, price: number}[];
   disableLivingRoomExpansion?: boolean;
+  createdAt?: string | any; // Timestamp or ISO string
 }
 
 export interface Contract {

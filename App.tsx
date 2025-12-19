@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { DetailView } from './components/DetailView';
@@ -24,10 +24,10 @@ import { LandingView } from './components/LandingView';
 import { InvestorDossier } from './components/InvestorDossier'; 
 import { OpportunityPresentation } from './components/OpportunityPresentation'; 
 import { PublishRequestView } from './components/PublishRequestView';
-import { ManagementSubmissionForm } from './components/owners/ManagementSubmissionForm'; // New Import
+import { ManagementSubmissionForm } from './components/owners/ManagementSubmissionForm'; 
 import { Opportunity } from './types';
 import { opportunities as staticOpportunities } from './data';
-import { TrendingUp, MessageCircle, Bell } from 'lucide-react';
+import { TrendingUp, MessageCircle, Bell, ArrowUpDown, Filter } from 'lucide-react';
 import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { db } from './firebase';
@@ -35,6 +35,7 @@ import { collection, onSnapshot } from 'firebase/firestore';
 
 // Type alias
 type ViewType = 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts' | 'blog' | 'brokers' | 'intranet' | 'landing' | 'submission' | 'dossier' | 'presentation' | 'request-individual' | 'request-agency' | 'management-submission';
+type SortOption = 'newest' | 'yield_desc' | 'city_asc';
 
 // Mapping Hash paths
 const PATH_MAP: Record<string, ViewType> = {
@@ -53,7 +54,7 @@ const PATH_MAP: Record<string, ViewType> = {
   '#/presentation': 'presentation',
   '#/request/individual': 'request-individual',
   '#/request/agency': 'request-agency',
-  '#/publicar-propiedad': 'management-submission' // New Route
+  '#/publicar-propiedad': 'management-submission' 
 };
 
 const VIEW_TO_HASH: Record<ViewType, string> = {
@@ -84,6 +85,7 @@ function AppContent() {
   const { userRole, currentUser } = useAuth();
   
   const [opportunities, setOpportunities] = useState<Opportunity[]>(staticOpportunities); 
+  const [sortOption, setSortOption] = useState<SortOption>('newest');
 
   // Firestore connection for Opportunities with Merge Logic
   useEffect(() => {
@@ -113,6 +115,38 @@ function AppContent() {
     });
     return () => unsubscribe();
   }, []);
+
+  // Sorting Logic
+  const sortedOpportunities = useMemo(() => {
+      const sorted = [...opportunities];
+      return sorted.sort((a, b) => {
+          if (sortOption === 'newest') {
+              // Manejo seguro de fechas (pueden ser strings ISO, timestamps de Firestore o undefined)
+              const dateA = a.createdAt ? (a.createdAt.toDate ? a.createdAt.toDate().getTime() : new Date(a.createdAt).getTime()) : 0;
+              const dateB = b.createdAt ? (b.createdAt.toDate ? b.createdAt.toDate().getTime() : new Date(b.createdAt).getTime()) : 0;
+              return dateB - dateA; // Descending (Newest first)
+          } 
+          else if (sortOption === 'yield_desc') {
+              const getYield = (opp: Opportunity) => {
+                  const monthlyIncome = opp.financials.monthlyRentProjected > 0 
+                      ? opp.financials.monthlyRentProjected 
+                      : opp.financials.monthlyRentTraditional;
+                  const purchasePrice = opp.financials.purchasePrice;
+                  const agencyFeeBase = opp.financials.agencyFees !== undefined 
+                      ? opp.financials.agencyFees 
+                      : (purchasePrice > 100000 ? purchasePrice * 0.03 : 3000);
+                  const agencyFeeTotal = agencyFeeBase * 1.21; 
+                  const totalInvest = opp.financials.totalInvestment + agencyFeeTotal;
+                  return ((monthlyIncome * 12) / totalInvest) * 100;
+              };
+              return getYield(b) - getYield(a); // Descending
+          }
+          else if (sortOption === 'city_asc') {
+              return a.city.localeCompare(b.city);
+          }
+          return 0;
+      });
+  }, [opportunities, sortOption]);
 
   // Initialize view based on Hash
   useEffect(() => {
@@ -170,9 +204,9 @@ function AppContent() {
   };
 
   const handleNext = () => {
-    const currentIndex = opportunities.findIndex(o => o.id === selectedId);
-    if (currentIndex < opportunities.length - 1) {
-      const nextId = opportunities[currentIndex + 1].id;
+    const currentIndex = sortedOpportunities.findIndex(o => o.id === selectedId); // Use sorted list
+    if (currentIndex < sortedOpportunities.length - 1) {
+      const nextId = sortedOpportunities[currentIndex + 1].id;
       if (view === 'landing') {
           window.location.hash = `#/landing?opp=${nextId}`;
       } else if (view === 'dossier') {
@@ -184,9 +218,9 @@ function AppContent() {
   };
 
   const handlePrev = () => {
-    const currentIndex = opportunities.findIndex(o => o.id === selectedId);
+    const currentIndex = sortedOpportunities.findIndex(o => o.id === selectedId); // Use sorted list
     if (currentIndex > 0) {
-      const prevId = opportunities[currentIndex - 1].id;
+      const prevId = sortedOpportunities[currentIndex - 1].id;
       if (view === 'landing') {
           window.location.hash = `#/landing?opp=${prevId}`;
       } else if (view === 'dossier') {
@@ -197,7 +231,7 @@ function AppContent() {
     }
   };
 
-  const selectedOpportunity = opportunities.find(o => o.id === selectedId);
+  const selectedOpportunity = sortedOpportunities.find(o => o.id === selectedId);
 
   // Lógica de renderizado
   const renderContent = () => {
@@ -224,7 +258,7 @@ function AppContent() {
     if (view === 'dossier') {
         return (
             <InvestorDossier 
-                opportunities={opportunities} 
+                opportunities={sortedOpportunities} 
                 selectedOpportunity={selectedOpportunity || null}
             />
         );
@@ -237,8 +271,8 @@ function AppContent() {
           onBack={view === 'landing' ? handleBackToLanding : handleBackToOpportunities}
           onNext={handleNext}
           onPrev={handlePrev}
-          hasNext={opportunities.findIndex(o => o.id === selectedId) < opportunities.length - 1}
-          hasPrev={opportunities.findIndex(o => o.id === selectedId) > 0}
+          hasNext={sortedOpportunities.findIndex(o => o.id === selectedId) < sortedOpportunities.length - 1}
+          hasPrev={sortedOpportunities.findIndex(o => o.id === selectedId) > 0}
           onNavigate={handleNavigate}
         />
       );
@@ -247,7 +281,7 @@ function AppContent() {
     if (view === 'landing') {
         return (
             <LandingView 
-                opportunities={opportunities} 
+                opportunities={sortedOpportunities} 
                 onClick={(id) => window.location.hash = `#/landing?opp=${id}`} 
             />
         );
@@ -302,9 +336,30 @@ function AppContent() {
             </section>
 
             <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-16">
-              {opportunities.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                      {opportunities.map(opportunity => (
+              
+              {/* SORTING CONTROLS */}
+              {sortedOpportunities.length > 0 && (
+                <div className="flex justify-end mb-8">
+                    <div className="inline-flex items-center gap-2 bg-white border border-gray-200 rounded-lg p-1 shadow-sm">
+                        <span className="text-xs font-bold text-gray-500 uppercase px-2 flex items-center gap-1">
+                            <ArrowUpDown className="w-3 h-3" /> Ordenar:
+                        </span>
+                        <select 
+                            value={sortOption}
+                            onChange={(e) => setSortOption(e.target.value as SortOption)}
+                            className="bg-transparent text-sm font-bold text-gray-800 outline-none cursor-pointer py-1 px-2 hover:bg-gray-50 rounded"
+                        >
+                            <option value="newest">Más Recientes (Nuevas)</option>
+                            <option value="yield_desc">Mayor Rentabilidad</option>
+                            <option value="city_asc">Ciudad (A-Z)</option>
+                        </select>
+                    </div>
+                </div>
+              )}
+
+              {sortedOpportunities.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="opp-grid">
+                      {sortedOpportunities.map(opportunity => (
                           <OpportunityCard 
                               key={opportunity.id} 
                               opportunity={opportunity} 

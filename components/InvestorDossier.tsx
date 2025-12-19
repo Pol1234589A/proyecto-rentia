@@ -1,8 +1,30 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Opportunity } from '../types';
-import { TrendingUp, MapPin, Bed, Maximize, ArrowRight, X, ChevronLeft, ChevronRight, Phone, Download, Printer, Lock, Globe, Scale, AlertTriangle } from 'lucide-react';
+import { TrendingUp, MapPin, Bed, Maximize, ArrowRight, X, ChevronLeft, ChevronRight, Phone, Download, Printer, Lock, Globe, Scale, AlertTriangle, Loader2 } from 'lucide-react';
 import { ImageLightbox } from './ImageLightbox';
+
+// Helper Component for Loading State
+const ImageWithLoader = ({ src, alt, className, onClick }: { src: string, alt: string, className?: string, onClick?: (e: React.MouseEvent) => void }) => {
+    const [loaded, setLoaded] = useState(false);
+    return (
+        <div className={`relative overflow-hidden ${className}`} onClick={onClick}>
+            {!loaded && (
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-10">
+                    <Loader2 className="w-8 h-8 text-rentia-blue/50 animate-spin" />
+                </div>
+            )}
+            <img 
+                src={src} 
+                alt={alt} 
+                className={`w-full h-full object-cover transition-opacity duration-500 ${loaded ? 'opacity-100' : 'opacity-0'}`}
+                onLoad={() => setLoaded(true)}
+                loading="lazy"
+                decoding="async"
+            />
+        </div>
+    );
+};
 
 interface InvestorDossierProps {
   opportunities: Opportunity[];
@@ -14,6 +36,7 @@ export const InvestorDossier: React.FC<InvestorDossierProps> = ({ opportunities,
   const [lightboxImages, setLightboxImages] = useState<string[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [detailImageLoaded, setDetailImageLoaded] = useState(false);
 
   // Si se pasa un ID por URL, saltar directamente al detalle
   useEffect(() => {
@@ -108,10 +131,16 @@ export const InvestorDossier: React.FC<InvestorDossierProps> = ({ opportunities,
                   
                   {/* Left: Gallery */}
                   <div className="lg:w-1/2 h-64 lg:h-full bg-black relative">
+                      {!detailImageLoaded && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-gray-900 z-10">
+                              <Loader2 className="w-12 h-12 animate-spin text-white/20" />
+                          </div>
+                      )}
                       <img 
                         src={opp.images[0]} 
-                        className="w-full h-full object-cover opacity-90"
+                        className={`w-full h-full object-cover transition-opacity duration-700 ${detailImageLoaded ? 'opacity-90' : 'opacity-0'}`}
                         alt={opp.title}
+                        onLoad={() => setDetailImageLoaded(true)}
                       />
                       <div className="absolute bottom-6 left-6 right-6 flex justify-between items-end">
                           <div>
@@ -283,13 +312,12 @@ export const InvestorDossier: React.FC<InvestorDossierProps> = ({ opportunities,
                                 className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer flex flex-col h-full border border-slate-200"
                               >
                                   <div className="relative h-56 overflow-hidden">
-                                      <img 
+                                      <ImageWithLoader 
                                         src={opp.images[0]} 
                                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                                        loading="lazy"
                                         alt={opp.title}
                                       />
-                                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-60"></div>
+                                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-60 pointer-events-none"></div>
                                       <div className="absolute top-4 right-4 bg-white/90 backdrop-blur text-slate-900 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm">
                                           {yieldVal.toFixed(1)}% Rentabilidad
                                       </div>

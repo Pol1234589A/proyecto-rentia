@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Opportunity } from '../types';
-import { MapPin, Bed, Maximize, TrendingUp, PlayCircle, ArrowRight, Building, ExternalLink, Home, Image as ImageIcon, MessageSquare } from 'lucide-react';
+import { MapPin, Bed, Maximize, TrendingUp, PlayCircle, ArrowRight, Building, ExternalLink, Home, Image as ImageIcon, MessageSquare, Loader2, Bell } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { ContactLeadModal } from './ContactLeadModal';
 
@@ -41,18 +41,39 @@ export const OpportunityCard: React.FC<Props> = ({ opportunity, onClick }) => {
       displayAddress = 'Ubicación Privada';
   }
 
+  // Calculate "New" status (within 72 hours)
+  const isNew = useMemo(() => {
+      if (!opportunity.createdAt) return false;
+      const now = new Date();
+      // Handle Firestore Timestamp or JS Date
+      const created = (opportunity.createdAt as any).toDate ? (opportunity.createdAt as any).toDate() : new Date(opportunity.createdAt);
+      const diffTime = Math.abs(now.getTime() - created.getTime());
+      const diffHours = Math.ceil(diffTime / (1000 * 60 * 60));
+      return diffHours <= 72;
+  }, [opportunity.createdAt]);
+
   return (
     <>
     <div 
-      className="group bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 cursor-pointer border border-gray-200/80 flex flex-col h-full hover:-translate-y-1"
+      className="group bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 cursor-pointer border border-gray-200/80 flex flex-col h-full hover:-translate-y-1 relative"
       onClick={() => onClick(opportunity.id)}
     >
+      
+      {/* NEW BADGE */}
+      {isNew && (
+          <div className="absolute top-4 left-4 z-30 animate-in fade-in zoom-in-90 duration-500">
+              <span className="bg-gradient-to-r from-rentia-blue to-indigo-600 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-lg flex items-center gap-1 border border-white/20 uppercase tracking-wider">
+                  <Bell className="w-3 h-3 fill-current animate-bounce"/> NUEVA
+              </span>
+          </div>
+      )}
+
       {/* --- IMAGE & OVERLAYS --- */}
       <div className="relative h-64 overflow-hidden bg-gray-100">
-        {/* Placeholder Skeleton */}
+        {/* Loader Spinner */}
         {!imageLoaded && (
-            <div className="absolute inset-0 flex items-center justify-center text-gray-300">
-                <ImageIcon className="w-12 h-12 animate-pulse" />
+            <div className="absolute inset-0 flex items-center justify-center text-gray-300 bg-gray-50 z-10">
+                <Loader2 className="w-10 h-10 animate-spin text-rentia-blue/50" />
             </div>
         )}
         
@@ -206,3 +227,4 @@ export const OpportunityCard: React.FC<Props> = ({ opportunity, onClick }) => {
     </>
   );
 };
+import { useMemo } from 'react';

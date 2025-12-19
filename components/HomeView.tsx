@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { ChevronDown, Check, KeyRound, TrendingUp, ClipboardList, Sparkles, Settings, FileBarChart, ArrowRight, ShieldCheck, UserCheck, Home, MessageCircle, X, Megaphone, Star, Quote, CheckCircle, Users, Smartphone, Clock, FileText, PlusCircle } from 'lucide-react';
+import { ChevronDown, Check, KeyRound, TrendingUp, ClipboardList, Sparkles, Settings, FileBarChart, ArrowRight, ShieldCheck, UserCheck, Home, MessageCircle, X, Megaphone, Star, Quote, CheckCircle, Users, Smartphone, Clock, FileText, PlusCircle, Loader2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { NewsTicker } from './NewsTicker';
 
@@ -51,6 +51,7 @@ interface HomeViewProps {
 
 export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
   const [selectedProcess, setSelectedProcess] = useState<ProcessStep | null>(null);
+  const [ctaLoaded, setCtaLoaded] = useState(false);
   const { t } = useLanguage();
 
   // --- SEO INJECTION: FAQPage Schema ---
@@ -435,7 +436,17 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
                         </div>
                     </div>
                     <div className="md:w-1/2 relative min-h-[250px] md:min-h-[300px]">
-                        <img src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=800&q=80" alt="Gestión Propiedad" className="absolute inset-0 w-full h-full object-cover" />
+                        {!ctaLoaded && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-10">
+                                <Loader2 className="w-12 h-12 animate-spin text-rentia-blue/30" />
+                            </div>
+                        )}
+                        <img 
+                            src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=800&q=80" 
+                            alt="Gestión Propiedad" 
+                            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${ctaLoaded ? 'opacity-100' : 'opacity-0'}`} 
+                            onLoad={() => setCtaLoaded(true)}
+                        />
                         <div className="absolute inset-0 bg-gradient-to-l from-transparent to-black/10"></div>
                     </div>
                 </div>

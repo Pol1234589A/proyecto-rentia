@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { blogPosts, BlogPost } from '../data/blogData';
-import { Clock, Calendar, ChevronRight, Search, List, ArrowLeft, Tag, TrendingUp, KeyRound, Users, Zap, FileText } from 'lucide-react';
+import { Clock, Calendar, ChevronRight, Search, List, ArrowLeft, Tag, TrendingUp, KeyRound, Users, Zap, FileText, Loader2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
 export const BlogView: React.FC = () => {
@@ -9,6 +10,7 @@ export const BlogView: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [readingProgress, setReadingProgress] = useState(0);
   const [toc, setToc] = useState<{id: string, text: string, level: number}[]>([]);
+  const [heroLoaded, setHeroLoaded] = useState(false);
   const { language, t } = useLanguage();
 
   // Scroll handler for progress bar
@@ -288,13 +290,19 @@ export const BlogView: React.FC = () => {
         <section className="relative py-24 bg-rentia-black overflow-hidden">
              {/* Background Image */}
              <div className="absolute inset-0 w-full h-full z-0">
+                 {!heroLoaded && (
+                     <div className="absolute inset-0 flex items-center justify-center bg-gray-900 z-10">
+                         <Loader2 className="w-12 h-12 animate-spin text-white/20" />
+                     </div>
+                 )}
                  <img 
                      src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1600&q=80" 
                      alt="RentiaRoom Blog" 
-                     className="w-full h-full object-cover opacity-40"
+                     className={`w-full h-full object-cover transition-opacity duration-700 ${heroLoaded ? 'opacity-40' : 'opacity-0'}`}
+                     onLoad={() => setHeroLoaded(true)}
                  />
-                 <div className="absolute inset-0 bg-rentia-blue/80 mix-blend-multiply"></div>
-                 <div className="absolute inset-0 bg-gradient-to-t from-rentia-black/90 via-transparent to-transparent"></div>
+                 <div className="absolute inset-0 bg-rentia-blue/80 mix-blend-multiply pointer-events-none"></div>
+                 <div className="absolute inset-0 bg-gradient-to-t from-rentia-black/90 via-transparent to-transparent pointer-events-none"></div>
              </div>
 
              <div className="relative z-10 container mx-auto px-4 text-center text-white">

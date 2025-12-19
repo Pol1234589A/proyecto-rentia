@@ -1,11 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
-import { Users, Briefcase, Heart, Quote, TrendingUp, Home, Clock, MessageCircle, CheckCircle, XCircle, Mail } from 'lucide-react';
+import { Users, Briefcase, Heart, Quote, TrendingUp, Home, Clock, MessageCircle, CheckCircle, XCircle, Mail, Loader2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { CollaborationBanner } from './CollaborationBanner';
 
 export const AboutView: React.FC = () => {
   const { t } = useLanguage();
+  const [heroLoaded, setHeroLoaded] = useState(false);
+  const [storyLoaded, setStoryLoaded] = useState(false);
   
   // --- LÓGICA DE CONTACTO (Traída de ContactView) ---
   const [now, setNow] = useState(new Date());
@@ -42,10 +44,16 @@ export const AboutView: React.FC = () => {
       {/* --- HERO SECTION --- */}
       <section className="bg-rentia-black text-white py-24 relative overflow-hidden">
         <div className="absolute inset-0 w-full h-full z-0">
+            {!heroLoaded && (
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-900 z-10">
+                    <Loader2 className="w-12 h-12 animate-spin text-white/20" />
+                </div>
+            )}
             <img 
                 src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1600&q=80" 
                 alt="Equipo RentiaRoom" 
-                className="w-full h-full object-cover opacity-30 grayscale"
+                className={`w-full h-full object-cover grayscale transition-opacity duration-700 ${heroLoaded ? 'opacity-30' : 'opacity-0'}`}
+                onLoad={() => setHeroLoaded(true)}
             />
             <div className="absolute inset-0 bg-gradient-to-b from-rentia-black/90 via-rentia-black/70 to-white"></div>
         </div>
@@ -85,10 +93,16 @@ export const AboutView: React.FC = () => {
                   <div className="relative order-1 lg:order-2">
                       {/* IMAGEN DE GRUPO (POL Y VÍCTOR) */}
                       <div className="rounded-2xl overflow-hidden shadow-2xl aspect-[4/3] bg-gray-100 relative group rotate-1 hover:rotate-0 transition-transform duration-500">
+                          {!storyLoaded && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-10">
+                                    <Loader2 className="w-10 h-10 animate-spin text-gray-300" />
+                                </div>
+                          )}
                           <img 
                               src="https://i.ibb.co/zT3d68yG/Whats-App-Image-2025-11-21-at-00-46-35-1.jpg" 
                               alt="Pol y Víctor - Fundadores" 
-                              className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
+                              className={`w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500 ${storyLoaded ? 'opacity-100' : 'opacity-0'}`}
+                              onLoad={() => setStoryLoaded(true)}
                           />
                       </div>
                       

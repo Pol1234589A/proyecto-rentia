@@ -406,7 +406,7 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
                 <div className="break-inside-avoid">
                     <h3 className="text-xl font-bold font-display text-rentia-black mb-4 border-b border-gray-100 pb-2">{t('opportunities.detail.description')}</h3>
                     <div 
-                        className="text-gray-600 leading-relaxed text-justify mb-8 text-sm"
+                        className="text-gray-600 leading-relaxed text-justify mb-8 text-sm whitespace-pre-line"
                         dangerouslySetInnerHTML={{ __html: opportunity.description }} 
                     />
 

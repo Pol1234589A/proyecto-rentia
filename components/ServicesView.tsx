@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Check, UserPlus, FileText, Clock, AlertTriangle, ShieldCheck, Hammer, Search, MessageCircle, X, ArrowRight, Eye, BarChart3, ClipboardCheck, Megaphone, Activity } from 'lucide-react';
+import { Check, UserPlus, FileText, Clock, AlertTriangle, ShieldCheck, Hammer, Search, MessageCircle, X, ArrowRight, Eye, BarChart3, ClipboardCheck, Megaphone, Activity, Loader2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { CollaborationBanner } from './CollaborationBanner';
 
@@ -8,6 +8,28 @@ interface PainPoint {
   icon: React.ReactNode;
   id: string; // Changed to ID for translation lookup
 }
+
+// Helper Component for Loading State
+const ImageWithLoader = ({ src, alt, className, onClick }: { src: string, alt: string, className?: string, onClick?: (e: React.MouseEvent) => void }) => {
+    const [loaded, setLoaded] = useState(false);
+    return (
+        <div className={`relative overflow-hidden ${className}`} onClick={onClick}>
+            {!loaded && (
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-10">
+                    <Loader2 className="w-8 h-8 text-rentia-blue/50 animate-spin" />
+                </div>
+            )}
+            <img 
+                src={src} 
+                alt={alt} 
+                className={`w-full h-full object-cover transition-opacity duration-500 ${loaded ? 'opacity-100' : 'opacity-0'}`}
+                onLoad={() => setLoaded(true)}
+                loading="lazy"
+                decoding="async"
+            />
+        </div>
+    );
+};
 
 export const ServicesView: React.FC = () => {
   const [selectedFeature, setSelectedFeature] = useState<PainPoint | null>(null);
@@ -149,15 +171,15 @@ export const ServicesView: React.FC = () => {
       <section className="relative py-24 bg-rentia-black overflow-hidden">
         {/* Background Image with Brand Styling */}
         <div className="absolute inset-0 w-full h-full z-0">
-            <img 
+            <ImageWithLoader 
                 src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=1600&auto=format&fit=crop" 
                 alt="Servicios RentiaRoom" 
                 className="w-full h-full object-cover grayscale"
             />
             {/* Blue tint overlay for brand consistency */}
-            <div className="absolute inset-0 bg-rentia-blue/60 mix-blend-multiply"></div>
+            <div className="absolute inset-0 bg-rentia-blue/60 mix-blend-multiply z-10 pointer-events-none"></div>
             {/* Dark overlay + blur for text readability */}
-            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm z-10 pointer-events-none"></div>
         </div>
 
         <div className="relative z-10 container mx-auto px-4 text-center text-white">
@@ -223,14 +245,17 @@ export const ServicesView: React.FC = () => {
                     {/* Image Side */}
                     <div className="w-full md:w-1/2">
                         <div className="relative rounded-xl overflow-hidden shadow-xl aspect-[4/3] group bg-white">
-                            <img 
-                                src={service.image} 
-                                alt={service.title} 
-                                className="w-full h-full object-cover transform group-hover:scale-105 transition-all duration-700 grayscale group-hover:grayscale-0"
-                            />
+                            <div className="absolute inset-0 z-0">
+                                <ImageWithLoader 
+                                    src={service.image} 
+                                    alt={service.title} 
+                                    className="w-full h-full object-cover transform group-hover:scale-105 transition-all duration-700 grayscale group-hover:grayscale-0"
+                                />
+                            </div>
+
                             {/* Brand Tint Overlay on Hover (fades out as image goes color, or stays subtle) */}
-                            <div className="absolute inset-0 bg-rentia-blue/20 mix-blend-multiply group-hover:opacity-0 transition-opacity duration-500"></div>
-                            <div className="absolute inset-0 bg-gradient-to-t from-rentia-black/60 to-transparent opacity-60"></div>
+                            <div className="absolute inset-0 bg-rentia-blue/20 mix-blend-multiply group-hover:opacity-0 transition-opacity duration-500 z-10 pointer-events-none"></div>
+                            <div className="absolute inset-0 bg-gradient-to-t from-rentia-black/60 to-transparent opacity-60 z-10 pointer-events-none"></div>
                             
                             {service.badge && (
                                 <div className="absolute top-4 left-4 bg-rentia-gold text-rentia-black text-xs font-bold px-3 py-1 rounded shadow z-20">

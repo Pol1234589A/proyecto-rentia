@@ -18,6 +18,7 @@ export interface BrokerRequest {
   origin?: 'crm' | 'web';
   gdprAccepted?: boolean;
   gdprDate?: any;
+  createdAt?: any; // Para ordenación
 }
 
 export const brokerRequests: BrokerRequest[] = [

@@ -252,7 +252,7 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
                                         <button onClick={() => setRentalStrategy('traditional')} className={`flex items-center justify-center px-2 text-sm font-semibold rounded-md transition-all touch-manipulation ${rentalStrategy === 'traditional' ? 'bg-white shadow text-rentia-blue' : 'text-gray-600 hover:bg-white/50'}`}>{t('opportunities.detail.traditional_strategy')}</button>
                                     </div>
                                     
-                                    {isRoomsStrategy && (
+                                    {isRoomsStrategy && !opportunity.disableLivingRoomExpansion && (
                                         <div className="mt-3 flex items-center justify-between bg-white p-2 rounded border border-purple-100 shadow-sm animate-in slide-in-from-top-1">
                                             <span className="text-[10px] font-bold text-purple-700 flex items-center gap-1">
                                                 <PlusCircle className="w-3 h-3"/> +1 Hab (Salón)
@@ -272,7 +272,7 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
                                     <div className="flex items-center justify-center bg-gray-100 rounded-lg h-12 text-sm font-bold text-gray-500 border border-gray-200">
                                         {financials.monthlyRentProjected > 0 ? t('opportunities.detail.rooms_strategy') : t('opportunities.detail.traditional_strategy')}
                                     </div>
-                                    {isRoomsStrategy && (
+                                    {isRoomsStrategy && !opportunity.disableLivingRoomExpansion && (
                                         <div className="mt-3 flex items-center justify-between bg-white p-2 rounded border border-purple-100 shadow-sm animate-in slide-in-from-top-1">
                                             <span className="text-[10px] font-bold text-purple-700 flex items-center gap-1">
                                                 <PlusCircle className="w-3 h-3"/> +1 Hab (Salón)

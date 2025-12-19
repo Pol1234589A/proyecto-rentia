@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { brokerRequests as staticRequests, BrokerRequest, RequestTag } from '../data/brokerRequests';
-import { Briefcase, Search, MapPin, FileText, ArrowRight, Building2, Filter, X, Handshake, Crown, Star, Network, PlusCircle, SearchCheck, Lock, Grid, List, Home, Layers, MousePointerClick, TrendingUp, Eye } from 'lucide-react';
+import { Briefcase, Search, MapPin, FileText, ArrowRight, Building2, Filter, X, Handshake, Crown, Star, Network, PlusCircle, SearchCheck, Lock, Grid, List, Home, Layers, MousePointerClick, TrendingUp, Eye, Euro, Info, ArrowUpDown, BellRing } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { ModalType } from './LegalModals';
 import { db } from '../firebase';
@@ -19,10 +19,27 @@ export const BrokerView: React.FC<BrokerViewProps> = ({ openLegalModal }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterLocation, setFilterLocation] = useState('');
   const [filterTag, setFilterTag] = useState<RequestTag | 'all'>('all');
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest'); // Nuevo estado de ordenación
   const [brokerRequests, setBrokerRequests] = useState<BrokerRequest[]>(staticRequests);
 
   // Estados para Modal de Selección (COMPRA)
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
+  
+  // Estado para Modal de Detalle (Marketplace)
+  const [selectedRequest, setSelectedRequest] = useState<BrokerRequest | null>(null);
+
+  // Helper para verificar si es reciente (< 72 horas)
+  const isRecent = (date: any) => {
+      if (!date) return false;
+      const now = new Date();
+      // Soporte para Timestamp de Firestore o Date de JS
+      const itemDate = date.toDate ? date.toDate() : new Date(date); 
+      
+      const diffTime = Math.abs(now.getTime() - itemDate.getTime());
+      const diffHours = Math.ceil(diffTime / (1000 * 60 * 60));
+      
+      return diffHours <= 72;
+  };
 
   // Load Broker Requests from Firestore
   useEffect(() => {
@@ -42,7 +59,8 @@ export const BrokerView: React.FC<BrokerViewProps> = ({ openLegalModal }) => {
                 tag: data.tag || 'own',
                 name: data.name,
                 contact: data.contact,
-                email: data.email
+                email: data.email,
+                createdAt: data.createdAt // Capturamos la fecha
             });
         });
         setBrokerRequests([...staticRequests, ...firestoreRequests]);
@@ -73,7 +91,7 @@ export const BrokerView: React.FC<BrokerViewProps> = ({ openLegalModal }) => {
   }, [brokerRequests]);
 
   const filteredRequests = useMemo(() => {
-      return brokerRequests.filter(req => {
+      let filtered = brokerRequests.filter(req => {
           const term = searchTerm.toLowerCase();
           const matchesSearch = 
               req.reference.toLowerCase().includes(term) ||
@@ -94,12 +112,27 @@ export const BrokerView: React.FC<BrokerViewProps> = ({ openLegalModal }) => {
 
           return matchesSearch && matchesLocation && matchesTag;
       });
-  }, [brokerRequests, searchTerm, filterLocation, filterTag]);
+
+      // Lógica de Ordenación
+      return filtered.sort((a, b) => {
+          // Convertir fechas a timestamps para comparar. Si no tiene fecha (estáticos), se asume 0 (muy antiguo)
+          const dateA = a.createdAt ? (a.createdAt.toDate ? a.createdAt.toDate().getTime() : new Date(a.createdAt).getTime()) : 0;
+          const dateB = b.createdAt ? (b.createdAt.toDate ? b.createdAt.toDate().getTime() : new Date(b.createdAt).getTime()) : 0;
+
+          if (sortOrder === 'newest') {
+              return dateB - dateA;
+          } else {
+              return dateA - dateB;
+          }
+      });
+
+  }, [brokerRequests, searchTerm, filterLocation, filterTag, sortOrder]);
 
   const clearFilters = () => {
       setSearchTerm('');
       setFilterLocation('');
       setFilterTag('all');
+      setSortOrder('newest');
   };
 
   const getTagStyle = (tag: RequestTag) => {
@@ -297,27 +330,44 @@ export const BrokerView: React.FC<BrokerViewProps> = ({ openLegalModal }) => {
                   </div>
                   
                   <div className="flex gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 no-scrollbar">
-                      <select 
-                          value={filterLocation}
-                          onChange={(e) => setFilterLocation(e.target.value)}
-                          className="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rentia-blue/50 cursor-pointer min-w-[150px]"
-                      >
-                          <option value="">Todas las Zonas</option>
-                          {uniqueLocations.map(loc => <option key={loc} value={loc}>{loc}</option>)}
-                      </select>
+                      <div className="relative">
+                          <select 
+                              value={filterLocation}
+                              onChange={(e) => setFilterLocation(e.target.value)}
+                              className="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rentia-blue/50 cursor-pointer min-w-[150px] appearance-none"
+                          >
+                              <option value="">Todas las Zonas</option>
+                              {uniqueLocations.map(loc => <option key={loc} value={loc}>{loc}</option>)}
+                          </select>
+                      </div>
 
-                      <select 
-                          value={filterTag}
-                          onChange={(e) => setFilterTag(e.target.value as any)}
-                          className="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rentia-blue/50 cursor-pointer min-w-[150px]"
-                      >
-                          <option value="all">Todos los Orígenes</option>
-                          <option value="own">Rentia / Particulares</option>
-                          <option value="collaboration">Agencias / Profesionales</option>
-                      </select>
+                      <div className="relative">
+                        <select 
+                            value={filterTag}
+                            onChange={(e) => setFilterTag(e.target.value as any)}
+                            className="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rentia-blue/50 cursor-pointer min-w-[150px] appearance-none"
+                        >
+                            <option value="all">Todos los Orígenes</option>
+                            <option value="own">Rentia / Particulares</option>
+                            <option value="collaboration">Agencias / Profesionales</option>
+                        </select>
+                      </div>
+                      
+                      {/* Sort Selector */}
+                      <div className="relative">
+                        <select 
+                            value={sortOrder}
+                            onChange={(e) => setSortOrder(e.target.value as any)}
+                            className="px-4 py-2.5 pl-9 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rentia-blue/50 cursor-pointer min-w-[140px] appearance-none"
+                        >
+                            <option value="newest">Más recientes</option>
+                            <option value="oldest">Más antiguas</option>
+                        </select>
+                        <ArrowUpDown className="w-4 h-4 text-gray-400 absolute left-3 top-3 pointer-events-none" />
+                      </div>
                   </div>
 
-                  {(searchTerm || filterLocation || filterTag !== 'all') && (
+                  {(searchTerm || filterLocation || filterTag !== 'all' || sortOrder !== 'newest') && (
                       <button onClick={clearFilters} className="text-red-500 text-xs font-bold hover:underline whitespace-nowrap px-2">
                           Borrar filtros
                       </button>
@@ -329,20 +379,40 @@ export const BrokerView: React.FC<BrokerViewProps> = ({ openLegalModal }) => {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {filteredRequests.map((req) => {
                           const tagInfo = getTagStyle(req.tag);
+                          const isNew = isRecent(req.createdAt);
+
                           return (
-                              <div key={req.id} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-xl hover:border-rentia-blue/30 transition-all duration-300 group flex flex-col h-full relative overflow-hidden hover:-translate-y-1">
+                              <div 
+                                key={req.id} 
+                                onClick={() => setSelectedRequest(req)}
+                                className={`
+                                    bg-white rounded-2xl p-6 shadow-sm border 
+                                    hover:shadow-xl transition-all duration-300 group flex flex-col h-full relative overflow-hidden hover:-translate-y-1 cursor-pointer
+                                    ${isNew ? 'border-rentia-blue/40 ring-1 ring-rentia-blue/20 animate-in fade-in zoom-in-95 duration-500' : 'border-gray-100 hover:border-rentia-blue/30'}
+                                `}
+                              >
                                   <div className={`absolute top-0 left-0 w-full h-1 ${req.tag === 'own' ? 'bg-green-500' : 'bg-indigo-500'}`}></div>
                                   
-                                  <div className="flex justify-between items-start mb-4">
+                                  {isNew && (
+                                      <div className="absolute top-3 right-3 animate-bounce">
+                                          <span className="bg-gradient-to-r from-rentia-blue to-cyan-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg flex items-center gap-1 border border-white/20">
+                                              <BellRing className="w-3 h-3 fill-current"/> NUEVA
+                                          </span>
+                                      </div>
+                                  )}
+                                  
+                                  <div className="flex justify-between items-start mb-4 pr-16">
                                       <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border ${tagInfo.style}`}>
                                           {tagInfo.icon} {t(tagInfo.textKey)}
                                       </div>
-                                      <span className="font-mono text-[10px] text-gray-400 bg-gray-50 px-2 py-1 rounded">{req.reference}</span>
                                   </div>
 
-                                  <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-rentia-blue transition-colors">
-                                      {req.type}
-                                  </h3>
+                                  <div className="mb-2">
+                                      <span className="font-mono text-[10px] text-gray-400 bg-gray-50 px-2 py-1 rounded mb-1 inline-block">{req.reference}</span>
+                                      <h3 className="text-lg font-bold text-gray-900 line-clamp-2 group-hover:text-rentia-blue transition-colors">
+                                          {req.type}
+                                      </h3>
+                                  </div>
                                   
                                   <div className="flex items-start gap-2 text-sm text-gray-600 mb-4 bg-gray-50 p-3 rounded-lg">
                                       <MapPin className="w-4 h-4 text-rentia-blue mt-0.5 flex-shrink-0" />
@@ -368,15 +438,11 @@ export const BrokerView: React.FC<BrokerViewProps> = ({ openLegalModal }) => {
                                               {req.budget > 0 ? `${req.budget.toLocaleString('es-ES')}€` : <span className="text-green-600 text-lg">Flexible</span>}
                                           </p>
                                       </div>
-                                      <a 
-                                          href={`https://api.whatsapp.com/send?phone=34672886369&text=Hola,%20tengo%20un%20activo%20que%20encaja%20con%20la%20referencia%20${req.reference}.`}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="w-10 h-10 rounded-full bg-slate-900 text-white flex items-center justify-center hover:bg-rentia-blue transition-colors shadow-lg hover:scale-110 transform duration-200"
-                                          title="Tengo este inmueble"
+                                      <button 
+                                          className="w-10 h-10 rounded-full bg-slate-900 text-white flex items-center justify-center hover:bg-rentia-blue transition-colors shadow-lg group-hover:scale-110 transform duration-200"
                                       >
                                           <ArrowRight className="w-5 h-5" />
-                                      </a>
+                                      </button>
                                   </div>
                               </div>
                           );
@@ -399,29 +465,36 @@ export const BrokerView: React.FC<BrokerViewProps> = ({ openLegalModal }) => {
                                   </tr>
                               </thead>
                               <tbody className="divide-y divide-gray-100 text-sm text-gray-700">
-                                  {filteredRequests.map((req) => (
-                                      <tr key={req.id} className="hover:bg-blue-50/30 transition-colors">
-                                          <td className="p-4 font-mono text-rentia-blue font-bold">{req.reference}</td>
-                                          <td className="p-4">
-                                              <div className="font-bold">{req.type}</div>
-                                              <div className="text-xs text-gray-500">{req.specs}</div>
-                                          </td>
-                                          <td className="p-4">{req.location}</td>
-                                          <td className="p-4 text-right font-bold">
-                                              {req.budget > 0 ? `${req.budget.toLocaleString()}€` : 'Flexible'}
-                                          </td>
-                                          <td className="p-4 text-center">
-                                              <a 
-                                                  href={`https://api.whatsapp.com/send?phone=34672886369&text=Ref:${req.reference}`}
-                                                  target="_blank"
-                                                  rel="noreferrer"
-                                                  className="text-xs bg-green-100 text-green-700 px-3 py-1.5 rounded-lg font-bold hover:bg-green-200 transition-colors"
-                                              >
-                                                  Contactar
-                                              </a>
-                                          </td>
-                                      </tr>
-                                  ))}
+                                  {filteredRequests.map((req) => {
+                                      const isNew = isRecent(req.createdAt);
+                                      return (
+                                          <tr 
+                                            key={req.id} 
+                                            className={`hover:bg-blue-50/30 transition-colors cursor-pointer ${isNew ? 'bg-blue-50/10' : ''}`}
+                                            onClick={() => setSelectedRequest(req)}
+                                          >
+                                              <td className="p-4 font-mono text-rentia-blue font-bold flex items-center gap-2">
+                                                  {req.reference}
+                                                  {isNew && <span className="w-2 h-2 rounded-full bg-rentia-blue animate-pulse" title="Nueva"></span>}
+                                              </td>
+                                              <td className="p-4">
+                                                  <div className="font-bold">{req.type}</div>
+                                                  <div className="text-xs text-gray-500">{req.specs}</div>
+                                              </td>
+                                              <td className="p-4">{req.location}</td>
+                                              <td className="p-4 text-right font-bold">
+                                                  {req.budget > 0 ? `${req.budget.toLocaleString()}€` : 'Flexible'}
+                                              </td>
+                                              <td className="p-4 text-center">
+                                                  <button 
+                                                      className="text-xs bg-green-100 text-green-700 px-3 py-1.5 rounded-lg font-bold hover:bg-green-200 transition-colors"
+                                                  >
+                                                      Ver Ficha
+                                                  </button>
+                                              </td>
+                                          </tr>
+                                      );
+                                  })}
                               </tbody>
                           </table>
                       </div>
@@ -439,11 +512,91 @@ export const BrokerView: React.FC<BrokerViewProps> = ({ openLegalModal }) => {
           )}
       </section>
 
+      {/* --- MODAL DETALLE DEMANDA --- */}
+      {selectedRequest && (
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setSelectedRequest(null)}>
+              <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden relative animate-in zoom-in-95 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+                  
+                  {/* Header Modal */}
+                  <div className="p-6 bg-slate-900 text-white relative">
+                      <button onClick={() => setSelectedRequest(null)} className="absolute top-4 right-4 z-50 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors">
+                          <X className="w-4 h-4" />
+                      </button>
+                      <div className="flex items-center gap-2 mb-2 opacity-80">
+                          <span className="font-mono text-xs bg-white/20 px-2 py-0.5 rounded">{selectedRequest.reference}</span>
+                          {(() => {
+                              const tag = getTagStyle(selectedRequest.tag);
+                              return (
+                                  <span className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
+                                      {tag.icon} {tag.label}
+                                  </span>
+                              )
+                          })()}
+                      </div>
+                      <h3 className="text-xl md:text-2xl font-bold font-display leading-tight">{selectedRequest.type}</h3>
+                  </div>
+
+                  {/* Body Modal */}
+                  <div className="p-6 overflow-y-auto">
+                      <div className="space-y-6">
+                          
+                          {/* Location & Budget */}
+                          <div className="grid grid-cols-2 gap-4">
+                              <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                                  <p className="text-xs text-gray-400 uppercase font-bold mb-1 flex items-center gap-1"><MapPin className="w-3 h-3"/> Zona</p>
+                                  <p className="text-sm font-bold text-gray-800">{selectedRequest.location}</p>
+                              </div>
+                              <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                                  <p className="text-xs text-gray-400 uppercase font-bold mb-1 flex items-center gap-1"><Euro className="w-3 h-3"/> Presupuesto</p>
+                                  <p className="text-sm font-bold text-gray-800">{selectedRequest.budget > 0 ? `${selectedRequest.budget.toLocaleString()}€` : 'Flexible'}</p>
+                              </div>
+                          </div>
+
+                          {/* Details */}
+                          <div>
+                              <h4 className="text-sm font-bold text-gray-800 mb-2 flex items-center gap-2"><Info className="w-4 h-4 text-rentia-blue"/> Detalles del Requerimiento</h4>
+                              <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 text-sm text-gray-700 leading-relaxed space-y-2">
+                                  <p><strong>Características:</strong> {selectedRequest.specs}</p>
+                                  <p><strong>Estado deseado:</strong> {selectedRequest.condition}</p>
+                                  {selectedRequest.notes && (
+                                      <p className="pt-2 border-t border-blue-200 mt-2 italic">
+                                          "{selectedRequest.notes}"
+                                      </p>
+                                  )}
+                                  {isRecent(selectedRequest.createdAt) && (
+                                      <div className="mt-2 text-xs font-bold text-blue-800 flex items-center gap-1">
+                                          <BellRing className="w-3 h-3" /> Publicado recientemente
+                                      </div>
+                                  )}
+                              </div>
+                          </div>
+
+                      </div>
+                  </div>
+
+                  {/* Footer Modal */}
+                  <div className="p-4 bg-gray-50 border-t border-gray-100 flex flex-col gap-2">
+                      <a 
+                          href={`https://api.whatsapp.com/send?phone=34672886369&text=Hola,%20tengo%20un%20inmueble%20que%20encaja%20con%20la%20referencia%20${selectedRequest.reference}.`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="w-full bg-rentia-black text-white font-bold py-3 px-4 rounded-xl hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 shadow-lg"
+                      >
+                          <Briefcase className="w-4 h-4 text-rentia-gold" /> Tengo este inmueble
+                      </a>
+                      <p className="text-[10px] text-gray-400 text-center">
+                          Contacta con nosotros para presentar tu propiedad a este cliente.
+                      </p>
+                  </div>
+              </div>
+          </div>
+      )}
+
       {/* --- MODAL SELECCIÓN DE PERFIL DE BÚSQUEDA --- */}
       {isPublishModalOpen && (
           <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
               <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl flex flex-col animate-in slide-in-from-bottom-10 overflow-hidden relative">
-                  <button onClick={() => setIsPublishModalOpen(false)} className="absolute top-4 right-4 p-2 bg-gray-100 rounded-full hover:bg-gray-200 text-gray-500 z-10"><X className="w-4 h-4"/></button>
+                  <button onClick={() => setIsPublishModalOpen(false)} className="absolute top-4 right-4 z-50 p-2 bg-gray-100 rounded-full hover:bg-gray-200 text-gray-500"><X className="w-4 h-4"/></button>
                   
                   <div className="p-8 text-center bg-slate-900 text-white">
                       <Search className="w-12 h-12 text-rentia-gold mx-auto mb-4" />

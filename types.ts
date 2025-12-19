@@ -39,6 +39,7 @@ export interface Opportunity {
   tags: string[];
   videos?: string[];
   roomConfiguration?: {name: string, price: number}[];
+  disableLivingRoomExpansion?: boolean;
 }
 
 export interface Contract {
@@ -338,6 +339,7 @@ export interface PartnerTransferSubmission {
         dni: string;
         phone: string;
         email: string;
+        relation: string;
     };
     assets: TransferAsset[];
     // Deprecated single prop fields just in case (optional)

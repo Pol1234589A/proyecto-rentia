@@ -3,6 +3,80 @@ import { Opportunity } from './types';
 
 export const opportunities: Opportunity[] = [
   {
+    id: 'TORREVIEJA-COLIVING-5HAB',
+    title: 'Máquina de Cashflow en Torrevieja: 5 Hab + 3 Baños',
+    address: 'C. San Pascual 37',
+    city: 'Torrevieja (Alicante)',
+    description: `OPORTUNIDAD DE ALTO RENDIMIENTO.
+
+Activo funcionando actualmente como Coliving/Hostel con una ocupación y rentabilidad demostrable. Se trata de una propiedad optimizada para el alquiler por habitaciones con una característica única: GASTOS FIJOS MÍNIMOS.
+
+DETALLES DE LA EXPLOTACIÓN:
+1. Distribución Premium: 5 Habitaciones dobles, todas ellas equipadas con nevera propia, mobiliario completo y, lo más importante, BALCÓN PRIVADO en cada habitación.
+2. Zonas Comunes: Cuenta con 3 baños completos compartidos, lo que ofrece un ratio excelente (menos de 2 habs por baño).
+3. Eficiencia de Costes: El edificio no tiene Comunidad de Propietarios constituida, por lo que el gasto de comunidad es 0€. El IBI es extremadamente bajo (40€/año). Esto dispara el Cashflow Neto.
+
+NÚMEROS ACTUALES (SEGÚN PROPIEDAD):
+- Ingresos Mensuales: ~2.000 €
+- Precio habitación: 390€ - 410€ (+ Gastos aparte).
+- Suministros: Se cobran 30€/persona o 60€/pareja, cubriendo el coste real.
+
+Es una oportunidad llave en mano para inversores que busquen flujo de caja inmediato sin necesidad de reforma inicial.`,
+    features: [
+      '5 Habitaciones Dobles',
+      '3 Baños Completos',
+      'Balcón Privado en todas las habs',
+      'Gastos Comunidad 0€',
+      'IBI muy bajo (40€/año)',
+      'Ingresos actuales 2.000€/mes',
+      'Amueblado y Equipado'
+    ],
+    areaBenefits: [
+      'Zona Céntrica Torrevieja',
+      'Alta demanda alquiler',
+      'Servicios a pie de calle',
+      'Cerca de Estación de Autobuses'
+    ],
+    images: [
+      'https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?auto=format&fit=crop&w=1200&q=80', // Dormitorio con balcón (Placeholder)
+      'https://images.unsplash.com/photo-1599619351208-eb72c1e695d7?auto=format&fit=crop&w=1200&q=80', // Balcón
+      'https://images.unsplash.com/photo-1584622050111-993a426fbf0a?auto=format&fit=crop&w=1200&q=80'  // Baño moderno
+    ],
+    driveFolder: '#',
+    scenario: 'rent_rooms',
+    visibility: 'exact',
+    specs: {
+      rooms: 5,
+      bathrooms: 3,
+      sqm: 130, // Estimado
+      floor: 'Entreplanta/1º',
+      hasElevator: false
+    },
+    financials: {
+      purchasePrice: 145000, // Estimado para rentabilidad atractiva
+      itpPercent: 10, // C. Valenciana suele ser 10%
+      reformCost: 2000, // Lavado de cara / Pintura
+      furnitureCost: 0, // Ya equipado según texto
+      notaryAndTaxes: 14500 + 1500, // ITP + Notaria
+      totalInvestment: 163000, 
+      monthlyRentProjected: 2000, // Actualizado: +20€/hab x 5 habs = +100€/mes -> 1900 + 100 = 2000
+      monthlyRentTraditional: 800,
+      yearlyExpenses: 400, // IBI 40€ + Seguro
+      marketValue: 160000,
+      appreciationRate: 3
+    },
+    status: 'available',
+    tags: ['Cashflow Alto', 'Sin Comunidad', 'Torrevieja', '5 Habitaciones'],
+    roomConfiguration: [
+      { name: 'Habitación 1', price: 400 },
+      { name: 'Habitación 2', price: 400 },
+      { name: 'Habitación 3', price: 400 },
+      { name: 'Habitación 4', price: 400 },
+      { name: 'Habitación 5', price: 400 }
+    ],
+    disableLivingRoomExpansion: true // Desactivar salón como habitación extra
+  },
+  {
     id: 'JAVALI-REFORMA-30',
     title: 'Casa Señorial 257m² con Patio: Proyecto Coliving UCAM',
     address: 'Calle Mayor 5',

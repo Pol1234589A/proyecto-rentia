@@ -4,10 +4,9 @@ import { createPortal } from 'react-dom';
 import { db, storage } from '../../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { X, ArrowRight, User, Phone, Mail, FileText, ChevronDown, ChevronUp, Home, Building, PlusCircle, Trash2, Loader2, CheckCircle, Image as ImageIcon, EyeOff, Upload, FileCheck } from 'lucide-react';
+import { X, ArrowRight, User, Phone, Mail, FileText, ChevronDown, ChevronUp, Home, Building, PlusCircle, Trash2, Loader2, CheckCircle, Image as ImageIcon, EyeOff, Upload, FileCheck, Briefcase } from 'lucide-react';
 import { PartnerTransferSubmission, TransferRoomData, TransferPropertyData, TransferAsset } from '../../types';
 import { ImageUploader } from '../admin/ImageUploader';
-import { InmovillaImporter, InmovillaData } from '../common/InmovillaImporter';
 
 interface Props {
   isOpen: boolean;
@@ -54,7 +53,13 @@ export const PartnerTransferModal: React.FC<Props> = ({ isOpen, onClose }) => {
     const [tempRequestId] = useState(`TRANSFER_${Date.now()}_${Math.floor(Math.random()*1000)}`);
 
     // Step 1 State
-    const [collaborator, setCollaborator] = useState({ name: '', dni: '', phone: '', email: '' });
+    const [collaborator, setCollaborator] = useState({ 
+        name: '', 
+        dni: '', 
+        phone: '', 
+        email: '', 
+        relation: 'propietario' // Default value to fix type error
+    });
     const [gdprAccepted, setGdprAccepted] = useState(false);
     const [showFullLegal, setShowFullLegal] = useState(false);
 
@@ -75,7 +80,7 @@ export const PartnerTransferModal: React.FC<Props> = ({ isOpen, onClose }) => {
             rooms: [{ ...initialRoomState, id: Date.now() + 1 }], 
             images: [] 
         }]);
-        setCollaborator({ name: '', dni: '', phone: '', email: '' });
+        setCollaborator({ name: '', dni: '', phone: '', email: '', relation: 'propietario' });
         setGdprAccepted(false);
         setShowFullLegal(false);
         setActiveAssetIndex(0);
@@ -115,44 +120,6 @@ export const PartnerTransferModal: React.FC<Props> = ({ isOpen, onClose }) => {
         setAssets(newAssets);
         setActiveAssetIndex(prev => (prev >= newAssets.length ? newAssets.length - 1 : prev));
     };
-
-    // -- INMOVILLA IMPORT HANDLER --
-    const handleInmovillaImport = (data: InmovillaData) => {
-        // Create rooms array based on detected room count
-        const numRooms = data.rooms > 0 ? data.rooms : 3; // Default to 3 if 0
-        const newRooms: TransferRoomData[] = [];
-        for (let i = 0; i < numRooms; i++) {
-            newRooms.push({
-                ...initialRoomState,
-                id: Date.now() + i,
-                name: `H${i + 1}`,
-                // If price is low (<1000) it might be per room, if high, divide it.
-                // Assuming Inmovilla PDF has total sale/rent price. 
-                // We'll put 0 for safety or estimate if needed.
-                rentPrice: 0 
-            });
-        }
-
-        // Prepare new asset
-        const newAsset: TransferAsset = {
-            id: Date.now(),
-            property: {
-                ...initialPropertyState,
-                address: data.address,
-                city: data.city,
-                floor: data.floor,
-                observations: `${data.description}\n\nCaracterísticas detectadas: ${data.features.join(', ')}`,
-            },
-            rooms: newRooms,
-            images: []
-        };
-
-        // Add to list and select it
-        setAssets(prev => [...prev, newAsset]);
-        setActiveAssetIndex(assets.length); // Index of the new item
-        alert(`Ficha importada: ${data.address}. Se han generado ${numRooms} habitaciones.`);
-    };
-
 
     // -- GENERAL IMAGE MANAGEMENT --
     const addImageToActiveAsset = (url: string) => {
@@ -320,6 +287,19 @@ export const PartnerTransferModal: React.FC<Props> = ({ isOpen, onClose }) => {
                             <h3 className="font-bold text-lg flex items-center gap-2 text-rentia-black border-b pb-2"><User className="w-5 h-5 text-rentia-blue"/> Identificación del Cedente</h3>
                             
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="md:col-span-2">
+                                    <label className="text-xs font-bold text-gray-500 uppercase mb-1 block flex items-center gap-1"><Briefcase className="w-3 h-3"/> Relación / Rol *</label>
+                                    <select 
+                                        value={collaborator.relation} 
+                                        onChange={e => setCollaborator({...collaborator, relation: e.target.value})} 
+                                        className="w-full p-3 border rounded-lg text-sm bg-gray-50 focus:bg-white transition-colors"
+                                    >
+                                        <option value="propietario">Soy el Propietario</option>
+                                        <option value="agencia">Agencia Inmobiliaria / Broker</option>
+                                        <option value="representante">Representante Legal / Apoderado</option>
+                                        <option value="otro">Otro</option>
+                                    </select>
+                                </div>
                                 <div><label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Nombre Completo *</label><input type="text" value={collaborator.name} onChange={e => setCollaborator({...collaborator, name: e.target.value})} className="w-full p-3 border rounded-lg text-sm bg-gray-50 focus:bg-white transition-colors" placeholder="Tu nombre" /></div>
                                 <div><label className="text-xs font-bold text-gray-500 uppercase mb-1 block">DNI/NIF *</label><input type="text" value={collaborator.dni} onChange={e => setCollaborator({...collaborator, dni: e.target.value})} className="w-full p-3 border rounded-lg text-sm bg-gray-50 focus:bg-white transition-colors" placeholder="Documento identidad" /></div>
                                 <div><label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Teléfono *</label><input type="tel" value={collaborator.phone} onChange={e => setCollaborator({...collaborator, phone: e.target.value})} className="w-full p-3 border rounded-lg text-sm bg-gray-50 focus:bg-white transition-colors" placeholder="Móvil contacto" /></div>
@@ -374,18 +354,9 @@ export const PartnerTransferModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
                     {step === 2 && (
                         <div className="space-y-6 animate-in fade-in">
-                           
-                           {/* HEADER WITH IMPORT BUTTON */}
-                           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
-                                <div className="flex items-center gap-2">
-                                    <h3 className="font-bold text-lg flex items-center gap-2 text-rentia-black"><Home className="w-5 h-5 text-rentia-blue"/> Viviendas a Traspasar</h3>
-                                    <div className="text-xs font-bold bg-blue-50 text-blue-700 px-2 py-1 rounded-lg">Total: {assets.length}</div>
-                                </div>
-                                
-                                {/* AI IMPORTER */}
-                                <div className="w-full sm:w-auto">
-                                    <InmovillaImporter onDataExtracted={handleInmovillaImport} />
-                                </div>
+                           <div className="flex justify-between items-center mb-2">
+                                <h3 className="font-bold text-lg flex items-center gap-2 text-rentia-black"><Home className="w-5 h-5 text-rentia-blue"/> Viviendas a Traspasar</h3>
+                                <div className="text-xs font-bold bg-blue-50 text-blue-700 px-2 py-1 rounded-lg">Total: {assets.length}</div>
                            </div>
 
                            {/* ASSET TABS */}
@@ -404,7 +375,7 @@ export const PartnerTransferModal: React.FC<Props> = ({ isOpen, onClose }) => {
                                     </button>
                                 ))}
                                 <button onClick={addAsset} className="px-3 py-2 rounded-lg text-sm font-bold border border-dashed border-gray-300 text-gray-500 hover:border-rentia-blue hover:text-rentia-blue transition-colors flex items-center gap-1">
-                                    <PlusCircle className="w-4 h-4"/> Manual
+                                    <PlusCircle className="w-4 h-4"/> Añadir Vivienda
                                 </button>
                            </div>
 

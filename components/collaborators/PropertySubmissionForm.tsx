@@ -51,7 +51,7 @@ export const PropertySubmissionForm: React.FC<Props> = ({ onBack }) => {
     
     // Collaborator Info
     const [collaborator, setCollaborator] = useState({
-        name: '', phone: '', email: '', relation: 'propietario' as const
+        name: '', phone: '', email: '', relation: 'propietario' as 'propietario' | 'amigo' | 'agencia' | 'mediador'
     });
 
     // Collaboration Logic

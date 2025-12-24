@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -51,6 +52,12 @@ service cloud.firestore {
     }
 
     // --- REGLAS POR COLECCIÓN ---
+
+    // 0. CONFIGURACIÓN WEB (Lectura pública, Edición Staff)
+    match /app_config/{configId} {
+      allow read: if true;
+      allow write: if isStaff();
+    }
 
     // 1. USUARIOS
     // - Staff: Control total.

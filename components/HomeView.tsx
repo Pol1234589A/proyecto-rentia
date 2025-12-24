@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { ChevronDown, Check, KeyRound, TrendingUp, ClipboardList, Sparkles, Settings, FileBarChart, ArrowRight, ShieldCheck, UserCheck, Home, MessageCircle, X, Megaphone, Star, Quote, CheckCircle, Users, Smartphone, Clock, FileText, PlusCircle, Loader2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { NewsTicker } from './NewsTicker';
+import { useConfig } from '../contexts/ConfigContext';
 
 interface FAQItemProps {
   question: string;
@@ -53,6 +54,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
   const [selectedProcess, setSelectedProcess] = useState<ProcessStep | null>(null);
   const [ctaLoaded, setCtaLoaded] = useState(false);
   const { t } = useLanguage();
+  const config = useConfig();
 
   // --- SEO INJECTION: FAQPage Schema ---
   useEffect(() => {
@@ -547,23 +549,25 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
                               <div className="p-2 bg-white/10 rounded-lg backdrop-blur-sm">
                                   <FileText className="w-6 h-6 text-rentia-gold" />
                               </div>
-                              <h3 className="font-bold text-xl">{t('home.contact_dual.admin_card.badge')}</h3>
+                              <h3 className="font-bold text-xl">{config.adminContact.role}</h3>
                           </div>
                           <p className="text-gray-400 text-sm">{t('home.contact_dual.admin_card.desc')}</p>
                       </div>
                       <div className="p-6 md:p-8">
                            <div className="flex items-start gap-4 mb-6">
-                               <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-rentia-black font-bold text-xl">S</div>
+                               <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-rentia-black font-bold text-xl overflow-hidden">
+                                {config.adminContact.image ? <img src={config.adminContact.image} alt={config.adminContact.name} className="w-full h-full object-cover" /> : config.adminContact.name.charAt(0)}
+                               </div>
                                <div>
-                                   <p className="font-bold text-rentia-black text-lg">Sandra</p>
-                                   <p className="text-sm text-gray-500">Responsable de Administración</p>
+                                   <p className="font-bold text-rentia-black text-lg">{config.adminContact.name}</p>
+                                   <p className="text-sm text-gray-500">{config.adminContact.role}</p>
                                </div>
                            </div>
                            
                            <div className="space-y-3 mb-8">
                                <div className="flex items-center gap-3 text-gray-600 text-sm">
                                    <Clock className="w-4 h-4 text-rentia-blue" />
-                                   <span>Lunes a Viernes: <span className="font-bold text-rentia-black">09:00 - 14:00</span></span>
+                                   <span>Lunes a Viernes: <span className="font-bold text-rentia-black">{String(config.adminContact.startHour).padStart(2, '0')}:00 - {String(config.adminContact.endHour).padStart(2, '0')}:00</span></span>
                                </div>
                                <div className="flex items-center gap-3 text-gray-600 text-sm">
                                    <Smartphone className="w-4 h-4 text-rentia-blue" />
@@ -572,7 +576,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
                            </div>
 
                            <a 
-                            href="https://api.whatsapp.com/send?phone=34611948589&text=Hola%20Sandra,%20soy%20propietario/cliente%20y%20necesito%20ayuda%20con..." 
+                            href={`https://api.whatsapp.com/send?phone=${config.adminContact.phone}&text=${encodeURIComponent(config.adminContact.whatsappMessage)}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="w-full flex items-center justify-center gap-2 bg-gray-50 hover:bg-[#25D366] text-gray-800 hover:text-white font-bold py-4 px-6 rounded-xl transition-all border border-gray-200 hover:border-[#25D366]"
@@ -591,23 +595,25 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
                               <div className="p-2 bg-white/10 rounded-lg backdrop-blur-sm">
                                   <TrendingUp className="w-6 h-6 text-rentia-gold" />
                               </div>
-                              <h3 className="font-bold text-xl">{t('home.contact_dual.dir_card.badge')}</h3>
+                              <h3 className="font-bold text-xl">{config.directorContact.role}</h3>
                           </div>
                           <p className="text-blue-100 text-sm">{t('home.contact_dual.dir_card.desc')}</p>
                       </div>
                       <div className="p-6 md:p-8">
                            <div className="flex items-start gap-4 mb-6">
-                               <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-rentia-blue font-bold text-xl">P</div>
+                               <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-rentia-blue font-bold text-xl overflow-hidden">
+                                {config.directorContact.image ? <img src={config.directorContact.image} alt={config.directorContact.name} className="w-full h-full object-cover" /> : config.directorContact.name.charAt(0)}
+                               </div>
                                <div>
-                                   <p className="font-bold text-rentia-black text-lg">Pol</p>
-                                   <p className="text-sm text-gray-500">Dirección</p>
+                                   <p className="font-bold text-rentia-black text-lg">{config.directorContact.name}</p>
+                                   <p className="text-sm text-gray-500">{config.directorContact.role}</p>
                                </div>
                            </div>
                            
                            <div className="space-y-3 mb-8">
                                <div className="flex items-center gap-3 text-gray-600 text-sm">
                                    <Clock className="w-4 h-4 text-rentia-gold" />
-                                   <span>Lunes a Viernes: <span className="font-bold text-rentia-black">09:00 - 20:00</span></span>
+                                   <span>Lunes a Viernes: <span className="font-bold text-rentia-black">{String(config.directorContact.startHour).padStart(2, '0')}:00 - {String(config.directorContact.endHour).padStart(2, '0')}:00</span></span>
                                </div>
                                <div className="flex items-center gap-3 text-gray-600 text-sm">
                                    <Smartphone className="w-4 h-4 text-rentia-gold" />
@@ -616,7 +622,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
                            </div>
 
                            <a 
-                            href="https://api.whatsapp.com/send?phone=34672886369&text=Hola%20Pol,%20estoy%20interesado%20en%20vuestros%20servicios/oportunidades..." 
+                            href={`https://api.whatsapp.com/send?phone=${config.directorContact.phone}&text=${encodeURIComponent(config.directorContact.whatsappMessage)}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="w-full flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20ba5c] text-white font-bold py-4 px-6 rounded-xl transition-all shadow-lg hover:shadow-green-200/50"

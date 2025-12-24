@@ -434,6 +434,7 @@ export const translations = {
         management_fee: 'Comisión Gestión',
         management_vat: 'IVA Gestión',
         without_management_note: '*Sin descontar gestión',
+        approx_note: '*Precios y gastos estimados',
         description: 'Descripción del Activo',
         key_points: 'Puntos Clave',
         area_benefits: 'Beneficios de la Zona',
@@ -1006,6 +1007,7 @@ export const translations = {
         management_fee: 'Management Fee',
         management_vat: 'Management VAT',
         without_management_note: '*Without deducting management',
+        approx_note: '*Approximate prices and expenses',
         description: 'Description',
         key_points: 'Key Points',
         area_benefits: 'Area Benefits',
@@ -1045,7 +1047,7 @@ export const translations = {
         search_placeholder: 'Search by ref, type...',
         location_label: 'Filter by Area',
         all_zones: 'All areas',
-        results_count: 'results found',
+        results_count: 'resultados encontrados',
         source_label: 'Source:',
         all_sources: 'All',
         own_source: 'Own',
@@ -1055,7 +1057,7 @@ export const translations = {
         title: 'Active Purchase Orders',
         active_req: 'active requirements',
         ref: 'Reference',
-        date: 'Date',
+        date: 'Fecha',
         type: 'Type & Specs',
         location: 'Area / Location',
         budget: 'Max Budget',
@@ -1135,13 +1137,13 @@ export const translations = {
       }
     },
     whatsapp: {
-      online: 'Online',
-      closed: 'Closed',
-      opens_at: 'Opens at',
-      admin_label: 'Secretary (Sandra)',
-      admin_desc: 'Admin & Owners',
-      dir_label: 'Management (Pol)',
-      dir_desc: 'Strategy & Investment'
+      online: 'En línea',
+      closed: 'Cerrado',
+      opens_at: 'Abre a las',
+      admin_label: 'Secretaría (Sandra)',
+      admin_desc: 'Admin y Propietarios',
+      dir_label: 'Dirección (Pol)',
+      dir_desc: 'Estrategia e Inversión'
     }
   }
 };

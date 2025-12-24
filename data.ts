@@ -10,6 +10,82 @@ const getRecentDate = (hoursAgo: number) => {
 
 export const opportunities: Opportunity[] = [
   {
+    id: 'JAVALI-IGLESIA-118',
+    title: 'Casa con Patio y Terraza en Javalí Viejo: Proyecto Coliving',
+    address: 'C. de la Iglesia',
+    city: 'Javalí Viejo (Murcia)',
+    description: `OPORTUNIDAD DE INVERSIÓN ENFOCADA A CASHFLOW.
+
+Presentamos esta casa de dos plantas en pleno centro de Javalí Viejo, una ubicación estratégica rodeada de todos los servicios (supermercados, farmacia, colegio) y con excelente conexión.
+
+ESTADO DEL INMUEBLE:
+La vivienda se encuentra a medio reformar, ofreciendo un lienzo ideal para maximizar el valor con una inversión controlada:
+1. **Planta Baja:** Espacio versátil para configurar salón-cocina, 1 o 2 baños completos y hasta 2 habitaciones. La joya de esta planta es su **amplio patio privado**, con espacio suficiente para piscina y zona de barbacoa, un factor diferencial clave para el alquiler por habitaciones.
+2. **Planta Alta:** Totalmente diáfana, lo que facilita la distribución a medida. Cuenta con suelo recién cambiado, ventanas nuevas, baño instalado y techo reforzado con vigas de alta calidad y aislamiento proyectado. Acceso a dos terrazas privadas.
+
+ESTUDIO DE VIABILIDAD (ESTIMADO*):
+El activo permite una configuración óptima de 5 habitaciones (con posibilidad de una 6ª en el salón).
+- **Precio Objetivo:** 250 €/habitación + gastos.
+- **Ingreso Bruto Estimado:** ~1.250 €/mes.
+- **Estrategia:** Proyecto enfocado a maximizar el Cashflow mensual, priorizando un flujo de caja constante y seguro frente a la especulación de valor.
+
+*Nota: Los costes de reforma se han ajustado para una terminación de alta calidad y puesta a punto integral.*`,
+    features: [
+      '2 Plantas',
+      'Patio Privado (Apto Piscina)',
+      '2 Terrazas',
+      'Techo Reforzado y Aislado',
+      'Ventanas Nuevas (P. Alta)',
+      'Potencial 5-6 Habitaciones',
+      'Junto a Servicios'
+    ],
+    areaBenefits: [
+      'Centro del Pueblo',
+      'Servicios a pie de calle',
+      'Transporte Público',
+      'Zona Tranquila'
+    ],
+    images: [
+      'https://images.unsplash.com/photo-1480074568708-e7b720bb3f09?auto=format&fit=crop&w=1200&q=80', // Fachada casa pueblo (Placeholder)
+      'https://images.unsplash.com/photo-1600607686527-6fb886090705?auto=format&fit=crop&w=1200&q=80', // Patio potencial (Placeholder)
+      'https://images.unsplash.com/photo-1502005229762-cf1e25374e74?auto=format&fit=crop&w=1200&q=80', // Interior diáfano (Placeholder)
+    ],
+    driveFolder: '#',
+    scenario: 'rent_rooms',
+    visibility: 'exact',
+    specs: {
+      rooms: 5, // Configuración base
+      bathrooms: 2, // 1 existente + 1 proyectado
+      sqm: 140, // Estimado según descripción
+      floor: 'Casa Completa',
+      hasElevator: false
+    },
+    financials: {
+      purchasePrice: 118000,
+      itpPercent: 8,
+      reformCost: 80000, // Actualizado a 80k (Reforma Integral/Completa)
+      furnitureCost: 5000, 
+      notaryAndTaxes: 1500 + (118000 * 0.08), // Notaría + ITP (~11k)
+      totalInvestment: 213940, // 118k + 11k + 80k + 5k
+      monthlyRentProjected: 1250, // 5 habs * 250€
+      monthlyRentTraditional: 750,
+      yearlyExpenses: 350, // IBI estimado y seguro
+      marketValue: 175000, // Valor tras reforma integral
+      appreciationRate: 3
+    },
+    status: 'available',
+    tags: ['Reforma Integral', 'Patio Privado', 'Cashflow', 'Javalí Viejo'],
+    roomConfiguration: [
+      { name: 'Habitación 1 (P. Baja)', price: 250 },
+      { name: 'Habitación 2 (P. Baja)', price: 250 },
+      { name: 'Habitación 3 (P. Alta)', price: 250 },
+      { name: 'Habitación 4 (P. Alta)', price: 250 },
+      { name: 'Habitación 5 (P. Alta)', price: 250 }
+    ],
+    disableLivingRoomExpansion: false, // Permitimos simular la 6ª habitación en la web
+    createdAt: getRecentDate(1) // 1 hour ago (New)
+  },
+  {
     id: 'TORREVIEJA-COLIVING-5HAB',
     title: 'Máquina de Cashflow en Torrevieja: 5 Hab + 3 Baños',
     address: 'C. San Pascual 37',
@@ -82,7 +158,7 @@ Es una oportunidad llave en mano para inversores que busquen flujo de caja inmed
       { name: 'Habitación 5', price: 400 }
     ],
     disableLivingRoomExpansion: true, // Desactivar salón como habitación extra
-    createdAt: getRecentDate(2) // 2 hours ago (Very New)
+    createdAt: getRecentDate(48)
   },
   {
     id: 'JAVALI-REFORMA-30',
@@ -165,7 +241,7 @@ Los 257 m² permiten diluir el coste de la reforma integral entre 7 unidades ren
     },
     status: 'available',
     tags: ['Value-Add', 'Rentabilidad >10%', 'Coliving', 'Patio Privado'],
-    createdAt: getRecentDate(48) // 48 hours ago (New)
+    createdAt: getRecentDate(96)
   },
   {
     id: 'RP1742025141383',

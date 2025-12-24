@@ -1,9 +1,10 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Opportunity } from '../types';
-import { MapPin, Bed, Maximize, TrendingUp, PlayCircle, ArrowRight, Building, ExternalLink, Home, Image as ImageIcon, MessageSquare, Loader2, Bell } from 'lucide-react';
+import { MapPin, Bed, Maximize, TrendingUp, PlayCircle, ArrowRight, Building, ExternalLink, Home, Loader2, Bell, Info, MessageSquare } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { ContactLeadModal } from './ContactLeadModal';
+import { calculateOpportunityFinancials } from '../utils/financials';
 
 interface Props {
   opportunity: Opportunity;
@@ -18,25 +19,11 @@ export const OpportunityCard: React.FC<Props> = ({ opportunity, onClick }) => {
   // Scenarios Logic
   const isLiving = opportunity.scenario === 'sale_living';
   
-  // Calculate yield if Investment
-  const monthlyIncome = opportunity.financials.monthlyRentProjected > 0 
-      ? opportunity.financials.monthlyRentProjected 
-      : opportunity.financials.monthlyRentTraditional;
+  // --- USO DE LA LÓGICA CENTRALIZADA ---
+  const financials = useMemo(() => calculateOpportunityFinancials(opportunity), [opportunity]);
 
-  const purchasePrice = opportunity.financials.purchasePrice;
-  // Use stored fees or default calculation
-  const agencyFeeBase = opportunity.financials.agencyFees !== undefined 
-      ? opportunity.financials.agencyFees 
-      : (purchasePrice > 100000 ? purchasePrice * 0.03 : 3000);
-      
-  const agencyFeeTotal = agencyFeeBase * 1.21; 
-  const finalTotalInvestment = opportunity.financials.totalInvestment + agencyFeeTotal;
-      
-  const grossYield = ((monthlyIncome * 12) / finalTotalInvestment) * 100;
-
-  // Visibility Logic: SIEMPRE ocultamos el número exacto para el público
+  // Visibility Logic
   let displayAddress = opportunity.address.replace(/\d+/g, '').replace(/,/, '').trim();
-  
   if (opportunity.visibility === 'hidden') {
       displayAddress = 'Ubicación Privada';
   }
@@ -45,7 +32,6 @@ export const OpportunityCard: React.FC<Props> = ({ opportunity, onClick }) => {
   const isNew = useMemo(() => {
       if (!opportunity.createdAt) return false;
       const now = new Date();
-      // Handle Firestore Timestamp or JS Date
       const created = (opportunity.createdAt as any).toDate ? (opportunity.createdAt as any).toDate() : new Date(opportunity.createdAt);
       const diffTime = Math.abs(now.getTime() - created.getTime());
       const diffHours = Math.ceil(diffTime / (1000 * 60 * 60));
@@ -70,7 +56,6 @@ export const OpportunityCard: React.FC<Props> = ({ opportunity, onClick }) => {
 
       {/* --- IMAGE & OVERLAYS --- */}
       <div className="relative h-64 overflow-hidden bg-gray-100">
-        {/* Loader Spinner */}
         {!imageLoaded && (
             <div className="absolute inset-0 flex items-center justify-center text-gray-300 bg-gray-50 z-10">
                 <Loader2 className="w-10 h-10 animate-spin text-rentia-blue/50" />
@@ -94,7 +79,7 @@ export const OpportunityCard: React.FC<Props> = ({ opportunity, onClick }) => {
                 <div className="flex items-center gap-1 text-rentia-gold mb-0.5">
                     <TrendingUp className="w-4 h-4" />
                 </div>
-                <span className="font-bold text-2xl font-display leading-none">{grossYield.toFixed(1)}%</span>
+                <span className="font-bold text-2xl font-display leading-none">{financials.grossYield.toFixed(1)}%</span>
                 <span className="text-[9px] uppercase tracking-wider font-medium opacity-80">{t('opportunities.card.profitability')}</span>
             </div>
         ) : (
@@ -107,11 +92,14 @@ export const OpportunityCard: React.FC<Props> = ({ opportunity, onClick }) => {
         {/* Tags */}
         <div className="absolute bottom-4 left-4 right-4 flex flex-col justify-end z-10">
             <div className="flex flex-wrap gap-2 mb-2">
-                {opportunity.tags.slice(0, 3).map(tag => (
-                    <span key={tag} className="px-2 py-1 bg-white/20 backdrop-blur-md border border-white/10 text-white text-[10px] font-bold uppercase tracking-wide rounded">
-                        {tag}
-                    </span>
-                ))}
+                {opportunity.tags.slice(0, 3).map(tag => {
+                    if (tag.toLowerCase().includes('cashflow')) return null;
+                    return (
+                        <span key={tag} className="px-2 py-1 bg-white/20 backdrop-blur-md border border-white/10 text-white text-[10px] font-bold uppercase tracking-wide rounded">
+                            {tag}
+                        </span>
+                    );
+                })}
                  {opportunity.videos && opportunity.videos.length > 0 && (
                     <span className="px-2 py-1 bg-red-600 text-white text-[10px] font-bold uppercase tracking-wide rounded flex items-center shadow-sm">
                         <PlayCircle className="w-3 h-3 mr-1" /> Video
@@ -157,21 +145,21 @@ export const OpportunityCard: React.FC<Props> = ({ opportunity, onClick }) => {
                 )}
             </div>
 
-            {/* Financial Highlights */}
+            {/* Financial Highlights (Usando calculos centralizados) */}
             <div className="grid grid-cols-2 gap-3 mb-5">
                 <div className="p-3 rounded-lg bg-gray-50 border border-gray-100">
                     <p className="text-[10px] text-gray-400 uppercase tracking-wide font-bold mb-1">{t('opportunities.card.purchase_price')}</p>
-                    <p className="font-bold text-gray-900 text-lg">{opportunity.financials.purchasePrice.toLocaleString('es-ES')} €</p>
+                    <p className="font-bold text-gray-900 text-lg">{financials.purchasePrice.toLocaleString('es-ES')} €</p>
                 </div>
                 {!isLiving ? (
                     <div className="p-3 rounded-lg bg-blue-50 border border-blue-100">
                         <p className="text-[10px] text-blue-400 uppercase tracking-wide font-bold mb-1">{t('opportunities.card.total_investment')}</p>
-                        <p className="font-bold text-rentia-blue text-lg">{finalTotalInvestment.toLocaleString('es-ES')} €</p>
+                        <p className="font-bold text-rentia-blue text-lg">{financials.totalInvestment.toLocaleString('es-ES')} €</p>
                     </div>
                 ) : (
                     <div className="p-3 rounded-lg bg-purple-50 border border-purple-100">
                         <p className="text-[10px] text-purple-400 uppercase tracking-wide font-bold mb-1">Precio / m²</p>
-                        <p className="font-bold text-purple-700 text-lg">{(opportunity.financials.purchasePrice / opportunity.specs.sqm).toFixed(0)} €</p>
+                        <p className="font-bold text-purple-700 text-lg">{(financials.purchasePrice / opportunity.specs.sqm).toFixed(0)} €</p>
                     </div>
                 )}
             </div>
@@ -227,4 +215,3 @@ export const OpportunityCard: React.FC<Props> = ({ opportunity, onClick }) => {
     </>
   );
 };
-import { useMemo } from 'react';

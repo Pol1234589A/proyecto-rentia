@@ -30,6 +30,7 @@ import { TransferRequestManager } from '../admin/TransferRequestManager';
 import { AdvancedCalculator } from '../admin/tools/AdvancedCalculator'; 
 import { ManagementLeadsManager } from '../admin/ManagementLeadsManager';
 import { RoomManager } from '../admin/RoomManager';
+import { SiteConfigManager } from '../admin/SiteConfigManager';
 import { LayoutDashboard, Calculator, Briefcase, Wrench, Plus, Search, FileText, Save, X, DollarSign, Calendar as CalendarIcon, Filter, Pencil, PieChart, Landmark, Wallet, Clock, Zap, Settings, Receipt, Split, Info, MessageCircle, Share2, ClipboardList, UserCheck, Mail, Phone, ArrowRight, UserPlus, Inbox, Home, DoorOpen, Menu, Activity, ShieldAlert, UserCog, Siren, Footprints, BarChart3, Building, Grid, Globe, Send, Users, Key } from 'lucide-react';
 
 
@@ -61,8 +62,8 @@ const MotivationalBanner = () => {
 export const StaffDashboard: React.FC = () => {
   const { currentUser } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'room_manager' | 'real_estate' | 'accounting' | 'tools' | 'contracts' | 'calendar' | 'supplies' | 'calculator' | 'social' | 'tasks' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'transfers' | 'advanced_calc' | 'management_leads'>('overview');
-  const [activeMobileTab, setActiveMobileTab] = useState<'overview' | 'tasks' | 'candidates' | 'properties' | 'menu' | 'accounting' | 'supplies' | 'calendar' | 'contracts' | 'social' | 'calculator' | 'tools' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'advanced_calc' | 'management_leads'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'room_manager' | 'real_estate' | 'accounting' | 'tools' | 'contracts' | 'calendar' | 'supplies' | 'calculator' | 'social' | 'tasks' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'transfers' | 'advanced_calc' | 'management_leads' | 'site_config'>('overview');
+  const [activeMobileTab, setActiveMobileTab] = useState<'overview' | 'tasks' | 'candidates' | 'properties' | 'menu' | 'accounting' | 'supplies' | 'calendar' | 'contracts' | 'social' | 'calculator' | 'tools' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'advanced_calc' | 'management_leads' | 'site_config'>('overview');
 
   const [stats, setStats] = useState({
     totalRooms: 0,
@@ -232,6 +233,7 @@ export const StaffDashboard: React.FC = () => {
         { id: 'calendar', label: 'Calendario', icon: <CalendarIcon className="w-4 h-4" /> },
         { id: 'visits', label: 'Visitas', icon: <Footprints className="w-4 h-4" /> }, 
         { id: 'user_manager', label: 'Usuarios', icon: <UserCog className="w-4 h-4" /> }, 
+        { id: 'site_config', label: 'Configuración Web', icon: <Settings className="w-4 h-4 text-indigo-600" /> }, 
         { id: 'tools', label: 'Admin', icon: <Wrench className="w-4 h-4" /> },
     ];
 
@@ -248,6 +250,7 @@ export const StaffDashboard: React.FC = () => {
         { id: 'visits', label: 'Visitas', icon: <Footprints className="w-6 h-6"/>, color: 'bg-red-100 text-red-600' },
         { id: 'contracts', label: 'Contratos', icon: <FileText className="w-6 h-6"/>, color: 'bg-purple-100 text-purple-600' },
         { id: 'user_manager', label: 'Usuarios', icon: <UserCog className="w-6 h-6"/>, color: 'bg-gray-200 text-gray-700' },
+        { id: 'site_config', label: 'Configuración', icon: <Settings className="w-6 h-6"/>, color: 'bg-indigo-100 text-indigo-600' },
         { id: 'calculator', label: 'Reparto Gastos', icon: <Split className="w-6 h-6"/>, color: 'bg-orange-100 text-orange-600' },
         { id: 'tools', label: 'Herramientas', icon: <Wrench className="w-6 h-6"/>, color: 'bg-gray-100 text-gray-600' },
     ];
@@ -305,6 +308,7 @@ export const StaffDashboard: React.FC = () => {
             case 'management_leads': return <div className="h-full overflow-y-auto pb-24"><ManagementLeadsManager /></div>;
             case 'worker_invoices': return <div className="h-full overflow-y-auto pb-24"><WorkerInvoicesPanel /></div>;
             case 'user_manager': return <div className="h-full overflow-y-auto pb-24"><UserManager /></div>;
+            case 'site_config': return <div className="h-full overflow-y-auto pb-24"><SiteConfigManager /></div>;
             case 'calculator': return <div className="h-full overflow-y-auto pb-24"><SupplyCalculator properties={propertiesList} preSelectedPropertyId={selectedPropId} /></div>;
             case 'social': return <div className="h-full overflow-y-auto pb-24"><SocialInbox /></div>;
             case 'tools': return <div className="h-full overflow-y-auto p-4 space-y-4 pb-24"><NewsManager /><ProfitCalculator /></div>;
@@ -423,6 +427,7 @@ export const StaffDashboard: React.FC = () => {
             {activeTab === 'management_leads' && <div className="animate-in slide-in-from-bottom-4 duration-300"><ManagementLeadsManager /></div>}
             {activeTab === 'worker_invoices' && <div className="animate-in slide-in-from-bottom-4 duration-300"><WorkerInvoicesPanel /></div>}
             {activeTab === 'user_manager' && <div className="animate-in slide-in-from-bottom-4 duration-300"><UserManager /></div>}
+            {activeTab === 'site_config' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><SiteConfigManager /></div>}
             
             {activeTab === 'tools' && ( 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in slide-in-from-bottom-4 duration-300">

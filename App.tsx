@@ -31,6 +31,7 @@ import { TrendingUp, MessageCircle, Bell, ArrowUpDown, Filter } from 'lucide-rea
 import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ConfigProvider } from './contexts/ConfigContext';
+import { ContentProvider } from './contexts/ContentContext'; // NEW
 import { db } from './firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
 
@@ -429,9 +430,11 @@ function App() {
   return (
     <AuthProvider>
         <ConfigProvider>
+          <ContentProvider>
             <LanguageProvider>
                 <AppContent />
             </LanguageProvider>
+          </ContentProvider>
         </ConfigProvider>
     </AuthProvider>
   );

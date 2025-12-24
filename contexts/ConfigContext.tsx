@@ -15,6 +15,26 @@ export interface TeamMemberConfig {
     whatsappMessage: string;
 }
 
+export interface SeasonalEvent {
+    id: string;
+    name: string; // Internal name (e.g., "Navidad 2025")
+    startDate: string; // YYYY-MM-DD
+    endDate: string; // YYYY-MM-DD
+    heroTitle: string;
+    heroSubtitle: string;
+    heroImage: string;
+    overlayColor: string; // Hex or rgba
+    overlayOpacity: number; // 0 to 1
+    isActive: boolean;
+}
+
+export interface RoomsAlertConfig {
+    isActive: boolean;
+    title: string;
+    message: string;
+    variant: 'info' | 'warning' | 'error' | 'success';
+}
+
 export interface SiteConfig {
     adminContact: TeamMemberConfig;
     directorContact: TeamMemberConfig;
@@ -26,6 +46,22 @@ export interface SiteConfig {
         linkedin: string;
         tiktok: string;
     };
+    seo: {
+        siteTitle: string;
+        metaDescription: string;
+    };
+    modules: {
+        showBlog: boolean;
+        showDiscounts: boolean;
+        maintenanceMode: boolean;
+    };
+    billing: {
+        companyIban: string;
+        companyName: string;
+    };
+    holidays: string[]; // Array of YYYY-MM-DD
+    seasonalEvents: SeasonalEvent[];
+    roomsAlert: RoomsAlertConfig;
 }
 
 const defaultConfig: SiteConfig = {
@@ -58,6 +94,27 @@ const defaultConfig: SiteConfig = {
         facebook: 'https://www.facebook.com/share/1Cpvx6fmh2/',
         linkedin: 'https://www.linkedin.com/company/rentia-room/',
         tiktok: 'https://www.tiktok.com/@rentiaroom'
+    },
+    seo: {
+        siteTitle: 'RentiaRoom | Gestión de Inversiones',
+        metaDescription: 'Líderes en gestión integral de alquiler por habitaciones y oportunidades de inversión inmobiliaria en Murcia.'
+    },
+    modules: {
+        showBlog: true,
+        showDiscounts: true,
+        maintenanceMode: false
+    },
+    billing: {
+        companyIban: '',
+        companyName: 'Rentia Investments S.L.'
+    },
+    holidays: [],
+    seasonalEvents: [],
+    roomsAlert: {
+        isActive: false,
+        title: 'Aviso Importante',
+        message: 'Estamos actualizando nuestro catálogo.',
+        variant: 'info'
     }
 };
 
@@ -71,8 +128,21 @@ export const ConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     useEffect(() => {
         const unsub = onSnapshot(doc(db, "app_config", "general"), (docSnap) => {
             if (docSnap.exists()) {
-                // Merge con default para asegurar que no falten campos si se añaden nuevos en el futuro
-                setConfig({ ...defaultConfig, ...docSnap.data() as SiteConfig });
+                // Merge con default para asegurar que no falten campos si se añaden nuevos
+                const data = docSnap.data();
+                setConfig({ 
+                    ...defaultConfig, 
+                    ...data,
+                    // Ensure nested objects exist
+                    general: { ...defaultConfig.general, ...(data.general || {}) },
+                    seo: { ...defaultConfig.seo, ...(data.seo || {}) },
+                    modules: { ...defaultConfig.modules, ...(data.modules || {}) },
+                    billing: { ...defaultConfig.billing, ...(data.billing || {}) },
+                    // Ensure arrays exist even if DB returns undefined
+                    holidays: data.holidays || [],
+                    seasonalEvents: data.seasonalEvents || [],
+                    roomsAlert: { ...defaultConfig.roomsAlert, ...(data.roomsAlert || {}) }
+                });
             }
         });
         return () => unsub();

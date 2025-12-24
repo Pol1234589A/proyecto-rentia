@@ -41,6 +41,7 @@ export interface Opportunity {
   roomConfiguration?: {name: string, price: number}[];
   disableLivingRoomExpansion?: boolean;
   createdAt?: string | any; // Timestamp or ISO string
+  active?: boolean; // Controls visibility/publication status
 }
 
 export interface Contract {
@@ -380,4 +381,37 @@ export interface ManagementLead {
     consent?: any;
     tempId?: string;
     linkedOwnerId?: string; // New field for linked user ID
+}
+
+// --- CMS TYPES ---
+export interface HomeHeroContent {
+    titlePrefix: string;
+    titleHighlight: string;
+    subtitle: string;
+    backgroundImage: string;
+    ctaPrimary: string;
+    ctaSecondary: string;
+    overlayOpacity: number;
+}
+
+export interface HomeSolutionsContent {
+    title: string;
+    subtitle: string;
+    card1Title: string;
+    card1Desc: string;
+    card2Title: string;
+    card2Desc: string;
+}
+
+export interface HomeCTAContent {
+    title: string;
+    subtitle: string;
+    image: string;
+    buttonText: string;
+}
+
+export interface HomePageContent {
+    hero: HomeHeroContent;
+    solutions: HomeSolutionsContent;
+    cta: HomeCTAContent;
 }

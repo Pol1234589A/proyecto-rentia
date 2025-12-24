@@ -1,10 +1,14 @@
 
+
 import React, { useState, useEffect } from 'react';
-import { blogPosts, BlogPost } from '../data/blogData';
+import { db } from '../firebase';
+import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { blogPosts as staticPosts, BlogPost } from '../data/blogData';
 import { Clock, Calendar, ChevronRight, Search, List, ArrowLeft, Tag, TrendingUp, KeyRound, Users, Zap, FileText, Loader2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
 export const BlogView: React.FC = () => {
+  const [posts, setPosts] = useState<BlogPost[]>(staticPosts);
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -12,6 +16,25 @@ export const BlogView: React.FC = () => {
   const [toc, setToc] = useState<{id: string, text: string, level: number}[]>([]);
   const [heroLoaded, setHeroLoaded] = useState(false);
   const { language, t } = useLanguage();
+
+  // Load Firestore posts and merge
+  useEffect(() => {
+    const q = query(collection(db, "blog_posts"), orderBy("createdAt", "desc"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+        const firestorePosts: BlogPost[] = [];
+        snapshot.forEach((doc) => {
+            firestorePosts.push({ ...doc.data(), id: doc.id } as BlogPost);
+        });
+        
+        // Merge: Priority to Firestore, then remaining static
+        // Assuming unique IDs. If duplicate ID, Firestore wins.
+        const dbIds = new Set(firestorePosts.map(p => p.id));
+        const combined = [...firestorePosts, ...staticPosts.filter(p => !dbIds.has(p.id))];
+        
+        setPosts(combined);
+    });
+    return () => unsubscribe();
+  }, []);
 
   // Scroll handler for progress bar
   const handleScroll = () => {
@@ -27,7 +50,7 @@ export const BlogView: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [selectedPostId]);
 
-  const selectedPost = blogPosts.find(p => p.id === selectedPostId);
+  const selectedPost = posts.find(p => p.id === selectedPostId);
 
   // --- SEO INJECTION: BlogPosting Schema ---
   useEffect(() => {
@@ -72,7 +95,7 @@ export const BlogView: React.FC = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
     if (selectedPostId) {
-      const post = blogPosts.find(p => p.id === selectedPostId);
+      const post = posts.find(p => p.id === selectedPostId);
       if (post) {
         // Simple regex to find h2 and h3 tags for TOC
         const content = post.content[language];
@@ -88,20 +111,20 @@ export const BlogView: React.FC = () => {
         setToc(matches);
       }
     }
-  }, [selectedPostId, language]);
+  }, [selectedPostId, language, posts]);
 
   const categories = language === 'es' 
     ? ['Todos', 'Inversión', 'Propietarios', 'Inquilinos', 'Tendencias']
     : ['All', 'Investment', 'Owners', 'Tenants', 'Trends'];
 
-  const filteredPosts = blogPosts.filter(post => {
+  const filteredPosts = posts.filter(post => {
       // Logic: Compare the localized category with the selected one
       // If 'Todos' or 'All' is selected, show everything
       const isAll = selectedCategory === 'Todos' || selectedCategory === 'All';
       const matchesCategory = isAll || post.category[language] === selectedCategory;
       
-      const title = post.title[language].toLowerCase();
-      const excerpt = post.excerpt[language].toLowerCase();
+      const title = (post.title[language] || '').toLowerCase();
+      const excerpt = (post.excerpt[language] || '').toLowerCase();
       const search = searchTerm.toLowerCase();
 
       const matchesSearch = title.includes(search) || excerpt.includes(search);
@@ -148,11 +171,10 @@ export const BlogView: React.FC = () => {
 
   // VIEW: SINGLE POST
   if (selectedPost) {
-      const currentTitle = selectedPost.title[language];
-      const currentContent = selectedPost.content[language];
-      const currentCategory = selectedPost.category[language];
-      const currentDate = selectedPost.date[language];
-      const currentExcerpt = selectedPost.excerpt[language];
+      const currentTitle = selectedPost.title[language] || selectedPost.title.es; // Fallback
+      const currentContent = selectedPost.content[language] || selectedPost.content.es;
+      const currentCategory = selectedPost.category[language] || selectedPost.category.es;
+      const currentDate = selectedPost.date[language] || selectedPost.date.es;
 
       return (
         <div className="bg-white min-h-screen font-sans animate-in fade-in slide-in-from-bottom-4 duration-500 relative">
@@ -202,10 +224,10 @@ export const BlogView: React.FC = () => {
                             </h1>
                             <div className="flex items-center">
                                 <div className="w-12 h-12 rounded-full bg-rentia-black text-white flex items-center justify-center font-bold text-xl mr-4 shadow-sm">
-                                    {selectedPost.author.charAt(0)}
+                                    {(selectedPost.author || 'R').charAt(0)}
                                 </div>
                                 <div>
-                                    <p className="text-sm font-bold text-gray-900">{selectedPost.author}</p>
+                                    <p className="text-sm font-bold text-gray-900">{selectedPost.author || 'Rentia Team'}</p>
                                     <p className="text-xs text-gray-500 uppercase tracking-wide">RentiaRoom Team</p>
                                 </div>
                             </div>
@@ -213,7 +235,7 @@ export const BlogView: React.FC = () => {
 
                         {/* HTML Content */}
                         <div 
-                            className="prose prose-lg max-w-none prose-headings:font-display prose-headings:font-bold prose-a:text-rentia-blue prose-blockquote:border-rentia-blue prose-blockquote:bg-gray-50 prose-blockquote:p-4 prose-blockquote:rounded-r-lg prose-img:hidden text-gray-700 leading-relaxed"
+                            className="prose prose-lg max-w-none prose-headings:font-display prose-headings:font-bold prose-a:text-rentia-blue prose-blockquote:border-rentia-blue prose-blockquote:bg-gray-50 prose-blockquote:p-4 prose-blockquote:rounded-r-lg text-gray-700 leading-relaxed"
                             dangerouslySetInnerHTML={{ __html: currentContent }}
                         />
 
@@ -360,10 +382,10 @@ export const BlogView: React.FC = () => {
             {filteredPosts.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredPosts.map(post => {
-                        const currentTitle = post.title[language];
-                        const currentExcerpt = post.excerpt[language];
-                        const currentCategory = post.category[language];
-                        const currentDate = post.date[language];
+                        const currentTitle = post.title[language] || post.title.es;
+                        const currentExcerpt = post.excerpt[language] || post.excerpt.es;
+                        const currentCategory = post.category[language] || post.category.es;
+                        const currentDate = post.date[language] || post.date.es;
 
                         return (
                         <div 
@@ -375,7 +397,6 @@ export const BlogView: React.FC = () => {
                             <div className="p-6 border-b border-gray-50 flex items-center justify-between bg-white relative overflow-hidden">
                                  {/* Decorative Background Icon */}
                                  <div className="absolute -right-4 -bottom-6 text-gray-50 transform rotate-12 group-hover:text-gray-100 transition-colors duration-500">
-                                     {/* Fix: Removed redundant type assertion after adding a return type to getCategoryIcon. */}
                                      {getCategoryIcon(currentCategory) && React.cloneElement(getCategoryIcon(currentCategory), { className: "w-24 h-24 opacity-50" })}
                                  </div>
 

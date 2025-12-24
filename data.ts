@@ -10,6 +10,87 @@ const getRecentDate = (hoursAgo: number) => {
 
 export const opportunities: Opportunity[] = [
   {
+    id: 'NORA-FAMILIAR-PATIO',
+    title: 'Oportunidad Rebajada: Piso con Patio y Garaje en La Ñora',
+    address: 'Zona Centro',
+    city: 'La Ñora (Murcia)',
+    description: `OPORTUNIDAD PRECIO FINAL: 135.000€ (GARAJE INCLUIDO).
+Propiedad rebajada al límite. No se aceptan ofertas inferiores. Excelente activo tanto para explotación por habitaciones como para alquiler tradicional.
+
+ESTUDIO DE RENTABILIDAD (DOS ESCENARIOS):
+
+🅰️ ESCENARIO A: ALQUILER POR HABITACIONES (Inversión)
+Enfoque para estudiantes UCAM o trabajadores desplazados.
+- **Precio por habitación:** 250 € + Gastos.
+- **Configuración actual:** 3 Habitaciones (Posibilidad de sacar una 4ª por amplitud).
+- **Ingreso Mensual Base:** 750 €.
+- **Ventaja:** El patio y el garaje son extras muy valorados por inquilinos con vehículo.
+
+🅱️ ESCENARIO B: ALQUILER TRADICIONAL (Familia)
+- **Renta estimada:** 800 € / mes.
+- **Perfil:** Familias de larga estancia que buscan estabilidad.
+- **Ventaja:** Gestión simplificada (un solo contrato) y menor rotación.
+
+CARACTERÍSTICAS DEL INMUEBLE:
+- **110 m² Construidos:** Gran amplitud.
+- **Patio Privado:** Espacio de desahogo imprescindible.
+- **Plaza de Garaje:** Incluida en el precio (antes opcional).
+- **Estado:** Buen estado de conservación, listo para entrar.`,
+    features: [
+      'Precio Rebajado 135k',
+      'Garaje Incluido',
+      '110 m² Construidos',
+      '3 Habitaciones',
+      '2 Baños',
+      'Patio Privado',
+      'Aire Acondicionado',
+      'Rentabilidad Dual'
+    ],
+    areaBenefits: [
+      'Zona Tranquila',
+      'Servicios y Colegios',
+      'Cerca UCAM',
+      'Ambiente Familiar'
+    ],
+    images: [
+      'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=1200&q=80', // Salón luminoso
+      'https://images.unsplash.com/photo-1600607686527-6fb886090705?auto=format&fit=crop&w=1200&q=80', // Patio
+      'https://images.unsplash.com/photo-1560185007-cde436f6a4d0?auto=format&fit=crop&w=1200&q=80', // Dormitorio
+      'https://images.unsplash.com/photo-1584622050111-993a426fbf0a?auto=format&fit=crop&w=1200&q=80'  // Baño
+    ],
+    driveFolder: '#',
+    scenario: 'rent_rooms', // Cambiado a rent_rooms para mostrar desglose
+    visibility: 'exact',
+    specs: {
+      rooms: 3,
+      bathrooms: 2,
+      sqm: 110,
+      floor: 'Planta Baja',
+      hasElevator: true
+    },
+    financials: {
+      purchasePrice: 135000, // Rebajado
+      itpPercent: 8,
+      reformCost: 1000, // Pintura y repaso
+      furnitureCost: 2000, // Mobiliario básico habitaciones
+      notaryAndTaxes: 1500 + (135000 * 0.08), // ~12.3k
+      totalInvestment: 150300, // 135k + 12.3k + 3k gastos
+      monthlyRentProjected: 750, // 3 habs * 250€
+      monthlyRentTraditional: 800,
+      yearlyExpenses: 500, // IBI y Comunidad estimado
+      marketValue: 145000,
+      appreciationRate: 2
+    },
+    status: 'available',
+    tags: ['Rebajado', 'Garaje Incluido', 'Patio Privado', 'Inversión Dual'],
+    roomConfiguration: [
+      { name: 'Habitación 1', price: 250 },
+      { name: 'Habitación 2', price: 250 },
+      { name: 'Habitación 3', price: 250 }
+    ],
+    createdAt: getRecentDate(2)
+  },
+  {
     id: 'JAVALI-IGLESIA-118',
     title: 'Casa con Patio y Terraza en Javalí Viejo: Proyecto Coliving',
     address: 'C. de la Iglesia',

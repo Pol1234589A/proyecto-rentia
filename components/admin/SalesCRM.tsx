@@ -65,7 +65,6 @@ export const SalesCRM: React.FC = () => {
     scenario: 'rent_rooms' as OpportunityScenario,
     visibility: 'exact' as Visibility,
     status: 'available' as 'available' | 'reserved' | 'sold',
-    active: true, // Default to active
     address: '',
     streetName: '', 
     streetNumber: '', 
@@ -274,7 +273,6 @@ export const SalesCRM: React.FC = () => {
           scenario: opp.scenario,
           visibility: opp.visibility,
           status: opp.status,
-          active: opp.active !== false, // Default true if undefined
           address: opp.address, 
           streetName: opp.address, 
           streetNumber: '', 
@@ -361,7 +359,6 @@ export const SalesCRM: React.FC = () => {
               driveFolder: assetForm.driveFolder,
               scenario: assetForm.scenario,
               visibility: assetForm.visibility,
-              active: assetForm.active, // Save active state
               specs: {
                   rooms: assetForm.rooms,
                   bathrooms: assetForm.bathrooms,
@@ -408,16 +405,6 @@ export const SalesCRM: React.FC = () => {
       }
   };
   
-  const handleToggleActive = async (id: string, currentStatus: boolean | undefined) => {
-      // Default to true if undefined
-      const newStatus = !(currentStatus ?? true);
-      try {
-          await setDoc(doc(db, "opportunities", id), { active: newStatus }, { merge: true });
-      } catch (error) {
-          console.error("Error toggling active status", error);
-      }
-  };
-
   const handleDeleteAsset = async (id: string) => {
        if (!window.confirm("¿Estás seguro de eliminar este activo?")) return;
        try {
@@ -711,18 +698,7 @@ export const SalesCRM: React.FC = () => {
                                       {/* COLUMNA IZQUIERDA: DATOS GENERALES Y DETALLES */}
                                       <div className="space-y-6">
                                           <div className="space-y-4">
-                                              <div className="flex justify-between items-center border-b border-gray-100 pb-1 mb-2">
-                                                <h6 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Información General</h6>
-                                                <label className="flex items-center gap-2 cursor-pointer bg-gray-50 px-2 py-1 rounded border border-gray-200 hover:bg-gray-100">
-                                                    <input 
-                                                        type="checkbox" 
-                                                        className="w-4 h-4 text-rentia-blue rounded focus:ring-0"
-                                                        checked={assetForm.active}
-                                                        onChange={(e) => updateForm({ active: e.target.checked })}
-                                                    />
-                                                    <span className="text-xs font-bold text-gray-600">Visible en Web</span>
-                                                </label>
-                                              </div>
+                                              <h6 className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-1">Información General</h6>
                                               <div>
                                                   <label className="block text-sm font-medium text-gray-700 mb-1">Título *</label>
                                                   <input type="text" required className="w-full p-2 border rounded-lg text-sm" placeholder="Ej: Piso muy rentable..." value={assetForm.title} onChange={e => updateForm({title: e.target.value})} />
@@ -926,25 +902,15 @@ export const SalesCRM: React.FC = () => {
                       </div>
                   ) : (
                       assets.map(opp => (
-                          <div key={opp.id} className={`bg-white rounded-xl border p-4 flex justify-between items-center hover:shadow-md transition-all ${opp.active === false ? 'border-gray-300 opacity-60 bg-gray-50' : 'border-gray-200'}`}>
+                          <div key={opp.id} className="bg-white rounded-xl border border-gray-200 p-4 flex justify-between items-center hover:shadow-md transition-all">
                               <div>
-                                  <h4 className="font-bold text-gray-800 flex items-center gap-2">
-                                      {opp.title}
-                                      {opp.active === false && <span className="text-[10px] bg-gray-200 text-gray-600 px-2 py-0.5 rounded font-bold uppercase">Oculto</span>}
-                                  </h4>
+                                  <h4 className="font-bold text-gray-800">{opp.title}</h4>
                                   <p className="text-sm text-gray-500">{opp.address} ({opp.city})</p>
                               </div>
                               <div className="flex items-center gap-2">
                                   <div className="text-right mr-4 hidden sm:block">
                                       <p className="font-bold text-lg">{opp.financials.purchasePrice.toLocaleString()} €</p>
                                   </div>
-                                  <button 
-                                    onClick={() => handleToggleActive(opp.id, opp.active)}
-                                    className={`p-2 rounded-lg transition-colors ${opp.active === false ? 'text-gray-400 hover:text-gray-600 hover:bg-gray-200' : 'text-green-600 hover:text-green-700 hover:bg-green-50'}`}
-                                    title={opp.active === false ? "Activar (Mostrar en web)" : "Desactivar (Ocultar)"}
-                                  >
-                                      {opp.active === false ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                  </button>
                                   <a 
                                     href={`#/presentation?id=${opp.id}`} 
                                     target="_blank"

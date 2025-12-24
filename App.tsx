@@ -30,8 +30,6 @@ import { opportunities as staticOpportunities } from './data';
 import { TrendingUp, MessageCircle, Bell, ArrowUpDown, Filter } from 'lucide-react';
 import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { ConfigProvider } from './contexts/ConfigContext';
-import { ContentProvider } from './contexts/ContentContext'; // NEW
 import { db } from './firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
 
@@ -429,13 +427,9 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-        <ConfigProvider>
-          <ContentProvider>
-            <LanguageProvider>
-                <AppContent />
-            </LanguageProvider>
-          </ContentProvider>
-        </ConfigProvider>
+        <LanguageProvider>
+            <AppContent />
+        </LanguageProvider>
     </AuthProvider>
   );
 }

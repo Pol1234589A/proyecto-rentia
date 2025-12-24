@@ -30,10 +30,7 @@ import { TransferRequestManager } from '../admin/TransferRequestManager';
 import { AdvancedCalculator } from '../admin/tools/AdvancedCalculator'; 
 import { ManagementLeadsManager } from '../admin/ManagementLeadsManager';
 import { RoomManager } from '../admin/RoomManager';
-import { SiteConfigManager } from '../admin/SiteConfigManager';
-import { BlogManager } from '../admin/BlogManager';
-import { VisualEditor } from '../admin/VisualEditor'; // Import new editor
-import { LayoutDashboard, Calculator, Briefcase, Wrench, Plus, Search, FileText, Save, X, DollarSign, Calendar as CalendarIcon, Filter, Pencil, PieChart, Landmark, Wallet, Clock, Zap, Settings, Receipt, Split, Info, MessageCircle, Share2, ClipboardList, UserCheck, Mail, Phone, ArrowRight, UserPlus, Inbox, Home, DoorOpen, Menu, Activity, ShieldAlert, UserCog, Siren, Footprints, BarChart3, Building, Grid, Globe, Send, Users, Key, Layout, Palette } from 'lucide-react';
+import { LayoutDashboard, Calculator, Briefcase, Wrench, Plus, Search, FileText, Save, X, DollarSign, Calendar as CalendarIcon, Filter, Pencil, PieChart, Landmark, Wallet, Clock, Zap, Settings, Receipt, Split, Info, MessageCircle, Share2, ClipboardList, UserCheck, Mail, Phone, ArrowRight, UserPlus, Inbox, Home, DoorOpen, Menu, Activity, ShieldAlert, UserCog, Siren, Footprints, BarChart3, Building, Grid, Globe, Send, Users, Key } from 'lucide-react';
 
 
 const MOTIVATIONAL_QUOTES = [
@@ -64,10 +61,9 @@ const MotivationalBanner = () => {
 export const StaffDashboard: React.FC = () => {
   const { currentUser } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'room_manager' | 'real_estate' | 'accounting' | 'tools' | 'contracts' | 'calendar' | 'supplies' | 'calculator' | 'social' | 'tasks' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'transfers' | 'advanced_calc' | 'management_leads' | 'site_config' | 'blog_manager' | 'visual_editor'>('overview');
-  const [activeMobileTab, setActiveMobileTab] = useState<'overview' | 'tasks' | 'candidates' | 'properties' | 'menu' | 'accounting' | 'supplies' | 'calendar' | 'contracts' | 'social' | 'calculator' | 'tools' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'advanced_calc' | 'management_leads' | 'site_config' | 'blog_manager' | 'visual_editor'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'room_manager' | 'real_estate' | 'accounting' | 'tools' | 'contracts' | 'calendar' | 'supplies' | 'calculator' | 'social' | 'tasks' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'transfers' | 'advanced_calc' | 'management_leads'>('overview');
+  const [activeMobileTab, setActiveMobileTab] = useState<'overview' | 'tasks' | 'candidates' | 'properties' | 'menu' | 'accounting' | 'supplies' | 'calendar' | 'contracts' | 'social' | 'calculator' | 'tools' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'advanced_calc' | 'management_leads'>('overview');
 
-  // ... (Keep existing state and effects unchanged) ...
   const [stats, setStats] = useState({
     totalRooms: 0,
     occupancyRate: 0,
@@ -99,7 +95,6 @@ export const StaffDashboard: React.FC = () => {
   });
 
   useEffect(() => {
-    // ... (Keep existing effect logic) ...
     const unsubscribeProps = onSnapshot(collection(db, "properties"), (snapshot) => {
       let totalRoomsCount = 0;
       let occupiedCount = 0;
@@ -193,7 +188,6 @@ export const StaffDashboard: React.FC = () => {
   }, []);
 
   const handleSendCandidate = async (e: React.FormEvent) => {
-      // ... (Keep existing handler) ...
       e.preventDefault();
       if (!newCandidate.propertyId || !newCandidate.candidateName) {
           return alert("Completa los campos obligatorios: propiedad y nombre.");
@@ -224,7 +218,6 @@ export const StaffDashboard: React.FC = () => {
         { id: 'tasks', label: 'Tareas', icon: <ClipboardList className="w-4 h-4" /> },
         { id: 'room_manager', label: 'Habitaciones', icon: <DoorOpen className="w-4 h-4" /> },
         { id: 'real_estate', label: 'Oportunidades', icon: <Building className="w-4 h-4" /> },
-        { id: 'visual_editor', label: 'Editor Web', icon: <Palette className="w-4 h-4 text-pink-600" /> }, // NEW
         { id: 'management_leads', label: 'Leads Gestión', icon: <Key className="w-4 h-4" />, count: pendingMgmtLeadsCount },
         { id: 'requests', label: 'Solicitudes', icon: <Inbox className="w-4 h-4" />, count: pendingRequestsCount }, 
         { id: 'transfers', label: 'Traspasos', icon: <Share2 className="w-4 h-4" />, count: pendingTransfersCount },
@@ -239,13 +232,10 @@ export const StaffDashboard: React.FC = () => {
         { id: 'calendar', label: 'Calendario', icon: <CalendarIcon className="w-4 h-4" /> },
         { id: 'visits', label: 'Visitas', icon: <Footprints className="w-4 h-4" /> }, 
         { id: 'user_manager', label: 'Usuarios', icon: <UserCog className="w-4 h-4" /> }, 
-        { id: 'site_config', label: 'Configuración Web', icon: <Settings className="w-4 h-4 text-indigo-600" /> }, 
-        { id: 'blog_manager', label: 'Blog / Noticias', icon: <Layout className="w-4 h-4 text-purple-600" /> },
         { id: 'tools', label: 'Admin', icon: <Wrench className="w-4 h-4" /> },
     ];
 
     const mobileMenuOptions = [
-        { id: 'visual_editor', label: 'Editor Web', icon: <Palette className="w-6 h-6"/>, color: 'bg-pink-100 text-pink-600' }, // NEW
         { id: 'management_leads', label: 'Leads Gestión', icon: <Key className="w-6 h-6"/>, color: 'bg-indigo-100 text-indigo-600', count: pendingMgmtLeadsCount },
         { id: 'requests', label: 'Solicitudes', icon: <Inbox className="w-6 h-6"/>, color: 'bg-green-100 text-green-600', count: pendingRequestsCount }, 
         { id: 'sales_tracker', label: 'Ventas', icon: <Activity className="w-6 h-6"/>, color: 'bg-indigo-100 text-indigo-600' },
@@ -258,15 +248,12 @@ export const StaffDashboard: React.FC = () => {
         { id: 'visits', label: 'Visitas', icon: <Footprints className="w-6 h-6"/>, color: 'bg-red-100 text-red-600' },
         { id: 'contracts', label: 'Contratos', icon: <FileText className="w-6 h-6"/>, color: 'bg-purple-100 text-purple-600' },
         { id: 'user_manager', label: 'Usuarios', icon: <UserCog className="w-6 h-6"/>, color: 'bg-gray-200 text-gray-700' },
-        { id: 'site_config', label: 'Configuración', icon: <Settings className="w-6 h-6"/>, color: 'bg-indigo-100 text-indigo-600' },
-        { id: 'blog_manager', label: 'Blog CMS', icon: <Layout className="w-6 h-6"/>, color: 'bg-purple-100 text-purple-600' },
         { id: 'calculator', label: 'Reparto Gastos', icon: <Split className="w-6 h-6"/>, color: 'bg-orange-100 text-orange-600' },
         { id: 'tools', label: 'Herramientas', icon: <Wrench className="w-6 h-6"/>, color: 'bg-gray-100 text-gray-600' },
     ];
 
     const renderMobileContent = () => {
         if (activeMobileTab === 'menu') {
-             // ... Keep existing menu logic ...
              return (
                 <div className="p-4 grid grid-cols-3 gap-3 overflow-y-auto pb-24">
                     {mobileMenuOptions.map(option => (
@@ -287,7 +274,6 @@ export const StaffDashboard: React.FC = () => {
         }
 
         switch (activeMobileTab) {
-            // ... (Keep existing cases) ...
             case 'overview': return (
                 <div className="p-4 space-y-4 overflow-y-auto pb-24">
                     <MotivationalBanner />
@@ -307,7 +293,6 @@ export const StaffDashboard: React.FC = () => {
                     <SalesCRM />
                 </div>
             );
-            case 'visual_editor': return <div className="h-full overflow-y-auto pb-24"><VisualEditor /></div>; // NEW
             case 'contracts': return <div className="h-full overflow-y-auto pb-24"><ContractManager onClose={() => setActiveMobileTab('menu')} /></div>;
             case 'calendar': return <div className="h-full overflow-y-auto pb-24"><CalendarManager /></div>;
             case 'supplies': return <div className="h-full overflow-y-auto pb-24"><SuppliesPanel properties={propertiesList} /></div>;
@@ -320,8 +305,6 @@ export const StaffDashboard: React.FC = () => {
             case 'management_leads': return <div className="h-full overflow-y-auto pb-24"><ManagementLeadsManager /></div>;
             case 'worker_invoices': return <div className="h-full overflow-y-auto pb-24"><WorkerInvoicesPanel /></div>;
             case 'user_manager': return <div className="h-full overflow-y-auto pb-24"><UserManager /></div>;
-            case 'site_config': return <div className="h-full overflow-y-auto pb-24"><SiteConfigManager /></div>;
-            case 'blog_manager': return <div className="h-full overflow-y-auto pb-24"><BlogManager /></div>;
             case 'calculator': return <div className="h-full overflow-y-auto pb-24"><SupplyCalculator properties={propertiesList} preSelectedPropertyId={selectedPropId} /></div>;
             case 'social': return <div className="h-full overflow-y-auto pb-24"><SocialInbox /></div>;
             case 'tools': return <div className="h-full overflow-y-auto p-4 space-y-4 pb-24"><NewsManager /><ProfitCalculator /></div>;
@@ -335,8 +318,7 @@ export const StaffDashboard: React.FC = () => {
         
         {/* --- HEADER --- */}
         <header className="p-4 md:p-6 mb-4 sm:mb-6 md:bg-white rounded-xl md:shadow-sm md:border md:border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          {/* ... (Keep existing header code) ... */}
-           <div>
+          <div>
             <h1 className="text-xl sm:text-2xl font-bold text-rentia-black flex items-center gap-2">
                 <LayoutDashboard className="w-5 h-5 sm:w-6 sm:h-6 text-rentia-blue" />
                 Panel de Control
@@ -365,8 +347,7 @@ export const StaffDashboard: React.FC = () => {
         <div className="hidden md:block">
             {/* DESKTOP CONTENT RENDER */}
             {activeTab === 'overview' && ( 
-                // ... (Keep existing overview render) ...
-                 <div className="animate-in slide-in-from-bottom-4 duration-300">
+                <div className="animate-in slide-in-from-bottom-4 duration-300">
                     <MotivationalBanner />
                     {/* Stats Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 mb-8">
@@ -424,13 +405,9 @@ export const StaffDashboard: React.FC = () => {
                 </div>
             )}
             
-            {/* Add Visual Editor Case */}
-            {activeTab === 'visual_editor' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><VisualEditor /></div>}
-            
             {activeTab === 'transfers' && <div className="animate-in slide-in-from-bottom-4 duration-300"><TransferRequestManager /></div>}
             {activeTab === 'tasks' && <div className="animate-in slide-in-from-bottom-4 duration-300"><TaskManager /></div>}
             {activeTab === 'room_manager' && <div className="h-full overflow-y-auto pb-24"><RoomManager /></div>}
-            {/* ... (Keep other tabs) ... */}
             {activeTab === 'real_estate' && <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-300"><SalesCRM /></div>}
             {activeTab === 'contracts' && <div className="animate-in slide-in-from-bottom-4 duration-300"><ContractManager onClose={() => setActiveTab('real_estate')} /></div>}
             {activeTab === 'calendar' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><CalendarManager /></div>}
@@ -446,8 +423,6 @@ export const StaffDashboard: React.FC = () => {
             {activeTab === 'management_leads' && <div className="animate-in slide-in-from-bottom-4 duration-300"><ManagementLeadsManager /></div>}
             {activeTab === 'worker_invoices' && <div className="animate-in slide-in-from-bottom-4 duration-300"><WorkerInvoicesPanel /></div>}
             {activeTab === 'user_manager' && <div className="animate-in slide-in-from-bottom-4 duration-300"><UserManager /></div>}
-            {activeTab === 'site_config' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><SiteConfigManager /></div>}
-            {activeTab === 'blog_manager' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><BlogManager /></div>}
             
             {activeTab === 'tools' && ( 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in slide-in-from-bottom-4 duration-300">

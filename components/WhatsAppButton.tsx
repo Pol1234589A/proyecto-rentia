@@ -2,13 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { MessageCircle, X, User, Briefcase, Clock } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useConfig } from '../contexts/ConfigContext';
 
 export const WhatsAppButton: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [now, setNow] = useState(new Date());
   const { t } = useLanguage();
-  const config = useConfig();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -31,11 +29,11 @@ export const WhatsAppButton: React.FC = () => {
       return { isOpen: true, label: t('common.online') };
     }
 
-    return { isOpen: false, label: `${t('whatsapp.opens_at')} ${String(startHour).padStart(2, '0')}:00` };
+    return { isOpen: false, label: `${t('whatsapp.opens_at')} ${startHour}:00` };
   };
 
-  const adminStatus = getStatus(config.adminContact.startHour, config.adminContact.endHour);
-  const directorStatus = getStatus(config.directorContact.startHour, config.directorContact.endHour);
+  const sandraStatus = getStatus(9, 14);
+  const polStatus = getStatus(9, 20);
 
   return (
     // CRITICAL FIX: pointer-events-none on parent ensures the invisible wrapper 
@@ -49,79 +47,79 @@ export const WhatsAppButton: React.FC = () => {
           isOpen ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-90 translate-y-10 pointer-events-none'
         }`}
       >
-        {/* Admin Button */}
+        {/* Sandra Button */}
         <a 
-          href={`https://api.whatsapp.com/send?phone=${config.adminContact.phone}&text=${encodeURIComponent(config.adminContact.whatsappMessage)}`}
+          href="https://api.whatsapp.com/send?phone=34611948589&text=Hola%20Sandra,%20tengo%20una%20consulta%20administrativa/general..." 
           target="_blank" 
           rel="noopener noreferrer"
           className={`flex items-center gap-3 p-4 rounded-xl shadow-xl border-2 transition-all w-72 group relative overflow-hidden touch-manipulation cursor-pointer ${
-              adminStatus.isOpen 
+              sandraStatus.isOpen 
               ? 'bg-white border-green-500 hover:bg-green-50' 
               : 'bg-white border-gray-200 hover:bg-gray-50 grayscale-[0.5] hover:grayscale-0'
           }`}
         >
-           <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 transition-colors overflow-hidden ${
-               adminStatus.isOpen ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'
+           <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
+               sandraStatus.isOpen ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'
            }`}>
-              {config.adminContact.image ? <img src={config.adminContact.image} alt={config.adminContact.name} className="w-full h-full object-cover" /> : <User className="w-6 h-6" />}
-              {adminStatus.isOpen && (
+              <User className="w-6 h-6" />
+              {sandraStatus.isOpen && (
                   <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
               )}
            </div>
            <div className="flex flex-col flex-grow">
               <div className="flex justify-between items-start">
-                  <span className="font-bold text-sm text-rentia-black">{config.adminContact.name} ({config.adminContact.role.split(' ')[0]})</span>
+                  <span className="font-bold text-sm text-rentia-black">{t('whatsapp.admin_label')}</span>
               </div>
               <span className="text-xs text-gray-500 mb-1">{t('whatsapp.admin_desc')}</span>
               
-              <div className={`flex items-center text-[10px] font-bold uppercase tracking-wide ${adminStatus.isOpen ? 'text-green-600' : 'text-gray-400'}`}>
-                 {adminStatus.isOpen ? (
+              <div className={`flex items-center text-[10px] font-bold uppercase tracking-wide ${sandraStatus.isOpen ? 'text-green-600' : 'text-gray-400'}`}>
+                 {sandraStatus.isOpen ? (
                     <>
                         <span className="w-2 h-2 bg-green-500 rounded-full mr-1 animate-pulse"></span>
-                        {t('whatsapp.online')} ({String(config.adminContact.startHour).padStart(2, '0')}:00 - {String(config.adminContact.endHour).padStart(2, '0')}:00)
+                        {t('whatsapp.online')} (09:00 - 14:00)
                     </>
                  ) : (
                     <>
                         <Clock className="w-3 h-3 mr-1" />
-                        {adminStatus.label}
+                        {sandraStatus.label}
                     </>
                  )}
               </div>
            </div>
         </a>
 
-        {/* Director Button */}
+        {/* Pol Button */}
         <a 
-          href={`https://api.whatsapp.com/send?phone=${config.directorContact.phone}&text=${encodeURIComponent(config.directorContact.whatsappMessage)}`}
+          href="https://api.whatsapp.com/send?phone=34672886369&text=Hola%20Pol,%20estoy%20interesado%20en%20vuestras%20oportunidades%20de%20inversi%C3%B3n..." 
           target="_blank" 
           rel="noopener noreferrer"
           className={`flex items-center gap-3 p-4 rounded-xl shadow-xl border-2 transition-all w-72 group relative overflow-hidden touch-manipulation cursor-pointer ${
-            directorStatus.isOpen 
+            polStatus.isOpen 
             ? 'bg-white border-green-500 hover:bg-green-50' 
             : 'bg-white border-gray-200 hover:bg-gray-50 grayscale-[0.5] hover:grayscale-0'
         }`}
         >
-           <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 transition-colors overflow-hidden ${
-               directorStatus.isOpen ? 'bg-blue-100 text-rentia-blue' : 'bg-gray-100 text-gray-500'
+           <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
+               polStatus.isOpen ? 'bg-blue-100 text-rentia-blue' : 'bg-gray-100 text-gray-500'
            }`}>
-              {config.directorContact.image ? <img src={config.directorContact.image} alt={config.directorContact.name} className="w-full h-full object-cover" /> : <Briefcase className="w-6 h-6" />}
-               {directorStatus.isOpen && (
+              <Briefcase className="w-6 h-6" />
+               {polStatus.isOpen && (
                   <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
               )}
            </div>
            <div className="flex flex-col flex-grow">
-              <span className="font-bold text-sm text-rentia-black">{config.directorContact.name} ({config.directorContact.role.split(' ')[0]})</span>
+              <span className="font-bold text-sm text-rentia-black">{t('whatsapp.dir_label')}</span>
               <span className="text-xs text-gray-500 mb-1">{t('whatsapp.dir_desc')}</span>
-               <div className={`flex items-center text-[10px] font-bold uppercase tracking-wide ${directorStatus.isOpen ? 'text-green-600' : 'text-gray-400'}`}>
-                 {directorStatus.isOpen ? (
+               <div className={`flex items-center text-[10px] font-bold uppercase tracking-wide ${polStatus.isOpen ? 'text-green-600' : 'text-gray-400'}`}>
+                 {polStatus.isOpen ? (
                     <>
                         <span className="w-2 h-2 bg-green-500 rounded-full mr-1 animate-pulse"></span>
-                        {t('whatsapp.online')} ({String(config.directorContact.startHour).padStart(2, '0')}:00 - {String(config.directorContact.endHour).padStart(2, '0')}:00)
+                        {t('whatsapp.online')} (09:00 - 20:00)
                     </>
                  ) : (
                     <>
                          <Clock className="w-3 h-3 mr-1" />
-                        {directorStatus.label}
+                        {polStatus.label}
                     </>
                  )}
               </div>

@@ -217,9 +217,9 @@ export const BrokerView: React.FC<BrokerViewProps> = ({ openLegalModal }) => {
                   
                   {/* Right Actions Area */}
                   <div className="p-6 flex-1 flex flex-col justify-center gap-3 bg-white">
-                      {/* ACTION 1: PUBLICAR ACTIVO */}
+                      {/* ACTION 1: PUBLICAR ACTIVO (CORREGIDO: Apunta a nueva ruta propietarios) */}
                       <button 
-                        onClick={() => setActiveTab('submission')}
+                        onClick={() => window.location.hash = '#/publicar-propiedad'}
                         className="w-full flex items-center justify-between p-3 rounded-xl border-2 border-slate-900 bg-slate-900 text-white hover:bg-slate-800 transition-all group/btn shadow-md active:scale-[0.98]"
                       >
                           <span className="flex items-center gap-3 font-bold text-sm">

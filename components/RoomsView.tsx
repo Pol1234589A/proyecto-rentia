@@ -1,11 +1,12 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Home, MapPin, CheckCircle, User, MessageCircle, Filter, AlertCircle, Receipt, Sparkles, Hammer, HelpCircle, Building, Gift, Users as UsersIcon, Wallet, PlayCircle, Camera, Timer, Bath, Wind, ExternalLink, GraduationCap, Briefcase, Users, ZoomIn, DoorClosed, DoorOpen, ChevronDown, Info, Layout, X, Euro, BedDouble, Bed, Tv, Lock, Sun, Monitor, Loader2 } from 'lucide-react';
+import { Home, MapPin, CheckCircle, User, MessageCircle, Filter, AlertCircle, Receipt, Sparkles, Hammer, HelpCircle, Building, Gift, Users as UsersIcon, Wallet, PlayCircle, Camera, Timer, Bath, Wind, ExternalLink, GraduationCap, Briefcase, Users, ZoomIn, DoorClosed, DoorOpen, ChevronDown, Info, Layout, X, Euro, BedDouble, Bed, Tv, Lock, Sun, Monitor, Loader2, Megaphone, AlertTriangle } from 'lucide-react';
 import { db } from '../firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { properties as staticProperties, Property, Room } from '../data/rooms'; 
 import { useLanguage } from '../contexts/LanguageContext';
 import { ImageLightbox } from './ImageLightbox';
+import { useConfig } from '../contexts/ConfigContext';
 
 // Helper Component for Loading State
 const ImageWithLoader = ({ src, alt, className, onClick }: { src: string, alt: string, className?: string, onClick?: (e: React.MouseEvent) => void }) => {
@@ -119,6 +120,7 @@ export const RoomsView: React.FC = () => {
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   
   const { t } = useLanguage();
+  const config = useConfig();
 
   useEffect(() => {
     // Initial Load - Already set via useState(staticProperties) but let's confirm load status
@@ -345,6 +347,19 @@ export const RoomsView: React.FC = () => {
       return '';
   };
 
+  // Helper para obtener estilos de la alerta dinámica
+  const getAlertStyles = () => {
+    const { variant } = config.roomsAlert;
+    switch(variant) {
+        case 'warning': return { bg: 'bg-yellow-50', border: 'border-yellow-200', textTitle: 'text-yellow-800', textBody: 'text-yellow-700', icon: <AlertTriangle className="w-5 h-5 text-yellow-600"/>, iconBg: 'bg-yellow-100' };
+        case 'error': return { bg: 'bg-red-50', border: 'border-red-200', textTitle: 'text-red-900', textBody: 'text-red-700', icon: <Megaphone className="w-5 h-5 text-red-600"/>, iconBg: 'bg-red-100' };
+        case 'success': return { bg: 'bg-green-50', border: 'border-green-200', textTitle: 'text-green-800', textBody: 'text-green-700', icon: <CheckCircle className="w-5 h-5 text-green-600"/>, iconBg: 'bg-green-100' };
+        default: return { bg: 'bg-blue-50', border: 'border-blue-200', textTitle: 'text-blue-800', textBody: 'text-blue-700', icon: <Info className="w-5 h-5 text-blue-600"/>, iconBg: 'bg-blue-100' };
+    }
+  };
+
+  const alertStyle = getAlertStyles();
+
   return (
     <div className="font-sans bg-gray-50 min-h-screen flex flex-col animate-in fade-in duration-500">
       
@@ -432,16 +447,18 @@ export const RoomsView: React.FC = () => {
       {/* Main Content */}
       <section className="container mx-auto px-4 pb-12 relative z-20 max-w-[1600px]">
          
-         {/* UPDATE NOTICE */}
-         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 flex items-start gap-3 shadow-sm">
-             <div className="p-2 bg-white rounded-full text-rentia-blue shrink-0 shadow-sm">
-                 <Info className="w-5 h-5" />
-             </div>
-             <div>
-                 <h4 className="font-bold text-rentia-blue text-sm">{t('rooms.update_alert.title')}</h4>
-                 <p className="text-gray-600 text-sm mt-1 leading-relaxed">{t('rooms.update_alert.text')}</p>
-             </div>
-         </div>
+         {/* DYNAMIC ALERT NOTICE */}
+         {config.roomsAlert.isActive && (
+            <div className={`border rounded-xl p-4 mb-6 flex items-start gap-4 shadow-sm animate-in fade-in slide-in-from-top-2 ${alertStyle.bg} ${alertStyle.border}`}>
+                <div className={`p-2.5 rounded-full shrink-0 shadow-sm ${alertStyle.iconBg}`}>
+                    {alertStyle.icon}
+                </div>
+                <div>
+                    <h4 className={`font-bold text-sm mb-1 ${alertStyle.textTitle}`}>{config.roomsAlert.title}</h4>
+                    <p className={`text-sm leading-relaxed ${alertStyle.textBody}`}>{config.roomsAlert.message}</p>
+                </div>
+            </div>
+         )}
 
          {/* Filters */}
          <div className="bg-white p-4 rounded-xl shadow-md border border-gray-100 mb-8 flex flex-col items-start gap-4">

@@ -30,6 +30,8 @@ import { opportunities as staticOpportunities } from './data';
 import { TrendingUp, MessageCircle, Bell, ArrowUpDown, Filter } from 'lucide-react';
 import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ConfigProvider } from './contexts/ConfigContext';
+import { ContentProvider } from './contexts/ContentContext'; // NEW
 import { db } from './firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
 
@@ -97,8 +99,9 @@ function AppContent() {
             const data = doc.data();
             allDbIds.add(doc.id);
 
-            // Filter out soft-deleted items
+            // Filter out soft-deleted items AND invalid items (Safety Check)
             if ((data as any).deleted) return;
+            if (!data.financials || !data.title) return; // Prevent crash if data is corrupt
 
             firestoreOpps.push({ ...data, id: doc.id } as Opportunity);
         });
@@ -120,6 +123,9 @@ function AppContent() {
   const sortedOpportunities = useMemo(() => {
       const sorted = [...opportunities];
       return sorted.sort((a, b) => {
+          // Safety checks inside sort
+          if (!a || !b) return 0;
+
           if (sortOption === 'newest') {
               // Manejo seguro de fechas (pueden ser strings ISO, timestamps de Firestore o undefined)
               const dateA = a.createdAt ? (a.createdAt.toDate ? a.createdAt.toDate().getTime() : new Date(a.createdAt).getTime()) : 0;
@@ -128,6 +134,7 @@ function AppContent() {
           } 
           else if (sortOption === 'yield_desc') {
               const getYield = (opp: Opportunity) => {
+                  if (!opp.financials) return 0;
                   const monthlyIncome = opp.financials.monthlyRentProjected > 0 
                       ? opp.financials.monthlyRentProjected 
                       : opp.financials.monthlyRentTraditional;
@@ -137,12 +144,13 @@ function AppContent() {
                       : (purchasePrice > 100000 ? purchasePrice * 0.03 : 3000);
                   const agencyFeeTotal = agencyFeeBase * 1.21; 
                   const totalInvest = opp.financials.totalInvestment + agencyFeeTotal;
+                  if (totalInvest === 0) return 0;
                   return ((monthlyIncome * 12) / totalInvest) * 100;
               };
               return getYield(b) - getYield(a); // Descending
           }
           else if (sortOption === 'city_asc') {
-              return a.city.localeCompare(b.city);
+              return (a.city || '').localeCompare(b.city || '');
           }
           return 0;
       });
@@ -427,9 +435,13 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-        <LanguageProvider>
-            <AppContent />
-        </LanguageProvider>
+        <ConfigProvider>
+          <ContentProvider>
+            <LanguageProvider>
+                <AppContent />
+            </LanguageProvider>
+          </ContentProvider>
+        </ConfigProvider>
     </AuthProvider>
   );
 }

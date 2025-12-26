@@ -3,13 +3,14 @@ import React, { useState, useEffect } from 'react';
 import { Users, Briefcase, Heart, Quote, TrendingUp, Home, Clock, MessageCircle, CheckCircle, XCircle, Mail, Loader2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { CollaborationBanner } from './CollaborationBanner';
+import { useConfig } from '../contexts/ConfigContext';
 
 export const AboutView: React.FC = () => {
   const { t } = useLanguage();
+  const config = useConfig();
   const [heroLoaded, setHeroLoaded] = useState(false);
   const [storyLoaded, setStoryLoaded] = useState(false);
   
-  // --- LÓGICA DE CONTACTO (Traída de ContactView) ---
   const [now, setNow] = useState(new Date());
 
   // Actualizar hora cada minuto
@@ -34,9 +35,8 @@ export const AboutView: React.FC = () => {
     return { isOpen: false, label: t('common.closed_now') };
   };
 
-  const sandraStatus = getStatus(9, 14);
-  const polStatus = getStatus(9, 20);
-  // --------------------------------------------------
+  const adminStatus = getStatus(config.adminContact.startHour, config.adminContact.endHour);
+  const directorStatus = getStatus(config.directorContact.startHour, config.directorContact.endHour);
 
   return (
     <div className="bg-white min-h-screen font-sans animate-in fade-in duration-500">
@@ -134,11 +134,15 @@ export const AboutView: React.FC = () => {
                   {/* POL */}
                   <div className="bg-white rounded-xl overflow-hidden shadow-idealista hover:shadow-idealista-hover transition-all duration-300 hover:-translate-y-2 group flex flex-col border border-gray-100">
                       <div className="h-48 bg-gray-100 flex items-center justify-center relative overflow-hidden">
-                           <div className="w-24 h-24 bg-rentia-black rounded-full flex items-center justify-center shadow-md z-10 text-white">
-                                <TrendingUp className="w-10 h-10" />
-                           </div>
+                            {config.directorContact.image ? (
+                                <img src={config.directorContact.image} alt="Pol" className="w-full h-full object-cover"/>
+                            ) : (
+                                <div className="w-24 h-24 bg-rentia-black rounded-full flex items-center justify-center shadow-md z-10 text-white">
+                                        <TrendingUp className="w-10 h-10" />
+                                </div>
+                            )}
                            <div className="absolute bottom-0 left-0 w-full bg-white p-4 border-t border-gray-100 z-10 text-center">
-                               <h3 className="text-rentia-black font-bold text-xl font-display">Pol</h3>
+                               <h3 className="text-rentia-black font-bold text-xl font-display">{config.directorContact.name}</h3>
                                <p className="text-rentia-gold text-xs font-bold uppercase tracking-wide mt-1">{t('about.team.pol.role')}</p>
                            </div>
                       </div>
@@ -170,11 +174,15 @@ export const AboutView: React.FC = () => {
                   {/* SANDRA */}
                   <div className="bg-white rounded-xl overflow-hidden shadow-idealista hover:shadow-idealista-hover transition-all duration-300 hover:-translate-y-2 group flex flex-col border border-gray-100">
                       <div className="h-48 bg-gray-100 flex items-center justify-center relative overflow-hidden">
-                           <div className="w-24 h-24 bg-rentia-blue rounded-full flex items-center justify-center shadow-md z-10 text-white">
-                                <Briefcase className="w-10 h-10" />
-                           </div>
+                            {config.adminContact.image ? (
+                                <img src={config.adminContact.image} alt="Sandra" className="w-full h-full object-cover"/>
+                            ) : (
+                                <div className="w-24 h-24 bg-rentia-blue rounded-full flex items-center justify-center shadow-md z-10 text-white">
+                                        <Briefcase className="w-10 h-10" />
+                                </div>
+                            )}
                            <div className="absolute bottom-0 left-0 w-full bg-white p-4 border-t border-gray-100 z-10 text-center">
-                               <h3 className="text-rentia-black font-bold text-xl font-display">Sandra</h3>
+                               <h3 className="text-rentia-black font-bold text-xl font-display">{config.adminContact.name}</h3>
                                <p className="text-rentia-blue text-xs font-bold uppercase tracking-wide mt-1">{t('about.team.sandra.role')}</p>
                            </div>
                       </div>
@@ -232,18 +240,18 @@ export const AboutView: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
 
-                {/* Sandra Card */}
+                {/* Admin Card */}
                 <div className="bg-white p-6 md:p-8 rounded-2xl shadow-idealista border border-gray-100 hover:border-rentia-gold transition-all duration-300 hover:-translate-y-1 group relative overflow-hidden">
-                    <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 border ${sandraStatus.isOpen ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
-                        {sandraStatus.isOpen ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-                        {sandraStatus.label}
+                    <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 border ${adminStatus.isOpen ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
+                        {adminStatus.isOpen ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+                        {adminStatus.label}
                     </div>
 
                     <div className="flex flex-col items-center text-center">
-                        <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center text-rentia-black font-bold text-3xl mb-4 shadow-sm group-hover:scale-110 transition-transform">
-                            S
+                         <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center text-rentia-black font-bold text-3xl mb-4 shadow-sm group-hover:scale-110 transition-transform overflow-hidden">
+                            {config.adminContact.image ? <img src={config.adminContact.image} alt={config.adminContact.name} className="w-full h-full object-cover" /> : config.adminContact.name.charAt(0)}
                         </div>
-                        <h3 className="font-bold text-2xl text-rentia-black mb-1">{t('contact.sandra.name')}</h3>
+                        <h3 className="font-bold text-2xl text-rentia-black mb-1">{config.adminContact.name}</h3>
                         <p className="text-rentia-blue font-medium mb-4">{t('contact.sandra.role')}</p>
                         
                         <div className="w-full border-t border-gray-100 my-4"></div>
@@ -251,7 +259,7 @@ export const AboutView: React.FC = () => {
                         <div className="space-y-3 text-sm text-gray-600 mb-8 w-full">
                             <div className="flex items-center justify-center gap-2">
                                 <Clock className="w-4 h-4 text-rentia-gold" /> 
-                                <span><strong>{t('contact.sandra.hours')}</strong></span>
+                                <span><strong>{String(config.adminContact.startHour).padStart(2, '0')}:00 - {String(config.adminContact.endHour).padStart(2, '0')}:00</strong></span>
                             </div>
                             <div className="bg-gray-50 p-3 rounded-lg text-center mx-auto w-full">
                                 <p className="font-bold text-gray-800 mb-1 text-xs uppercase tracking-wide">{t('contact.sandra.for_title')}</p>
@@ -260,33 +268,33 @@ export const AboutView: React.FC = () => {
                         </div>
 
                         <a 
-                            href="https://api.whatsapp.com/send?phone=34611948589" 
+                            href={`https://api.whatsapp.com/send?phone=${config.adminContact.phone}&text=${encodeURIComponent(config.adminContact.whatsappMessage)}`}
                             target="_blank" 
                             rel="noreferrer" 
                             className={`flex items-center justify-center w-full py-4 rounded-xl font-bold text-lg transition-all shadow-md ${
-                                sandraStatus.isOpen 
+                                adminStatus.isOpen 
                                 ? 'bg-[#25D366] hover:bg-[#20ba5c] text-white hover:shadow-green-200/50' 
                                 : 'bg-white border-2 border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600'
                             }`}
                         >
                             <MessageCircle className="w-5 h-5 mr-2" /> 
-                            {sandraStatus.isOpen ? t('contact.sandra.btn') : t('contact.sandra.btn_msg')}
+                            {adminStatus.isOpen ? t('contact.sandra.btn') : t('contact.sandra.btn_msg')}
                         </a>
                     </div>
                 </div>
 
-                {/* Pol Card */}
+                {/* Director Card */}
                 <div className="bg-white p-6 md:p-8 rounded-2xl shadow-idealista border border-gray-100 hover:border-rentia-blue transition-all duration-300 hover:-translate-y-1 group relative overflow-hidden">
-                    <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 border ${polStatus.isOpen ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
-                        {polStatus.isOpen ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-                        {polStatus.label}
+                    <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 border ${directorStatus.isOpen ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
+                        {directorStatus.isOpen ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+                        {directorStatus.label}
                     </div>
 
                     <div className="flex flex-col items-center text-center">
-                        <div className="w-20 h-20 rounded-full bg-blue-50 flex items-center justify-center text-rentia-blue font-bold text-3xl mb-4 shadow-sm group-hover:scale-110 transition-transform">
-                            P
+                         <div className="w-20 h-20 rounded-full bg-blue-50 flex items-center justify-center text-rentia-blue font-bold text-3xl mb-4 shadow-sm group-hover:scale-110 transition-transform overflow-hidden">
+                             {config.directorContact.image ? <img src={config.directorContact.image} alt={config.directorContact.name} className="w-full h-full object-cover" /> : config.directorContact.name.charAt(0)}
                         </div>
-                        <h3 className="font-bold text-2xl text-rentia-black mb-1">{t('contact.pol.name')}</h3>
+                        <h3 className="font-bold text-2xl text-rentia-black mb-1">{config.directorContact.name}</h3>
                         <p className="text-rentia-blue font-medium mb-4">{t('contact.pol.role')}</p>
 
                         <div className="w-full border-t border-gray-100 my-4"></div>
@@ -294,7 +302,7 @@ export const AboutView: React.FC = () => {
                         <div className="space-y-3 text-sm text-gray-600 mb-8 w-full">
                             <div className="flex items-center justify-center gap-2">
                                 <Clock className="w-4 h-4 text-rentia-gold" /> 
-                                <span><strong>{t('contact.pol.hours')}</strong></span>
+                                <span><strong>{String(config.directorContact.startHour).padStart(2, '0')}:00 - {String(config.directorContact.endHour).padStart(2, '0')}:00</strong></span>
                             </div>
                             <div className="bg-blue-50 p-3 rounded-lg text-center mx-auto w-full">
                                 <p className="font-bold text-blue-800 mb-1 text-xs uppercase tracking-wide">{t('contact.pol.for_title')}</p>
@@ -303,17 +311,17 @@ export const AboutView: React.FC = () => {
                         </div>
 
                         <a 
-                            href="https://api.whatsapp.com/send?phone=34672886369" 
+                            href={`https://api.whatsapp.com/send?phone=${config.directorContact.phone}&text=${encodeURIComponent(config.directorContact.whatsappMessage)}`}
                             target="_blank" 
                             rel="noreferrer" 
                             className={`flex items-center justify-center w-full py-4 rounded-xl font-bold text-lg transition-all shadow-md ${
-                                polStatus.isOpen 
+                                directorStatus.isOpen 
                                 ? 'bg-[#25D366] hover:bg-[#20ba5c] text-white hover:shadow-green-200/50' 
                                 : 'bg-white border-2 border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600'
                             }`}
                         >
                             <MessageCircle className="w-5 h-5 mr-2" /> 
-                            {polStatus.isOpen ? t('contact.pol.btn') : t('contact.pol.btn_msg')}
+                            {directorStatus.isOpen ? t('contact.pol.btn') : t('contact.pol.btn_msg')}
                         </a>
                     </div>
                 </div>
@@ -327,10 +335,10 @@ export const AboutView: React.FC = () => {
                  <h3 className="text-xl font-bold text-rentia-black mb-2">{t('contact.email.title')}</h3>
                  <p className="text-gray-500 mb-6">{t('contact.email.desc')}</p>
                  <a 
-                    href="mailto:info@rentiaroom.com" 
+                    href={`mailto:${config.general.email}`} 
                     className="text-rentia-blue font-bold hover:underline text-lg"
                  >
-                    info@rentiaroom.com
+                    {config.general.email}
                  </a>
             </div>
         </div>

@@ -70,7 +70,12 @@ export const SalesTracker: React.FC = () => {
         const unsubAssets = onSnapshot(qAssets, (snapshot) => {
             const list: Opportunity[] = [];
             snapshot.forEach((doc) => {
-                list.push({ ...doc.data(), id: doc.id } as Opportunity);
+                const data = doc.data();
+                // Data integrity check to prevent crashes
+                if ((data as any).deleted) return;
+                if (!data.financials) return; 
+
+                list.push({ ...data, id: doc.id } as Opportunity);
             });
             setAssets(list);
         });
@@ -356,7 +361,7 @@ export const SalesTracker: React.FC = () => {
                                 >
                                     <option value="">Seleccionar...</option>
                                     {assets.map(a => (
-                                        <option key={a.id} value={a.id}>{a.title} ({a.financials.purchasePrice}€)</option>
+                                        <option key={a.id} value={a.id}>{a.title} ({a.financials?.purchasePrice || 0}€)</option>
                                     ))}
                                 </select>
                             </div>

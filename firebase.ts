@@ -1,7 +1,7 @@
 
 import { initializeApp } from "firebase/app";
 import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth";
-import { getFirestore, enableMultiTabIndexedDbPersistence, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getFunctions } from "firebase/functions";
 
@@ -24,24 +24,12 @@ setPersistence(auth, browserLocalPersistence).catch((error) => {
 });
 
 // 3. Inicializar Firestore con caché persistente (Offline support)
+// Esto YA habilita la persistencia, no hace falta llamar a enableMultiTabIndexedDbPersistence después
 export const db = initializeFirestore(app, {
   localCache: persistentLocalCache({
     tabManager: persistentMultipleTabManager()
   })
 });
-
-// Habilitar persistencia explícita para navegadores antiguos si es necesario
-try {
-  enableMultiTabIndexedDbPersistence(db).catch((err) => {
-    if (err.code == 'failed-precondition') {
-        console.warn('Persistencia fallida: Múltiples pestañas abiertas.');
-    } else if (err.code == 'unimplemented') {
-        console.warn('Persistencia no soportada por el navegador.');
-    }
-  });
-} catch (e) {
-  // Ignorar si ya está inicializado
-}
 
 export const storage = getStorage(app);
 export const functions = getFunctions(app, 'us-central1'); // Ajusta la región si usas otra (ej: europe-west1)

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { db } from '../../firebase';
-import { collection, getDocs, doc, updateDoc, writeBatch } from 'firebase/firestore';
+import { collection, getDocs, doc, setDoc, writeBatch } from 'firebase/firestore';
 import { opportunities as staticOpportunities } from '../../data';
 import { Opportunity } from '../../types';
 import { Save, RefreshCw, TrendingUp, CheckCircle, AlertTriangle, ChevronDown, ChevronRight, UploadCloud, DollarSign } from 'lucide-react';
@@ -13,19 +13,33 @@ export const OpportunityManager: React.FC = () => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
-  // Cargar datos de Firestore
+  // Cargar datos de Firestore y fusionar con estáticos
   const fetchOpportunities = async () => {
     setLoading(true);
     setMessage(null);
     try {
       const querySnapshot = await getDocs(collection(db, "opportunities"));
-      const props: Opportunity[] = [];
+      const firestoreOpps: Opportunity[] = [];
+      const dbIds = new Set<string>();
+
       querySnapshot.forEach((doc) => {
         const data = doc.data();
-        if ((data as any).deleted) return; // Filter deleted
-        props.push({ ...data, id: doc.id } as Opportunity);
+        // Si está marcado como borrado, no lo incluimos
+        if ((data as any).deleted) return; 
+        firestoreOpps.push({ ...data, id: doc.id } as Opportunity);
+        dbIds.add(doc.id);
       });
-      setOpportunities(props);
+
+      // Identificar estáticos que faltan en DB
+      const missingStatics = staticOpportunities.filter(opp => !dbIds.has(opp.id));
+      
+      // Combinar: Firestore (Prioridad) + Estáticos Faltantes
+      const combinedOpps = [...firestoreOpps, ...missingStatics];
+      
+      // Ordenar por título o ID para consistencia
+      combinedOpps.sort((a, b) => a.title.localeCompare(b.title));
+
+      setOpportunities(combinedOpps);
     } catch (error: any) {
       console.error("Error fetching opportunities:", error);
       let errorText = "Error al cargar datos.";
@@ -40,9 +54,9 @@ export const OpportunityManager: React.FC = () => {
     fetchOpportunities();
   }, []);
 
-  // Función para subir los datos estáticos a Firebase
+  // Función para subir TODOS los datos estáticos a Firebase (Backup manual)
   const handleImportStaticData = async () => {
-    if (!window.confirm("¿Estás seguro? Esto sobrescribirá la base de datos de Oportunidades.")) return;
+    if (!window.confirm("¿Estás seguro? Esto sobrescribirá la base de datos de Oportunidades con los datos del archivo local.")) return;
     
     setLoading(true);
     setMessage(null);
@@ -52,11 +66,12 @@ export const OpportunityManager: React.FC = () => {
       
       staticOpportunities.forEach(opp => {
         const docRef = doc(db, "opportunities", opp.id);
-        batch.set(docRef, opp);
+        const { id, ...data } = opp;
+        batch.set(docRef, data, { merge: true });
       });
 
       await batch.commit();
-      setMessage({ type: 'success', text: "Oportunidades importadas correctamente." });
+      setMessage({ type: 'success', text: "Oportunidades importadas/actualizadas correctamente." });
       await fetchOpportunities();
       
     } catch (error: any) {
@@ -82,10 +97,13 @@ export const OpportunityManager: React.FC = () => {
     setMessage(null);
     try {
       const docRef = doc(db, "opportunities", opp.id);
-      await updateDoc(docRef, { 
-          status: opp.status,
-          'financials.purchasePrice': opp.financials.purchasePrice
-      });
+      
+      // Usamos setDoc con merge para asegurar que si el documento no existe (era estático), se crea completo.
+      // Excluimos el ID del cuerpo del documento para limpieza, aunque no es crítico.
+      const { id, ...dataToSave } = opp;
+      
+      await setDoc(docRef, dataToSave, { merge: true });
+      
       setMessage({ type: 'success', text: `Cambios guardados en ${opp.title}` });
     } catch (error: any) {
       console.error(error);
@@ -115,15 +133,14 @@ export const OpportunityManager: React.FC = () => {
                 <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
             
-            {(opportunities.length === 0) && (
-                <button 
-                    onClick={handleImportStaticData}
-                    disabled={loading}
-                    className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-indigo-100 transition-colors border border-indigo-200"
-                >
-                    <UploadCloud className="w-4 h-4" /> Importar Inicial
-                </button>
-            )}
+            <button 
+                onClick={handleImportStaticData}
+                disabled={loading}
+                className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-indigo-100 transition-colors border border-indigo-200"
+                title="Forzar volcado de datos locales a la nube"
+            >
+                <UploadCloud className="w-4 h-4" /> Sincronizar Todo
+            </button>
         </div>
       </div>
 

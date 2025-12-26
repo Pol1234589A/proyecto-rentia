@@ -1,3 +1,4 @@
+
 import { Opportunity } from '../types';
 import { Property } from '../data/rooms';
 
@@ -40,10 +41,20 @@ export interface FinancialAnalysis {
  * Calcula todas las métricas financieras de una oportunidad
  */
 export const calculateOpportunityFinancials = (opp: Opportunity): FinancialAnalysis => {
+    // PROTECCIÓN CONTRA DATOS CORRUPTOS (CRASH FIX)
+    if (!opp || !opp.financials) {
+        return {
+            purchasePrice: 0, itpAmount: 0, agencyFees: 0, agencyFeesVat: 0, agencyFeesTotal: 0,
+            notaryAndTaxes: 0, reformTotal: 0, totalInvestment: 0, monthlyIncome: 0,
+            yearlyIncome: 0, yearlyExpenses: 0, netYearlyIncome: 0, netMonthlyCashflow: 0,
+            grossYield: 0, netYield: 0, isCashflowPositive: false, isHighYield: false
+        };
+    }
+
     const { financials, specs, scenario } = opp;
     
     // 1. Costes de Entrada
-    const purchasePrice = financials.purchasePrice;
+    const purchasePrice = financials.purchasePrice || 0;
     const itpPercent = financials.itpPercent || CONSTANTS.ITP_DEFAULT;
     const itpAmount = purchasePrice * (itpPercent / 100);
     
@@ -58,18 +69,18 @@ export const calculateOpportunityFinancials = (opp: Opportunity): FinancialAnaly
     const agencyFeesTotal = agencyFees + agencyFeesVat;
 
     const notaryAndTaxes = financials.notaryAndTaxes || CONSTANTS.NOTARY_ESTIMATED + itpAmount;
-    const reformTotal = financials.reformCost + financials.furnitureCost;
+    const reformTotal = (financials.reformCost || 0) + (financials.furnitureCost || 0);
 
     const totalInvestment = purchasePrice + notaryAndTaxes + reformTotal + agencyFeesTotal;
 
     // 2. Ingresos y Gastos Operativos
     // Detectar estrategia (si hay proyección de habitaciones > 0, asumimos esa estrategia)
-    const isRooms = financials.monthlyRentProjected > 0;
-    const monthlyIncome = isRooms ? financials.monthlyRentProjected : financials.monthlyRentTraditional;
+    const isRooms = (financials.monthlyRentProjected || 0) > 0;
+    const monthlyIncome = isRooms ? (financials.monthlyRentProjected || 0) : (financials.monthlyRentTraditional || 0);
     const yearlyIncome = monthlyIncome * 12;
     
     // Gastos anuales (IBI, Comunidad, Seguros)
-    const yearlyExpenses = financials.yearlyExpenses;
+    const yearlyExpenses = financials.yearlyExpenses || 0;
     
     // Estimación de gestión (para cálculo neto real)
     const managementRate = isRooms ? CONSTANTS.MANAGEMENT_FEE_ROOMS : CONSTANTS.MANAGEMENT_FEE_TRADITIONAL;

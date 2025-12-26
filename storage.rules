@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
@@ -8,6 +9,12 @@ service firebase.storage {
     }
 
     // --- CARPETAS PÚBLICAS (Lectura abierta) ---
+    
+    // Configuración web (Fotos equipo, logos dinámicos)
+    match /config/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuth(); // Solo Staff
+    }
 
     // Imágenes de la web pública (Oportunidades de inversión)
     match /opportunities/{allPaths=**} {

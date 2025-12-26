@@ -10,7 +10,7 @@ const getRecentDate = (hoursAgo: number) => {
 
 export const opportunities: Opportunity[] = [
   {
-    id: 'RP1742025137107',
+    id: 'RP1742025137107-V2', // ID Actualizado para forzar visualización prioritaria
     title: 'Oportunidad Inversión: Piso con Garaje y Trastero en El Palmar',
     address: 'C. Poeta Vicente Medina',
     city: 'El Palmar (Murcia)',
@@ -90,7 +90,7 @@ Ubicado junto al polideportivo, rodeado de supermercados, colegios y transporte 
       { name: 'Habitación 2', price: 250 },
       { name: 'Habitación 3', price: 250 }
     ],
-    createdAt: getRecentDate(1)
+    createdAt: getRecentDate(0) // Now
   },
   {
     id: 'NORA-FAMILIAR-PATIO',

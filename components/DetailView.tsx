@@ -165,18 +165,26 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
   // DOWNLOAD PDF HANDLER using html2pdf
   const handleDownloadPDF = () => {
     setIsGeneratingPdf(true);
-    const element = document.getElementById('pdf-content');
+    // Seleccionamos la plantilla específica para impresión
+    const element = document.getElementById('pdf-printable-template');
     if (!element) {
         setIsGeneratingPdf(false);
         return;
     }
 
     const opt = {
-      margin:       0, // margins
-      filename:     `Ficha_Rentia_${opportunity.id}.pdf`,
+      margin:       [0.5, 0.5], // Top/Bottom, Left/Right (0.5 inch safe margin)
+      filename:     `Ficha_Ejecutiva_${opportunity.id}.pdf`,
       image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true, logging: true },
-      jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+      html2canvas:  { 
+        scale: 2, 
+        useCORS: true, 
+        logging: false,
+        letterRendering: true,
+        scrollY: 0
+      },
+      jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' },
+      pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
     };
 
     if (typeof html2pdf !== 'undefined') {
@@ -196,116 +204,111 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
 
   return (
     <>
-      {/* ---------------- PDF GENERATION TEMPLATE (OFF-SCREEN) ---------------- */}
       {/* 
-         It sits outside the viewport so it's not visible to the user,
-         but accessible to html2pdf. We use a fixed width (approx A4 @ 96dpi) 
-         to ensure layout consistency in the PDF.
+         ---------------- PLANTILLA PDF EJECUTIVA (A4 PURO / SIN LOGO GRÁFICO) ---------------- 
+         Diseñada para ser impresa como documento formal. Sin imágenes grandes.
+         Width adjusted to 700px to ensure it fits within A4 margins without cutting off.
       */}
-      <div id="pdf-content" className="absolute top-0 -left-[9999px] w-[800px] bg-white text-black p-8 font-sans z-[-1]">
-          {/* Print Header */}
-          <div className="flex justify-between items-start border-b-2 border-rentia-gold pb-4 mb-6">
-              <div>
-                  {/* Using standard img for logo to ensure load in pdf */}
-                  <img src="https://i.ibb.co/QvzK6db3/Logo-Negativo.png" alt="RentiaRoom" className="h-8 filter invert" crossOrigin="anonymous" />
-              </div>
-              <div className="text-right">
-                  <h1 className="text-xl font-bold uppercase text-slate-900 leading-none">{opportunity.title}</h1>
-                  <p className="text-sm text-slate-500 mt-1">{publicAddress}, {opportunity.city}</p>
-              </div>
-          </div>
-
-          {/* Print Hero Image */}
-          <div className="relative h-64 w-full mb-6 rounded-xl overflow-hidden border border-gray-200">
-              <img src={opportunity.images[0]} className="w-full h-full object-cover" crossOrigin="anonymous" />
-              <div className="absolute top-4 right-4 bg-white/90 px-4 py-2 rounded-lg text-slate-900 font-bold border shadow-sm">
-                  Ref: {opportunity.id}
-              </div>
-              <div className="absolute bottom-0 left-0 bg-rentia-blue text-white px-6 py-2 rounded-tr-xl font-bold">
-                  {opportunity.status === 'available' ? 'DISPONIBLE' : 'RESERVADO'}
-              </div>
-          </div>
-
-          {/* Financial Strip */}
-          <div className="flex justify-between items-center bg-slate-50 border border-slate-200 p-4 rounded-xl mb-8">
-               <div className="text-center w-1/3 border-r border-slate-200">
-                   <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Inversión Total Estimada</p>
-                   <p className="text-2xl font-bold text-slate-900">{financials.totalInvestment.toLocaleString('es-ES')} €</p>
-               </div>
-               <div className="text-center w-1/3 border-r border-slate-200">
-                   <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Ingresos Anuales Brutos</p>
-                   <p className="text-2xl font-bold text-green-600">{(displayMonthlyIncome * 12).toLocaleString('es-ES')} €</p>
-               </div>
-               <div className="text-center w-1/3">
-                   <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Rentabilidad Neta</p>
-                   <p className="text-3xl font-bold text-rentia-gold">{dynamicNetYield.toFixed(2)}%</p>
-               </div>
-          </div>
-
-          {/* Main Layout Columns */}
-          <div className="grid grid-cols-2 gap-8 mb-8">
-              {/* Left Col: Specs & Description */}
-              <div>
-                  <h3 className="text-sm font-bold text-slate-900 uppercase border-b border-gray-200 pb-1 mb-3">Ficha Técnica</h3>
-                  <div className="grid grid-cols-2 gap-y-2 text-xs mb-6">
-                      <div className="flex justify-between border-b border-gray-100 pb-1"><span>Habitaciones:</span> <strong>{specs.rooms}</strong></div>
-                      <div className="flex justify-between border-b border-gray-100 pb-1 ml-2"><span>Baños:</span> <strong>{specs.bathrooms}</strong></div>
-                      <div className="flex justify-between border-b border-gray-100 pb-1"><span>Superficie:</span> <strong>{specs.sqm} m²</strong></div>
-                      <div className="flex justify-between border-b border-gray-100 pb-1 ml-2"><span>Planta:</span> <strong>{specs.floor}</strong></div>
+      <div style={{ position: 'absolute', top: '-10000px', left: '-10000px' }}>
+          <div id="pdf-printable-template" className="bg-white text-slate-900 p-8 font-serif box-border" style={{ width: '700px' }}>
+              
+              {/* Clean Header - Text Only */}
+              <div className="border-b-4 border-slate-900 pb-4 mb-8 flex justify-between items-end">
+                  <div>
+                      <h1 className="text-3xl font-bold uppercase tracking-tight text-slate-900 leading-none">Ficha de Inversión</h1>
+                      <p className="text-sm text-slate-500 font-sans mt-1">Análisis de Viabilidad y Rentabilidad</p>
                   </div>
-
-                  <h3 className="text-sm font-bold text-slate-900 uppercase border-b border-gray-200 pb-1 mb-3">Análisis</h3>
-                  <div className="text-xs text-slate-600 leading-relaxed text-justify whitespace-pre-line">
-                      {opportunity.description.length > 500 ? opportunity.description.substring(0, 500) + '...' : opportunity.description}
+                  <div className="text-right text-xs font-sans text-slate-400">
+                      <p>Ref: {opportunity.id}</p>
+                      <p>{new Date().toLocaleDateString()}</p>
                   </div>
               </div>
 
-              {/* Right Col: Financial Breakdown & Features */}
-              <div>
-                  <h3 className="text-sm font-bold text-slate-900 uppercase border-b border-gray-200 pb-1 mb-3">Desglose Económico</h3>
-                  <div className="bg-blue-50/50 p-3 rounded-lg text-xs space-y-2 mb-6 border border-blue-100">
-                       <div className="flex justify-between"><span>Precio Compra:</span> <span>{financials.purchasePrice.toLocaleString()} €</span></div>
-                       <div className="flex justify-between"><span>ITP ({financials.itpAmount > 0 ? '8%' : 'N/A'}):</span> <span>{financials.itpAmount.toLocaleString()} €</span></div>
-                       <div className="flex justify-between"><span>Reforma + Mobiliario:</span> <span>{financials.reformTotal.toLocaleString()} €</span></div>
-                       <div className="flex justify-between"><span>Notaría y Registro (Est.):</span> <span>{(financials.notaryAndTaxes - financials.itpAmount).toLocaleString('es-ES')} €</span></div>
-                       
-                       {/* Agency Fee Line */}
-                       <div className="flex justify-between items-baseline text-rentia-blue">
-                           <span className="text-sm font-medium">{t('opportunities.detail.agency_fees')}</span>
-                           <span className="font-bold">{financials.agencyFeesTotal.toLocaleString('es-ES')} €</span>
-                       </div>
-                       
-                       <div className="bg-rentia-gold/30 p-3 rounded-lg flex justify-between items-center mt-3">
-                           <span className="font-bold text-rentia-black">{t('opportunities.card.total_investment')}</span>
-                           <span className="font-bold text-lg sm:text-xl text-rentia-black">{financials.totalInvestment.toLocaleString('es-ES')} €</span>
-                       </div>
+              {/* Property Identification */}
+              <div className="mb-8">
+                  <h2 className="text-2xl font-bold text-slate-800 mb-2 font-sans">{opportunity.title}</h2>
+                  <p className="text-lg text-slate-600 font-sans">{opportunity.address}, {opportunity.city}</p>
+              </div>
+
+              {/* Executive Summary (KPIs Grid) */}
+              <div className="grid grid-cols-4 gap-0 border border-slate-200 rounded-lg overflow-hidden mb-8 font-sans">
+                  <div className="p-4 bg-slate-50 border-r border-slate-200">
+                      <p className="text-[10px] uppercase font-bold text-slate-500">Inversión Total</p>
+                      <p className="text-xl font-bold text-slate-900">{financials.totalInvestment.toLocaleString()} €</p>
+                  </div>
+                  <div className="p-4 bg-slate-50 border-r border-slate-200">
+                      <p className="text-[10px] uppercase font-bold text-slate-500">Ingreso Anual</p>
+                      <p className="text-xl font-bold text-green-700">{(displayMonthlyIncome * 12).toLocaleString()} €</p>
+                  </div>
+                  <div className="p-4 bg-slate-50 border-r border-slate-200">
+                      <p className="text-[10px] uppercase font-bold text-slate-500">Cashflow Mes</p>
+                      <p className="text-xl font-bold text-blue-700">{netMonthlyIncome.toLocaleString('es-ES', {maximumFractionDigits: 0})} €</p>
+                  </div>
+                  <div className="p-4 bg-slate-100">
+                      <p className="text-[10px] uppercase font-bold text-slate-500">Rentabilidad Neta</p>
+                      <p className="text-2xl font-bold text-slate-900">{dynamicNetYield.toFixed(2)}%</p>
+                  </div>
+              </div>
+
+              {/* Two Column Layout: Financials & Specs */}
+              <div className="grid grid-cols-2 gap-12 mb-8">
+                  
+                  {/* Left: Financial Structure Table */}
+                  <div>
+                      <h3 className="text-sm font-bold text-slate-900 uppercase border-b-2 border-slate-900 pb-2 mb-4 font-sans">Estructura de Costes</h3>
+                      <table className="w-full text-sm font-sans border-collapse">
+                          <tbody>
+                              <tr className="border-b border-slate-100"><td className="py-2 text-slate-600">Precio Compra</td><td className="py-2 text-right font-bold">{financials.purchasePrice.toLocaleString()} €</td></tr>
+                              <tr className="border-b border-slate-100"><td className="py-2 text-slate-600">Impuestos (ITP)</td><td className="py-2 text-right">{financials.itpAmount.toLocaleString()} €</td></tr>
+                              <tr className="border-b border-slate-100"><td className="py-2 text-slate-600">Reforma / Muebles</td><td className="py-2 text-right">{financials.reformTotal.toLocaleString()} €</td></tr>
+                              <tr className="border-b border-slate-100"><td className="py-2 text-slate-600">Notaría / Reg.</td><td className="py-2 text-right">{(financials.notaryAndTaxes - financials.itpAmount).toLocaleString()} €</td></tr>
+                              <tr className="border-b border-slate-100"><td className="py-2 text-slate-600">Honorarios Gestión</td><td className="py-2 text-right">{financials.agencyFeesTotal.toLocaleString()} €</td></tr>
+                              <tr className="bg-slate-50 font-bold"><td className="py-3 pl-2 text-slate-800">TOTAL</td><td className="py-3 pr-2 text-right text-slate-900">{financials.totalInvestment.toLocaleString()} €</td></tr>
+                          </tbody>
+                      </table>
                   </div>
 
-                  <h3 className="text-sm font-bold text-slate-900 uppercase border-b border-gray-200 pb-1 mb-3">Puntos Clave</h3>
-                  <ul className="text-xs space-y-1">
-                      {opportunity.features.slice(0, 6).map((f, i) => (
-                          <li key={i} className="flex items-center gap-2">
-                              <Check className="w-3 h-3 text-green-600"/> {f}
-                          </li>
-                      ))}
-                  </ul>
+                  {/* Right: Technical Specs & Highlights */}
+                  <div>
+                      <h3 className="text-sm font-bold text-slate-900 uppercase border-b-2 border-slate-900 pb-2 mb-4 font-sans">Ficha Técnica</h3>
+                      <div className="grid grid-cols-2 gap-4 mb-6 font-sans text-sm">
+                          <div className="border border-slate-200 p-3 rounded text-center bg-slate-50"><span className="block text-xs text-slate-500 uppercase font-bold">Habitaciones</span><span className="font-bold text-lg text-slate-800">{specs.rooms}</span></div>
+                          <div className="border border-slate-200 p-3 rounded text-center bg-slate-50"><span className="block text-xs text-slate-500 uppercase font-bold">Baños</span><span className="font-bold text-lg text-slate-800">{specs.bathrooms}</span></div>
+                          <div className="border border-slate-200 p-3 rounded text-center bg-slate-50"><span className="block text-xs text-slate-500 uppercase font-bold">Metros</span><span className="font-bold text-lg text-slate-800">{specs.sqm} m²</span></div>
+                          <div className="border border-slate-200 p-3 rounded text-center bg-slate-50"><span className="block text-xs text-slate-500 uppercase font-bold">Planta</span><span className="font-bold text-lg text-slate-800">{specs.floor}</span></div>
+                      </div>
+                      
+                      <h4 className="text-xs font-bold uppercase mb-2 font-sans text-slate-900">Puntos Clave</h4>
+                      <ul className="text-xs text-slate-600 list-disc pl-4 space-y-1 font-sans">
+                          {opportunity.features.slice(0,6).map((f, i) => <li key={i}>{f}</li>)}
+                      </ul>
+                  </div>
               </div>
-          </div>
 
-          {/* Footer */}
-          <div className="mt-auto border-t-2 border-slate-900 pt-4 flex justify-between items-center">
-              <div className="text-[10px] text-slate-500">
-                  <p><strong>Rentia Investments S.L.</strong> | Gestión Integral de Inversiones Inmobiliarias</p>
-                  <p>Documento informativo sin valor contractual. Datos estimados según mercado.</p>
+              {/* Description (Text Only) */}
+              <div className="mb-8">
+                  <h3 className="text-sm font-bold text-slate-900 uppercase border-b-2 border-slate-900 pb-2 mb-4 font-sans">Análisis del Activo</h3>
+                  <div className="text-sm text-slate-700 leading-relaxed text-justify whitespace-pre-line font-sans gap-8">
+                      {opportunity.description}
+                  </div>
               </div>
-              <div className="text-right text-xs">
-                  <p className="font-bold text-rentia-blue flex items-center justify-end gap-1"><Phone className="w-3 h-3"/> +34 672 88 63 69</p>
-                  <p className="flex items-center justify-end gap-1"><Mail className="w-3 h-3"/> info@rentiaroom.com</p>
-                  <p className="flex items-center justify-end gap-1"><Globe className="w-3 h-3"/> www.rentiaroom.com</p>
+
+              {/* Footer (Plain Text, No Logo) */}
+              <div className="mt-auto pt-8 border-t-2 border-slate-900 text-[10px] text-slate-500 font-sans flex justify-between items-end">
+                  <div className="max-w-md text-justify">
+                      <p className="font-bold mb-1 text-slate-700">AVISO LEGAL</p>
+                      <p>Documento confidencial propiedad de Rentia Investments S.L. La información contenida tiene carácter meramente informativo y no constituye oferta contractual. Los datos financieros son estimaciones basadas en estudios de mercado. Rentabilidades pasadas no garantizan futuras.</p>
+                  </div>
+                  <div className="text-right">
+                      <p className="font-bold text-slate-900 text-sm mb-1">RentiaRoom</p>
+                      <p>info@rentiaroom.com</p>
+                      <p>www.rentiaroom.com</p>
+                  </div>
               </div>
+
           </div>
       </div>
-      {/* ---------------- END PDF TEMPLATE ---------------- */}
+      {/* ---------------- END PRINT TEMPLATE ---------------- */}
 
 
       <div className="max-w-7xl mx-auto p-3 sm:p-6 lg:p-8 animate-in fade-in duration-500 print:hidden">
@@ -328,10 +331,10 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
                 onClick={handleDownloadPDF}
                 disabled={isGeneratingPdf}
                 className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Descargar Ficha en PDF"
+                title="Descargar Ficha Ejecutiva (A4 PDF)"
                >
                    {isGeneratingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
-                   <span className="hidden sm:inline">{isGeneratingPdf ? 'Generando...' : 'Descargar PDF'}</span>
+                   <span className="hidden sm:inline">{isGeneratingPdf ? 'Generando...' : 'Ficha PDF'}</span>
                </button>
               <div className="flex gap-2">
                 <button onClick={onPrev} disabled={!hasPrev} className="nav-controls p-3 rounded-full bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-gray-200"><ChevronLeft className="w-5 h-5 text-gray-600" /></button>

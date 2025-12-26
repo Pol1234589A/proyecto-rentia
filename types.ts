@@ -42,6 +42,7 @@ export interface Opportunity {
   disableLivingRoomExpansion?: boolean;
   createdAt?: string | any; // Timestamp or ISO string
   active?: boolean; // Controls visibility/publication status
+  highlightMessage?: string; // Mensaje destacado tipo aviso importante
 }
 
 export interface Contract {

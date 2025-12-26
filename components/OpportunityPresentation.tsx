@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Opportunity } from '../types';
-import { MapPin, TrendingUp, Maximize, Building, ArrowRight, Phone, Download, ExternalLink, Bed, PlayCircle, Home, CheckCircle, Scale, AlertTriangle, ChevronDown, FileText, Info } from 'lucide-react';
+import { MapPin, TrendingUp, Maximize, Building, ArrowRight, Phone, Download, ExternalLink, Bed, PlayCircle, Home, CheckCircle, Scale, AlertTriangle, ChevronDown, FileText, Info, Lock } from 'lucide-react';
 import { ImageLightbox } from './ImageLightbox';
 
 interface Props {
@@ -200,6 +200,30 @@ export const OpportunityPresentation: React.FC<Props> = ({ opportunity, onClose 
 
             {/* Main Content */}
             <main className="container mx-auto px-4 py-16 max-w-5xl">
+                
+                {/* --- AVISO DESTACADO (Canva Style) --- */}
+                {opportunity.highlightMessage && (
+                    <div className="mb-12 relative overflow-hidden rounded-2xl bg-slate-900 text-white shadow-xl p-8 text-center border border-slate-700 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                         {/* Decorative background elements */}
+                         <div className="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-rentia-gold/20 rounded-full blur-2xl"></div>
+                         <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-24 h-24 bg-rentia-blue/30 rounded-full blur-2xl"></div>
+                         
+                         <div className="relative z-10 flex flex-col items-center justify-center gap-4">
+                              <div className="bg-white/10 backdrop-blur-md p-4 rounded-full border border-white/20 shadow-lg">
+                                  <Lock className="w-8 h-8 text-rentia-gold" />
+                              </div>
+                              <div>
+                                <h3 className="text-lg md:text-xl font-bold font-display uppercase tracking-widest text-rentia-gold mb-2">
+                                    Estado Actual
+                                </h3>
+                                <p className="text-lg md:text-2xl font-bold leading-relaxed max-w-3xl mx-auto text-white drop-shadow-md">
+                                    {opportunity.highlightMessage}
+                                </p>
+                              </div>
+                         </div>
+                    </div>
+                )}
+
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
                     
                     {/* Left Column: Description */}

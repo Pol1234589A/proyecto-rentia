@@ -10,6 +10,89 @@ const getRecentDate = (hoursAgo: number) => {
 
 export const opportunities: Opportunity[] = [
   {
+    id: 'RP1742025137107',
+    title: 'Oportunidad Inversión: Piso con Garaje y Trastero en El Palmar',
+    address: 'C. Poeta Vicente Medina',
+    city: 'El Palmar (Murcia)',
+    description: `REDPISO VENDE EN EXCLUSIVA. Piso de 91m² en El Palmar, zona Pedanías Oeste.
+
+ESTUDIO DE VIABILIDAD E INVERSIÓN:
+Propiedad "A reformar" ideal para aportar valor y maximizar rentabilidad.
+
+🅰️ ESCENARIO A: ALQUILER POR HABITACIONES (Recomendado)
+- **Precio por habitación:** 250 € + Gastos.
+- **Configuración:** 3 Habitaciones.
+- **Ingreso Mensual:** 750 €.
+- **Ventaja:** Alta demanda en la zona por cercanía a servicios y polígonos.
+
+🅱️ ESCENARIO B: ALQUILER TRADICIONAL
+- **Renta estimada:** 550 € / mes.
+- **Perfil:** Familias o parejas.
+
+CARACTERÍSTICAS:
+- **91 m² Construidos** (73 m² útiles).
+- **2ª Planta Exterior:** Luminoso, orientación Oeste.
+- **Garaje y Trastero:** Incluidos en el precio.
+- **Sin Ascensor:** Gastos de comunidad contenidos.
+- **Estado:** A reformar (Año 1980).
+
+Ubicado junto al polideportivo, rodeado de supermercados, colegios y transporte público.`,
+    features: [
+      '91 m² Construidos',
+      '3 Habitaciones',
+      '1 Baño',
+      'Garaje Incluido',
+      'Trastero',
+      'Exterior (Oeste)',
+      '2º Sin Ascensor',
+      'A Reformar'
+    ],
+    areaBenefits: [
+      'Junto Polideportivo',
+      'Supermercados cerca',
+      'Colegios y Farmacias',
+      'Transporte Público'
+    ],
+    images: [
+      'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=1200&q=80', // Salón luminoso (Placeholder style)
+      'https://images.unsplash.com/photo-1560185127-6ed189bf02f4?auto=format&fit=crop&w=1200&q=80', // Dormitorio
+      'https://images.unsplash.com/photo-1584622050111-993a426fbf0a?auto=format&fit=crop&w=1200&q=80', // Baño
+      'https://images.unsplash.com/photo-1585418694458-dc80a98b5840?auto=format&fit=crop&w=1200&q=80'  // Exterior/Garaje concept
+    ],
+    driveFolder: '#',
+    scenario: 'rent_rooms',
+    visibility: 'exact',
+    specs: {
+      rooms: 3,
+      bathrooms: 1,
+      sqm: 91,
+      floor: '2º',
+      hasElevator: false
+    },
+    financials: {
+      purchasePrice: 79900,
+      itpPercent: 8,
+      reformCost: 12000, // Lavado de cara, pintura, arreglos
+      furnitureCost: 3000, // 1k por habitación
+      notaryAndTaxes: 1500 + (79900 * 0.08), // Notaría + ITP 8%
+      agencyFees: 4000, // Comisión específica 4000€
+      totalInvestment: 79900 + (79900 * 0.08) + 1500 + (4000 * 1.21) + 15000, // Aprox 107k
+      monthlyRentProjected: 750, // 250 * 3
+      monthlyRentTraditional: 550,
+      yearlyExpenses: 1300, // IBI + Comunidad (85€/mes) + Seguro
+      marketValue: 95000, // Valor tras reforma
+      appreciationRate: 2
+    },
+    status: 'available',
+    tags: ['Oportunidad', 'El Palmar', 'Garaje', 'A Reformar'],
+    roomConfiguration: [
+      { name: 'Habitación 1', price: 250 },
+      { name: 'Habitación 2', price: 250 },
+      { name: 'Habitación 3', price: 250 }
+    ],
+    createdAt: getRecentDate(1)
+  },
+  {
     id: 'NORA-FAMILIAR-PATIO',
     title: 'Oportunidad Rebajada: Piso con Patio y Garaje en La Ñora',
     address: 'Zona Centro',

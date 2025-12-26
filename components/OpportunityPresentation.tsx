@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Opportunity } from '../types';
-import { MapPin, TrendingUp, Maximize, Building, ArrowRight, Phone, Download, ExternalLink, Bed, PlayCircle, Home, CheckCircle, Scale, AlertTriangle, ChevronDown } from 'lucide-react';
+import { MapPin, TrendingUp, Maximize, Building, ArrowRight, Phone, Download, ExternalLink, Bed, PlayCircle, Home, CheckCircle, Scale, AlertTriangle, ChevronDown, FileText, Info } from 'lucide-react';
 import { ImageLightbox } from './ImageLightbox';
 
 interface Props {
@@ -41,6 +41,106 @@ export const OpportunityPresentation: React.FC<Props> = ({ opportunity, onClose 
     // --- PUBLIC ADDRESS LOGIC (HIDE NUMBER) ---
     const publicAddress = opportunity.address.replace(/\d+/g, '').replace(/,/, '').trim();
 
+    // --- SANITIZE TEXT FUNCTION (REMOVE COMPETITORS) ---
+    const sanitizeTextContent = (text: string) => {
+        if (!text) return "";
+        let cleaned = text;
+
+        // Lista de competencia a eliminar (Case Insensitive)
+        const competitors = [
+            /REDPISO/gi,
+            /TECNOCASA/gi,
+            /ENGEL & VÖLKERS/gi,
+            /ENGEL & VOLKERS/gi,
+            /CENTURY 21/gi,
+            /DON PISO/gi,
+            /KELLER WILLIAMS/gi,
+            /RE\/MAX/gi,
+            /EXP REALTY/gi,
+            /IAD ESPAÑA/gi,
+            /IAD/gi,
+            /SAFTI/gi,
+            /HOGARES/gi,
+            /GILMAR/gi,
+            /FOTOCASA/gi,
+            /IDEALISTA/gi
+        ];
+
+        competitors.forEach(regex => {
+            cleaned = cleaned.replace(regex, ""); 
+        });
+
+        // Correcciones gramaticales post-borrado
+        // Ej: " VENDE EN EXCLUSIVA" -> "Se vende en exclusiva"
+        cleaned = cleaned.replace(/^\s*VENDE EN EXCLUSIVA/gim, "Se vende en exclusiva");
+        cleaned = cleaned.replace(/VENDE EN EXCLUSIVA/gi, "Venta en exclusiva");
+        
+        // Limpiar dobles espacios generados
+        cleaned = cleaned.replace(/\s{2,}/g, " ").trim();
+        
+        // Capitalizar primera letra si se borró la palabra inicial
+        if (cleaned.length > 0) {
+            cleaned = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+        }
+        
+        return cleaned;
+    };
+
+    // --- TEXT PARSER FOR PROFESSIONAL DESCRIPTION ---
+    const parseText = (text: string) => {
+        return text.split(/(\*\*.*?\*\*)/g).map((part, i) => {
+            if (part.startsWith('**') && part.endsWith('**')) {
+                return <strong key={i} className="text-slate-900 font-bold">{part.slice(2, -2)}</strong>;
+            }
+            return part;
+        });
+    };
+
+    const renderDescription = (text: string) => {
+        // 1. Sanitize text first
+        const cleanText = sanitizeTextContent(text);
+        
+        const lines = cleanText.split('\n');
+        return lines.map((line, idx) => {
+            const trimmed = line.trim();
+            if (!trimmed) return <div key={idx} className="h-3" />;
+            
+            // List Item
+            if (trimmed.startsWith('- ')) {
+                const content = trimmed.substring(2);
+                return (
+                    <div key={idx} className="flex items-start gap-3 ml-1 mb-2 group">
+                        <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-rentia-blue flex-shrink-0 group-hover:scale-125 transition-transform"></div>
+                        <p className="text-slate-600 text-sm leading-relaxed">
+                            {parseText(content)}
+                        </p>
+                    </div>
+                );
+            }
+
+            // Header Detection (Heuristic: Starts with emoji OR is mostly Uppercase OR ends with :)
+            // We verify if line length > 4 to avoid false positives on short words
+            const isHeader = (trimmed.length > 4 && /^[A-ZÁÉÍÓÚÑ0-9\s:().,]+$/.test(trimmed)) || trimmed.includes('ESCENARIO') || trimmed.endsWith(':') || /^\p{Emoji}/u.test(trimmed);
+            
+            if (isHeader) {
+                return (
+                    <div key={idx} className="mt-6 mb-3">
+                        <h4 className="font-display font-bold text-slate-800 text-sm tracking-wide uppercase flex items-center gap-2 border-l-4 border-rentia-gold pl-3 py-1 bg-slate-50 rounded-r-lg">
+                            {trimmed}
+                        </h4>
+                    </div>
+                );
+            }
+
+            // Normal paragraph
+            return (
+                <p key={idx} className="text-slate-600 leading-7 text-sm mb-3 text-justify">
+                    {parseText(trimmed)}
+                </p>
+            );
+        });
+    };
+
     return (
         <div className="min-h-screen bg-slate-50 font-sans text-slate-800">
             {/* Header / Nav */}
@@ -71,7 +171,7 @@ export const OpportunityPresentation: React.FC<Props> = ({ opportunity, onClose 
                         <TrendingUp className="w-3 h-3" /> Rentabilidad {grossYield.toFixed(1)}%
                     </div>
                     <h1 className="text-3xl md:text-5xl lg:text-6xl font-display font-bold mb-6 leading-tight drop-shadow-xl">
-                        {opportunity.title}
+                        {sanitizeTextContent(opportunity.title)}
                     </h1>
                     <p className="text-lg md:text-xl text-slate-300 max-w-2xl mx-auto font-light leading-relaxed">
                         {publicAddress}, {opportunity.city}
@@ -104,33 +204,51 @@ export const OpportunityPresentation: React.FC<Props> = ({ opportunity, onClose 
                     
                     {/* Left Column: Description */}
                     <div className="lg:col-span-7 space-y-12">
-                        <div>
-                            <h3 className="text-2xl font-bold font-display text-slate-900 mb-6 flex items-center gap-3">
-                                <Home className="w-6 h-6 text-rentia-blue" />
-                                Sobre el Activo
-                            </h3>
-                            <div 
-                                className="prose prose-slate text-gray-600 leading-relaxed text-justify whitespace-pre-line"
-                                dangerouslySetInnerHTML={{ __html: opportunity.description }} 
-                            />
+                        
+                        {/* Enhanced Description Card */}
+                        <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200 relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-gray-50 rounded-bl-full -mr-8 -mt-8 z-0"></div>
+                            
+                            <div className="relative z-10">
+                                <h3 className="text-xl font-bold font-display text-slate-900 mb-8 flex items-center gap-3 border-b border-gray-100 pb-4">
+                                    <div className="p-2.5 bg-blue-50 text-rentia-blue rounded-xl shadow-sm">
+                                        <FileText className="w-5 h-5" />
+                                    </div>
+                                    Análisis del Activo
+                                </h3>
+                                
+                                {/* Rendered Content (Sanitized internally) */}
+                                <div className="space-y-1">
+                                    {renderDescription(opportunity.description)}
+                                </div>
+
+                                <div className="mt-8 bg-blue-50/50 rounded-lg p-4 border border-blue-100 flex items-start gap-3">
+                                    <Info className="w-5 h-5 text-rentia-blue mt-0.5 flex-shrink-0" />
+                                    <p className="text-xs text-slate-600 italic">
+                                        Este análisis ha sido elaborado por el equipo de inversiones de RentiaRoom basándose en datos actuales de mercado. Los escenarios planteados son proyecciones realistas.
+                                    </p>
+                                </div>
+                            </div>
                         </div>
 
                         <div>
-                            <h3 className="text-xl font-bold font-display text-slate-900 mb-6">Puntos Clave</h3>
+                            <h3 className="text-xl font-bold font-display text-slate-900 mb-6 flex items-center gap-2">
+                                <CheckCircle className="w-5 h-5 text-green-600" /> Puntos Clave
+                            </h3>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {opportunity.features.map((feat, idx) => (
-                                    <div key={idx} className="flex items-start gap-3 bg-white p-4 rounded-lg border border-gray-100 shadow-sm">
-                                        <div className="mt-0.5 w-5 h-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center flex-shrink-0">
-                                            <CheckCircle className="w-3 h-3" />
+                                    <div key={idx} className="flex items-start gap-3 bg-white p-4 rounded-lg border border-gray-200 shadow-sm hover:border-rentia-blue/30 transition-colors">
+                                        <div className="mt-0.5 w-4 h-4 rounded-full bg-green-100 text-green-600 flex items-center justify-center flex-shrink-0">
+                                            <CheckCircle className="w-2.5 h-2.5" />
                                         </div>
-                                        <span className="text-sm font-medium text-gray-700">{feat}</span>
+                                        <span className="text-sm font-medium text-gray-700">{sanitizeTextContent(feat)}</span>
                                     </div>
                                 ))}
                             </div>
                         </div>
 
                         {opportunity.videos && opportunity.videos.length > 0 && (
-                            <div className="bg-slate-900 rounded-2xl p-8 text-center relative overflow-hidden group cursor-pointer" onClick={() => window.open(opportunity.videos![0], '_blank')}>
+                            <div className="bg-slate-900 rounded-2xl p-8 text-center relative overflow-hidden group cursor-pointer shadow-xl" onClick={() => window.open(opportunity.videos![0], '_blank')}>
                                 <div className="absolute inset-0 opacity-30 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
                                 <PlayCircle className="w-16 h-16 text-white mx-auto mb-4 group-hover:scale-110 transition-transform" />
                                 <h4 className="text-white text-xl font-bold relative z-10">Ver Video Tour</h4>
@@ -190,48 +308,6 @@ export const OpportunityPresentation: React.FC<Props> = ({ opportunity, onClose 
                             </a>
                         )}
                     </div>
-                </div>
-
-                {/* LEGAL & DISCLAIMER SECTION (Collapsible) */}
-                <div className="mt-16 bg-slate-100 rounded-2xl border border-slate-200 overflow-hidden text-xs text-slate-500 text-justify leading-relaxed">
-                    <button 
-                        onClick={() => setShowLegal(!showLegal)}
-                        className="w-full flex items-center justify-between p-6 md:p-8 text-left hover:bg-slate-200/50 transition-colors group"
-                    >
-                        <h5 className="font-bold text-slate-700 uppercase flex items-center gap-2 text-sm group-hover:text-rentia-blue">
-                            <Scale className="w-4 h-4" /> Términos Legales, Condiciones de Contratación y Pacto de No Elusión
-                        </h5>
-                        <ChevronDown className={`w-5 h-5 text-slate-500 transition-transform duration-300 ${showLegal ? 'rotate-180' : ''}`} />
-                    </button>
-                    
-                    {showLegal && (
-                        <div className="px-6 md:px-8 pb-8 text-xs text-slate-500 text-justify leading-relaxed animate-in slide-in-from-top-1 border-t border-slate-200 pt-4">
-                            <div className="space-y-4">
-                                <p>
-                                    <strong className="text-slate-700">1. EXENCIÓN DE RESPONSABILIDAD:</strong> Rentia Investments S.L. facilita la presente información con carácter meramente estimativo y orientativo. Los datos financieros (rentabilidades, gastos, ingresos) son proyecciones basadas en análisis de mercado y no constituyen garantía contractual de resultados futuros. Rentia Investments S.L. no se hace responsable de variaciones en los datos, errores u omisiones, ni de las decisiones de inversión tomadas en base a este documento.
-                                </p>
-                                <p>
-                                    <strong className="text-slate-700">2. RECONOCIMIENTO DE INTERMEDIACIÓN:</strong> Al solicitar información, realizar una visita, contactar o recibir documentación sobre este activo, el interesado reconoce expresa e irrevocablemente la labor de intermediación de Rentia Investments S.L. y acepta las condiciones aquí expuestas.
-                                </p>
-                                
-                                <div className="bg-white p-4 rounded-lg border-l-4 border-red-500 shadow-sm">
-                                    <p className="mb-2 text-red-700 font-bold flex items-center gap-2">
-                                        <AlertTriangle className="w-4 h-4"/> 3. PACTO DE NO ELUSIÓN Y PENALIZACIÓN (NCA)
-                                    </p>
-                                    <p className="text-slate-600">
-                                        En caso de que el activo sea propiedad de un colaborador o tercero representado por Rentia Investments S.L., el interesado se obliga estrictamente a <strong>no contactar, negociar, ni cerrar operaciones directa o indirectamente con la propiedad</strong> eludiendo a esta agencia.
-                                    </p>
-                                    <p className="mt-2 text-slate-600">
-                                        Cualquier intento de elusión, engaño o colusión para evitar el pago de honorarios, devengará automáticamente a favor de Rentia Investments S.L. una <strong>penalización equivalente al importe de la comisión de intermediación habitual</strong> (3% del valor de venta + IVA, con un mínimo de 3.000€ + IVA), sin perjuicio de la reclamación de mayores daños y perjuicios que correspondan en derecho.
-                                    </p>
-                                </div>
-
-                                <p>
-                                    <strong className="text-slate-700">4. JURISDICCIÓN:</strong> Para la resolución de cualquier conflicto derivado de la interpretación o cumplimiento de estas condiciones, las partes se someten expresamente a los <strong>Juzgados y Tribunales de la ciudad de Murcia</strong>, con renuncia a cualquier otro fuero que pudiera corresponderles.
-                                </p>
-                            </div>
-                        </div>
-                    )}
                 </div>
 
             </main>

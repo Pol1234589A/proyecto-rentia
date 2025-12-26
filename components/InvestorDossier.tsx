@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Opportunity } from '../types';
-import { TrendingUp, MapPin, Bed, Maximize, ArrowRight, X, ChevronLeft, ChevronRight, Phone, Download, Printer, Lock, Globe, Scale, AlertTriangle, Loader2 } from 'lucide-react';
+import { TrendingUp, MapPin, Bed, Maximize, ArrowRight, X, ChevronLeft, ChevronRight, Phone, Download, Printer, Lock, Globe, Scale, AlertTriangle, Loader2, FileDown, Check, Building, Mail } from 'lucide-react';
 import { ImageLightbox } from './ImageLightbox';
 
 // Helper Component for Loading State
@@ -57,6 +57,10 @@ export const InvestorDossier: React.FC<InvestorDossierProps> = ({ opportunities,
 
   const formatCurrency = (val: number) => val.toLocaleString('es-ES') + ' €';
 
+  const handlePrint = () => {
+      window.print();
+  }
+
   // --- VISTA: PORTADA ---
   if (activeView === 'cover' && !selectedOpportunity) {
       return (
@@ -111,9 +115,109 @@ export const InvestorDossier: React.FC<InvestorDossierProps> = ({ opportunities,
       const monthlyIncome = opp.financials.monthlyRentProjected || opp.financials.monthlyRentTraditional;
       const grossYield = ((monthlyIncome * 12) / totalInv) * 100;
       const netYield = (((monthlyIncome * 12) - opp.financials.yearlyExpenses) / totalInv) * 100;
+      const publicAddress = opp.address.replace(/\d+/g, '').replace(/,/, '').trim();
 
       return (
-          <div className="min-h-screen bg-slate-50 font-sans relative flex flex-col md:flex-row">
+          <>
+          {/* ---------------- A4 PRINT TEMPLATE ---------------- */}
+          <div className="hidden print:block fixed inset-0 z-[9999] bg-white text-black p-8 font-sans h-screen w-screen overflow-hidden">
+              {/* Print Header */}
+              <div className="flex justify-between items-start border-b-2 border-rentia-gold pb-4 mb-6">
+                  <div>
+                      <img src="https://i.ibb.co/bgfbkz88/1729857046896.jpg" className="h-0 w-0 hidden" alt="preload"/> {/* Hack preload */}
+                      <img src="https://i.ibb.co/QvzK6db3/Logo-Negativo.png" alt="RentiaRoom" className="h-8 filter invert" />
+                  </div>
+                  <div className="text-right">
+                      <h1 className="text-xl font-bold uppercase text-slate-900 leading-none">{opp.title}</h1>
+                      <p className="text-sm text-slate-500 mt-1">{publicAddress}, {opp.city}</p>
+                  </div>
+              </div>
+
+              {/* Print Hero */}
+              <div className="relative h-64 w-full mb-6 rounded-xl overflow-hidden border border-gray-200">
+                  <img src={opp.images[0]} className="w-full h-full object-cover" />
+                  <div className="absolute top-4 right-4 bg-white/90 px-4 py-2 rounded-lg text-slate-900 font-bold border shadow-sm">
+                      Ref: {opp.id}
+                  </div>
+                  <div className="absolute bottom-0 left-0 bg-rentia-blue text-white px-6 py-2 rounded-tr-xl font-bold">
+                      {opp.status === 'available' ? 'DISPONIBLE' : 'RESERVADO'}
+                  </div>
+              </div>
+
+              {/* Financial Strip */}
+              <div className="flex justify-between items-center bg-slate-50 border border-slate-200 p-4 rounded-xl mb-8">
+                   <div className="text-center w-1/3 border-r border-slate-200">
+                       <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Inversión Total Estimada</p>
+                       <p className="text-2xl font-bold text-slate-900">{totalInv.toLocaleString('es-ES')} €</p>
+                   </div>
+                   <div className="text-center w-1/3 border-r border-slate-200">
+                       <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Ingresos Anuales Brutos</p>
+                       <p className="text-2xl font-bold text-green-600">{(monthlyIncome * 12).toLocaleString('es-ES')} €</p>
+                   </div>
+                   <div className="text-center w-1/3">
+                       <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Rentabilidad Neta</p>
+                       <p className="text-3xl font-bold text-rentia-gold">{netYield.toFixed(2)}%</p>
+                   </div>
+              </div>
+
+              {/* Main Layout Columns */}
+              <div className="grid grid-cols-2 gap-8 mb-8">
+                  {/* Left Col: Specs & Description */}
+                  <div>
+                      <h3 className="text-sm font-bold text-slate-900 uppercase border-b border-gray-200 pb-1 mb-3">Ficha Técnica</h3>
+                      <div className="grid grid-cols-2 gap-y-2 text-xs mb-6">
+                          <div className="flex justify-between border-b border-gray-100 pb-1"><span>Habitaciones:</span> <strong>{opp.specs.rooms}</strong></div>
+                          <div className="flex justify-between border-b border-gray-100 pb-1 ml-2"><span>Baños:</span> <strong>{opp.specs.bathrooms}</strong></div>
+                          <div className="flex justify-between border-b border-gray-100 pb-1"><span>Superficie:</span> <strong>{opp.specs.sqm} m²</strong></div>
+                          <div className="flex justify-between border-b border-gray-100 pb-1 ml-2"><span>Planta:</span> <strong>{opp.specs.floor}</strong></div>
+                      </div>
+
+                      <h3 className="text-sm font-bold text-slate-900 uppercase border-b border-gray-200 pb-1 mb-3">Análisis</h3>
+                      <div className="text-xs text-slate-600 leading-relaxed text-justify whitespace-pre-line">
+                          {opp.description.length > 600 ? opp.description.substring(0, 600) + '...' : opp.description}
+                      </div>
+                  </div>
+
+                  {/* Right Col: Financial Breakdown & Features */}
+                  <div>
+                      <h3 className="text-sm font-bold text-slate-900 uppercase border-b border-gray-200 pb-1 mb-3">Desglose Económico</h3>
+                      <div className="bg-blue-50/50 p-3 rounded-lg text-xs space-y-2 mb-6 border border-blue-100">
+                           <div className="flex justify-between"><span>Precio Compra:</span> <span>{opp.financials.purchasePrice.toLocaleString()} €</span></div>
+                           <div className="flex justify-between"><span>Reforma + Mobiliario:</span> <span>{opp.financials.reformCost.toLocaleString()} €</span></div>
+                           <div className="flex justify-between"><span>Honorarios (+IVA):</span> <span>{(opp.financials.agencyFees || 3000 * 1.21).toLocaleString()} €</span></div>
+                           <div className="border-t border-blue-200 pt-2 flex justify-between font-bold text-blue-900 text-sm">
+                               <span>Total Inversión:</span>
+                               <span>{totalInv.toLocaleString()} €</span>
+                           </div>
+                      </div>
+
+                      <h3 className="text-sm font-bold text-slate-900 uppercase border-b border-gray-200 pb-1 mb-3">Puntos Clave</h3>
+                      <ul className="text-xs space-y-1">
+                          {opp.features.slice(0, 6).map((f, i) => (
+                              <li key={i} className="flex items-center gap-2">
+                                  <Check className="w-3 h-3 text-green-600"/> {f}
+                              </li>
+                          ))}
+                      </ul>
+                  </div>
+              </div>
+
+              {/* Footer */}
+              <div className="mt-auto border-t-2 border-slate-900 pt-4 flex justify-between items-center">
+                  <div className="text-[10px] text-slate-500">
+                      <p><strong>Rentia Investments S.L.</strong> | Gestión Integral de Inversiones Inmobiliarias</p>
+                      <p>Documento informativo sin valor contractual. Datos estimados según mercado.</p>
+                  </div>
+                  <div className="text-right text-xs">
+                      <p className="font-bold text-rentia-blue flex items-center justify-end gap-1"><Phone className="w-3 h-3"/> +34 672 88 63 69</p>
+                      <p className="flex items-center justify-end gap-1"><Mail className="w-3 h-3"/> info@rentiaroom.com</p>
+                      <p className="flex items-center justify-end gap-1"><Globe className="w-3 h-3"/> www.rentiaroom.com</p>
+                  </div>
+              </div>
+          </div>
+          {/* ---------------- END PRINT TEMPLATE ---------------- */}
+
+          <div className="min-h-screen bg-slate-50 font-sans relative flex flex-col md:flex-row print:hidden">
               
               {/* Sidebar / Topbar Navigation */}
               <div className="w-full md:w-20 bg-slate-900 flex md:flex-col justify-between items-center p-4 md:py-8 shrink-0 z-20 shadow-xl">
@@ -165,6 +269,15 @@ export const InvestorDossier: React.FC<InvestorDossierProps> = ({ opportunities,
                   <div className="lg:w-1/2 bg-slate-50 h-full overflow-y-auto custom-scrollbar">
                       <div className="p-8 md:p-12 max-w-2xl mx-auto">
                           
+                           <div className="mb-6 flex justify-end">
+                                <button 
+                                    onClick={handlePrint}
+                                    className="flex items-center gap-2 px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-lg text-xs font-bold transition-colors shadow-sm"
+                                >
+                                    <FileDown className="w-4 h-4" /> Descargar PDF
+                                </button>
+                           </div>
+
                           {/* Financial KPI Cards */}
                           <div className="grid grid-cols-2 gap-4 mb-10">
                               <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
@@ -262,6 +375,7 @@ export const InvestorDossier: React.FC<InvestorDossierProps> = ({ opportunities,
                   />
               )}
           </div>
+          </>
       );
   }
 

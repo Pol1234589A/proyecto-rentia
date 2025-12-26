@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Opportunity } from '../types';
-import { ArrowLeft, Check, MapPin, TrendingUp, Bed, Maximize, Building, Bath, ChevronLeft, ChevronRight, ExternalLink, Home, PlusCircle, MessageCircle, Phone, Scale, AlertTriangle, ChevronDown, Loader2, Wallet, PiggyBank } from 'lucide-react';
+import { ArrowLeft, Check, MapPin, TrendingUp, Bed, Maximize, Building, Bath, ChevronLeft, ChevronRight, ExternalLink, Home, PlusCircle, MessageCircle, Phone, Scale, AlertTriangle, ChevronDown, Loader2, Wallet, PiggyBank, FileDown, Globe, Mail } from 'lucide-react';
 import { ImageLightbox } from './ImageLightbox';
 import { useLanguage } from '../contexts/LanguageContext';
 import { ContactLeadModal } from './ContactLeadModal';
@@ -126,8 +126,12 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
   
   const incomeFromLivingRoom = (isRoomsStrategy && rentLivingRoom) ? averageRoomPrice : 0;
   
-  // Recalculate Monthly Income based on toggle
-  const displayMonthlyIncome = financials.monthlyIncome + incomeFromLivingRoom;
+  // Recalculate Monthly Income based on Strategy Selection & Toggle
+  const baseMonthlyIncome = rentalStrategy === 'rooms' 
+    ? (opportunity.financials.monthlyRentProjected || 0) 
+    : (opportunity.financials.monthlyRentTraditional || 0);
+
+  const displayMonthlyIncome = baseMonthlyIncome + incomeFromLivingRoom;
 
   const managementFeePercentage = isRoomsStrategy ? CONSTANTS.MANAGEMENT_FEE_ROOMS : CONSTANTS.MANAGEMENT_FEE_TRADITIONAL; 
   const calculatedManagementFee = displayMonthlyIncome * managementFeePercentage;
@@ -140,17 +144,131 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
   const netMonthlyIncome = displayMonthlyIncome - monthlyExpenses - managementFeeToSubtract - ivaToSubtract;
   const netYearlyIncome = netMonthlyIncome * 12;
   
+  // Dynamic Yield Calculations (Live Update)
+  const dynamicGrossYield = financials.totalInvestment > 0 
+      ? ((displayMonthlyIncome * 12) / financials.totalInvestment) * 100 
+      : 0;
+
+  const dynamicNetYield = financials.totalInvestment > 0
+      ? (netYearlyIncome / financials.totalInvestment) * 100
+      : 0;
+  
   const fiveYearCashflow = netYearlyIncome * 5;
 
   const publicAddress = opportunity.address.replace(/\d+/g, '').replace(/,/, '').trim();
 
+  // PRINT HANDLER
+  const handlePrint = () => {
+      window.print();
+  }
+
   return (
     <>
-      <div className="max-w-7xl mx-auto p-3 sm:p-6 lg:p-8 animate-in fade-in duration-500 print:p-0 print:max-w-none print:bg-white">
-        <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 print:shadow-none print:border-none print:rounded-none relative">
+      {/* ---------------- A4 PRINT TEMPLATE (HIDDEN ON SCREEN) ---------------- */}
+      <div className="hidden print:block fixed inset-0 z-[9999] bg-white text-black p-8 font-sans h-screen w-screen overflow-hidden">
+          {/* Print Header */}
+          <div className="flex justify-between items-start border-b-2 border-rentia-gold pb-4 mb-6">
+              <div>
+                  <img src="https://i.ibb.co/bgfbkz88/1729857046896.jpg" className="h-0 w-0 hidden" alt="preload"/> {/* Hack preload */}
+                  <img src="https://i.ibb.co/QvzK6db3/Logo-Negativo.png" alt="RentiaRoom" className="h-8 filter invert" />
+              </div>
+              <div className="text-right">
+                  <h1 className="text-xl font-bold uppercase text-slate-900 leading-none">{opportunity.title}</h1>
+                  <p className="text-sm text-slate-500 mt-1">{publicAddress}, {opportunity.city}</p>
+              </div>
+          </div>
+
+          {/* Print Hero */}
+          <div className="relative h-64 w-full mb-6 rounded-xl overflow-hidden border border-gray-200">
+              <img src={opportunity.images[0]} className="w-full h-full object-cover" />
+              <div className="absolute top-4 right-4 bg-white/90 px-4 py-2 rounded-lg text-slate-900 font-bold border shadow-sm">
+                  Ref: {opportunity.id}
+              </div>
+              <div className="absolute bottom-0 left-0 bg-rentia-blue text-white px-6 py-2 rounded-tr-xl font-bold">
+                  {opportunity.status === 'available' ? 'DISPONIBLE' : 'RESERVADO'}
+              </div>
+          </div>
+
+          {/* Financial Strip */}
+          <div className="flex justify-between items-center bg-slate-50 border border-slate-200 p-4 rounded-xl mb-8">
+               <div className="text-center w-1/3 border-r border-slate-200">
+                   <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Inversión Total Estimada</p>
+                   <p className="text-2xl font-bold text-slate-900">{financials.totalInvestment.toLocaleString('es-ES')} €</p>
+               </div>
+               <div className="text-center w-1/3 border-r border-slate-200">
+                   <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Ingresos Anuales Brutos</p>
+                   <p className="text-2xl font-bold text-green-600">{(displayMonthlyIncome * 12).toLocaleString('es-ES')} €</p>
+               </div>
+               <div className="text-center w-1/3">
+                   <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Rentabilidad Neta</p>
+                   <p className="text-3xl font-bold text-rentia-gold">{dynamicNetYield.toFixed(2)}%</p>
+               </div>
+          </div>
+
+          {/* Main Layout Columns */}
+          <div className="grid grid-cols-2 gap-8 mb-8">
+              {/* Left Col: Specs & Description */}
+              <div>
+                  <h3 className="text-sm font-bold text-slate-900 uppercase border-b border-gray-200 pb-1 mb-3">Ficha Técnica</h3>
+                  <div className="grid grid-cols-2 gap-y-2 text-xs mb-6">
+                      <div className="flex justify-between border-b border-gray-100 pb-1"><span>Habitaciones:</span> <strong>{specs.rooms}</strong></div>
+                      <div className="flex justify-between border-b border-gray-100 pb-1 ml-2"><span>Baños:</span> <strong>{specs.bathrooms}</strong></div>
+                      <div className="flex justify-between border-b border-gray-100 pb-1"><span>Superficie:</span> <strong>{specs.sqm} m²</strong></div>
+                      <div className="flex justify-between border-b border-gray-100 pb-1 ml-2"><span>Planta:</span> <strong>{specs.floor}</strong></div>
+                  </div>
+
+                  <h3 className="text-sm font-bold text-slate-900 uppercase border-b border-gray-200 pb-1 mb-3">Análisis</h3>
+                  <div className="text-xs text-slate-600 leading-relaxed text-justify whitespace-pre-line">
+                      {opportunity.description.length > 600 ? opportunity.description.substring(0, 600) + '...' : opportunity.description}
+                  </div>
+              </div>
+
+              {/* Right Col: Financial Breakdown & Features */}
+              <div>
+                  <h3 className="text-sm font-bold text-slate-900 uppercase border-b border-gray-200 pb-1 mb-3">Desglose Económico</h3>
+                  <div className="bg-blue-50/50 p-3 rounded-lg text-xs space-y-2 mb-6 border border-blue-100">
+                       <div className="flex justify-between"><span>Precio Compra:</span> <span>{financials.purchasePrice.toLocaleString()} €</span></div>
+                       <div className="flex justify-between"><span>ITP ({financials.itpAmount > 0 ? '8%' : 'N/A'}):</span> <span>{financials.itpAmount.toLocaleString()} €</span></div>
+                       <div className="flex justify-between"><span>Reforma + Mobiliario:</span> <span>{financials.reformTotal.toLocaleString()} €</span></div>
+                       <div className="flex justify-between"><span>Honorarios (+IVA):</span> <span>{financials.agencyFeesTotal.toLocaleString()} €</span></div>
+                       <div className="border-t border-blue-200 pt-2 flex justify-between font-bold text-blue-900 text-sm">
+                           <span>Total Inversión:</span>
+                           <span>{financials.totalInvestment.toLocaleString()} €</span>
+                       </div>
+                  </div>
+
+                  <h3 className="text-sm font-bold text-slate-900 uppercase border-b border-gray-200 pb-1 mb-3">Puntos Clave</h3>
+                  <ul className="text-xs space-y-1">
+                      {opportunity.features.slice(0, 6).map((f, i) => (
+                          <li key={i} className="flex items-center gap-2">
+                              <Check className="w-3 h-3 text-green-600"/> {f}
+                          </li>
+                      ))}
+                  </ul>
+              </div>
+          </div>
+
+          {/* Footer */}
+          <div className="mt-auto border-t-2 border-slate-900 pt-4 flex justify-between items-center">
+              <div className="text-[10px] text-slate-500">
+                  <p><strong>Rentia Investments S.L.</strong> | Gestión Integral de Inversiones Inmobiliarias</p>
+                  <p>Documento informativo sin valor contractual. Datos estimados según mercado.</p>
+              </div>
+              <div className="text-right text-xs">
+                  <p className="font-bold text-rentia-blue flex items-center justify-end gap-1"><Phone className="w-3 h-3"/> +34 672 88 63 69</p>
+                  <p className="flex items-center justify-end gap-1"><Mail className="w-3 h-3"/> info@rentiaroom.com</p>
+                  <p className="flex items-center justify-end gap-1"><Globe className="w-3 h-3"/> www.rentiaroom.com</p>
+              </div>
+          </div>
+      </div>
+      {/* ---------------- END PRINT TEMPLATE ---------------- */}
+
+
+      <div className="max-w-7xl mx-auto p-3 sm:p-6 lg:p-8 animate-in fade-in duration-500 print:hidden">
+        <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 relative">
           
-          {/* ... HEADER CODE UNCHANGED ... */}
-          <div className="sticky top-0 z-40 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 p-4 sm:p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 no-print rounded-t-2xl shadow-sm">
+          {/* Header */}
+          <div className="sticky top-0 z-40 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 p-4 sm:p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 rounded-t-2xl shadow-sm">
             <div className="w-full md:w-auto">
               <button onClick={onBack} className="flex items-center text-rentia-blue hover:underline text-sm font-semibold mb-3 p-2 -ml-2 rounded-lg hover:bg-gray-50 touch-manipulation">
                 <ArrowLeft className="w-5 h-5 mr-1" />
@@ -162,6 +280,14 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
             </div>
             
             <div className="flex items-center gap-3 w-full md:w-auto justify-end mt-2 md:mt-0">
+               <button 
+                onClick={handlePrint}
+                className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-bold transition-colors"
+                title="Descargar Ficha en PDF"
+               >
+                   <FileDown className="w-4 h-4" />
+                   <span className="hidden sm:inline">Descargar PDF</span>
+               </button>
               <div className="flex gap-2">
                 <button onClick={onPrev} disabled={!hasPrev} className="nav-controls p-3 rounded-full bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-gray-200"><ChevronLeft className="w-5 h-5 text-gray-600" /></button>
                 <button onClick={onNext} disabled={!hasNext} className="nav-controls p-3 rounded-full bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-gray-200"><ChevronRight className="w-5 h-5 text-gray-600" /></button>
@@ -169,28 +295,19 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
             </div>
           </div>
 
-          <div className="p-4 sm:p-6 md:p-8 print:p-8 print:pt-2 pb-24 md:pb-8">
+          <div className="p-4 sm:p-6 md:p-8 pb-24 md:pb-8">
             
-             {/* Title for Print */}
-             <div className="hidden print:block mb-6">
-                 <h1 className="text-2xl font-bold font-display text-rentia-black leading-tight mb-2">{opportunity.title}</h1>
-                 <div className="flex items-center text-gray-500 text-sm border-b border-gray-100 pb-4">
-                    <MapPin className="w-4 h-4 mr-1.5" />
-                    {opportunity.city} - {publicAddress}
-                 </div>
-            </div>
-
             {/* --- KPI DASHBOARD (UPDATED) --- */}
             {!isLivingScenario ? (
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8 print:gap-4 break-inside-avoid">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
                     {/* 1. Rentabilidad Neta */}
-                    <div className="bg-green-50 p-3 sm:p-4 rounded-xl border-2 border-green-200 text-center flex flex-col justify-center print:border-green-300">
+                    <div className="bg-green-50 p-3 sm:p-4 rounded-xl border-2 border-green-200 text-center flex flex-col justify-center">
                         <h4 className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-green-800 mb-1">{t('opportunities.detail.net_yield')}</h4>
-                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-green-700 font-display break-words">{financials.netYield.toFixed(2)}%</p>
+                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-green-700 font-display break-words">{dynamicNetYield.toFixed(2)}%</p>
                     </div>
 
                     {/* 2. Ingreso Mensual Neto */}
-                    <div className={`p-3 sm:p-4 rounded-xl border-2 text-center flex flex-col justify-center transition-all ${isCashflowFocused ? 'bg-gradient-to-br from-blue-50 to-indigo-50 border-indigo-300 shadow-md transform scale-[1.02]' : 'bg-blue-50 border-blue-200'} print:border-blue-300`}>
+                    <div className={`p-3 sm:p-4 rounded-xl border-2 text-center flex flex-col justify-center transition-all ${isCashflowFocused ? 'bg-gradient-to-br from-blue-50 to-indigo-50 border-indigo-300 shadow-md transform scale-[1.02]' : 'bg-blue-50 border-blue-200'}`}>
                         <h4 className={`text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1 flex items-center justify-center gap-1 ${isCashflowFocused ? 'text-indigo-800' : 'text-blue-800'}`}>
                             {isCashflowFocused && <Wallet className="w-3 h-3"/>}
                             {t('opportunities.detail.net_monthly')}
@@ -201,7 +318,7 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
                     </div>
 
                     {/* 3. Inversión Total */}
-                    <div className="bg-yellow-50 p-3 sm:p-4 rounded-xl border border-yellow-200 text-center flex flex-col justify-center print:border-yellow-300">
+                    <div className="bg-yellow-50 p-3 sm:p-4 rounded-xl border border-yellow-200 text-center flex flex-col justify-center">
                         <h4 className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-yellow-800 mb-1">{t('opportunities.card.total_investment')}</h4>
                         <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-rentia-black font-display break-words">{financials.totalInvestment.toLocaleString('es-ES')} €</p>
                     </div>
@@ -221,7 +338,7 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
                     ) : (
                         <div className="bg-gray-100 p-3 sm:p-4 rounded-xl border border-gray-200 text-center flex flex-col justify-center">
                             <h4 className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">{t('opportunities.detail.gross_yield')}</h4>
-                            <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-700 font-display break-words">{financials.grossYield.toFixed(2)}%</p>
+                            <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-700 font-display break-words">{dynamicGrossYield.toFixed(2)}%</p>
                         </div>
                     )}
                 </div>
@@ -238,16 +355,16 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
                 </div>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-12 print:block">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-12">
               
               {/* Left Column: Financials & Details */}
-              <div className="lg:col-span-2 space-y-8 print:w-full print:mb-8">
+              <div className="lg:col-span-2 space-y-8">
                 
                 {/* FINANCIAL ANALYSIS CARD */}
-                <div className="bg-gray-50/80 p-4 sm:p-6 rounded-2xl border border-gray-200/80 print:bg-white print:border-gray-300 break-inside-avoid">
+                <div className="bg-gray-50/80 p-4 sm:p-6 rounded-2xl border border-gray-200/80">
                     <h2 className="text-lg sm:text-xl font-bold text-rentia-black font-display mb-6 flex flex-wrap items-center justify-between gap-2">
                         {isLivingScenario ? 'Desglose de Costes' : t('opportunities.detail.financial_study')}
-                        <span className="text-[10px] font-normal bg-white px-2 py-1 rounded border border-gray-200 text-gray-500 inline-block print:hidden whitespace-nowrap">
+                        <span className="text-[10px] font-normal bg-white px-2 py-1 rounded border border-gray-200 text-gray-500 inline-block whitespace-nowrap">
                             {t('opportunities.detail.includes_fees')}
                         </span>
                     </h2>
@@ -266,7 +383,7 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
                             <span className="font-bold">{financials.agencyFeesTotal.toLocaleString('es-ES')} €</span>
                         </div>
                         
-                        <div className="bg-rentia-gold/30 p-3 rounded-lg flex justify-between items-center mt-3 print:bg-gray-100 print:border print:border-gray-300">
+                        <div className="bg-rentia-gold/30 p-3 rounded-lg flex justify-between items-center mt-3">
                             <span className="font-bold text-rentia-black">{t('opportunities.card.total_investment')}</span>
                             <span className="font-bold text-lg sm:text-xl text-rentia-black">{financials.totalInvestment.toLocaleString('es-ES')} €</span>
                         </div>
@@ -276,7 +393,7 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
                     {!isLivingScenario && (
                     <>
                         {/* ... (Controls logic unchanged) ... */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 no-print">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                             {/* Strategy Selector */}
                             <div>
                                 <label className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-2 block">{t('opportunities.detail.strategy')}</label>
@@ -377,7 +494,7 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
                     )}
                 </div>
 
-                {/* DESCRIPTION & FEATURES (Unchanged) */}
+                {/* DESCRIPTION & FEATURES */}
                 <div className="break-inside-avoid">
                     <h3 className="text-xl font-bold font-display text-rentia-black mb-4 border-b border-gray-100 pb-2">{t('opportunities.detail.description')}</h3>
                     <div 
@@ -399,7 +516,7 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
                 </div>
                 
                 {/* Legal Section */}
-                <div className="mt-8 bg-slate-100 rounded-xl border border-slate-200 overflow-hidden break-inside-avoid transition-all duration-300">
+                <div className="mt-8 bg-slate-100 rounded-xl border border-slate-200 overflow-hidden transition-all duration-300">
                     <button 
                         onClick={() => setShowLegal(!showLegal)}
                         className="w-full flex items-center justify-between p-6 text-left hover:bg-slate-200/50 transition-colors group"
@@ -426,7 +543,7 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
               <div className="space-y-8 break-inside-avoid">
                  
                  {/* Property Summary Card */}
-                 <div className="bg-white p-6 rounded-2xl shadow-idealista border border-gray-100 print:border print:border-gray-300">
+                 <div className="bg-white p-6 rounded-2xl shadow-idealista border border-gray-100">
                      <h3 className="text-lg font-bold font-display text-rentia-black mb-6 flex items-center gap-2">
                          <Building className="w-5 h-5 text-rentia-gold" />
                          {t('opportunities.detail.property_summary')}
@@ -457,7 +574,7 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
                  </div>
 
                  {/* Media Gallery */}
-                 <div className="bg-white p-6 rounded-2xl shadow-idealista border border-gray-100 print:hidden">
+                 <div className="bg-white p-6 rounded-2xl shadow-idealista border border-gray-100">
                      <h3 className="text-lg font-bold font-display text-rentia-black mb-4 flex items-center gap-2">
                          <Building className="w-5 h-5 text-rentia-gold" />
                          {t('opportunities.detail.multimedia')}
@@ -482,7 +599,7 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
                  </div>
 
                  {/* Lead Magnet */}
-                 <div className="bg-gradient-to-br from-gray-900 to-black p-6 rounded-2xl shadow-xl text-white text-center relative overflow-hidden no-print">
+                 <div className="bg-gradient-to-br from-gray-900 to-black p-6 rounded-2xl shadow-xl text-white text-center relative overflow-hidden">
                      <div className="absolute top-0 right-0 w-20 h-20 bg-rentia-gold/20 rounded-full blur-xl -translate-y-1/2 translate-x-1/2"></div>
                      <h3 className="text-lg font-bold font-display mb-2 relative z-10">¿Te interesa este activo?</h3>
                      <p className="text-gray-400 text-xs mb-6 relative z-10">Solicita el dossier completo.</p>

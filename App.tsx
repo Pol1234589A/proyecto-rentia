@@ -36,13 +36,12 @@ import { db } from './firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
 
 // Type alias
-type ViewType = 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts' | 'blog' | 'brokers' | 'intranet' | 'landing' | 'submission' | 'dossier' | 'presentation' | 'plantilla' | 'request-individual' | 'request-agency' | 'management-submission';
+type ViewType = 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts' | 'blog' | 'brokers' | 'intranet' | 'landing' | 'submission' | 'dossier' | 'presentation' | 'request-individual' | 'request-agency' | 'management-submission';
 type SortOption = 'newest' | 'yield_desc' | 'city_asc';
 
-// Mapping Hash paths - UPDATED FOR SUBDOMAIN APP
+// Mapping Hash paths
 const PATH_MAP: Record<string, ViewType> = {
-  '#/': 'landing', // DEFAULT HOME IS NOW LANDING (OPPORTUNITIES)
-  '#/corporativo': 'home', // Corporate home moved here
+  '#/': 'home',
   '#/servicios': 'services',
   '#/habitaciones': 'rooms',
   '#/oportunidades': 'list',
@@ -55,15 +54,13 @@ const PATH_MAP: Record<string, ViewType> = {
   '#/landing': 'landing',
   '#/dossier': 'dossier',
   '#/presentation': 'presentation',
-  '#/plantilla': 'plantilla', // Nueva ruta para plantilla web individual
   '#/request/individual': 'request-individual',
   '#/request/agency': 'request-agency',
   '#/publicar-propiedad': 'management-submission' 
 };
 
 const VIEW_TO_HASH: Record<ViewType, string> = {
-  'home': '#/corporativo',
-  'landing': '#/', // Landing is root
+  'home': '#/',
   'services': '#/servicios',
   'rooms': '#/habitaciones',
   'list': '#/oportunidades',
@@ -73,10 +70,10 @@ const VIEW_TO_HASH: Record<ViewType, string> = {
   'blog': '#/blog',
   'brokers': '#/colaboradores',
   'intranet': '#/intranet',
+  'landing': '#/landing',
   'dossier': '#/dossier',
   'submission': '#/colaboradores',
   'presentation': '#/presentation',
-  'plantilla': '#/plantilla',
   'request-individual': '#/request/individual',
   'request-agency': '#/request/agency',
   'management-submission': '#/publicar-propiedad'
@@ -84,7 +81,7 @@ const VIEW_TO_HASH: Record<ViewType, string> = {
 
 function AppContent() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [view, setView] = useState<ViewType>('landing'); // Default view state
+  const [view, setView] = useState<ViewType>('home');
   const [activeLegalModal, setActiveLegalModal] = useState<ModalType>(null);
   const { t } = useLanguage();
   const { userRole, currentUser } = useAuth();
@@ -166,7 +163,7 @@ function AppContent() {
         const [baseHash, query] = hash.split('?');
 
         // Soporte para detalles y presentación
-        if (baseHash === '#/oportunidades' || baseHash === '#/landing' || baseHash === '#/dossier' || baseHash === '#/presentation' || baseHash === '#/plantilla' || baseHash === '#/') {
+        if (baseHash === '#/oportunidades' || baseHash === '#/landing' || baseHash === '#/dossier' || baseHash === '#/presentation') {
             if (query) {
                 const params = new URLSearchParams(query);
                 const oppId = params.get('id') || params.get('opp'); 
@@ -178,8 +175,7 @@ function AppContent() {
             setSelectedId(null);
         }
 
-        // Default to landing if no match (important for subdomain)
-        const matchedView = PATH_MAP[baseHash] || 'landing';
+        const matchedView = PATH_MAP[baseHash] || 'home';
         
         if (matchedView === 'intranet' && !userRole) {
             window.location.hash = '#/';
@@ -208,7 +204,7 @@ function AppContent() {
   };
 
   const handleBackToLanding = () => {
-    window.location.hash = '#/'; // Back to root (landing)
+    window.location.hash = '#/landing';
   };
   
   const handleBackToDossier = () => {
@@ -249,22 +245,9 @@ function AppContent() {
   const renderContent = () => {
     // Modo Presentación (Standalone)
     if (view === 'presentation' && selectedOpportunity) {
-        return <OpportunityPresentation opportunity={selectedOpportunity} onClose={() => window.close()} />;
+        return <OpportunityPresentation opportunity={selectedOpportunity} />;
     } else if (view === 'presentation' && !selectedOpportunity) {
         return <div className="min-h-screen flex items-center justify-center text-gray-500">Oportunidad no encontrada o enlace roto.</div>;
-    }
-    
-    // Modo Plantilla (Subdominio / Landing Específica)
-    if (view === 'plantilla') {
-        if (selectedOpportunity) {
-            return (
-                <div className="bg-white min-h-screen">
-                    <OpportunityPresentation opportunity={selectedOpportunity} />
-                </div>
-            );
-        } else {
-            return <div className="min-h-screen flex items-center justify-center text-gray-500">Buscando propiedad...</div>;
-        }
     }
     
     // Nuevas Vistas Standalone de Formulario
@@ -307,7 +290,7 @@ function AppContent() {
         return (
             <LandingView 
                 opportunities={sortedOpportunities} 
-                onClick={(id) => window.location.hash = `?opp=${id}`} // Simplificado
+                onClick={(id) => window.location.hash = `#/landing?opp=${id}`} 
             />
         );
     }
@@ -422,19 +405,12 @@ function AppContent() {
           </>
         );
       default:
-        // Default fallback
-        return (
-            <LandingView 
-                opportunities={sortedOpportunities} 
-                onClick={(id) => window.location.hash = `?opp=${id}`} 
-            />
-        );
+        return <HomeView onNavigate={handleNavigate} />;
     }
   };
 
   // Determine if full layout (Header/Footer) should be shown
-  // Force standalone for Landing when it's the root view for subdomain, AND for 'plantilla' view
-  const isStandaloneView = view === 'landing' || view === 'dossier' || view === 'presentation' || view === 'plantilla' || view === 'request-individual' || view === 'request-agency' || view === 'management-submission';
+  const isStandaloneView = view === 'landing' || view === 'dossier' || view === 'presentation' || view === 'request-individual' || view === 'request-agency' || view === 'management-submission';
 
   return (
     <div className="min-h-screen flex flex-col font-sans">

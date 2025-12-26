@@ -10,86 +10,87 @@ const getRecentDate = (hoursAgo: number) => {
 
 export const opportunities: Opportunity[] = [
   {
-    id: 'MOLINA-CENTRO-RP324',
-    title: 'Piso de 140m² en Molina Centro: Oportunidad de Volumen',
-    address: 'Zona Centro',
-    city: 'Molina de Segura (Murcia)',
-    description: `GRAN OPORTUNIDAD EN MOLINA DE SEGURA (140m²).
+    id: 'RP1742025137107',
+    title: 'Oportunidad Inversión: Piso con Garaje y Trastero en El Palmar',
+    address: 'C. Poeta Vicente Medina',
+    city: 'El Palmar (Murcia)',
+    description: `REDPISO VENDE EN EXCLUSIVA. Piso de 91m² en El Palmar, zona Pedanías Oeste.
 
-Vivienda de grandes dimensiones en perfecto estado de conservación. Ideal para inversores que buscan rentabilidad mediante alquiler por habitaciones gracias a sus 4 dormitorios ya existentes.
-
-ESTUDIO DE RENTABILIDAD (SOLICITADO):
+ESTUDIO DE VIABILIDAD E INVERSIÓN:
+Propiedad "A reformar" ideal para aportar valor y maximizar rentabilidad.
 
 🅰️ ESCENARIO A: ALQUILER POR HABITACIONES (Recomendado)
-- **Configuración:** 4 Habitaciones.
 - **Precio por habitación:** 250 € + Gastos.
-- **Ingreso Mensual Bruto:** 1.000 €.
-- **Rentabilidad Bruta:** >10%.
-- **Ventaja:** Diversificación del riesgo entre 4 pagadores y mayor flujo de caja.
+- **Configuración:** 3 Habitaciones.
+- **Ingreso Mensual:** 750 €.
+- **Ventaja:** Alta demanda en la zona por cercanía a servicios y polígonos.
 
 🅱️ ESCENARIO B: ALQUILER TRADICIONAL
 - **Renta estimada:** 550 € / mes.
-- **Perfil:** Familias que buscan espacio y céntrico.
-- **Ventaja:** Gestión simplificada, aunque menor retorno.
+- **Perfil:** Familias o parejas.
 
-CARACTERÍSTICAS DEL INMUEBLE:
-- **140 m² Construidos:** Espacios muy amplios.
-- **Salón Independiente:** Con acceso directo a terraza.
-- **Cocina equipada:** Con lavadero independiente.
-- **Estado:** Perfecto estado, listo para explotar con mínima adecuación (pintura/muebles).`,
+CARACTERÍSTICAS:
+- **91 m² Construidos** (73 m² útiles).
+- **2ª Planta Exterior:** Luminoso, orientación Oeste.
+- **Garaje y Trastero:** Incluidos en el precio.
+- **Sin Ascensor:** Gastos de comunidad contenidos.
+- **Estado:** A reformar (Año 1980).
+
+Ubicado junto al polideportivo, rodeado de supermercados, colegios y transporte público.`,
     features: [
-      '140 m² Construidos',
-      '4 Habitaciones',
-      'Terraza',
-      'Cocina con Lavadero',
-      'Estado: Perfecto',
-      'Céntrico',
-      'Rentabilidad >10%'
+      '91 m² Construidos',
+      '3 Habitaciones',
+      '1 Baño',
+      'Garaje Incluido',
+      'Trastero',
+      'Exterior (Oeste)',
+      '2º Sin Ascensor',
+      'A Reformar'
     ],
     areaBenefits: [
-      'Ubicación Céntrica',
-      'Todos los servicios',
-      'Colegios y Supermercados',
-      'Transporte público'
+      'Junto Polideportivo',
+      'Supermercados cerca',
+      'Colegios y Farmacias',
+      'Transporte Público'
     ],
     images: [
-      'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80', // Salón amplio (Placeholder)
-      'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=1200&q=80', // Habitación
-      'https://images.unsplash.com/photo-1484154218962-a1c00207bf9a?auto=format&fit=crop&w=1200&q=80', // Cocina
-      'https://images.unsplash.com/photo-1560185007-cde436f6a4d0?auto=format&fit=crop&w=1200&q=80'  // Baño
+      'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=1200&q=80', // Salón luminoso (Placeholder style)
+      'https://images.unsplash.com/photo-1560185127-6ed189bf02f4?auto=format&fit=crop&w=1200&q=80', // Dormitorio
+      'https://images.unsplash.com/photo-1584622050111-993a426fbf0a?auto=format&fit=crop&w=1200&q=80', // Baño
+      'https://images.unsplash.com/photo-1585418694458-dc80a98b5840?auto=format&fit=crop&w=1200&q=80'  // Exterior/Garaje concept
     ],
     driveFolder: '#',
     scenario: 'rent_rooms',
     visibility: 'exact',
     specs: {
-      rooms: 4,
+      rooms: 3,
       bathrooms: 1,
-      sqm: 140,
-      floor: 'Piso',
-      hasElevator: true // Asumido por m2 y tipo
+      sqm: 91,
+      floor: '2º',
+      hasElevator: false
     },
     financials: {
-      purchasePrice: 99900,
+      purchasePrice: 79900,
       itpPercent: 8,
-      reformCost: 2000, // Pintura y repaso (Estado perfecto)
-      furnitureCost: 4000, // Amueblar 4 habitaciones
-      notaryAndTaxes: 1500 + (99900 * 0.08), // Notaría + ITP (~9.5k)
-      totalInvestment: 118000, // Suma aprox con gastos y muebles
-      monthlyRentProjected: 1000, // 4 habs * 250€
+      reformCost: 12000, // Lavado de cara, pintura, arreglos
+      furnitureCost: 3000, // 1k por habitación
+      notaryAndTaxes: 1500 + (79900 * 0.08), // Notaría + ITP 8%
+      agencyFees: 4000, // Comisión específica 4000€
+      totalInvestment: 79900 + (79900 * 0.08) + 1500 + (4000 * 1.21) + 15000, // Aprox 107k
+      monthlyRentProjected: 750, // 250 * 3
       monthlyRentTraditional: 550,
-      yearlyExpenses: 600, // IBI y Comunidad estimado
-      marketValue: 125000,
+      yearlyExpenses: 1300, // IBI + Comunidad (85€/mes) + Seguro
+      marketValue: 95000, // Valor tras reforma
       appreciationRate: 2
     },
     status: 'available',
-    tags: ['4 Habitaciones', 'Molina de Segura', '140m²', 'Alta Rentabilidad'],
+    tags: ['Oportunidad', 'El Palmar', 'Garaje', 'A Reformar'],
     roomConfiguration: [
       { name: 'Habitación 1', price: 250 },
       { name: 'Habitación 2', price: 250 },
-      { name: 'Habitación 3', price: 250 },
-      { name: 'Habitación 4', price: 250 }
+      { name: 'Habitación 3', price: 250 }
     ],
-    createdAt: getRecentDate(0)
+    createdAt: getRecentDate(1)
   },
   {
     id: 'NORA-FAMILIAR-PATIO',
@@ -141,7 +142,7 @@ CARACTERÍSTICAS DEL INMUEBLE:
       'https://images.unsplash.com/photo-1584622050111-993a426fbf0a?auto=format&fit=crop&w=1200&q=80'  // Baño
     ],
     driveFolder: '#',
-    scenario: 'rent_rooms', 
+    scenario: 'rent_rooms', // Cambiado a rent_rooms para mostrar desglose
     visibility: 'exact',
     specs: {
       rooms: 3,
@@ -151,15 +152,15 @@ CARACTERÍSTICAS DEL INMUEBLE:
       hasElevator: true
     },
     financials: {
-      purchasePrice: 135000, 
+      purchasePrice: 135000, // Rebajado
       itpPercent: 8,
-      reformCost: 1000, 
-      furnitureCost: 2000, 
-      notaryAndTaxes: 1500 + (135000 * 0.08), 
-      totalInvestment: 150300, 
-      monthlyRentProjected: 750, 
+      reformCost: 1000, // Pintura y repaso
+      furnitureCost: 2000, // Mobiliario básico habitaciones
+      notaryAndTaxes: 1500 + (135000 * 0.08), // ~12.3k
+      totalInvestment: 150300, // 135k + 12.3k + 3k gastos
+      monthlyRentProjected: 750, // 3 habs * 250€
       monthlyRentTraditional: 800,
-      yearlyExpenses: 500, 
+      yearlyExpenses: 500, // IBI y Comunidad estimado
       marketValue: 145000,
       appreciationRate: 2
     },
@@ -246,7 +247,7 @@ El activo permite una configuración óptima de 5 habitaciones (con posibilidad 
       { name: 'Habitación 5 (P. Alta)', price: 250 }
     ],
     disableLivingRoomExpansion: false, // Permitimos simular la 6ª habitación en la web
-    createdAt: getRecentDate(1)
+    createdAt: getRecentDate(1) // 1 hour ago (New)
   },
   {
     id: 'TORREVIEJA-COLIVING-5HAB',
@@ -304,7 +305,7 @@ Es una oportunidad llave en mano para inversores que busquen flujo de caja inmed
       reformCost: 2000, // Lavado de cara / Pintura
       furnitureCost: 0, // Ya equipado según texto
       notaryAndTaxes: 14500 + 1500, // ITP + Notaria
-      totalInvestment: 168500, // Actualizado para incluir fees
+      totalInvestment: 163000, 
       monthlyRentProjected: 2000, // Actualizado: +20€/hab x 5 habs = +100€/mes -> 1900 + 100 = 2000
       monthlyRentTraditional: 800,
       yearlyExpenses: 400, // IBI 40€ + Seguro
@@ -330,7 +331,7 @@ Es una oportunidad llave en mano para inversores que busquen flujo de caja inmed
     city: 'Javalí Viejo (Murcia)',
     description: `OPORTUNIDAD VALUE-ADD: LIENZO EN BLANCO ESTRATÉGICO.
 
-Presentamos una oportunidad única para inversores que buscan visión: una casa señorial de 257 m² ubicada a escasos minutos de la UCAM. Esta propiedad no es una simple casa para reformar; es un activo de alto rendimiento en potencia.
+Presentamos una oportunidad única para inversores con visión: una casa señorial de 257 m² ubicada a escasos minutos de la UCAM. Esta propiedad no es una simple casa para reformar; es un activo de alto rendimiento en potencia ("Vaca Lechera").
 
 SU VERDADERO VALOR:
 1. Versatilidad Legal: Cuenta con dos entradas independientes desde la calle, permitiendo la segregación física en dos viviendas o la optimización de flujos en un coliving.
@@ -353,7 +354,10 @@ Creación de dos viviendas independientes (dúplex o planta baja).
 
 ESCENARIO C: FLIP (COMPRA-REFORMA-VENTA)
 Transformación en vivienda unifamiliar de lujo con jardín.
-- Valor de Reventa (ARV) estimado: 240.000 € - 260.000 €.`,
+- Valor de Reventa (ARV) estimado: 240.000 € - 260.000 €.
+
+CONCLUSIÓN DEL EXPERTO:
+Los 257 m² permiten diluir el coste de la reforma integral entre 7 unidades rentables. El patio es el factor "X" que permitirá alquilar muy rápido en un precio competitivo, garantizando una ocupación plena.`,
     features: [
       '257 m² Construidos',
       '2 Entradas Independientes',
@@ -388,6 +392,7 @@ Transformación en vivienda unifamiliar de lujo con jardín.
     financials: {
       purchasePrice: 105000,
       itpPercent: 8,
+      // Estimación Reforma Integral (Escenario A): ~500€/m2 x 257m2 = ~128.500€
       reformCost: 128000, 
       furnitureCost: 8000, // Equipamiento 7 habitaciones + comunes
       notaryAndTaxes: 1500 + (105000 * 0.08), // Notaría + ITP
@@ -593,8 +598,8 @@ Transformación en vivienda unifamiliar de lujo con jardín.
       itpPercent: 8,
       reformCost: 75000,
       furnitureCost: 5000,
-      notaryAndTaxes: 1500 + (120000 * 0.08), // Corregido: 1500 + 9600 = 11100
-      totalInvestment: 215500, // Ajustado para incluir impuestos correctos y fees
+      notaryAndTaxes: 2500,
+      totalInvestment: 212000,
       monthlyRentProjected: 1700,
       monthlyRentTraditional: 900,
       yearlyExpenses: 600,

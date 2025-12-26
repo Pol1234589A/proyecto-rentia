@@ -19,6 +19,9 @@ interface Props {
 
 type RentalStrategy = 'rooms' | 'traditional';
 
+// Declare html2pdf for TypeScript
+declare var html2pdf: any;
+
 const GalleryThumbnail: React.FC<{ src: string, index: number, onClick: () => void, totalImages: number }> = ({ src, index, onClick, totalImages }) => {
     const [loaded, setLoaded] = useState(false);
 
@@ -37,6 +40,7 @@ const GalleryThumbnail: React.FC<{ src: string, index: number, onClick: () => vo
                 alt={`Preview ${index}`} 
                 className={`w-full h-full object-cover transition-all duration-500 group-hover:scale-110 ${loaded ? 'opacity-100' : 'opacity-0'}`}
                 onLoad={() => setLoaded(true)}
+                crossOrigin="anonymous" // Helpful for HTML2PDF CORS
             />
             {loaded && <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>}
             {index === 5 && totalImages > 6 && (
@@ -64,6 +68,7 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
   const [rentLivingRoom, setRentLivingRoom] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
   const [showLegal, setShowLegal] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   
   const isLivingScenario = scenario === 'sale_living';
   const isCashflowFocused = tags.some(tag => tag.toLowerCase().includes('cashflow'));
@@ -157,20 +162,52 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
 
   const publicAddress = opportunity.address.replace(/\d+/g, '').replace(/,/, '').trim();
 
-  // PRINT HANDLER
-  const handlePrint = () => {
-      window.print();
-  }
+  // DOWNLOAD PDF HANDLER using html2pdf
+  const handleDownloadPDF = () => {
+    setIsGeneratingPdf(true);
+    const element = document.getElementById('pdf-content');
+    if (!element) {
+        setIsGeneratingPdf(false);
+        return;
+    }
+
+    const opt = {
+      margin:       0, // margins
+      filename:     `Ficha_Rentia_${opportunity.id}.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true, logging: true },
+      jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+    };
+
+    if (typeof html2pdf !== 'undefined') {
+        html2pdf().set(opt).from(element).save().then(() => {
+            setIsGeneratingPdf(false);
+        }).catch((err: any) => {
+            console.error("PDF generation failed", err);
+            setIsGeneratingPdf(false);
+            alert("Error al generar PDF. Por favor intenta imprimir la página.");
+        });
+    } else {
+        // Fallback to print dialog if library fails to load
+        window.print();
+        setIsGeneratingPdf(false);
+    }
+  };
 
   return (
     <>
-      {/* ---------------- A4 PRINT TEMPLATE (HIDDEN ON SCREEN) ---------------- */}
-      <div className="hidden print:block fixed inset-0 z-[9999] bg-white text-black p-8 font-sans h-screen w-screen overflow-hidden">
+      {/* ---------------- PDF GENERATION TEMPLATE (OFF-SCREEN) ---------------- */}
+      {/* 
+         It sits outside the viewport so it's not visible to the user,
+         but accessible to html2pdf. We use a fixed width (approx A4 @ 96dpi) 
+         to ensure layout consistency in the PDF.
+      */}
+      <div id="pdf-content" className="absolute top-0 -left-[9999px] w-[800px] bg-white text-black p-8 font-sans z-[-1]">
           {/* Print Header */}
           <div className="flex justify-between items-start border-b-2 border-rentia-gold pb-4 mb-6">
               <div>
-                  <img src="https://i.ibb.co/bgfbkz88/1729857046896.jpg" className="h-0 w-0 hidden" alt="preload"/> {/* Hack preload */}
-                  <img src="https://i.ibb.co/QvzK6db3/Logo-Negativo.png" alt="RentiaRoom" className="h-8 filter invert" />
+                  {/* Using standard img for logo to ensure load in pdf */}
+                  <img src="https://i.ibb.co/QvzK6db3/Logo-Negativo.png" alt="RentiaRoom" className="h-8 filter invert" crossOrigin="anonymous" />
               </div>
               <div className="text-right">
                   <h1 className="text-xl font-bold uppercase text-slate-900 leading-none">{opportunity.title}</h1>
@@ -178,9 +215,9 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
               </div>
           </div>
 
-          {/* Print Hero */}
+          {/* Print Hero Image */}
           <div className="relative h-64 w-full mb-6 rounded-xl overflow-hidden border border-gray-200">
-              <img src={opportunity.images[0]} className="w-full h-full object-cover" />
+              <img src={opportunity.images[0]} className="w-full h-full object-cover" crossOrigin="anonymous" />
               <div className="absolute top-4 right-4 bg-white/90 px-4 py-2 rounded-lg text-slate-900 font-bold border shadow-sm">
                   Ref: {opportunity.id}
               </div>
@@ -219,7 +256,7 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
 
                   <h3 className="text-sm font-bold text-slate-900 uppercase border-b border-gray-200 pb-1 mb-3">Análisis</h3>
                   <div className="text-xs text-slate-600 leading-relaxed text-justify whitespace-pre-line">
-                      {opportunity.description.length > 600 ? opportunity.description.substring(0, 600) + '...' : opportunity.description}
+                      {opportunity.description.length > 500 ? opportunity.description.substring(0, 500) + '...' : opportunity.description}
                   </div>
               </div>
 
@@ -230,10 +267,17 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
                        <div className="flex justify-between"><span>Precio Compra:</span> <span>{financials.purchasePrice.toLocaleString()} €</span></div>
                        <div className="flex justify-between"><span>ITP ({financials.itpAmount > 0 ? '8%' : 'N/A'}):</span> <span>{financials.itpAmount.toLocaleString()} €</span></div>
                        <div className="flex justify-between"><span>Reforma + Mobiliario:</span> <span>{financials.reformTotal.toLocaleString()} €</span></div>
-                       <div className="flex justify-between"><span>Honorarios (+IVA):</span> <span>{financials.agencyFeesTotal.toLocaleString()} €</span></div>
-                       <div className="border-t border-blue-200 pt-2 flex justify-between font-bold text-blue-900 text-sm">
-                           <span>Total Inversión:</span>
-                           <span>{financials.totalInvestment.toLocaleString()} €</span>
+                       <div className="flex justify-between"><span>Notaría y Registro (Est.):</span> <span>{(financials.notaryAndTaxes - financials.itpAmount).toLocaleString('es-ES')} €</span></div>
+                       
+                       {/* Agency Fee Line */}
+                       <div className="flex justify-between items-baseline text-rentia-blue">
+                           <span className="text-sm font-medium">{t('opportunities.detail.agency_fees')}</span>
+                           <span className="font-bold">{financials.agencyFeesTotal.toLocaleString('es-ES')} €</span>
+                       </div>
+                       
+                       <div className="bg-rentia-gold/30 p-3 rounded-lg flex justify-between items-center mt-3">
+                           <span className="font-bold text-rentia-black">{t('opportunities.card.total_investment')}</span>
+                           <span className="font-bold text-lg sm:text-xl text-rentia-black">{financials.totalInvestment.toLocaleString('es-ES')} €</span>
                        </div>
                   </div>
 
@@ -261,7 +305,7 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
               </div>
           </div>
       </div>
-      {/* ---------------- END PRINT TEMPLATE ---------------- */}
+      {/* ---------------- END PDF TEMPLATE ---------------- */}
 
 
       <div className="max-w-7xl mx-auto p-3 sm:p-6 lg:p-8 animate-in fade-in duration-500 print:hidden">
@@ -281,12 +325,13 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
             
             <div className="flex items-center gap-3 w-full md:w-auto justify-end mt-2 md:mt-0">
                <button 
-                onClick={handlePrint}
-                className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-bold transition-colors"
+                onClick={handleDownloadPDF}
+                disabled={isGeneratingPdf}
+                className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Descargar Ficha en PDF"
                >
-                   <FileDown className="w-4 h-4" />
-                   <span className="hidden sm:inline">Descargar PDF</span>
+                   {isGeneratingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
+                   <span className="hidden sm:inline">{isGeneratingPdf ? 'Generando...' : 'Descargar PDF'}</span>
                </button>
               <div className="flex gap-2">
                 <button onClick={onPrev} disabled={!hasPrev} className="nav-controls p-3 rounded-full bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-gray-200"><ChevronLeft className="w-5 h-5 text-gray-600" /></button>

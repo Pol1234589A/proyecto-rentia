@@ -39,9 +39,10 @@ import { collection, onSnapshot } from 'firebase/firestore';
 type ViewType = 'home' | 'list' | 'contact' | 'services' | 'rooms' | 'about' | 'discounts' | 'blog' | 'brokers' | 'intranet' | 'landing' | 'submission' | 'dossier' | 'presentation' | 'request-individual' | 'request-agency' | 'management-submission';
 type SortOption = 'newest' | 'yield_desc' | 'city_asc';
 
-// Mapping Hash paths
+// Mapping Hash paths - UPDATED FOR SUBDOMAIN APP
 const PATH_MAP: Record<string, ViewType> = {
-  '#/': 'home',
+  '#/': 'landing', // DEFAULT HOME IS NOW LANDING (OPPORTUNITIES)
+  '#/corporativo': 'home', // Corporate home moved here
   '#/servicios': 'services',
   '#/habitaciones': 'rooms',
   '#/oportunidades': 'list',
@@ -60,7 +61,8 @@ const PATH_MAP: Record<string, ViewType> = {
 };
 
 const VIEW_TO_HASH: Record<ViewType, string> = {
-  'home': '#/',
+  'home': '#/corporativo',
+  'landing': '#/', // Landing is root
   'services': '#/servicios',
   'rooms': '#/habitaciones',
   'list': '#/oportunidades',
@@ -70,7 +72,6 @@ const VIEW_TO_HASH: Record<ViewType, string> = {
   'blog': '#/blog',
   'brokers': '#/colaboradores',
   'intranet': '#/intranet',
-  'landing': '#/landing',
   'dossier': '#/dossier',
   'submission': '#/colaboradores',
   'presentation': '#/presentation',
@@ -81,7 +82,7 @@ const VIEW_TO_HASH: Record<ViewType, string> = {
 
 function AppContent() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [view, setView] = useState<ViewType>('home');
+  const [view, setView] = useState<ViewType>('landing'); // Default view state
   const [activeLegalModal, setActiveLegalModal] = useState<ModalType>(null);
   const { t } = useLanguage();
   const { userRole, currentUser } = useAuth();
@@ -163,7 +164,7 @@ function AppContent() {
         const [baseHash, query] = hash.split('?');
 
         // Soporte para detalles y presentación
-        if (baseHash === '#/oportunidades' || baseHash === '#/landing' || baseHash === '#/dossier' || baseHash === '#/presentation') {
+        if (baseHash === '#/oportunidades' || baseHash === '#/landing' || baseHash === '#/dossier' || baseHash === '#/presentation' || baseHash === '#/') {
             if (query) {
                 const params = new URLSearchParams(query);
                 const oppId = params.get('id') || params.get('opp'); 
@@ -175,7 +176,8 @@ function AppContent() {
             setSelectedId(null);
         }
 
-        const matchedView = PATH_MAP[baseHash] || 'home';
+        // Default to landing if no match (important for subdomain)
+        const matchedView = PATH_MAP[baseHash] || 'landing';
         
         if (matchedView === 'intranet' && !userRole) {
             window.location.hash = '#/';
@@ -204,7 +206,7 @@ function AppContent() {
   };
 
   const handleBackToLanding = () => {
-    window.location.hash = '#/landing';
+    window.location.hash = '#/'; // Back to root (landing)
   };
   
   const handleBackToDossier = () => {
@@ -290,7 +292,7 @@ function AppContent() {
         return (
             <LandingView 
                 opportunities={sortedOpportunities} 
-                onClick={(id) => window.location.hash = `#/landing?opp=${id}`} 
+                onClick={(id) => window.location.hash = `?opp=${id}`} // Simplificado
             />
         );
     }
@@ -405,11 +407,18 @@ function AppContent() {
           </>
         );
       default:
-        return <HomeView onNavigate={handleNavigate} />;
+        // Default fallback
+        return (
+            <LandingView 
+                opportunities={sortedOpportunities} 
+                onClick={(id) => window.location.hash = `?opp=${id}`} 
+            />
+        );
     }
   };
 
   // Determine if full layout (Header/Footer) should be shown
+  // Force standalone for Landing when it's the root view for subdomain
   const isStandaloneView = view === 'landing' || view === 'dossier' || view === 'presentation' || view === 'request-individual' || view === 'request-agency' || view === 'management-submission';
 
   return (

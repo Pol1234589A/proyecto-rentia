@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { Opportunity } from '../types';
 import { OpportunityCard } from './OpportunityCard';
 import { useLanguage } from '../contexts/LanguageContext';
-import { TrendingUp, Phone, Mail, Globe, Lock, ChevronDown, Check, Filter, Search, X, Calendar, ArrowRight } from 'lucide-react';
+import { TrendingUp, Phone, Mail, Globe, Lock, ChevronDown, Check, Filter, Search, X, Calendar, ArrowRight, Zap } from 'lucide-react';
 
 interface LandingViewProps {
   opportunities: Opportunity[];
@@ -64,6 +64,15 @@ export const LandingView: React.FC<LandingViewProps> = ({ opportunities, onClick
              />
              <div className="hidden sm:block w-px h-6 bg-gray-300"></div>
              <span className="hidden sm:block text-slate-500 text-xs font-bold tracking-widest uppercase">Private Investment Portfolio</span>
+             
+             {/* Live Indicator */}
+             <div className="flex items-center gap-1.5 bg-green-50 px-2 py-1 rounded border border-green-200 animate-in fade-in ml-2">
+                 <span className="relative flex h-2 w-2">
+                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                   <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                 </span>
+                 <span className="text-[10px] font-bold text-green-700 uppercase tracking-wider">Live</span>
+             </div>
           </div>
           <div className="flex items-center gap-4">
               <a 
@@ -143,7 +152,9 @@ export const LandingView: React.FC<LandingViewProps> = ({ opportunities, onClick
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 pb-4 border-b border-gray-200 gap-4">
             <div>
                 <h2 className="text-2xl font-bold text-slate-900 font-display">Oportunidades Disponibles</h2>
-                <p className="text-sm text-gray-500 mt-1">Actualizado en tiempo real</p>
+                <p className="text-sm text-gray-500 mt-1 flex items-center gap-2">
+                    <Zap className="w-3 h-3 text-rentia-gold" /> Actualizado en tiempo real
+                </p>
             </div>
             
             <div className="flex items-center gap-3">

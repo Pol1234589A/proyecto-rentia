@@ -68,9 +68,21 @@ export const calculateOpportunityFinancials = (opp: Opportunity): FinancialAnaly
     const agencyFeesVat = agencyFees * CONSTANTS.VAT_RATE;
     const agencyFeesTotal = agencyFees + agencyFeesVat;
 
-    const notaryAndTaxes = financials.notaryAndTaxes || CONSTANTS.NOTARY_ESTIMATED + itpAmount;
+    // LÓGICA CORREGIDA: Notaría e Impuestos
+    // Si el valor en DB es menor que el ITP calculado, significa que en la DB solo se guardó la provisión de notaría
+    // y no el total (Notaría + ITP). En ese caso, sumamos el ITP para normalizar el dato 'notaryAndTaxes' como el TOTAL.
+    let notaryAndTaxes = financials.notaryAndTaxes || (CONSTANTS.NOTARY_ESTIMATED + itpAmount);
+    
+    if (notaryAndTaxes < itpAmount) {
+        // Corrección automática para datos antiguos que solo tenían el coste de notaría (ej: 2500)
+        notaryAndTaxes += itpAmount;
+    }
+
     const reformTotal = (financials.reformCost || 0) + (financials.furnitureCost || 0);
 
+    // Recalcular Total Inversión con la lógica corregida
+    // Nota: Si 'financials.totalInvestment' viene hardcodeado de la DB y estaba mal calculado, 
+    // aquí lo estamos sobrescribiendo con la suma correcta de los componentes.
     const totalInvestment = purchasePrice + notaryAndTaxes + reformTotal + agencyFeesTotal;
 
     // 2. Ingresos y Gastos Operativos
@@ -99,7 +111,7 @@ export const calculateOpportunityFinancials = (opp: Opportunity): FinancialAnaly
         agencyFees,
         agencyFeesVat,
         agencyFeesTotal,
-        notaryAndTaxes,
+        notaryAndTaxes, // Este valor ahora SIEMPRE incluye Notaría + ITP
         reformTotal,
         totalInvestment,
         monthlyIncome,

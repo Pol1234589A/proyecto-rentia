@@ -305,7 +305,7 @@ Es una oportunidad llave en mano para inversores que busquen flujo de caja inmed
       reformCost: 2000, // Lavado de cara / Pintura
       furnitureCost: 0, // Ya equipado según texto
       notaryAndTaxes: 14500 + 1500, // ITP + Notaria
-      totalInvestment: 163000, 
+      totalInvestment: 168500, // Actualizado para incluir fees
       monthlyRentProjected: 2000, // Actualizado: +20€/hab x 5 habs = +100€/mes -> 1900 + 100 = 2000
       monthlyRentTraditional: 800,
       yearlyExpenses: 400, // IBI 40€ + Seguro
@@ -598,8 +598,8 @@ Los 257 m² permiten diluir el coste de la reforma integral entre 7 unidades ren
       itpPercent: 8,
       reformCost: 75000,
       furnitureCost: 5000,
-      notaryAndTaxes: 2500,
-      totalInvestment: 212000,
+      notaryAndTaxes: 1500 + (120000 * 0.08), // Corregido: 1500 + 9600 = 11100
+      totalInvestment: 215500, // Ajustado para incluir impuestos correctos y fees
       monthlyRentProjected: 1700,
       monthlyRentTraditional: 900,
       yearlyExpenses: 600,

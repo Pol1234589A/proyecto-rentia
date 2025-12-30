@@ -1,6 +1,6 @@
 
 import React, { useState, useRef } from 'react';
-import { Upload, Loader2, AlertCircle, Layers, Video, FileVideo } from 'lucide-react';
+import { Upload, Loader2, AlertCircle, Layers, Video, FileVideo, Clipboard } from 'lucide-react';
 import { storage } from '../../firebase';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { compressImage } from '../../utils/imageOptimizer';
@@ -26,8 +26,10 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState<{processed: number, total: number} | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isFocused, setIsFocused] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // --- SINGLE FILE UPLOAD HELPER ---
   const processAndUploadSingleFile = async (file: File): Promise<string> => {
@@ -69,11 +71,10 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
       });
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const fileList = e.target.files;
-    if (!fileList || fileList.length === 0) return;
+  // --- UNIFIED UPLOAD LOGIC ---
+  const uploadFiles = async (files: File[]) => {
+    if (files.length === 0) return;
 
-    const files: File[] = Array.from(fileList);
     setUploading(true);
     setError(null);
     setProgress({ processed: 0, total: files.length });
@@ -100,6 +101,32 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
 
     if (errors.length > 0) {
         setError(errors.slice(0, 3).join(', ') + (errors.length > 3 ? '...' : ''));
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const fileList = e.target.files;
+    if (!fileList || fileList.length === 0) return;
+    uploadFiles(Array.from(fileList));
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData.items;
+    const filesToUpload: File[] = [];
+
+    for (let i = 0; i < items.length; i++) {
+        if (items[i].kind === 'file') {
+            const file = items[i].getAsFile();
+            // Simple check to ensure we only upload relevant types based on prop
+            if (file && (accept === '*' || accept.includes(file.type.split('/')[0]))) {
+                filesToUpload.push(file);
+            }
+        }
+    }
+
+    if (filesToUpload.length > 0) {
+        e.preventDefault(); // Prevent default paste behavior
+        uploadFiles(filesToUpload);
     }
   };
 
@@ -134,7 +161,17 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
     <div className="w-full">
       <input type="file" ref={fileInputRef} onChange={handleFileChange} accept={accept} multiple className="hidden" />
 
-      <div onClick={() => !uploading && fileInputRef.current?.click()} className={`relative border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-all overflow-hidden group ${uploading ? 'bg-gray-50 border-gray-300' : 'bg-white border-gray-300 hover:border-rentia-blue hover:bg-blue-50'} ${error ? 'border-red-300 bg-red-50' : ''}`}>
+      <div 
+        ref={containerRef}
+        tabIndex={0} // Make div focusable to catch paste events
+        onPaste={handlePaste}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
+        onClick={() => !uploading && fileInputRef.current?.click()} 
+        className={`relative border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-all overflow-hidden group outline-none
+            ${uploading ? 'bg-gray-50 border-gray-300' : isFocused ? 'border-rentia-blue bg-blue-50 ring-2 ring-rentia-blue/20' : 'bg-white border-gray-300 hover:border-rentia-blue hover:bg-blue-50'} 
+            ${error ? 'border-red-300 bg-red-50' : ''}`}
+      >
         
         <div className="flex flex-col items-center justify-center gap-2">
             {uploading ? (
@@ -166,8 +203,9 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
                     </div>
                     <div>
                         <span className="text-sm font-medium text-gray-700 block">{label}</span>
-                        <span className="text-[10px] text-gray-400 block mt-1">
-                            {isVideoMode ? `Max ${maxSizeMB}MB (Clips cortos)` : 'Auto-Optimización WebP'}
+                        <span className="text-[10px] text-gray-400 block mt-1 flex items-center justify-center gap-1">
+                            {!isVideoMode && <span className="flex items-center gap-1"><Clipboard className="w-3 h-3"/> Pega (Ctrl+V) o</span>}
+                            {isVideoMode ? `Max ${maxSizeMB}MB` : 'Auto-Optimización WebP'}
                         </span>
                     </div>
                 </>

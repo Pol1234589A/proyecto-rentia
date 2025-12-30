@@ -39,7 +39,6 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
     { nameKey: 'header.blog', view: 'blog', path: '#/blog' },
     { nameKey: 'header.discounts', view: 'discounts', path: '#/descuentos' },
     { nameKey: 'header.about', view: 'about', path: '#/nosotros' },
-    // Eliminado enlace de contacto redundante
   ];
 
   const handleLinkClick = (e: React.MouseEvent, view?: ViewType) => {

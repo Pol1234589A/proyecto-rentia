@@ -10,6 +10,7 @@ import { Opportunity, OpportunityScenario, Visibility } from '../../types';
 import { Briefcase, Building2, UserPlus, Search, Filter, TrendingUp, MapPin, DollarSign, Save, ArrowRight, Users, Eye, EyeOff, Plus, Image as ImageIcon, Trash2, Home, Bed, Layout, Bath, Phone, FileText, Tag, AlertCircle, Handshake, Star, Crown, X, UploadCloud, RefreshCw, Pencil, Sparkles, Wand2, Loader2, Link as LinkIcon, AlertTriangle, MonitorPlay, Video, MessageSquare, Mail, Calendar, Bold, Italic, ImagePlus, Type } from 'lucide-react';
 import { ImageUploader } from './ImageUploader';
 import { compressImage } from '../../utils/imageOptimizer';
+import { GoogleGenAI } from "@google/genai";
 
 interface ExtendedBrokerRequest extends BrokerRequest {
     name?: string;
@@ -54,6 +55,7 @@ export const SalesCRM: React.FC = () => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [editingAssetId, setEditingAssetId] = useState<string | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
 
   // --- STATE LEADS ---
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -153,6 +155,51 @@ export const SalesCRM: React.FC = () => {
       setTimeout(() => {
           textarea.focus();
       }, 50);
+  };
+
+  // --- GENERACIÓN IA ---
+  const handleGenerateDescription = async () => {
+    if (!process.env.API_KEY) {
+        alert("API Key no configurada.");
+        return;
+    }
+
+    setIsGeneratingAi(true);
+    try {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const prompt = `
+            Actúa como un experto copywriter inmobiliario especializado en inversores.
+            Escribe una descripción atractiva y profesional para una propiedad en venta con los siguientes datos:
+            
+            - Título Provisional: ${assetForm.title}
+            - Ubicación: ${assetForm.city} (${assetForm.streetName})
+            - Tipo: ${assetForm.type}
+            - Habitaciones: ${assetForm.rooms}
+            - Baños: ${assetForm.bathrooms}
+            - Metros: ${assetForm.sqm} m²
+            - Planta: ${assetForm.floor} (Ascensor: ${assetForm.hasElevator ? 'Sí' : 'No'})
+            - Precio Venta: ${assetForm.purchasePrice}€
+            - Enfoque/Escenario: ${assetForm.scenario === 'rent_rooms' ? 'Inversión para alquiler por habitaciones (Coliving)' : 'Vivienda tradicional'}
+            
+            Estructura la respuesta en HTML básico (usa <h3> para títulos, <p> para párrafos, <ul><li> para listas).
+            Destaca la rentabilidad y el potencial. No inventes datos, usa un tono profesional y persuasivo.
+            Idioma: Español.
+        `;
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.0-flash',
+            contents: prompt,
+        });
+
+        if (response.text) {
+            updateForm({ description: response.text });
+        }
+    } catch (e: any) {
+        console.error("Error generating description", e);
+        alert("Error al generar con IA. Inténtalo de nuevo.");
+    } finally {
+        setIsGeneratingAi(false);
+    }
   };
 
   // --- LOAD DATA ---
@@ -775,7 +822,18 @@ export const SalesCRM: React.FC = () => {
                                               </div>
                                               
                                               <div>
-                                                  <label className="block text-sm font-medium text-gray-700 mb-1">Descripción (HTML Habilitado)</label>
+                                                  <div className="flex justify-between items-center mb-1">
+                                                     <label className="block text-sm font-medium text-gray-700">Descripción (HTML Habilitado)</label>
+                                                     <button 
+                                                        type="button" 
+                                                        onClick={handleGenerateDescription}
+                                                        disabled={isGeneratingAi}
+                                                        className="text-xs bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-3 py-1 rounded-full font-bold flex items-center gap-1 hover:opacity-90 disabled:opacity-50 transition-all"
+                                                     >
+                                                        {isGeneratingAi ? <Loader2 className="w-3 h-3 animate-spin"/> : <Sparkles className="w-3 h-3 text-yellow-300"/>}
+                                                        {isGeneratingAi ? 'Generando...' : 'Generar con IA'}
+                                                     </button>
+                                                  </div>
                                                   <textarea id="description-editor" className="w-full p-2 border rounded-lg text-sm h-48 font-mono text-xs leading-relaxed" value={assetForm.description} onChange={e => updateForm({description: e.target.value})} placeholder="Usa la barra superior para formato..." />
                                                   <p className="text-[10px] text-gray-400 mt-1">Puedes usar etiquetas HTML básicas para formato.</p>
                                               </div>

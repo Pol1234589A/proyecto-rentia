@@ -67,6 +67,9 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
   
   const isLivingScenario = scenario === 'sale_living';
   const isCashflowFocused = tags.some(tag => tag.toLowerCase().includes('cashflow'));
+  
+  // Logic to lock strategy if explicitly traditional and no room income data
+  const isLockedToTraditional = opportunity.scenario === 'rent_traditional' && (!opportunity.financials.monthlyRentProjected || opportunity.financials.monthlyRentProjected === 0);
 
   // SEO
   useEffect(() => {
@@ -91,7 +94,10 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
   }, [opportunity, financials]);
 
   useEffect(() => {
-    if (financials.monthlyIncome > 0) {
+    // Force traditional if locked
+    if (opportunity.scenario === 'rent_traditional' && (!opportunity.financials.monthlyRentProjected || opportunity.financials.monthlyRentProjected === 0)) {
+        setRentalStrategy('traditional');
+    } else if (financials.monthlyIncome > 0) {
         setRentalStrategy('rooms');
     } else {
         setRentalStrategy('traditional');
@@ -107,7 +113,7 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
             img.src = src;
         });
     }
-  }, [opportunity.id, opportunity.images, financials]);
+  }, [opportunity.id, opportunity.images, financials, opportunity.scenario]);
 
   const openLightbox = (index: number) => {
     setSelectedImageIndex(index);
@@ -288,29 +294,30 @@ export const DetailView: React.FC<Props> = ({ opportunity, onBack, onNext, onPre
                     {/* RENTAL ANALYSIS */}
                     {!isLivingScenario && (
                     <>
-                        {/* ... (Controls logic unchanged) ... */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 no-print">
-                            {/* Strategy Selector */}
-                            <div>
-                                <label className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-2 block">{t('opportunities.detail.strategy')}</label>
-                                <div className="grid grid-cols-2 gap-2 bg-gray-200 p-1 rounded-lg h-12">
-                                    <button onClick={() => setRentalStrategy('rooms')} className={`flex items-center justify-center px-2 text-sm font-semibold rounded-md transition-all touch-manipulation ${rentalStrategy === 'rooms' ? 'bg-white shadow text-rentia-blue' : 'text-gray-600 hover:bg-white/50'}`}>{t('opportunities.detail.rooms_strategy')}</button>
-                                    <button onClick={() => setRentalStrategy('traditional')} className={`flex items-center justify-center px-2 text-sm font-semibold rounded-md transition-all touch-manipulation ${rentalStrategy === 'traditional' ? 'bg-white shadow text-rentia-blue' : 'text-gray-600 hover:bg-white/50'}`}>{t('opportunities.detail.traditional_strategy')}</button>
-                                </div>
-                                {isRoomsStrategy && !opportunity.disableLivingRoomExpansion && (
-                                    <div className="mt-3 flex items-center justify-between bg-white p-2 rounded border border-purple-100 shadow-sm animate-in slide-in-from-top-1">
-                                        <span className="text-[10px] font-bold text-purple-700 flex items-center gap-1">
-                                            <PlusCircle className="w-3 h-3"/> +1 Hab (Salón)
-                                        </span>
-                                        <button 
-                                            onClick={() => setRentLivingRoom(!rentLivingRoom)}
-                                            className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${rentLivingRoom ? 'bg-purple-600' : 'bg-gray-300'}`}
-                                        >
-                                            <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${rentLivingRoom ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
-                                        </button>
+                            {/* Strategy Selector (HIDDEN IF LOCKED) */}
+                            {!isLockedToTraditional && (
+                                <div>
+                                    <label className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-2 block">{t('opportunities.detail.strategy')}</label>
+                                    <div className="grid grid-cols-2 gap-2 bg-gray-200 p-1 rounded-lg h-12">
+                                        <button onClick={() => setRentalStrategy('rooms')} className={`flex items-center justify-center px-2 text-sm font-semibold rounded-md transition-all touch-manipulation ${rentalStrategy === 'rooms' ? 'bg-white shadow text-rentia-blue' : 'text-gray-600 hover:bg-white/50'}`}>{t('opportunities.detail.rooms_strategy')}</button>
+                                        <button onClick={() => setRentalStrategy('traditional')} className={`flex items-center justify-center px-2 text-sm font-semibold rounded-md transition-all touch-manipulation ${rentalStrategy === 'traditional' ? 'bg-white shadow text-rentia-blue' : 'text-gray-600 hover:bg-white/50'}`}>{t('opportunities.detail.traditional_strategy')}</button>
                                     </div>
-                                )}
-                            </div>
+                                    {isRoomsStrategy && !opportunity.disableLivingRoomExpansion && (
+                                        <div className="mt-3 flex items-center justify-between bg-white p-2 rounded border border-purple-100 shadow-sm animate-in slide-in-from-top-1">
+                                            <span className="text-[10px] font-bold text-purple-700 flex items-center gap-1">
+                                                <PlusCircle className="w-3 h-3"/> +1 Hab (Salón)
+                                            </span>
+                                            <button 
+                                                onClick={() => setRentLivingRoom(!rentLivingRoom)}
+                                                className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${rentLivingRoom ? 'bg-purple-600' : 'bg-gray-300'}`}
+                                            >
+                                                <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${rentLivingRoom ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             {/* Management Toggle */}
                             <div>

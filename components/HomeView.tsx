@@ -1,9 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { ChevronDown, Check, KeyRound, TrendingUp, ClipboardList, Sparkles, Settings, FileBarChart, ArrowRight, ShieldCheck, UserCheck, Home, MessageCircle, X, Megaphone, Star, Quote, CheckCircle, Users, Smartphone, Clock, FileText, PlusCircle, Loader2, Eye, BarChart3, ClipboardCheck, Activity, UserPlus, AlertTriangle, Hammer } from 'lucide-react';
+import { ChevronDown, Check, KeyRound, TrendingUp, ClipboardList, Sparkles, Settings, FileBarChart, ArrowRight, ShieldCheck, UserCheck, Home, MessageCircle, X, Megaphone, Star, Quote, CheckCircle, Users, Smartphone, Clock, FileText, PlusCircle, Loader2, Eye, BarChart3, ClipboardCheck, Activity, UserPlus, AlertTriangle, Hammer, Calculator, Euro } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useContent } from '../contexts/ContentContext';
-import { NewsTicker } from './NewsTicker';
 import { useConfig } from '../contexts/ConfigContext';
 
 interface FAQItemProps {
@@ -80,6 +79,12 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
   const config = useConfig();
   const { home: content } = useContent(); // USE DYNAMIC CONTENT
   const [activeEvent, setActiveEvent] = useState<any>(null);
+
+  // --- CALCULATOR STATE ---
+  const [calcRooms, setCalcRooms] = useState(3);
+  const avgPrice = 270; // Average price per room (Updated)
+  const calcIncome = calcRooms * avgPrice;
+  // ------------------------
 
   // Check for active seasonal events
   useEffect(() => {
@@ -274,10 +279,99 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
         </div>
       </section>
 
-      {/* --- NEWS TICKER --- */}
-      <NewsTicker />
-      
-      {/* ... [Rest of components] ... */}
+      {/* --- TRUST BAR (Barra de Confianza) --- */}
+      <div className="bg-white border-b border-gray-100 py-10 relative z-20">
+          <div className="container mx-auto px-4">
+              <p className="text-center text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em] mb-8">
+                  {t('home.trust.title')}
+              </p>
+              <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-50 hover:opacity-100 transition-opacity duration-500">
+                  {/* IDEALISTA */}
+                  <img 
+                      src="https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/OTRAS%20IMAGENES%2FIdealista.com_id38bG5AYk_0.png?alt=media&token=3f218081-8901-459b-9568-10f5f7f03090" 
+                      alt="Idealista" 
+                      className="h-8 md:h-10 w-auto object-contain grayscale hover:grayscale-0 transition-all duration-500"
+                  />
+                  {/* RENTGER */}
+                  <img 
+                      src="https://app.rentger.com/img/logo/logo.png" 
+                      alt="Rentger" 
+                      className="h-8 md:h-10 w-auto object-contain grayscale hover:grayscale-0 transition-all duration-500"
+                  />
+              </div>
+          </div>
+      </div>
+
+      {/* --- LEAD MAGNET: MICRO-CALCULATOR --- */}
+      <section className="py-16 bg-gradient-to-br from-[#002849] to-rentia-blue relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+          <div className="absolute bottom-0 left-0 w-40 h-40 bg-rentia-gold/10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
+
+          <div className="container mx-auto px-4 relative z-10">
+              <div className="max-w-5xl mx-auto bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl p-8 md:p-12 shadow-2xl flex flex-col md:flex-row items-center gap-12">
+                  
+                  {/* Text Side */}
+                  <div className="flex-1 text-center md:text-left">
+                      <div className="inline-flex items-center gap-2 bg-rentia-gold text-rentia-black px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider mb-6">
+                          <Calculator className="w-4 h-4" />
+                          {t('home.calculator.title')}
+                      </div>
+                      <h2 className="text-3xl md:text-4xl font-bold font-display text-white mb-4 leading-tight">
+                          {t('home.calculator.subtitle')}
+                      </h2>
+                      <p className="text-blue-100 text-sm md:text-base leading-relaxed max-w-lg">
+                          {t('home.calculator.disclaimer')}
+                      </p>
+                  </div>
+
+                  {/* Interactive Widget Side */}
+                  <div className="w-full md:w-[400px] bg-white rounded-2xl p-6 shadow-xl transform md:rotate-1 hover:rotate-0 transition-transform duration-500">
+                      <div className="space-y-6">
+                          <div>
+                              <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 block">
+                                  {t('home.calculator.label_rooms')}
+                              </label>
+                              
+                              <div className="flex items-center justify-between bg-gray-50 rounded-xl p-2 border border-gray-200">
+                                  <button 
+                                      onClick={() => setCalcRooms(Math.max(2, calcRooms - 1))}
+                                      className="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow-sm text-gray-600 hover:text-rentia-blue transition-colors font-bold text-lg"
+                                  >-</button>
+                                  <span className="text-2xl font-bold text-rentia-black font-display">{calcRooms}</span>
+                                  <button 
+                                      onClick={() => setCalcRooms(Math.min(10, calcRooms + 1))}
+                                      className="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow-sm text-gray-600 hover:text-rentia-blue transition-colors font-bold text-lg"
+                                  >+</button>
+                              </div>
+                          </div>
+
+                          <div className="pt-6 border-t border-gray-100">
+                              <p className="text-xs text-center text-gray-500 mb-1">{t('home.calculator.label_result')}</p>
+                              <div className="text-center">
+                                  <span className="text-4xl font-bold text-rentia-blue font-display tracking-tight">
+                                      {calcIncome.toLocaleString()}€
+                                  </span>
+                                  <span className="text-sm font-medium text-gray-400 ml-1">
+                                      {t('home.calculator.per_month')}
+                                  </span>
+                              </div>
+                          </div>
+
+                          <a 
+                              href={`https://api.whatsapp.com/send?phone=34672886369&text=Hola,%20he%20calculado%20que%20puedo%20ganar%20${calcIncome}€%20con%20mi%20piso%20de%20${calcRooms}%20habitaciones.%20Me%20interesa%20un%20estudio%20exacto.`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="w-full bg-rentia-black text-white font-bold py-4 rounded-xl shadow-lg hover:bg-gray-800 transition-all flex items-center justify-center gap-2 group"
+                          >
+                              {t('home.calculator.cta')}
+                              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform"/>
+                          </a>
+                      </div>
+                  </div>
+
+              </div>
+          </div>
+      </section>
 
       <section className="py-20 md:py-24 bg-white relative">
           <div className="container mx-auto px-4 relative z-10">

@@ -41,7 +41,8 @@ type SortOption = 'newest' | 'yield_desc' | 'city_asc';
 
 // Mapping Hash paths
 const PATH_MAP: Record<string, ViewType> = {
-  '#/': 'home',
+  '#/': 'home', // CAMBIO: Default a Home (Web Corporativa)
+  '#/home': 'home', 
   '#/servicios': 'services',
   '#/habitaciones': 'rooms',
   '#/oportunidades': 'list',
@@ -81,7 +82,7 @@ const VIEW_TO_HASH: Record<ViewType, string> = {
 
 function AppContent() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [view, setView] = useState<ViewType>('home');
+  const [view, setView] = useState<ViewType>('home'); // Default home
   const [activeLegalModal, setActiveLegalModal] = useState<ModalType>(null);
   const { t } = useLanguage();
   const { userRole, currentUser } = useAuth();
@@ -175,7 +176,7 @@ function AppContent() {
             setSelectedId(null);
         }
 
-        const matchedView = PATH_MAP[baseHash] || 'home';
+        const matchedView = PATH_MAP[baseHash] || 'home'; // Default to home
         
         if (matchedView === 'intranet' && !userRole) {
             window.location.hash = '#/';
@@ -272,11 +273,12 @@ function AppContent() {
         );
     }
 
-    if (selectedOpportunity) {
-      return (
+    // DETALLE DENTRO DE LANDING
+    if (selectedOpportunity && view === 'landing') {
+       return (
         <DetailView 
           opportunity={selectedOpportunity} 
-          onBack={view === 'landing' ? handleBackToLanding : handleBackToOpportunities}
+          onBack={handleBackToLanding}
           onNext={handleNext}
           onPrev={handlePrev}
           hasNext={sortedOpportunities.findIndex(o => o.id === selectedId) < sortedOpportunities.length - 1}
@@ -286,6 +288,7 @@ function AppContent() {
       );
     }
 
+    // LISTADO DENTRO DE LANDING (Standalone)
     if (view === 'landing') {
         return (
             <LandingView 
@@ -293,6 +296,21 @@ function AppContent() {
                 onClick={(id) => window.location.hash = `#/landing?opp=${id}`} 
             />
         );
+    }
+    
+    // Legacy Views (if accessed via header)
+    if (selectedOpportunity) {
+      return (
+        <DetailView 
+          opportunity={selectedOpportunity} 
+          onBack={handleBackToOpportunities}
+          onNext={handleNext}
+          onPrev={handlePrev}
+          hasNext={sortedOpportunities.findIndex(o => o.id === selectedId) < sortedOpportunities.length - 1}
+          hasPrev={sortedOpportunities.findIndex(o => o.id === selectedId) > 0}
+          onNavigate={handleNavigate}
+        />
+      );
     }
 
     switch (view) {

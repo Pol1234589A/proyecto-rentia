@@ -10,6 +10,81 @@ const getRecentDate = (hoursAgo: number) => {
 
 export const opportunities: Opportunity[] = [
   {
+    id: 'VILLANUEVA-50K-GARANTIZADO',
+    title: 'Oportunidad Alta Rentabilidad: Casa en Villanueva del Río Segura',
+    address: 'Zona Archena / Villanueva',
+    city: 'Villanueva del Río Segura (Murcia)',
+    description: `OPORTUNIDAD DE INVERSIÓN CON ALQUILER GARANTIZADO.
+
+Casa de 2 plantas sin ascensor ubicada en una zona muy tranquila, pegada a Archena, con buen vecindario y fácil acceso a vías principales.
+
+**DATOS CLAVE DE LA INVERSIÓN:**
+- **Inversión Total:** 72.415 €.
+- **Ingreso Mensual Neto:** 507 € (Tras gastos).
+- **ALQUILER GARANTIZADO:** Esta propiedad incluye gestión de alquiler garantizado (Garantía indefinida hasta desahucio).
+
+**DISTRIBUCIÓN DEL INMUEBLE:**
+- Salón-comedor.
+- 2 Habitaciones muy grandes (Posibilidad de sacar una 3ª habitación).
+- Cocina independiente con lavadero.
+- Terraza.
+- 1 Baño completo.
+
+**ESTADO Y REFORMA:**
+La vivienda está de origen y cuidada, pero necesita adecuación.
+- **Arreglos necesarios contemplados:** Revisión de cuadro eléctrico, arreglo de puertas y tiradores, reparación de ventanas y persianas, revisión de alicatados, muebles de cocina nuevos, revisión de sanitarios y lámparas LED.`,
+    features: [
+      'Alquiler Garantizado',
+      'Rentabilidad Neta >8%',
+      '2 Plantas',
+      'Posibilidad 3 Hab',
+      'Terraza',
+      'Sin Gastos Comunidad'
+    ],
+    areaBenefits: [
+      'Pegado a Archena',
+      'Zona muy tranquila',
+      'Buen vecindario',
+      'Fácil acceso'
+    ],
+    images: [
+      'https://images.unsplash.com/photo-1599809275372-b4036ffd5b94?auto=format&fit=crop&w=1200&q=80', // Fachada pueblo representativa
+      'https://images.unsplash.com/photo-1484154218962-a1c002085d2f?auto=format&fit=crop&w=1200&q=80', // Cocina a reformar
+      'https://images.unsplash.com/photo-1596178060879-152971b3e944?auto=format&fit=crop&w=1200&q=80'  // Terraza pueblo
+    ],
+    driveFolder: '#',
+    scenario: 'rent_traditional',
+    visibility: 'exact',
+    specs: {
+      rooms: 2, // Posibilidad de 3
+      bathrooms: 1,
+      sqm: 100, // Estimado por "habitaciones muy grandes" y 2 plantas
+      floor: 'Casa / Bajo + 1',
+      hasElevator: false
+    },
+    financials: {
+      purchasePrice: 50000,
+      itpPercent: 7.75, // 3875€
+      reformCost: 12000,
+      furnitureCost: 0, 
+      // Cálculo Inverso para cuadrar Inversión Total 72.415:
+      // Total (72415) = Precio (50000) + Agencia (4840) + Reforma (12000) + NotariaImpuestos (X)
+      // X = 72415 - 50000 - 4840 - 12000 = 5575.
+      // NotariaImpuestos incluye ITP (3875) + NotariaRegistroGestión (1700) = 5575. Correcto.
+      notaryAndTaxes: 5575, 
+      agencyFees: 4000, // + IVA = 4840
+      totalInvestment: 72415,
+      monthlyRentProjected: 0, // 0 fuerza modo tradicional único
+      monthlyRentTraditional: 600,
+      yearlyExpenses: 1116, // 93€/mes * 12
+      marketValue: 75000, 
+      appreciationRate: 2
+    },
+    status: 'available',
+    tags: ['Alquiler Garantizado', 'Rentabilidad 8%', 'Reforma', 'Oportunidad 50k'],
+    createdAt: getRecentDate(0)
+  },
+  {
     id: 'RP1742025137107',
     title: 'Oportunidad Inversión: Piso con Garaje y Trastero en El Palmar',
     address: 'C. Poeta Vicente Medina',
@@ -497,7 +572,7 @@ Los 257 m² permiten diluir el coste de la reforma integral entre 7 unidades ren
       'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20JAVALI%20VIEJO%20CALLE%20MAYOR%2052%2FWhatsApp%20Image%202025-12-11%20at%2014.34.11%20(3).jpeg?alt=media&token=7c9d71cb-5ccb-41b9-8f39-4453da9bbaad',
       'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20JAVALI%20VIEJO%20CALLE%20MAYOR%2052%2FWhatsApp%20Image%202025-12-11%20at%2014.34.11%20(4).jpeg?alt=media&token=e5631865-8ac4-4dcf-872c-2d19eba07ef9',
       'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20JAVALI%20VIEJO%20CALLE%20MAYOR%2052%2FWhatsApp%20Image%202025-12-11%20at%2014.34.11%20(5).jpeg?alt=media&token=c004f729-0a90-40b4-991b-07457c4550aa',
-      'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20JAVALI%20VIEJO%20CALLE%20MAYOR%2052%2FWhatsApp%20Image%202025-12-11%20at%2014.34.11%20(6).jpeg?alt=media&token=9d0763ba-5393-4fd7-8366-13bfe1d921ed',
+      'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20JAVALI%20VIEJO%20CALLE%20MAYOR%2052%2FWhatsApp%20Image%202025-12-11%20at%2014.34.11%20(6).jpeg?alt=media&token=437301e4-83cd-4d51-ad0b-a5a8a75a53ef',
       'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20JAVALI%20VIEJO%20CALLE%20MAYOR%2052%2FWhatsApp%20Image%202025-12-11%20at%2014.34.11%20(7).jpeg?alt=media&token=18b9d4a1-a3b5-4886-a238-f48438f9a53c',
       'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20JAVALI%20VIEJO%20CALLE%20MAYOR%2052%2FWhatsApp%20Image%202025-12-11%20at%2014.34.11%20(8).jpeg?alt=media&token=b78d45f8-56aa-4495-ae08-0f69cb505d52',
       'https://firebasestorage.googleapis.com/v0/b/crm-rentiaroom.firebasestorage.app/o/VENTA%20DE%20VIVIENDAS%20(MANUAL)%2FMARY%20-%20JAVALI%20VIEJO%20CALLE%20MAYOR%2052%2FWhatsApp%20Image%202025-12-11%20at%2014.34.11%20(9).jpeg?alt=media&token=f599ebd0-39d5-40db-a333-e242a7c74402',

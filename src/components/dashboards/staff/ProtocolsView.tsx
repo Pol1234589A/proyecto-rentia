@@ -13,9 +13,21 @@ export const ProtocolsView: React.FC<{ isVanesa?: boolean, onOpenCandidateModal?
     const [recentCandidates, setRecentCandidates] = useState<any[]>([]);
 
     useEffect(() => {
-        const q = query(collection(db, "candidate_pipeline"), orderBy("submittedAt", "desc"), limit(5));
+        // Query de los últimos candidatos (traemos 20 para asegurar que al filtrar por fecha en cliente queden algunos si hay actividad)
+        const q = query(collection(db, "candidate_pipeline"), orderBy("submittedAt", "desc"), limit(20));
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            setRecentCandidates(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+            const now = new Date();
+            const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+            const relevantCandidates = snapshot.docs
+                .map(doc => ({ id: doc.id, ...doc.data() } as any))
+                .filter(c => {
+                    const date = c.submittedAt?.toDate ? c.submittedAt.toDate() : new Date(c.submittedAt?.seconds * 1000);
+                    return date >= sevenDaysAgo;
+                })
+                .slice(0, 5); // Mostrar solo los 5 más recientes tras filtrar
+
+            setRecentCandidates(relevantCandidates);
         });
         return () => unsubscribe();
     }, []);

@@ -391,6 +391,8 @@ export const StaffDashboard: React.FC = () => {
             case 'user_manager': return <div className="h-full overflow-y-auto pb-24"><UserManager /></div>;
             case 'site_config': return <div className="h-full overflow-y-auto pb-24"><SiteConfigManager /></div>;
             case 'blog_manager': return <div className="h-full overflow-y-auto pb-24"><BlogManager /></div>;
+            case 'protocols': return <div className="h-full overflow-y-auto pb-24"><ProtocolsView /></div>;
+            case 'agency_invoices': return <div className="h-full overflow-y-auto pb-24"><AgencyInvoicesPanel /></div>;
             case 'calculator': return <div className="h-full overflow-y-auto pb-24"><SupplyCalculator properties={propertiesList} preSelectedPropertyId={selectedPropId} /></div>;
             case 'social': return <div className="h-full overflow-y-auto pb-24"><SocialInbox /></div>;
             case 'tools': return <div className="h-full overflow-y-auto p-4 space-y-4 pb-24"><NewsManager /><ProfitCalculator /></div>;
@@ -403,22 +405,21 @@ export const StaffDashboard: React.FC = () => {
             <div className="max-w-7xl mx-auto">
 
                 {/* --- HEADER --- */}
-                <header className="p-4 md:p-6 mb-4 sm:mb-6 md:bg-white rounded-xl md:shadow-sm md:border md:border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    {/* ... (Keep existing header code) ... */}
+                <header className={`p-4 md:p-6 mb-4 sm:mb-6 rounded-xl shadow-sm border flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition-all duration-500 ${isVanesa ? 'bg-gradient-to-br from-indigo-900 via-slate-900 to-indigo-950 border-indigo-500/30' : 'bg-white border-gray-200'}`}>
                     <div>
-                        <h1 className="text-xl sm:text-2xl font-bold text-rentia-black flex items-center gap-2">
-                            <LayoutDashboard className="w-5 h-5 sm:w-6 sm:h-6 text-rentia-blue" />
+                        <h1 className={`text-xl sm:text-2xl font-bold flex items-center gap-2 ${isVanesa ? 'text-white' : 'text-rentia-black'}`}>
+                            <LayoutDashboard className={`w-5 h-5 sm:w-6 sm:h-6 ${isVanesa ? 'text-indigo-400' : 'text-rentia-blue'}`} />
                             {isVanesa ? 'Gestión: Vanesa' : 'Panel de Control'}
                         </h1>
-                        <p className="text-gray-500 text-xs sm:text-sm mt-1">{isVanesa ? 'Administración y Operaciones RentiaRoom' : 'Sistema Integrado de Gestión Empresarial'}</p>
+                        <p className={`text-xs sm:text-sm mt-1 ${isVanesa ? 'text-indigo-200/70' : 'text-gray-500'}`}>{isVanesa ? 'Administración y Operaciones RentiaRoom' : 'Sistema Integrado de Gestión Empresarial'}</p>
                     </div>
 
-                    <div className="hidden md:flex flex-wrap gap-1 justify-end bg-gray-100 p-1 rounded-lg max-w-full">
-                        <button onClick={() => setActiveTab('overview')} className={`px-2 py-1.5 rounded-md text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap ${activeTab === 'overview' ? 'bg-white text-rentia-blue shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                    <div className={`hidden md:flex flex-wrap gap-1 justify-end p-1 rounded-lg max-w-full ${isVanesa ? 'bg-white/5 backdrop-blur-md' : 'bg-gray-100'}`}>
+                        <button onClick={() => setActiveTab('overview')} className={`px-2 py-1.5 rounded-md text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap ${activeTab === 'overview' ? (isVanesa ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'bg-white text-rentia-blue shadow-sm') : (isVanesa ? 'text-indigo-200 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-700')}`}>
                             <BarChart3 className="w-3.5 h-3.5" /> Resumen
                         </button>
                         {desktopTools.map(tool => (
-                            <button key={tool.id} onClick={() => setActiveTab(tool.id as any)} className={`relative px-2 py-1.5 rounded-md text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap ${activeTab === tool.id ? 'bg-white text-rentia-blue shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                            <button key={tool.id} onClick={() => setActiveTab(tool.id as any)} className={`relative px-2 py-1.5 rounded-md text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap ${activeTab === tool.id ? (isVanesa ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'bg-white text-rentia-blue shadow-sm') : (isVanesa ? 'text-indigo-200 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-700')}`}>
                                 {tool.icon} {tool.label}
                                 {tool.count ? <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] w-4 h-4 flex items-center justify-center rounded-full">{tool.count}</span> : null}
                             </button>
@@ -539,8 +540,7 @@ export const StaffDashboard: React.FC = () => {
                     {activeTab === 'user_manager' && <div className="animate-in slide-in-from-bottom-4 duration-300"><UserManager /></div>}
                     {activeTab === 'site_config' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><SiteConfigManager /></div>}
                     {activeTab === 'blog_manager' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><BlogManager /></div>}
-
-                    {activeTab === 'blog_manager' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><BlogManager /></div>}
+                    {activeTab === 'agency_invoices' && <div className="animate-in slide-in-from-bottom-4 duration-300"><AgencyInvoicesPanel /></div>}
                     {activeTab === 'protocols' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-full"><ProtocolsView /></div>}
 
                     {activeTab === 'tools' && (

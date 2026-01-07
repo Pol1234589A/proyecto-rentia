@@ -1,7 +1,7 @@
 
 import axios from 'axios';
 import { db } from '../firebase';
-import { collection, getDocs, query, where, updateDoc, doc, Timestamp } from 'firebase/firestore';
+import { collection, getDocs, query, where, updateDoc, doc, Timestamp, addDoc } from 'firebase/firestore';
 
 const RENTGER_API_KEY = "gAAAAABhSDSf3Ss-8s3vFOBF-KqVx5Xz5Mfw87YYbdwLSVO0Ijg6z7IsYVJc1RKhN7SV_7V2W--WFB2nOGvLEdmV6yJe90nQw==";
 const BASE_URL = "/api-rentger"; // Usaremos un proxy en vite.config.ts para evitar CORS si es necesario, o llamada directa si el servidor lo permite. 
@@ -10,7 +10,7 @@ const BASE_URL = "/api-rentger"; // Usaremos un proxy en vite.config.ts para evi
 
 // Como no puedo editar vite.config.ts ahora mismo fácilmente para añadir el proxy sin reiniciar servidor manualmente a veces,
 // intentaré la URL directa primero. Si falla por CORS, avisaré.
-const DIRECT_URL = "https://api.rentger.com";
+const DIRECT_URL = "/api-rentger"; // IMPORTANTE: Usar el proxy configurado en next.config.ts
 
 let authToken: string | null = null;
 let tokenExpiration: number = 0;
@@ -18,53 +18,49 @@ let tokenExpiration: number = 0;
 export const RentgerService = {
 
     /**
-     * Obtiene el token de autenticación a partir de la API Key.
-     * El token suele durar un tiempo limitado (ej. 1 hora).
+     * Obtiene el token de autenticación.
      */
     authenticate: async (): Promise<string | null> => {
-        // Verificar si tenemos token válido en memoria
-        if (authToken && Date.now() < tokenExpiration) {
-            return authToken;
-        }
+        if (authToken && Date.now() < tokenExpiration) return authToken;
 
         try {
             console.log("Rentger: Autenticando...");
-            // Endpoint doc: GET /token/{api key}
-            // Nota: La documentación dice "/token/{api key}". 
             const response = await axios.get(`${DIRECT_URL}/token/${RENTGER_API_KEY}`);
 
-            if (response.data && response.data.token) {
-                authToken = response.data.token;
-                // Asumimos 1 hora de validez si no viene expira, o usamos el campo si existe
-                // La doc dice "Expired Token" es un error posible.
-                tokenExpiration = Date.now() + (55 * 60 * 1000); // 55 min safe buffer
-                console.log("Rentger: Autenticado correctamente.");
-                return authToken;
+            if (response.data) {
+                // Rentger a veces devuelve el token directamente o en objeto. Ajustar según respuesta real.
+                // Asumiendo respuesta directa con token string o { token: "..." }
+                const token = typeof response.data === 'string' ? response.data : response.data.token || response.data.access_token;
+
+                if (token) {
+                    authToken = token;
+                    tokenExpiration = Date.now() + (55 * 60 * 1000);
+                    console.log("Rentger: Autenticado correctamente.");
+                    return authToken;
+                }
             }
+            console.warn("Rentger: Respuesta de auth irreconocible", response.data);
             return null;
         } catch (error) {
             console.error("Rentger: Error de autenticación", error);
-            // Fallback para desarrollo si la API falla o CORS bloquea: devolver null para manejarlo en UI
             return null;
         }
     },
 
     /**
-     * Obtiene el listado de contratos.
-     * Endpoint asumido: GET /contracts (Verificar en documentación real si falla)
+     * Obtiene el listado de contratos desde Rentger.
      */
     getContracts: async () => {
         const token = await RentgerService.authenticate();
         if (!token) throw new Error("No se pudo obtener token de Rentger");
 
         try {
+            // Ajuste header Auth según documentación estándar
             const response = await axios.get(`${DIRECT_URL}/contracts`, {
-                headers: {
-                    'X-Auth-Token': token, // Asunción estándar, verificar header exacto doc postman si falla
-                    'Authorization': `Bearer ${token}` // Alternativa común
-                }
+                headers: { 'X-Auth-Token': token }
             });
-            return response.data;
+            // Asumiendo que response.data es un array de contratos o { data: [...] }
+            return Array.isArray(response.data) ? response.data : response.data.data || [];
         } catch (error) {
             console.error("Rentger: Error obteniendo contratos", error);
             throw error;
@@ -72,50 +68,84 @@ export const RentgerService = {
     },
 
     /**
-     * Sincroniza las fechas de finalización de contratos desde Rentger a Firestore.
-     * Busca coincidencias por DNI de inquilino o nombre de habitación/propiedad.
+     * Sincroniza (Actualiza e IMPORTA) contratos desde Rentger a Firestore.
      */
     syncContractEndDates: async () => {
-        console.log("Rentger: Iniciando sincronización...");
-        // 1. Obtener contratos de Rentger
-        // const rentgerContracts = await RentgerService.getContracts(); 
+        console.log("Rentger: Iniciando sincronización masiva...");
+        let rentgerContracts: any[] = [];
 
-        // MOCK TEMPORAL para probar flujo UI (ya que CORS probablemente bloqueará en localhost sin proxy)
-        // Cuando funcione API real, descomentar arriba y quitar esto.
-        const rentgerContracts = [
-            { id: 'r1', tenantName: 'Mazori Bris', endDate: '2026-06-30', status: 'active', property: 'Av. Primero de Mayo 54', room: 'H5' },
-            { id: 'r2', tenantName: 'Danny', endDate: '2026-05-15', status: 'active', property: 'Calle Jesús Quesada 12', room: 'H3' }
-        ];
+        try {
+            rentgerContracts = await RentgerService.getContracts();
+            console.log(`Rentger: Recuperados ${rentgerContracts.length} contratos.`);
+        } catch (e) {
+            console.error("Rentger: Fallo al obtener contratos reales.", e);
+            // Fallback development only IF real API fails completely to avoid UI block, but trying real first.
+            rentgerContracts = [];
+        }
+
+        if (rentgerContracts.length === 0) {
+            return { success: false, updated: 0, message: "No se encontraron contratos en Rentger o error de conexión." };
+        }
 
         let updatedCount = 0;
+        let createdCount = 0;
 
-        // 2. Obtener contratos activos de Firestore
-        const snapshot = await getDocs(query(collection(db, "contracts"), where("status", "==", "active")));
+        // Recuperar contratos locales
+        const snapshot = await getDocs(collection(db, "contracts"));
+        const localContracts = snapshot.docs.map(d => ({ id: d.id, ...d.data() as any }));
 
-        // 3. Cruzar datos
-        for (const docSnapshot of snapshot.docs) {
-            const localContract = docSnapshot.data();
+        // Procesar contratos de Rentger
+        for (const rc of rentgerContracts) {
+            // Intentar match por ID de rentger (si ya lo teníamos) o por nombre inquilino + propiedad
+            // Simplificación: Nombre Inquilino.
+            // Nota: La API Rentger devuelve campos específicos. Mapear:
+            // rc.tenant (objeto o string), rc.propertyMs (propiedad), rc.rooms (habitación), rc.dateEnd (fin), rc.price (precio)
+            // IMPORTANTE: Inspeccionar estructura real en cuanto funcione, por ahora mapeo defensivo.
 
-            // Lógica de coincidencia simple por nombre de inquilino (idealmente DNI)
-            const remoteMatch = rentgerContracts.find((rc: any) =>
-                rc.tenantName.toLowerCase().includes(localContract.tenantName?.toLowerCase()) ||
-                localContract.tenantName?.toLowerCase().includes(rc.tenantName.toLowerCase())
+            const tenantName = rc.tenant?.name || rc.tenantName || "Inquilino Rentger";
+            const endDate = rc.dateEnd || rc.endDate || null;
+            const rentAmount = rc.price || rc.rent || 0;
+            const propertyName = rc.property?.name || rc.propertyName || "Propiedad Externa";
+
+            const existingLocal = localContracts.find(lc =>
+                (lc.rentgerId && lc.rentgerId == rc.id) ||
+                (lc.tenantName?.toLowerCase() === tenantName.toLowerCase())
             );
 
-            if (remoteMatch) {
-                // Actualizar fecha fin si es diferente
-                if (remoteMatch.endDate !== localContract.endDate) {
-                    await updateDoc(doc(db, "contracts", docSnapshot.id), {
-                        endDate: remoteMatch.endDate,
-                        rentgerId: remoteMatch.id,
+            if (existingLocal) {
+                // ACTUALIZAR EXISTENTE
+                if (endDate && existingLocal.endDate !== endDate) {
+                    await updateDoc(doc(db, "contracts", existingLocal.id), {
+                        endDate: endDate,
+                        rentgerId: rc.id,
                         lastRentgerSync: new Date()
                     });
                     updatedCount++;
-                    console.log(`Rentger: Actualizado contrato ${localContract.tenantName} a fecha ${remoteMatch.endDate}`);
+                }
+                // IMPORTAR NUEVO (CREAR)
+                // Solo si está activo o recientemente finalizado > 2024
+                const isRelevant = !endDate || new Date(endDate).getFullYear() >= 2024;
+
+                if (isRelevant) {
+                    await addDoc(collection(db, "contracts"), {
+                        tenantName: tenantName,
+                        propertyName: propertyName,
+                        roomName: rc.room?.name || 'Habitación s/d',
+                        rentAmount: Number(rentAmount),
+                        depositAmount: 0, // Desconocido en lista simple
+                        startDate: rc.dateStart || rc.startDate || new Date().toISOString().split('T')[0],
+                        endDate: endDate || '',
+                        status: endDate && new Date(endDate) < new Date() ? 'finished' : 'active',
+                        rentgerId: rc.id,
+                        rentgerSynced: true,
+                        createdAt: new Date(),
+                        notes: "Importado automáticamente de Rentger"
+                    });
+                    createdCount++;
                 }
             }
         }
 
-        return { success: true, updated: updatedCount };
+        return { success: true, updated: updatedCount, created: createdCount, totalRemote: rentgerContracts.length };
     }
 };

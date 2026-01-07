@@ -58,14 +58,17 @@ export const ProtocolsView: React.FC<{ isVanesa?: boolean, onOpenCandidateModal?
                             <div className="prose prose-sm text-gray-600">
                                 <p className="mb-2"><strong>Objetivo Principal:</strong> Obtener información cualificada de potenciales inquilinos para filtrar su viabilidad.</p>
                                 <ul className="list-disc pl-5 space-y-2">
-                                    <div className="flex flex-wrap gap-2 my-3">
-                                        <a href="https://www.idealista.com/login" target="_blank" rel="noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 bg-[#d2fa00] text-black font-bold text-xs rounded-lg hover:brightness-95 border border-yellow-300 shadow-sm">
+                                    <div className="flex flex-wrap gap-3 my-3">
+                                        <a href="https://www.idealista.com/login" target="_blank" rel="noreferrer" className="flex items-center gap-2 px-4 py-2 bg-white text-gray-900 border-2 border-[#d2fa00] font-bold text-xs rounded-lg hover:bg-[#f9ffcc] transition-colors shadow-sm">
+                                            <svg className="w-4 h-4 text-[#bfd600]" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 12h3v8h6v-6h2v6h6v-8h3L12 2z" /></svg>
                                             Idealista
                                         </a>
-                                        <a href="https://es.wallapop.com/login" target="_blank" rel="noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 bg-[#13C1AC] text-white font-bold text-xs rounded-lg hover:brightness-95 shadow-sm">
+                                        <a href="https://es.wallapop.com/login" target="_blank" rel="noreferrer" className="flex items-center gap-2 px-4 py-2 bg-white text-[#13C1AC] border-2 border-[#13C1AC] font-bold text-xs rounded-lg hover:bg-teal-50 transition-colors shadow-sm">
+                                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zm0-2a8 8 0 100-16 8 8 0 000 16zm-1-7h2v2h-2v-2zm0-6h2v4h-2V7z" /></svg>
                                             Wallapop
                                         </a>
-                                        <a href="https://www.facebook.com/" target="_blank" rel="noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1877F2] text-white font-bold text-xs rounded-lg hover:brightness-95 shadow-sm">
+                                        <a href="https://www.facebook.com/" target="_blank" rel="noreferrer" className="flex items-center gap-2 px-4 py-2 bg-white text-[#1877F2] border-2 border-[#1877F2] font-bold text-xs rounded-lg hover:bg-blue-50 transition-colors shadow-sm">
+                                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
                                             Facebook
                                         </a>
                                     </div>

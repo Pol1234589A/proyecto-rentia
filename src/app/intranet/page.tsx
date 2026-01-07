@@ -145,10 +145,7 @@ export default function IntranetPage() {
     if (userRole === 'tenant') return <TenantDashboard />;
     if (userRole === 'broker') return <BrokerDashboardInternal />;
     if (userRole === 'agency') return <AgencyDashboard />;
-    // Forzado de Vanesa al StaffDashboard independientemente del rol guardado
-    const isVanesaMigration = currentUser?.email === 'vanesa@rentiaroom.com';
-
-    if (userRole === 'staff' || userRole === 'manager' || isVanesaMigration) return <StaffDashboard />;
+    if (userRole === 'staff' || userRole === 'manager') return <StaffDashboard />;
     if (userRole === 'worker') return <WorkerDashboard />;
 
     return (

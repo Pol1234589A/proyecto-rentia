@@ -52,7 +52,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             }
 
             // Asignamos el rol desde el campo 'role'
-            setUserRole(userData.role as UserRole);
+            let assignedRole = userData.role as UserRole;
+
+            // FORZADO GLOBAL DE VANESA: Asegura que siempre entre como manager/gestora
+            if (user.email?.toLowerCase().trim() === 'vanesa@rentiaroom.com') {
+              assignedRole = 'manager';
+            }
+
+            setUserRole(assignedRole);
             setCurrentUser(user);
           } else {
             // Usuario en Auth pero no en DB (Inconsistencia de seguridad o error de creación)

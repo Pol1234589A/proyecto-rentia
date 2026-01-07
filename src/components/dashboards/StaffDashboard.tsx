@@ -297,7 +297,8 @@ export const StaffDashboard: React.FC = () => {
         { id: 'transfers', label: 'Traspasos', icon: <Share2 className="w-4 h-4" />, count: pendingTransfersCount },
         { id: 'sales_tracker', label: 'Ventas', icon: <Activity className="w-4 h-4" /> },
         { id: 'blacklist', label: 'Gestión Riesgos', icon: <ShieldAlert className="w-4 h-4 text-red-500" /> },
-        { id: 'contracts', label: 'Contratos', icon: <FileText className="w-4 h-4" /> },
+        { id: 'room_manager', label: 'Habitaciones', icon: <DoorOpen className="w-4 h-4 text-green-600" /> },
+        { id: 'contracts', label: 'Contratos', icon: <FileText className="w-4 h-4 text-indigo-600" /> },
         { id: 'supplies', label: 'Suministros', icon: <Zap className="w-4 h-4" /> },
         { id: 'worker_invoices', label: 'Facturas Trabajadores', icon: <Receipt className="w-4 h-4" /> },
         { id: 'calculator', label: 'Reparto Gastos', icon: <Split className="w-4 h-4" /> },
@@ -313,37 +314,29 @@ export const StaffDashboard: React.FC = () => {
     ];
 
     const vanesaTools = [
-        // 'overview' removed to prevent duplicate, as it's hardcoded in the render loop
         { id: 'protocols', label: 'Protocolos y Claves', icon: <Key className="w-4 h-4 text-indigo-500" /> },
-        { id: 'room_manager', label: 'Habitaciones Libres', icon: <DoorOpen className="w-4 h-4 text-green-600" /> }, // Highlight availability
-        { id: 'management_leads', label: 'Leads Gestión', icon: <Key className="w-4 h-4" />, count: pendingMgmtLeadsCount },
-        { id: 'candidates', label: 'Candidatos', icon: <Users className="w-4 h-4" /> }, // New specialized tab link if needed or reuse existing
+        { id: 'room_manager', label: 'Gestión Habitaciones', icon: <DoorOpen className="w-4 h-4 text-green-400" /> },
+        { id: 'contracts', label: 'Contratos (Rentger)', icon: <FileText className="w-4 h-4 text-pink-400" /> },
+        { id: 'tasks', label: 'Mis Tareas', icon: <ClipboardList className="w-4 h-4" /> },
+        { id: 'management_leads', label: 'Captación', icon: <Key className="w-4 h-4" />, count: pendingMgmtLeadsCount },
         { id: 'requests', label: 'Solicitudes', icon: <Inbox className="w-4 h-4" />, count: pendingRequestsCount },
         { id: 'agency_invoices', label: 'Facturas Rentia', icon: <Printer className="w-4 h-4" /> },
-        { id: 'tasks', label: 'Mis Tareas', icon: <ClipboardList className="w-4 h-4" /> },
-        // Eliminated: visual_editor, site_config, accounting (deep), etc. per user request "solo lo que te he dicho"
     ];
 
 
     const mobileMenuOptions = [
-        { id: 'visual_editor', label: 'Editor Web', icon: <Palette className="w-6 h-6" />, color: 'bg-pink-100 text-pink-600' }, // NEW
-        { id: 'management_leads', label: 'Leads Gestión', icon: <Key className="w-6 h-6" />, color: 'bg-indigo-100 text-indigo-600', count: pendingMgmtLeadsCount },
-        { id: 'requests', label: 'Solicitudes', icon: <Inbox className="w-6 h-6" />, color: 'bg-green-100 text-green-600', count: pendingRequestsCount },
-        { id: 'sales_tracker', label: 'Ventas', icon: <Activity className="w-6 h-6" />, color: 'bg-indigo-100 text-indigo-600' },
-        { id: 'worker_invoices', label: 'Facturas Staff', icon: <Receipt className="w-6 h-6" />, color: 'bg-teal-100 text-teal-600' },
-        { id: 'blacklist', label: 'Riesgos', icon: <ShieldAlert className="w-6 h-6" />, color: 'bg-red-100 text-red-600' },
-        { id: 'accounting', label: 'Contabilidad', icon: <Calculator className="w-6 h-6" />, color: 'bg-blue-100 text-blue-600' },
-        { id: 'supplies', label: 'Suministros', icon: <Zap className="w-6 h-6" />, color: 'bg-yellow-100 text-yellow-600' },
-        { id: 'advanced_calc', label: 'Liquidaciones', icon: <FileText className="w-6 h-6" />, color: 'bg-indigo-100 text-indigo-600' },
-        { id: 'calendar', label: 'Calendario', icon: <CalendarIcon className="w-6 h-6" />, color: 'bg-green-100 text-green-600' },
-        { id: 'visits', label: 'Visitas', icon: <Footprints className="w-6 h-6" />, color: 'bg-red-100 text-red-600' },
-        { id: 'contracts', label: 'Contratos', icon: <FileText className="w-6 h-6" />, color: 'bg-purple-100 text-purple-600' },
-        { id: 'user_manager', label: 'Usuarios', icon: <UserCog className="w-6 h-6" />, color: 'bg-gray-200 text-gray-700' },
-        { id: 'site_config', label: 'Configuración', icon: <Settings className="w-6 h-6" />, color: 'bg-indigo-100 text-indigo-600' },
-        { id: 'blog_manager', label: 'Blog CMS', icon: <Layout className="w-6 h-6" />, color: 'bg-purple-100 text-purple-600' },
-        { id: 'calculator', label: 'Reparto Gastos', icon: <Split className="w-6 h-6" />, color: 'bg-orange-100 text-orange-600' },
-        { id: 'tools', label: 'Herramientas', icon: <Wrench className="w-6 h-6" />, color: 'bg-gray-100 text-gray-600' },
+        { id: 'room_manager', label: 'Habitaciones', icon: <DoorOpen className="w-6 h-6" />, color: 'bg-green-100 text-green-600' },
+        { id: 'contracts', label: 'Contratos', icon: <FileText className="w-6 h-6" />, color: 'bg-pink-100 text-pink-600' },
+        { id: 'tasks', label: 'Tareas', icon: <ClipboardList className="w-6 h-6" />, color: 'bg-orange-100 text-orange-600', count: 0 },
+        { id: 'management_leads', label: 'Captación', icon: <Key className="w-6 h-6" />, color: 'bg-indigo-100 text-indigo-600', count: pendingMgmtLeadsCount },
+        { id: 'requests', label: 'Solicitudes', icon: <Inbox className="w-6 h-6" />, color: 'bg-blue-100 text-blue-600', count: pendingRequestsCount },
+        { id: 'agency_invoices', label: 'Facturas', icon: <Printer className="w-6 h-6" />, color: 'bg-gray-100 text-gray-600' },
         { id: 'protocols', label: 'Protocolos', icon: <Book className="w-6 h-6" />, color: 'bg-sky-100 text-sky-600' },
+
+        // Admin Extra Tools (Hidden for Vanesa in view logic if desired, but simplifying mobile menu for all)
+        { id: 'site_config', label: 'Config Web', icon: <Settings className="w-6 h-6" />, color: 'bg-indigo-50 text-indigo-400' },
+        { id: 'visual_editor', label: 'Editor', icon: <Palette className="w-6 h-6" />, color: 'bg-pink-50 text-pink-400' },
+        { id: 'accounting', label: 'Contabilidad', icon: <Calculator className="w-6 h-6" />, color: 'bg-blue-50 text-blue-400' },
     ];
 
     const renderMobileContent = () => {

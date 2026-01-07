@@ -3,7 +3,7 @@ import axios from 'axios';
 import { db } from '../firebase';
 import { collection, getDocs, query, where, updateDoc, doc, Timestamp, addDoc } from 'firebase/firestore';
 
-const RENTGER_API_KEY = "gAAAAABhSDSf3Ss-8s3vFOBF-KqVx5Xz5Mfw87YYbdwLSVO0Ijg6z7IsYVJc1RKhN7SV_7V2W--WFB2nOGvLEdmV6yJe90nQw==";
+const RENTGER_API_KEY = process.env.NEXT_PUBLIC_RENTGER_API_KEY || "gAAAAABhSDSf3Ss-8s3vFOBF-KqVx5Xz5Mfw87YYbdwLSVO0Ijg6z7IsYVJc1RKhN7SV_7V2W--WFB2nOGvLEdmV6yJe90nQw==";
 const DIRECT_URL = "/api-rentger"; // Proxy configured in next.config.ts
 
 let authToken: string | null = null;

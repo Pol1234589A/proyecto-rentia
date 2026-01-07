@@ -5,7 +5,8 @@ import { collection, getDocs, doc, addDoc, serverTimestamp } from 'firebase/fire
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Contract } from '../../types';
 import { Property } from '../../data/rooms';
-import { Check, User, Calendar, DollarSign, FileText, Save, Loader2, AlertCircle, Upload, Plus, X, Link, ExternalLink, Paperclip } from 'lucide-react';
+import { RentgerService } from '../../services/rentgerService';
+import { Check, User, Calendar, DollarSign, FileText, Save, Loader2, AlertCircle, Upload, Plus, X, Link, ExternalLink, Paperclip, RefreshCw, Send } from 'lucide-react';
 
 export const ContractManager: React.FC<any> = ({ initialMode = 'list', preSelectedRoom, onClose }) => {
     const [viewMode, setViewMode] = useState<'list' | 'create' | 'rentger'>(initialMode);
@@ -13,6 +14,7 @@ export const ContractManager: React.FC<any> = ({ initialMode = 'list', preSelect
     const [properties, setProperties] = useState<Property[]>([]);
     const [loading, setLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
+    const [syncing, setSyncing] = useState(false);
 
     // Form State
     const [formData, setFormData] = useState({
@@ -27,66 +29,81 @@ export const ContractManager: React.FC<any> = ({ initialMode = 'list', preSelect
     });
     const [contractFile, setContractFile] = useState<File | null>(null);
 
+    const reloadContracts = async () => {
+        setLoading(true);
+        try {
+            const cSnap = await getDocs(collection(db, "contracts"));
+            const cList: Contract[] = [];
+            cSnap.forEach(d => cList.push({ ...d.data(), id: d.id } as Contract));
+            setContracts(cList);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
         const fetchData = async () => {
-            setLoading(true);
-            try {
-                const cSnap = await getDocs(collection(db, "contracts"));
-                const cList: Contract[] = [];
-                cSnap.forEach(d => cList.push({ ...d.data(), id: d.id } as Contract));
-                setContracts(cList);
-
-                const pSnap = await getDocs(collection(db, "properties"));
-                const pList: Property[] = [];
-                pSnap.forEach(d => pList.push({ ...d.data(), id: d.id } as Property));
-                setProperties(pList);
-            } catch (e) {
-                console.error(e);
-            } finally {
-                setLoading(false);
-            }
+            await reloadContracts(); // Use reusable function
+            const pSnap = await getDocs(collection(db, "properties"));
+            const pList: Property[] = [];
+            pSnap.forEach(d => pList.push({ ...d.data(), id: d.id } as Property));
+            setProperties(pList);
         };
         fetchData();
     }, []);
 
+    const handleSyncRentger = async () => {
+        setSyncing(true);
+        try {
+            const result = await RentgerService.syncContractEndDates();
+            if (result.success) {
+                alert(`Sincronización completada. ${result.updated} contratos actualizados desde Rentger.`);
+                await reloadContracts(); // Recargar para ver cambios
+            }
+        } catch (error) {
+            console.error(error);
+            alert("Error al sincronizar con Rentger. Verifica la conexión.");
+        } finally {
+            setSyncing(false);
+        }
+    };
+
+    // ... (rest of handleSubmit logic remains similar, handled by existing code above/below or implicit merge if I don't touch it. Wait, I need to keep handleRegisterContract available)
+
     const handleRegisterContract = async (e: React.FormEvent) => {
         e.preventDefault();
+        // ... (Logic from original file to maintain functionality)
         if (!formData.propertyId || !formData.roomId || !formData.tenantName || !contractFile) {
             return alert("Por favor completa los datos obligatorios y sube el PDF.");
         }
 
         setUploading(true);
         try {
-            // 1. Subir PDF
             const storageRef = ref(storage, `contracts/${formData.propertyId}/${formData.roomId}_${Date.now()}.pdf`);
             await uploadBytes(storageRef, contractFile);
             const downloadUrl = await getDownloadURL(storageRef);
 
-            // 2. Guardar metadata en Firestore
             const prop = properties.find(p => p.id === formData.propertyId);
             const room = prop?.rooms.find(r => r.id === formData.roomId);
 
             await addDoc(collection(db, "contracts"), {
                 ...formData,
                 propertyName: prop?.address || 'Desconocido',
-                ownerId: prop?.ownerId || null, // VINCULACIÓN CRÍTICA PARA EL OWNER DASHBOARD
+                ownerId: prop?.ownerId || null,
                 roomName: room?.name || 'Habitación',
                 fileUrl: downloadUrl,
                 fileName: contractFile.name,
-                createdAt: serverTimestamp()
+                createdAt: serverTimestamp(),
+                rentgerSynced: false // New flag
             });
 
-            alert("Contrato registrado y archivado correctamente.");
+            alert("Contrato registrado LOCALMENTE correcto. Para firma legal, usa Rentger.");
             setViewMode('list');
-            // Reset form
             setFormData({ propertyId: '', roomId: '', tenantName: '', rentAmount: 0, depositAmount: 0, startDate: '', endDate: '', status: 'active' });
             setContractFile(null);
-            
-            // Recargar lista (simple reload trigger)
-            const cSnap = await getDocs(collection(db, "contracts"));
-            const cList: Contract[] = [];
-            cSnap.forEach(d => cList.push({ ...d.data(), id: d.id } as Contract));
-            setContracts(cList);
+            await reloadContracts();
 
         } catch (error) {
             console.error("Error saving contract:", error);
@@ -102,39 +119,52 @@ export const ContractManager: React.FC<any> = ({ initialMode = 'list', preSelect
             <div className="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center shrink-0">
                 <div>
                     <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                        <FileText className="w-6 h-6 text-rentia-blue"/> 
+                        <FileText className="w-6 h-6 text-rentia-blue" />
                         Archivo de Contratos
                     </h2>
-                    <p className="text-xs text-gray-500">Repositorio digital de contratos firmados.</p>
+                    <p className="text-xs text-gray-500">Repositorio digital sincronizado con Rentger.</p>
                 </div>
-                <div className="flex bg-gray-100 p-1 rounded-lg">
-                    <button onClick={() => setViewMode('list')} className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${viewMode === 'list' ? 'bg-white shadow text-rentia-blue' : 'text-gray-500'}`}>Listado</button>
-                    <button onClick={() => setViewMode('create')} className={`px-4 py-2 rounded-md text-sm font-bold transition-all flex items-center gap-2 ${viewMode === 'create' ? 'bg-indigo-600 text-white shadow' : 'text-gray-500'}`}>
-                        <Upload className="w-3 h-3" /> Subir Contrato
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={handleSyncRentger}
+                        disabled={syncing}
+                        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 border ${syncing ? 'bg-gray-100 text-gray-400' : 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'}`}
+                    >
+                        <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
+                        {syncing ? 'Sincronizando...' : 'Sync Rentger'}
                     </button>
-                    {onClose && <button onClick={onClose} className="ml-2 px-3 py-2 text-gray-400 hover:text-red-500"><X className="w-5 h-5"/></button>}
+
+                    <div className="h-6 w-px bg-gray-300 mx-2"></div>
+
+                    <div className="flex bg-gray-100 p-1 rounded-lg">
+                        <button onClick={() => setViewMode('list')} className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${viewMode === 'list' ? 'bg-white shadow text-rentia-blue' : 'text-gray-500'}`}>Listado</button>
+                        <button onClick={() => setViewMode('create')} className={`px-4 py-2 rounded-md text-sm font-bold transition-all flex items-center gap-2 ${viewMode === 'create' ? 'bg-indigo-600 text-white shadow' : 'text-gray-500'}`}>
+                            <Upload className="w-3 h-3" /> Subir PDF
+                        </button>
+                        {onClose && <button onClick={onClose} className="ml-2 px-3 py-2 text-gray-400 hover:text-red-500"><X className="w-5 h-5" /></button>}
+                    </div>
                 </div>
             </div>
 
             {/* Content Area */}
             <div className="flex-grow overflow-hidden relative">
-                
+
                 {/* LISTA DE CONTRATOS */}
                 {viewMode === 'list' && (
                     <div className="p-6 h-full overflow-y-auto">
                         <div className="flex justify-between mb-6">
                             <h3 className="font-bold text-lg text-gray-700">Contratos Vigentes</h3>
-                            <a 
-                                href="https://rentger.com" 
-                                target="_blank" 
+                            <a
+                                href="https://rentger.com"
+                                target="_blank"
                                 rel="noreferrer"
                                 className="text-xs flex items-center gap-1 text-gray-500 hover:text-rentia-blue bg-white border border-gray-200 px-3 py-1.5 rounded-lg"
                             >
-                                <ExternalLink className="w-3 h-3"/> Ir a Rentger (Redacción)
+                                <ExternalLink className="w-3 h-3" /> Ir a Rentger (Redacción)
                             </a>
                         </div>
-                        
-                        {loading ? <div className="text-center py-10"><Loader2 className="w-8 h-8 animate-spin mx-auto text-rentia-blue"/></div> : (
+
+                        {loading ? <div className="text-center py-10"><Loader2 className="w-8 h-8 animate-spin mx-auto text-rentia-blue" /></div> : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {contracts.map(contract => (
                                     <div key={contract.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all group">
@@ -152,7 +182,7 @@ export const ContractManager: React.FC<any> = ({ initialMode = 'list', preSelect
                                                 {contract.status === 'active' ? 'ACTIVO' : 'FINALIZADO'}
                                             </span>
                                         </div>
-                                        
+
                                         <div className="space-y-1 text-xs text-gray-600 bg-gray-50 p-2 rounded mb-3">
                                             <div className="flex justify-between"><span>Renta:</span> <strong>{contract.rentAmount}€</strong></div>
                                             <div className="flex justify-between"><span>Fianza:</span> <strong>{contract.depositAmount}€</strong></div>
@@ -161,9 +191,9 @@ export const ContractManager: React.FC<any> = ({ initialMode = 'list', preSelect
                                         </div>
 
                                         {(contract as any).fileUrl ? (
-                                            <a 
-                                                href={(contract as any).fileUrl} 
-                                                target="_blank" 
+                                            <a
+                                                href={(contract as any).fileUrl}
+                                                target="_blank"
                                                 rel="noreferrer"
                                                 className="block w-full text-center bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold py-2 rounded-lg transition-colors border border-indigo-100"
                                             >
@@ -188,13 +218,24 @@ export const ContractManager: React.FC<any> = ({ initialMode = 'list', preSelect
                 {viewMode === 'create' && (
                     <div className="p-4 md:p-8 h-full overflow-y-auto">
                         <div className="max-w-2xl mx-auto bg-white p-6 md:p-8 rounded-xl shadow-lg border border-gray-100">
-                            
-                            <div className="mb-6 bg-blue-50 border border-blue-100 rounded-lg p-4 flex gap-3">
-                                <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                                <div className="text-sm text-blue-800">
-                                    <strong>Redacción Externa:</strong> Recuerda que la redacción y firma legal se realiza en <strong>Rentger</strong>. 
-                                    Utiliza este formulario únicamente para subir el PDF final firmado y vincularlo a la habitación.
+
+                            <div className="mb-6 bg-blue-50 border border-blue-100 rounded-lg p-4 flex flex-col md:flex-row gap-3 items-start md:items-center justify-between">
+                                <div className="flex gap-3">
+                                    <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                                    <div className="text-sm text-blue-800">
+                                        <strong>Redacción Externa:</strong> Recuerda que la redacción y firma legal se realiza en <strong>Rentger</strong>.
+                                        Utiliza este formulario únicamente para subir el PDF final firmado y vincularlo a la habitación.
+                                    </div>
                                 </div>
+                                <a
+                                    href="https://rentger.com/contracts/create"
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-lg flex items-center gap-2 whitespace-nowrap shadow-sm transition-colors"
+                                >
+                                    <ExternalLink className="w-3 h-3" />
+                                    Redactar Nuevo
+                                </a>
                             </div>
 
                             <form onSubmit={handleRegisterContract} className="space-y-6">
@@ -203,24 +244,24 @@ export const ContractManager: React.FC<any> = ({ initialMode = 'list', preSelect
                                         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Inquilino *</label>
                                         <div className="relative">
                                             <User className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
-                                            <input 
-                                                type="text" 
-                                                required 
+                                            <input
+                                                type="text"
+                                                required
                                                 className="w-full pl-9 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-rentia-blue outline-none"
                                                 placeholder="Nombre Completo"
                                                 value={formData.tenantName}
-                                                onChange={e => setFormData({...formData, tenantName: e.target.value})}
+                                                onChange={e => setFormData({ ...formData, tenantName: e.target.value })}
                                             />
                                         </div>
                                     </div>
 
                                     <div>
                                         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Propiedad *</label>
-                                        <select 
-                                            required 
+                                        <select
+                                            required
                                             className="w-full p-2 border rounded-lg text-sm bg-white"
                                             value={formData.propertyId}
-                                            onChange={e => setFormData({...formData, propertyId: e.target.value, roomId: ''})}
+                                            onChange={e => setFormData({ ...formData, propertyId: e.target.value, roomId: '' })}
                                         >
                                             <option value="">Seleccionar Propiedad...</option>
                                             {properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}
@@ -229,15 +270,15 @@ export const ContractManager: React.FC<any> = ({ initialMode = 'list', preSelect
 
                                     <div>
                                         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Habitación *</label>
-                                        <select 
-                                            required 
+                                        <select
+                                            required
                                             className="w-full p-2 border rounded-lg text-sm bg-white disabled:bg-gray-100"
                                             value={formData.roomId}
                                             onChange={e => {
                                                 const room = properties.find(p => p.id === formData.propertyId)?.rooms.find(r => r.id === e.target.value);
                                                 setFormData({
-                                                    ...formData, 
-                                                    roomId: e.target.value, 
+                                                    ...formData,
+                                                    roomId: e.target.value,
                                                     rentAmount: room?.price || 0,
                                                     depositAmount: room?.price || 0 // Default deposit = 1 month
                                                 });
@@ -255,7 +296,7 @@ export const ContractManager: React.FC<any> = ({ initialMode = 'list', preSelect
                                         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Renta Mensual (€)</label>
                                         <div className="relative">
                                             <DollarSign className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
-                                            <input type="number" required className="w-full pl-9 pr-4 py-2 border rounded-lg text-sm" value={formData.rentAmount} onChange={e => setFormData({...formData, rentAmount: Number(e.target.value)})} />
+                                            <input type="number" required className="w-full pl-9 pr-4 py-2 border rounded-lg text-sm" value={formData.rentAmount} onChange={e => setFormData({ ...formData, rentAmount: Number(e.target.value) })} />
                                         </div>
                                     </div>
 
@@ -263,33 +304,33 @@ export const ContractManager: React.FC<any> = ({ initialMode = 'list', preSelect
                                         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Fianza (€)</label>
                                         <div className="relative">
                                             <DollarSign className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
-                                            <input type="number" required className="w-full pl-9 pr-4 py-2 border rounded-lg text-sm" value={formData.depositAmount} onChange={e => setFormData({...formData, depositAmount: Number(e.target.value)})} />
+                                            <input type="number" required className="w-full pl-9 pr-4 py-2 border rounded-lg text-sm" value={formData.depositAmount} onChange={e => setFormData({ ...formData, depositAmount: Number(e.target.value) })} />
                                         </div>
                                     </div>
 
                                     <div>
                                         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Fecha Inicio</label>
-                                        <input type="date" required className="w-full p-2 border rounded-lg text-sm" value={formData.startDate} onChange={e => setFormData({...formData, startDate: e.target.value})} />
+                                        <input type="date" required className="w-full p-2 border rounded-lg text-sm" value={formData.startDate} onChange={e => setFormData({ ...formData, startDate: e.target.value })} />
                                     </div>
 
                                     <div>
                                         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Fecha Fin (Opcional)</label>
-                                        <input type="date" className="w-full p-2 border rounded-lg text-sm" value={formData.endDate} onChange={e => setFormData({...formData, endDate: e.target.value})} />
+                                        <input type="date" className="w-full p-2 border rounded-lg text-sm" value={formData.endDate} onChange={e => setFormData({ ...formData, endDate: e.target.value })} />
                                     </div>
                                 </div>
 
                                 {/* File Upload */}
                                 <div className="border-2 border-dashed border-indigo-200 bg-indigo-50/30 rounded-xl p-6 text-center">
-                                    <input 
-                                        type="file" 
-                                        id="contract-pdf" 
-                                        accept="application/pdf" 
-                                        className="hidden" 
+                                    <input
+                                        type="file"
+                                        id="contract-pdf"
+                                        accept="application/pdf"
+                                        className="hidden"
                                         onChange={(e) => setContractFile(e.target.files?.[0] || null)}
                                     />
                                     <label htmlFor="contract-pdf" className="cursor-pointer flex flex-col items-center gap-2">
                                         <div className="p-3 bg-indigo-100 text-indigo-600 rounded-full">
-                                            {contractFile ? <Check className="w-6 h-6"/> : <Paperclip className="w-6 h-6"/>}
+                                            {contractFile ? <Check className="w-6 h-6" /> : <Paperclip className="w-6 h-6" />}
                                         </div>
                                         <span className="text-sm font-bold text-indigo-900">
                                             {contractFile ? contractFile.name : "Adjuntar PDF Firmado"}
@@ -302,12 +343,12 @@ export const ContractManager: React.FC<any> = ({ initialMode = 'list', preSelect
 
                                 <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
                                     <button type="button" onClick={() => setViewMode('list')} className="px-6 py-2.5 text-gray-500 hover:text-gray-700 font-bold text-sm">Cancelar</button>
-                                    <button 
-                                        type="submit" 
+                                    <button
+                                        type="submit"
                                         disabled={uploading}
                                         className="bg-rentia-black text-white px-8 py-2.5 rounded-lg font-bold text-sm hover:bg-gray-800 transition-colors flex items-center gap-2 shadow-lg disabled:opacity-70"
                                     >
-                                        {uploading ? <Loader2 className="w-4 h-4 animate-spin"/> : <Save className="w-4 h-4"/>}
+                                        {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                                         {uploading ? 'Subiendo...' : 'Guardar Registro'}
                                     </button>
                                 </div>

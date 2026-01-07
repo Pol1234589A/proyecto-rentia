@@ -313,7 +313,7 @@ export const StaffDashboard: React.FC = () => {
     ];
 
     const vanesaTools = [
-        { id: 'overview', label: 'Resumen', icon: <BarChart3 className="w-4 h-4" /> },
+        // 'overview' removed to prevent duplicate, as it's hardcoded in the render loop
         { id: 'protocols', label: 'Protocolos y Claves', icon: <Key className="w-4 h-4 text-indigo-500" /> },
         { id: 'room_manager', label: 'Habitaciones Libres', icon: <DoorOpen className="w-4 h-4 text-green-600" /> }, // Highlight availability
         { id: 'management_leads', label: 'Leads Gestión', icon: <Key className="w-4 h-4" />, count: pendingMgmtLeadsCount },
@@ -427,14 +427,14 @@ export const StaffDashboard: React.FC = () => {
                         <p className={`text-xs sm:text-sm mt-1 ${isVanesa ? 'text-indigo-200/70' : 'text-gray-500'}`}>{isVanesa ? 'Administración y Operaciones RentiaRoom' : 'Sistema Integrado de Gestión Empresarial'}</p>
                     </div>
 
-                    <div className={`hidden md:flex flex-wrap gap-1 justify-end p-1 rounded-lg max-w-full ${isVanesa ? 'bg-white/5 backdrop-blur-md' : 'bg-gray-100'}`}>
-                        <button onClick={() => setActiveTab('overview')} className={`px-2 py-1.5 rounded-md text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap ${activeTab === 'overview' ? (isVanesa ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'bg-white text-rentia-blue shadow-sm') : (isVanesa ? 'text-indigo-200 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-700')}`}>
-                            <BarChart3 className="w-3.5 h-3.5" /> Resumen
+                    <div className={`hidden md:flex flex-wrap gap-2 justify-end p-2 rounded-xl max-w-full ${isVanesa ? '' : 'bg-gray-100'}`}>
+                        <button onClick={() => setActiveTab('overview')} className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2 whitespace-nowrap shadow-sm border ${activeTab === 'overview' ? (isVanesa ? 'bg-indigo-600 text-white border-indigo-500 shadow-indigo-500/30' : 'bg-white text-rentia-blue border-transparent') : (isVanesa ? 'bg-white/10 text-indigo-100 border-white/10 hover:bg-white/20' : 'text-gray-500 hover:text-gray-700 border-transparent')}`}>
+                            <BarChart3 className="w-4 h-4" /> Resumen
                         </button>
                         {(isVanesa ? vanesaTools : desktopTools).map(tool => (
-                            <button key={tool.id} onClick={() => setActiveTab(tool.id as any)} className={`relative px-2 py-1.5 rounded-md text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap ${activeTab === tool.id ? (isVanesa ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'bg-white text-rentia-blue shadow-sm') : (isVanesa ? 'text-indigo-200 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-700')}`}>
+                            <button key={tool.id} onClick={() => setActiveTab(tool.id as any)} className={`relative px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2 whitespace-nowrap shadow-sm border ${activeTab === tool.id ? (isVanesa ? 'bg-pink-600 text-white border-pink-500 shadow-pink-500/30' : 'bg-white text-rentia-blue border-transparent') : (isVanesa ? 'bg-white/10 text-indigo-100 border-white/10 hover:bg-white/20' : 'text-gray-500 hover:text-gray-700 border-transparent')}`}>
                                 {tool.icon} {tool.label}
-                                {tool.count ? <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] w-4 h-4 flex items-center justify-center rounded-full">{tool.count}</span> : null}
+                                {tool.count ? <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full border-2 border-indigo-900">{tool.count}</span> : null}
                             </button>
                         ))}
                     </div>

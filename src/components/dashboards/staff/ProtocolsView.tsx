@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { FileText, Key, Eye, EyeOff, CheckCircle, AlertTriangle, MessageSquare, Shield, Smartphone } from 'lucide-react';
 
-export const ProtocolsView: React.FC = () => {
+export const ProtocolsView: React.FC<{ isVanesa?: boolean }> = ({ isVanesa = false }) => {
     const [activeSection, setActiveSection] = useState<'general' | 'vanesa'>('vanesa');
-    const [signedConfidentiality, setSignedConfidentiality] = useState(false);
+    const [signedConfidentiality, setSignedConfidentiality] = useState(isVanesa);
     const [showCredentials, setShowCredentials] = useState(false);
     const [signatureName, setSignatureName] = useState('');
     const [signatureDNI, setSignatureDNI] = useState('');

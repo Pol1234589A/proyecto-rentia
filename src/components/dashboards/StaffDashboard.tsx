@@ -68,7 +68,7 @@ export const StaffDashboard: React.FC = () => {
     const isInternal = userRole === 'staff' || userRole === 'agency';
     const isWorker = userRole === 'worker';
 
-    const [activeTab, setActiveTab] = useState<'overview' | 'room_manager' | 'real_estate' | 'accounting' | 'tools' | 'contracts' | 'calendar' | 'supplies' | 'calculator' | 'social' | 'tasks' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'transfers' | 'advanced_calc' | 'management_leads' | 'site_config' | 'blog_manager' | 'visual_editor' | 'agency_invoices' | 'protocols'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'room_manager' | 'real_estate' | 'accounting' | 'tools' | 'contracts' | 'calendar' | 'supplies' | 'calculator' | 'social' | 'tasks' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'transfers' | 'advanced_calc' | 'management_leads' | 'site_config' | 'blog_manager' | 'visual_editor' | 'agency_invoices' | 'protocols' | 'candidates'>('overview');
     const [activeMobileTab, setActiveMobileTab] = useState<'overview' | 'tasks' | 'candidates' | 'properties' | 'menu' | 'accounting' | 'supplies' | 'calendar' | 'contracts' | 'social' | 'calculator' | 'tools' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'advanced_calc' | 'management_leads' | 'site_config' | 'blog_manager' | 'visual_editor' | 'agency_invoices' | 'protocols'>('overview');
 
     const isManagerRole = userRole === 'manager';
@@ -312,6 +312,19 @@ export const StaffDashboard: React.FC = () => {
         { id: 'tools', label: 'Admin', icon: <Wrench className="w-4 h-4" /> },
     ];
 
+    const vanesaTools = [
+        { id: 'overview', label: 'Resumen', icon: <BarChart3 className="w-4 h-4" /> },
+        { id: 'protocols', label: 'Protocolos y Claves', icon: <Key className="w-4 h-4 text-indigo-500" /> },
+        { id: 'room_manager', label: 'Habitaciones Libres', icon: <DoorOpen className="w-4 h-4 text-green-600" /> }, // Highlight availability
+        { id: 'management_leads', label: 'Leads Gestión', icon: <Key className="w-4 h-4" />, count: pendingMgmtLeadsCount },
+        { id: 'candidates', label: 'Candidatos', icon: <Users className="w-4 h-4" /> }, // New specialized tab link if needed or reuse existing
+        { id: 'requests', label: 'Solicitudes', icon: <Inbox className="w-4 h-4" />, count: pendingRequestsCount },
+        { id: 'agency_invoices', label: 'Facturas Rentia', icon: <Printer className="w-4 h-4" /> },
+        { id: 'tasks', label: 'Mis Tareas', icon: <ClipboardList className="w-4 h-4" /> },
+        // Eliminated: visual_editor, site_config, accounting (deep), etc. per user request "solo lo que te he dicho"
+    ];
+
+
     const mobileMenuOptions = [
         { id: 'visual_editor', label: 'Editor Web', icon: <Palette className="w-6 h-6" />, color: 'bg-pink-100 text-pink-600' }, // NEW
         { id: 'management_leads', label: 'Leads Gestión', icon: <Key className="w-6 h-6" />, color: 'bg-indigo-100 text-indigo-600', count: pendingMgmtLeadsCount },
@@ -418,7 +431,7 @@ export const StaffDashboard: React.FC = () => {
                         <button onClick={() => setActiveTab('overview')} className={`px-2 py-1.5 rounded-md text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap ${activeTab === 'overview' ? (isVanesa ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'bg-white text-rentia-blue shadow-sm') : (isVanesa ? 'text-indigo-200 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-700')}`}>
                             <BarChart3 className="w-3.5 h-3.5" /> Resumen
                         </button>
-                        {desktopTools.map(tool => (
+                        {(isVanesa ? vanesaTools : desktopTools).map(tool => (
                             <button key={tool.id} onClick={() => setActiveTab(tool.id as any)} className={`relative px-2 py-1.5 rounded-md text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap ${activeTab === tool.id ? (isVanesa ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'bg-white text-rentia-blue shadow-sm') : (isVanesa ? 'text-indigo-200 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-700')}`}>
                                 {tool.icon} {tool.label}
                                 {tool.count ? <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] w-4 h-4 flex items-center justify-center rounded-full">{tool.count}</span> : null}
@@ -541,7 +554,9 @@ export const StaffDashboard: React.FC = () => {
                     {activeTab === 'site_config' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><SiteConfigManager /></div>}
                     {activeTab === 'blog_manager' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><BlogManager /></div>}
                     {activeTab === 'agency_invoices' && <div className="animate-in slide-in-from-bottom-4 duration-300"><AgencyInvoicesPanel /></div>}
-                    {activeTab === 'protocols' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-full"><ProtocolsView /></div>}
+                    {activeTab === 'protocols' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-full"><ProtocolsView isVanesa={isVanesa} /></div>}
+                    {/* Reuse Candidate Manager for explicit tab if needed, or redirect logic */}
+                    {activeTab === 'candidates' && <div className="animate-in slide-in-from-bottom-4 duration-300"><CandidateManager /></div>}
 
                     {activeTab === 'tools' && (
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in slide-in-from-bottom-4 duration-300">

@@ -23,7 +23,7 @@ service cloud.firestore {
 
     // Roles Jerárquicos
     function isStaff() {
-      return hasRole('staff') || hasRole('admin');
+      return hasRole('staff') || hasRole('admin') || hasRole('manager');
     }
 
     function isAgency() {

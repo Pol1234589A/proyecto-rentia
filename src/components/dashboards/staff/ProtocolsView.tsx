@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { FileText, Key, Eye, EyeOff, CheckCircle, AlertTriangle, MessageSquare, Shield, Smartphone } from 'lucide-react';
 
-export const ProtocolsView: React.FC<{ isVanesa?: boolean }> = ({ isVanesa = false }) => {
+export const ProtocolsView: React.FC<{ isVanesa?: boolean, onOpenCandidateModal?: () => void }> = ({ isVanesa = false, onOpenCandidateModal }) => {
     const [activeSection, setActiveSection] = useState<'general' | 'vanesa'>('vanesa');
     const [signedConfidentiality, setSignedConfidentiality] = useState(isVanesa);
     const [showCredentials, setShowCredentials] = useState(false);
     const [signatureName, setSignatureName] = useState('');
     const [signatureDNI, setSignatureDNI] = useState('');
+
+    const whatsappMessageAyoub = encodeURIComponent("Hola Ayoub, soy Vanesa. Te recuerdo que tienes un nuevo contacto aceptado en la aplicación para coordinar visita. Por favor, contáctalo lo antes posible.");
 
     const handleSign = (e: React.FormEvent) => {
         e.preventDefault();
@@ -56,7 +58,17 @@ export const ProtocolsView: React.FC<{ isVanesa?: boolean }> = ({ isVanesa = fal
                             <div className="prose prose-sm text-gray-600">
                                 <p className="mb-2"><strong>Objetivo Principal:</strong> Obtener información cualificada de potenciales inquilinos para filtrar su viabilidad.</p>
                                 <ul className="list-disc pl-5 space-y-2">
-                                    <li>Acceder diariamente a las plataformas: <strong>Idealista, Wallapop y Facebook</strong>.</li>
+                                    <div className="flex flex-wrap gap-2 my-3">
+                                        <a href="https://www.idealista.com/login" target="_blank" rel="noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 bg-[#d2fa00] text-black font-bold text-xs rounded-lg hover:brightness-95 border border-yellow-300 shadow-sm">
+                                            Idealista
+                                        </a>
+                                        <a href="https://es.wallapop.com/login" target="_blank" rel="noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 bg-[#13C1AC] text-white font-bold text-xs rounded-lg hover:brightness-95 shadow-sm">
+                                            Wallapop
+                                        </a>
+                                        <a href="https://www.facebook.com/" target="_blank" rel="noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1877F2] text-white font-bold text-xs rounded-lg hover:brightness-95 shadow-sm">
+                                            Facebook
+                                        </a>
+                                    </div>
                                     <li>Revisar mensajes entrantes.</li>
                                     <li>
                                         <strong>Responder SIEMPRE</strong> con el objetivo de conseguir:
@@ -80,21 +92,27 @@ export const ProtocolsView: React.FC<{ isVanesa?: boolean }> = ({ isVanesa = fal
                                 <CheckCircle className="w-5 h-5 text-green-500" /> 2. Registro de Candidatos
                             </h3>
                             <div className="flex flex-col md:flex-row gap-6 items-center">
-                                <div className="flex-1 text-sm text-gray-600 space-y-3">
-                                    <p>Cuando tengas los datos cualificados (Nombre + Ocupación), debes registrarlos en el sistema:</p>
-                                    <ol className="list-decimal pl-5 space-y-2 font-medium">
-                                        <li>Ve a tu Panel de Control.</li>
-                                        <li>Busca el botón verde: <strong>"Enviar Nuevo Candidato al Pipeline"</strong>.</li>
-                                        <li>Rellena la ficha con la información obtenida.</li>
-                                        <li>El candidato aparecerá automáticamente en el listado general de pendientes.</li>
+                                <div className={`flex-1 text-sm text-gray-600 space-y-3 ${onOpenCandidateModal ? '' : 'opacity-100'}`}>
+                                    <p>Cuando tengas los datos cualificados (Nombre + Ocupación), regístralos inmediatamente:</p>
+                                    <ol className="list-decimal pl-5 space-y-2 font-medium text-gray-800">
+                                        <li>Pulsa el botón de acción rápida aquí al lado.</li>
+                                        <li>Rellena la ficha básica (Nombre, Teléfono, Ocupación).</li>
+                                        <li>El sistema lo clasificará automáticamente.</li>
                                     </ol>
                                 </div>
-                                <div className="shrink-0 w-full md:w-1/3 border-2 border-dashed border-gray-200 rounded-lg p-4 flex flex-col items-center justify-center text-center bg-gray-50">
-                                    {/* Placeholder visual del botón */}
-                                    <div className="bg-green-100 text-green-700 px-4 py-2 rounded font-bold text-xs mb-2 shadow-sm">
-                                        + Enviar Nuevo Candidato al Pipeline
-                                    </div>
-                                    <span className="text-xs text-gray-400">Botón disponible en tu Dashboard</span>
+                                <div className="shrink-0 w-full md:w-1/3 bg-green-50 rounded-xl p-6 border border-green-100 flex flex-col items-center justify-center text-center shadow-sm">
+                                    {onOpenCandidateModal ? (
+                                        <button
+                                            onClick={onOpenCandidateModal}
+                                            className="w-full bg-green-600 text-white px-4 py-3 rounded-lg font-bold text-sm mb-2 shadow-md hover:bg-green-700 hover:shadow-lg transition-all flex items-center justify-center gap-2 transform active:scale-95"
+                                        >
+                                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
+                                            Registrar Candidato Ahora
+                                        </button>
+                                    ) : (
+                                        <div className="p-3 bg-gray-100 rounded text-xs text-gray-500 italic">Botón activo en el Dashboard Principal</div>
+                                    )}
+                                    <span className="text-[10px] text-green-700 font-medium">Acceso directo habilitado</span>
                                 </div>
                             </div>
                         </div>
@@ -106,9 +124,16 @@ export const ProtocolsView: React.FC<{ isVanesa?: boolean }> = ({ isVanesa = fal
                             </h3>
                             <div className="bg-purple-50 p-4 rounded-lg border border-purple-100 text-sm text-purple-900 space-y-3">
                                 <p><strong>Si el candidato es ACEPTADO:</strong> Aunque el sistema lo muestre a Ayoub, debes enviarle un recordatorio manual.</p>
-                                <div className="bg-white p-3 rounded border border-purple-200 font-mono text-xs">
-                                    <p className="font-bold mb-1 text-gray-500">📱 WhatsApp a Ayoub (+34 638 28 98 83)</p>
-                                    <p>"Hola Ayoub, soy Vanesa. Te recuerdo que tienes un nuevo contacto aceptado en la aplicación para coordinar visita. Por favor, contáctalo lo antes posible."</p>
+                                <div className="mt-2">
+                                    <a
+                                        href={`https://wa.me/34638289883?text=${whatsappMessageAyoub}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="w-full bg-[#25D366] text-white px-4 py-3 rounded-lg font-bold text-sm shadow-sm hover:shadow-md hover:bg-[#20bd5a] transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" /></svg>
+                                        Notificar a Ayoub (WhatsApp)
+                                    </a>
                                 </div>
                             </div>
                         </div>

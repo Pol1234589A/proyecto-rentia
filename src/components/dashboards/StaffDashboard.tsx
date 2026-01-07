@@ -559,7 +559,7 @@ export const StaffDashboard: React.FC = () => {
                     {activeTab === 'site_config' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><SiteConfigManager /></div>}
                     {activeTab === 'blog_manager' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><BlogManager /></div>}
                     {activeTab === 'agency_invoices' && <div className="animate-in slide-in-from-bottom-4 duration-300"><AgencyInvoicesPanel /></div>}
-                    {activeTab === 'protocols' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-full"><ProtocolsView isVanesa={isVanesa} /></div>}
+                    {activeTab === 'protocols' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-full"><ProtocolsView isVanesa={isVanesa} onOpenCandidateModal={() => setShowCandidateModal(true)} /></div>}
                     {/* Reuse Candidate Manager for explicit tab if needed, or redirect logic */}
                     {activeTab === 'candidates' && <div className="animate-in slide-in-from-bottom-4 duration-300"><CandidateManager /></div>}
 

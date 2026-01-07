@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Key, Eye, EyeOff, CheckCircle, AlertTriangle, MessageSquare, Shield, Smartphone, Clock, XCircle, Check } from 'lucide-react';
-import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { FileText, Key, Eye, EyeOff, CheckCircle, AlertTriangle, MessageSquare, Shield, Smartphone, Clock, XCircle, Check, CheckSquare, Square, Calendar, ClipboardList } from 'lucide-react';
+import { collection, query, orderBy, limit, onSnapshot, where, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../../../firebase';
 
 export const ProtocolsView: React.FC<{ isVanesa?: boolean, onOpenCandidateModal?: () => void }> = ({ isVanesa = false, onOpenCandidateModal }) => {
@@ -19,6 +19,38 @@ export const ProtocolsView: React.FC<{ isVanesa?: boolean, onOpenCandidateModal?
         });
         return () => unsubscribe();
     }, []);
+
+    const [myTasks, setMyTasks] = useState<any[]>([]);
+
+    useEffect(() => {
+        // Tareas asignadas a Vanesa o generales de "Gestión"
+        // Simplificamos query a "pending" y filtramos en cliente para evitar problemas de updates de reglas/indices complejos ahora mismo
+        const qTasks = query(collection(db, "tasks"), where("status", "in", ["pending", "in_progress"]));
+        const unsubscribeTasks = onSnapshot(qTasks, (snapshot) => {
+            const tasks = snapshot.docs
+                .map(doc => ({ id: doc.id, ...doc.data() } as any))
+                .filter(t =>
+                    t.assignedTo?.toLowerCase().includes('vanesa') ||
+                    t.contactName?.toLowerCase().includes('vanesa') ||
+                    t.category === 'management' // Tareas generales de gestión
+                )
+                .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+            setMyTasks(tasks);
+        });
+        return () => unsubscribeTasks();
+    }, []);
+
+    const handleCompleteTask = async (taskId: string) => {
+        try {
+            await updateDoc(doc(db, "tasks", taskId), {
+                status: 'completed',
+                completedAt: new Date(),
+                completedBy: 'Vanesa'
+            });
+        } catch (error) {
+            console.error("Error completando tarea", error);
+        }
+    };
 
     const whatsappMessageAyoub = encodeURIComponent("Hola Ayoub, soy Vanesa. Te recuerdo que tienes un nuevo contacto aceptado en la aplicación para coordinar visita. Por favor, contáctalo lo antes posible.");
 
@@ -192,6 +224,45 @@ export const ProtocolsView: React.FC<{ isVanesa?: boolean, onOpenCandidateModal?
                                 </div>
                             </div>
                         </div>
+
+                        {/* 4. Mis Tareas Asignadas */}
+                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                            <h3 className="font-bold text-lg text-gray-800 mb-4 flex items-center gap-2">
+                                <ClipboardList className="w-5 h-5 text-indigo-500" /> 4. Mis Tareas de Gestión
+                            </h3>
+                            <div className="space-y-2">
+                                {myTasks.length === 0 ? (
+                                    <div className="text-center py-6 bg-gray-50 rounded-lg text-gray-400">
+                                        <CheckCircle className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                                        <p className="text-sm">¡Todo al día! No tienes tareas pendientes.</p>
+                                    </div>
+                                ) : (
+                                    myTasks.map(task => (
+                                        <div key={task.id} className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 hover:border-indigo-200 hover:bg-indigo-50 transition-all group">
+                                            <button
+                                                onClick={() => handleCompleteTask(task.id)}
+                                                className="mt-0.5 text-gray-400 hover:text-green-500 transition-colors"
+                                                title="Marcar como completada"
+                                            >
+                                                <Square className="w-5 h-5 group-hover:hidden" />
+                                                <CheckSquare className="w-5 h-5 hidden group-hover:block" />
+                                            </button>
+                                            <div className="flex-1">
+                                                <p className="text-sm font-medium text-gray-800 leading-tight">{task.title}</p>
+                                                {task.description && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{task.description}</p>}
+                                                <div className="flex items-center gap-2 mt-2">
+                                                    {task.priority === 'high' && <span className="text-[10px] font-bold bg-red-100 text-red-700 px-1.5 py-0.5 rounded">URGENTE</span>}
+                                                    <span className="text-[10px] text-gray-400 flex items-center gap-1">
+                                                        <Calendar className="w-3 h-3" />
+                                                        {task.dueDate ? new Date(task.dueDate.seconds * 1000).toLocaleDateString() : 'Sin fecha'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
                     </div>
 
                     {/* Sidebar: Credentials & Security */}
@@ -282,14 +353,102 @@ export const ProtocolsView: React.FC<{ isVanesa?: boolean, onOpenCandidateModal?
                         </div>
                     </div>
                 </div>
-            )}
+                        <Shield className="w-5 h-5 text-gray-900" /> Claves y Accesos
+        </h3>
 
-            {activeSection === 'general' && (
-                <div className="text-center py-20 bg-white rounded-xl text-gray-400 border border-gray-200 border-dashed">
-                    <p>El protocolo general de la empresa se desarrollará a partir del modelo de Vanesa.</p>
+                    {
+        !signedConfidentiality ? (
+            <div className="space-y-4">
+                <div className="bg-yellow-50 text-yellow-800 p-3 rounded-lg text-xs leading-relaxed border border-yellow-100">
+                    <div className="font-bold flex items-center gap-1 mb-1"><AlertTriangle className="w-3 h-3" /> Atención</div>
+                    Para visualizar las credenciales corporativas, debes firmar este compromiso de confidencialidad.
                 </div>
-            )}
+                <form onSubmit={handleSign} className="space-y-3">
+                    <div className="text-xs text-gray-500 text-justify">
+                        Yo, con los datos abajo firmantes, me comprometo a mantener la más estricta confidencialidad respecto a las credenciales de acceso facilitadas. Entiendo que estos datos son propiedad de Rentia Investments S.L. y su distribución o uso no autorizado está prohibido.
+                    </div>
+                    <input
+                        required
+                        type="text"
+                        placeholder="Nombre y Apellidos"
+                        className="w-full text-sm border p-2 rounded"
+                        value={signatureName}
+                        onChange={e => setSignatureName(e.target.value)}
+                    />
+                    <input
+                        required
+                        type="text"
+                        placeholder="DNI / NIE"
+                        className="w-full text-sm border p-2 rounded"
+                        value={signatureDNI}
+                        onChange={e => setSignatureDNI(e.target.value)}
+                    />
+                    <button
+                        type="submit"
+                        className="w-full bg-rentia-black text-white py-2 rounded-lg text-xs font-bold hover:bg-gray-800"
+                        disabled={!signatureName || !signatureDNI}
+                    >
+                        Firmar y Mostrar Claves
+                    </button>
+                </form>
+            </div>
+        ) : (
+        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+            <div className="bg-green-50 text-green-700 p-2 rounded text-xs flex items-center gap-2 border border-green-100">
+                <CheckCircle className="w-3 h-3" /> Firmado por: {signatureName}
+            </div>
+
+            <div className="space-y-3">
+                <button onClick={() => setShowCredentials(!showCredentials)} className="text-xs font-bold text-blue-600 flex items-center gap-1 hover:underline">
+                    {showCredentials ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                    {showCredentials ? 'Ocultar Credenciales' : 'Ver Credenciales Descifradas'}
+                </button>
+
+                <div className="grid gap-3">
+                    <CredentialCard platform="Idealista" user="info@rentiaroom.com" pass="rentiaroom25A!" show={showCredentials} />
+                    <CredentialCard platform="Gmail (Wallapop)" user="rentiaroom@gmail.com" pass="adminrentiaA!" show={showCredentials} note="Usar para Wallapop" />
+                    <CredentialCard platform="Milanuncios" user="rtrygestion@gmail.com" pass="victorpol26A!" show={showCredentials} />
+                    <CredentialCard platform="Facebook" user="Verificar Páginas" pass="-" show={showCredentials} />
+                    <CredentialCard platform="Fotocasa" user="info@rentiaroom.com" pass="Polvictorjose04!" show={showCredentials} />
+                    <div className="pt-2 border-t mt-2">
+                        <CredentialCard
+                            platform="TikTok Oficial"
+                            user="rtrygestion@gmail.com"
+                            pass="victorpol26A!"
+                            show={showCredentials}
+                            note="⚠️ Usar App Móvil | Recordar: MURCIA"
+                        />
+                        <div className="bg-pink-50 p-2 rounded text-[10px] text-pink-800 border border-pink-100 mt-1">
+                            <p className="font-bold mb-0.5">Gestión TikTok:</p>
+                            <ul className="list-disc pl-3 space-y-0.5">
+                                <li>Revisar Mensajes Privados (DMs)</li>
+                                <li>Responder comentarios en vídeos</li>
+                                <li>Aclarar siempre ubicación: <strong>Murcia</strong></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div className="pt-2 border-t mt-2">
+                        <CredentialCard platform="CRM Rentger" user="administracion@rentiaroom.com" pass="administracion1A!murcia" show={showCredentials} />
+                    </div>
+                </div>
+            </div>
         </div>
+    )
+    }
+                </div >
+            </div >
+        </div >
+    )
+}
+
+{
+    activeSection === 'general' && (
+        <div className="text-center py-20 bg-white rounded-xl text-gray-400 border border-gray-200 border-dashed">
+            <p>El protocolo general de la empresa se desarrollará a partir del modelo de Vanesa.</p>
+        </div>
+    )
+}
+        </div >
     );
 };
 

@@ -52,13 +52,15 @@ export const ContentProvider: React.FC<{ children: ReactNode }> = ({ children })
         const unsub = onSnapshot(doc(db, "app_config", "content"), (docSnap) => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
-                // Deep merge to ensure structure
                 setHomeContent({
                     hero: { ...defaultHomeContent.hero, ...(data.home?.hero || {}) },
                     solutions: { ...defaultHomeContent.solutions, ...(data.home?.solutions || {}) },
                     cta: { ...defaultHomeContent.cta, ...(data.home?.cta || {}) }
                 });
             }
+            setLoading(false);
+        }, (error) => {
+            console.error("Error cargando ContentContext:", error);
             setLoading(false);
         });
         return () => unsub();

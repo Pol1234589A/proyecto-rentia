@@ -133,22 +133,22 @@ export const ConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     useEffect(() => {
         const unsub = onSnapshot(doc(db, "app_config", "general"), (docSnap) => {
             if (docSnap.exists()) {
-                // Merge con default para asegurar que no falten campos si se añaden nuevos
+                // ... logic ...
                 const data = docSnap.data();
                 setConfig({
                     ...defaultConfig,
                     ...data,
-                    // Ensure nested objects exist
                     general: { ...defaultConfig.general, ...(data.general || {}) },
                     seo: { ...defaultConfig.seo, ...(data.seo || {}) },
                     modules: { ...defaultConfig.modules, ...(data.modules || {}) },
                     billing: { ...defaultConfig.billing, ...(data.billing || {}) },
-                    // Ensure arrays exist even if DB returns undefined
                     holidays: data.holidays || [],
                     seasonalEvents: data.seasonalEvents || [],
                     roomsAlert: { ...defaultConfig.roomsAlert, ...(data.roomsAlert || {}) }
                 });
             }
+        }, (error) => {
+            console.error("Error cargando ConfigContext:", error);
         });
         return () => unsub();
     }, []);

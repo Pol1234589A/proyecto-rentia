@@ -30,6 +30,9 @@ export default function IntranetPage() {
                 setProfile(snapshot.data());
             }
             setLoading(false);
+        }, (error) => {
+            console.error("Error en el listener de perfil:", error);
+            setLoading(false);
         });
 
         return () => unsubscribe();

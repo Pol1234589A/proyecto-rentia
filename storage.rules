@@ -1,0 +1,96 @@
+
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Función auxiliar para verificar autenticación
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    // --- CARPETAS PÚBLICAS (Lectura abierta) ---
+    
+    // Configuración web (Fotos equipo, logos dinámicos)
+    match /config/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuth(); // Solo Staff
+    }
+
+    // Imágenes de la web pública (Oportunidades de inversión)
+    match /opportunities/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuth(); // Solo usuarios logueados (Staff) suben fotos
+    }
+    
+    // Imágenes de propiedades en alquiler (RoomsView)
+    match /properties/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuth();
+    }
+    
+    // Imágenes de habitaciones
+    match /rooms/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuth();
+    }
+
+    // Feeds XML para portales inmobiliarios
+    match /feeds/{fileName} {
+      allow read: if true;
+      allow write: if isAuth();
+    }
+
+    // --- CARPETAS DE SUBIDA PÚBLICA (Formularios Web) ---
+    // Permiten 'create' a cualquiera para que funcionen los formularios sin login.
+    // Permiten 'read' para previsualizar tras la subida.
+
+    // Solicitudes de colaboración (PropertySubmissionForm)
+    match /requests/{requestId}/{allPaths=**} {
+      allow create: if true;
+      allow read: if true;
+    }
+    
+    // Solicitudes de gestión propietarios (ManagementSubmissionForm)
+    match /mgmt/{tempId}/{allPaths=**} {
+      allow create: if true;
+      allow read: if true;
+    }
+
+    // --- CARPETAS PRIVADAS / RESTRINGIDAS ---
+
+    // Firmas RGPD (Privado)
+    match /signatures/{userId}/{allPaths=**} {
+      allow read: if isAuth(); // Staff debe poder verlas
+      allow write: if request.auth.uid == userId; // Solo el usuario firma la suya
+    }
+
+    // Documentos de Propiedad (Escrituras, Seguros...)
+    match /documents/{propertyId}/{allPaths=**} {
+      allow read: if isAuth(); // Staff, Worker y Owner
+      allow write: if isAuth(); // Staff y Owner
+    }
+
+    // Facturas de Suministros (Luz, Agua...)
+    match /invoices/{propertyId}/{allPaths=**} {
+      allow read: if isAuth();
+      allow write: if isAuth();
+    }
+    
+    // Contratos de Alquiler (PDFs)
+    match /contracts/{propertyId}/{allPaths=**} {
+      allow read: if isAuth(); // Staff, Worker, Owner y Tenant (Validado en app)
+      allow write: if isAuth(); // Staff crea contratos
+    }
+
+    // Facturas de Trabajadores (Mantenimiento/Comerciales)
+    match /worker_invoices/{userId}/{allPaths=**} {
+      allow read: if isAuth(); // Staff y el propio Worker
+      allow write: if isAuth(); // Worker sube, Staff gestiona
+    }
+
+    // Regla por defecto: Solo usuarios autenticados pueden escribir o leer cualquier otra cosa no definida
+    match /{allPaths=**} {
+      allow read, write: if isAuth(); 
+    }
+  }
+}

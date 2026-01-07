@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0072CE" />
+    
+    <!-- Primary SEO: Targeting 3 Pillars (Management, Investment, Rentals) -->
+    <title>RentiaRoom Murcia | Gestión de Habitaciones, Inversión y Alquiler</title>
+    <meta name="description" content="Líderes en Murcia en Gestión Integral de alquiler por habitaciones para propietarios. Oportunidades de inversión inmobiliaria de alta rentabilidad (+8%) y habitaciones premium para estudiantes y trabajadores.">
+    <meta name="keywords" content="gestión alquiler habitaciones murcia, inversión inmobiliaria murcia, rentabilidad pisos murcia, rentiaroom, alquiler habitaciones estudiantes murcia, administración de propiedades, comprar piso para alquilar murcia">
+    <meta name="author" content="Rentia Investments S.L.">
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    <link rel="canonical" href="https://www.rentiaroom.com/" />
+    <link rel="icon" type="image/png" href="https://i.ibb.co/QvzK6db3/Logo-Negativo.png" />
+    <link rel="apple-touch-icon" href="https://i.ibb.co/QvzK6db3/Logo-Negativo.png" />
+
+    <!-- Local SEO (Murcia) -->
+    <meta name="geo.region" content="ES-MC" />
+    <meta name="geo.placename" content="Murcia" />
+    <meta name="geo.position" content="37.9838;-1.1280" />
+    <meta name="ICBM" content="37.9838, -1.1280" />
+
+    <!-- Open Graph / Facebook (Social Sharing) -->
+    <meta property="og:type" content="business.business" />
+    <meta property="og:url" content="https://www.rentiaroom.com/" />
+    <meta property="og:title" content="RentiaRoom | Gestión, Inversión y Alquiler en Murcia" />
+    <meta property="og:description" content="Maximizamos la rentabilidad de tu propiedad en Murcia. Gestión integral para propietarios, oportunidades para inversores y las mejores habitaciones para inquilinos." />
+    <meta property="og:image" content="https://i.ibb.co/QvzK6db3/Logo-Negativo.png" />
+    <meta property="og:locale" content="es_ES" />
+    <meta property="og:site_name" content="RentiaRoom" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://www.rentiaroom.com/" />
+    <meta property="twitter:title" content="RentiaRoom Murcia | Expertos en Habitaciones" />
+    <meta property="twitter:description" content="Gestión integral para propietarios e inversiones rentables en Murcia." />
+    <meta property="twitter:image" content="https://i.ibb.co/QvzK6db3/Logo-Negativo.png" />
+    
+    <!-- Google Fonts: Poppins and Space Grotesk -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Google Identity Services -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Tailwind Configuration matches RentiaRoom brand identity -->
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              rentia: {
+                black: '#1c1c1c',
+                gold: '#edcd20', // Extracted from your SVG icons
+                goldLight: '#f5e68c',
+                gray: '#f5f5f5',
+                text: '#333333',
+                blue: '#0072CE', // From your privacy links & footer
+                darkBlue: '#002849' // Footer copyright band
+              }
+            },
+            fontFamily: {
+              sans: ['Poppins', 'sans-serif'],
+              display: ['Space Grotesk', 'sans-serif'],
+            },
+            boxShadow: {
+              'idealista': '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)',
+              'idealista-hover': '0 14px 28px rgba(0,0,0,0.25), 0 10px 10px rgba(0,0,0,0.22)',
+            },
+            animation: {
+              marquee: 'marquee 40s linear infinite',
+              'pulse-glow': 'pulse-glow 3s infinite',
+            },
+            keyframes: {
+              marquee: {
+                '0%': { transform: 'translateX(0)' },
+                '100%': { transform: 'translateX(-50%)' },
+              },
+              'pulse-glow': {
+                '0%, 100%': { boxShadow: '0 0 0 0px rgba(237, 205, 32, 0.0)' },
+                '50%': { boxShadow: '0 0 25px 5px rgba(237, 205, 32, 0.5)' },
+              }
+            },
+            screens: {
+              'print': {'raw': 'print'},
+              'xs': '375px',
+            }
+          }
+        }
+      }
+    </script>
+    
+    <!-- Structured Data (Schema.org) for Organization & Local Business -->
+    <!-- This tells Google/AI specifically what you DO: Management AND Investment AND Rentals -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "RealEstateAgent",
+      "name": "RentiaRoom",
+      "alternateName": "Rentia Investments",
+      "image": "https://i.ibb.co/QvzK6db3/Logo-Negativo.png",
+      "@id": "https://www.rentiaroom.com",
+      "url": "https://www.rentiaroom.com",
+      "telephone": "+34672886369",
+      "email": "info@rentiaroom.com",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Murcia",
+        "addressRegion": "Murcia",
+        "addressCountry": "ES"
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": 37.9838,
+        "longitude": -1.1280
+      },
+      "description": "Agencia especializada en la gestión integral de alquiler por habitaciones en Murcia. Ofrecemos servicios para propietarios (garantía de cobro, gestión 360), oportunidades de inversión inmobiliaria de alta rentabilidad y alojamiento premium para estudiantes y trabajadores.",
+      "openingHoursSpecification": {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": [
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday"
+        ],
+        "opens": "09:00",
+        "closes": "20:00"
+      },
+      "priceRange": "$$",
+      "areaServed": "Murcia",
+      "knowsAbout": [
+        "Gestión de alquileres",
+        "Inversión Inmobiliaria",
+        "Coliving",
+        "Alquiler de habitaciones",
+        "Gestión patrimonial"
+      ],
+      "sameAs": [
+        "https://www.instagram.com/rentiaroom_/",
+        "https://www.linkedin.com/company/rentia-room/",
+        "https://www.facebook.com/share/1Cpvx6fmh2/"
+      ]
+    }
+    </script>
+
+    <style>
+      /* Hide scrollbar for clean look in some containers */
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .no-scrollbar {
+        -ms-overflow-style: none;  /* IE and Edge */
+        scrollbar-width: none;  /* Firefox */
+      }
+
+      .cursor-zoom-in { cursor: zoom-in; }
+
+      /* MOBILE TOUCH OPTIMIZATIONS - CRITICAL FOR UX */
+      html {
+        -webkit-tap-highlight-color: transparent; /* Remove grey tap box on iOS */
+        touch-action: manipulation; /* Improves touch response, removes 300ms delay */
+        scroll-behavior: smooth;
+        text-size-adjust: 100%; /* Prevent font scaling in landscape */
+      }
+      
+      body {
+        -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+        overflow-x: hidden; /* Prevent horizontal scroll glitches */
+        overscroll-behavior-y: none; /* Prevents bounce effect in some mobile browsers */
+      }
+
+      /* Fix sticky hover effects on mobile */
+      @media (hover: hover) {
+        a:hover, button:hover {
+          /* standard hover styles apply only on devices with hover capability */
+        }
+      }
+
+      /* Ensure clicks pass through empty areas */
+      .pointer-events-none { pointer-events: none; }
+      .pointer-events-auto { pointer-events: auto; }
+
+      /* Force Hardware Acceleration to prevent sticky lag */
+      .transform-gpu {
+        transform: translateZ(0);
+        will-change: transform;
+      }
+
+      /* Better typography for mobile reading */
+      p, li {
+        text-rendering: optimizeLegibility;
+      }
+
+      /* PRINT STYLES - Corporate Dossier Look */
+      .print-only {
+        display: none;
+      }
+
+      @media print {
+        @page {
+          margin: 10mm;
+          size: A4;
+        }
+
+        .print-only {
+          display: block !important;
+        }
+        
+        /* Hide interactive elements and site navigation */
+        header, footer, .no-print, button, .whatsapp-button, .nav-controls, .sidebar-gallery, .fixed, nav {
+          display: none !important;
+        }
+        
+        /* Ensure colors print accurately */
+        body {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+          background-color: white !important;
+          margin: 0;
+          padding: 0;
+        }
+        
+        /* Prevent bad breaks */
+        .break-inside-avoid {
+          page-break-inside: avoid !important;
+          break-inside: avoid !important;
+        }
+        
+        .break-before-page {
+          page-break-before: always !important;
+          break-before: page !important;
+        }
+
+        /* Typography adjustments for print */
+        body {
+          font-size: 10pt;
+          color: #000;
+        }
+        
+        h1 { font-size: 20pt !important; }
+        h2 { font-size: 16pt !important; }
+        p { font-size: 10pt !important; }
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.554.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "firebase/": "https://aistudiocdn.com/firebase@^12.6.0/",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
+    "react-dom": "https://aistudiocdn.com/react-dom@^19.2.1",
+    "firebase-admin": "https://aistudiocdn.com/firebase-admin@^13.6.0",
+    "node-fetch": "https://aistudiocdn.com/node-fetch@^3.3.2",
+    "firebase-functions": "https://aistudiocdn.com/firebase-functions@^7.0.1"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-gray-100 text-rentia-text font-sans antialiased">
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>

@@ -1,0 +1,238 @@
+
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- FUNCIONES AUXILIARES (HELPERS) ---
+
+    // Verifica si el usuario está autenticado
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Obtiene los datos del usuario actual desde la colección 'users'
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // Verifica el rol específico
+    function hasRole(role) {
+      return isAuthenticated() && getUserData().role == role;
+    }
+
+    // Roles Jerárquicos
+    function isStaff() {
+      return hasRole('staff') || hasRole('admin');
+    }
+
+    function isAgency() {
+      return hasRole('agency');
+    }
+
+    // Staff extendido (incluye agencias colaboradoras para ciertas lecturas)
+    function isInternal() {
+      return isStaff() || isAgency();
+    }
+
+    function isOwner() {
+      return hasRole('owner');
+    }
+
+    function isWorker() {
+      return hasRole('worker');
+    }
+
+    function isTenant() {
+      return hasRole('tenant');
+    }
+
+    // Helper para operaciones de gestión diaria (Staff + Trabajadores)
+    function isStaffOrWorker() {
+      return isStaff() || isWorker();
+    }
+
+    // --- REGLAS POR COLECCIÓN ---
+
+    // 0. CONFIGURACIÓN WEB (Lectura pública, Edición Staff)
+    match /app_config/{configId} {
+      allow read: if true;
+      allow write: if isStaff();
+    }
+
+    // 0.1 BLOG POSTS (Lectura pública, Edición Staff)
+    match /blog_posts/{postId} {
+      allow read: if true;
+      allow write: if isStaff();
+    }
+
+    // 1. USUARIOS
+    // - Staff: Control total.
+    // - Usuario: Solo lee/edita su propio perfil.
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isInternal() || isWorker());
+      allow create: if isAuthenticated(); // Permitir creación inicial al registrarse (UserCreator usa admin SDK normalmente, pero esto cubre registros directos si los hubiera)
+      allow update: if isStaff() || (isAuthenticated() && request.auth.uid == userId);
+      allow delete: if isStaff();
+    }
+
+    // 2. PROPIEDADES (Catálogo y Configuración)
+    match /properties/{propertyId} {
+      // Lectura pública para la web (Catálogo)
+      allow read: if true;
+      
+      // Staff y Workers pueden editar (gestión diaria)
+      // Propietarios pueden editar si son dueños del documento
+      allow update: if isStaffOrWorker() || (isOwner() && resource.data.ownerId == request.auth.uid);
+      
+      // Permitir crear propiedades (ej. formularios de alta propietarios)
+      allow create: if isStaffOrWorker() || isAuthenticated();
+      
+      allow delete: if isStaff();
+    }
+
+    // 3. DOCUMENTOS DE PROPIEDAD
+    match /property_documents/{docId} {
+      // Staff y Workers ven todo. Owners ven lo suyo.
+      allow read: if isStaffOrWorker() || (isOwner() && get(/databases/$(database)/documents/properties/$(resource.data.propertyId)).data.ownerId == request.auth.uid);
+      
+      // Creación permitida a autenticados (Owners subiendo docs)
+      allow create: if isAuthenticated();
+      
+      allow update, delete: if isStaff();
+    }
+
+    // 4. FACTURAS DE SUMINISTROS (Subidas por Owners o Staff)
+    match /supply_invoices/{invoiceId} {
+      allow read: if isStaffOrWorker() || (isOwner() && get(/databases/$(database)/documents/properties/$(resource.data.propertyId)).data.ownerId == request.auth.uid);
+      allow create: if isAuthenticated(); 
+      allow update, delete: if isStaff();
+    }
+    
+    // 5. CÁLCULOS DE SUMINISTROS (Generados por el sistema/staff)
+    match /supply_records/{recordId} {
+      allow read: if isStaffOrWorker() || (isOwner() && get(/databases/$(database)/documents/properties/$(resource.data.propertyId)).data.ownerId == request.auth.uid);
+      allow write: if isStaff();
+    }
+
+    // 6. AJUSTES ECONÓMICOS (Descuentos/Cargos a propietarios)
+    match /adjustments/{adjustmentId} {
+      allow read: if isStaff() || (isOwner() && resource.data.ownerId == request.auth.uid);
+      allow write: if isStaff();
+    }
+
+    // 7. CONTABILIDAD GENERAL
+    match /accounting/{docId} {
+      allow read, write: if isStaff();
+    }
+
+    // 8. OPORTUNIDADES (Inversión)
+    match /opportunities/{opportunityId} {
+      allow read: if true; // Web pública (Landing)
+      allow write: if isStaff(); // Solo Staff gestiona el portfolio
+    }
+    
+    // 9. CONTRATOS
+    match /contracts/{contractId} {
+      // Staff y Workers ven todo.
+      // Owner ve sus contratos.
+      // Tenant ve SU contrato.
+      allow read: if isStaffOrWorker() || 
+                  (isOwner() && resource.data.ownerId == request.auth.uid) || 
+                  (isTenant() && resource.data.tenantId == request.auth.uid);
+      allow write: if isStaff();
+    }
+
+    // 10. TAREAS (Gestión interna)
+    match /tasks/{taskId} {
+      allow read, write: if isStaffOrWorker();
+    }
+
+    match /task_boards/{boardId} {
+      allow read, write: if isStaffOrWorker();
+    }
+
+    // 11. PIPELINE CANDIDATOS (CRM Alquiler)
+    match /candidate_pipeline/{candidateId} {
+      // Workers ven para gestionar visitas. Staff ve todo.
+      allow read, update: if isStaffOrWorker();
+      allow create: if isAuthenticated(); // Permitir a workers crear
+      allow delete: if isStaff();
+    }
+
+    // 12. VISITAS (Log de actividad)
+    match /room_visits/{visitId} {
+      allow read, write: if isStaffOrWorker();
+    }
+
+    // 13. NOTICIAS INTERNAS (Tablón)
+    match /internal_news/{newsId} {
+      allow read: if isAuthenticated(); // Todos los usuarios logueados pueden ver noticias
+      allow write: if isStaff();
+    }
+
+    // 14. FACTURAS TRABAJADORES (Pagos a staff externo)
+    match /worker_invoices/{invoiceId} {
+      allow read: if isStaff() || (isWorker() && resource.data.workerId == request.auth.uid);
+      allow create: if isStaff() || (isWorker() && request.resource.data.workerId == request.auth.uid);
+      allow update: if isStaff(); 
+      allow delete: if isStaff() || (isWorker() && resource.data.workerId == request.auth.uid && resource.data.status == 'pending');
+    }
+
+    // --- FORMULARIOS PÚBLICOS (WEB) ---
+
+    // 15. SOLICITUDES DE COMPRA (Brokers/Particulares)
+    match /buyer_requests/{requestId} {
+      allow read: if true; // Necesario para listado público en BrokerView (Marketplace)
+      allow create: if true; // Formulario público
+      allow update, delete: if isStaff();
+    }
+
+    // 16. SOLICITUDES DE VENTA (Colaboradores)
+    match /opportunity_requests/{requestId} {
+      allow create: if true; // Formulario público
+      allow read, update, delete: if isStaff();
+    }
+    
+    // 17. TRASPASOS DE CARTERA
+    match /pending_transfers/{transferId} {
+      allow create: if true;
+      allow read, update, delete: if isStaff();
+    }
+
+    // 18. LEADS DE OPORTUNIDADES (Interesados en invertir)
+    match /opportunity_leads/{leadId} {
+        allow create: if true; // Público desde Landing
+        allow read, update, delete: if isStaff();
+    }
+
+    // 19. LEADS DE GESTIÓN (Propietarios que quieren gestión)
+    match /management_leads/{leadId} {
+        allow create: if true; // Formulario Público
+        allow read, update, delete: if isStaff();
+    }
+
+    // --- SEGURIDAD Y LOGS ---
+
+    // 20. SALES TRACKER (CRM Ventas)
+    match /sales_tracker/{trackId} {
+      allow read, write: if isStaff();
+    }
+
+    // 21. BLACKLIST (Lista negra inquilinos)
+    match /tenant_blacklist/{entryId} {
+      allow read, write: if isStaff();
+    }
+
+    // 22. FACTURAS DE AGENCIA (Liquidaciones a Owners)
+    match /agency_invoices/{invoiceId} {
+        allow read: if isStaff() || (isOwner() && resource.data.ownerId == request.auth.uid);
+        allow write: if isStaff();
+    }
+
+    // Regla por defecto: Bloquear todo lo demás
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

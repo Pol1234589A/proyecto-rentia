@@ -353,101 +353,13 @@ export const ProtocolsView: React.FC<{ isVanesa?: boolean, onOpenCandidateModal?
                         </div>
                     </div>
                 </div>
-                        <Shield className="w-5 h-5 text-gray-900" /> Claves y Accesos
-        </h3>
+            )}
 
-                    {
-        !signedConfidentiality ? (
-            <div className="space-y-4">
-                <div className="bg-yellow-50 text-yellow-800 p-3 rounded-lg text-xs leading-relaxed border border-yellow-100">
-                    <div className="font-bold flex items-center gap-1 mb-1"><AlertTriangle className="w-3 h-3" /> Atención</div>
-                    Para visualizar las credenciales corporativas, debes firmar este compromiso de confidencialidad.
+            {activeSection === 'general' && (
+                <div className="text-center py-20 bg-white rounded-xl text-gray-400 border border-gray-200 border-dashed">
+                    <p>El protocolo general de la empresa se desarrollará a partir del modelo de Vanesa.</p>
                 </div>
-                <form onSubmit={handleSign} className="space-y-3">
-                    <div className="text-xs text-gray-500 text-justify">
-                        Yo, con los datos abajo firmantes, me comprometo a mantener la más estricta confidencialidad respecto a las credenciales de acceso facilitadas. Entiendo que estos datos son propiedad de Rentia Investments S.L. y su distribución o uso no autorizado está prohibido.
-                    </div>
-                    <input
-                        required
-                        type="text"
-                        placeholder="Nombre y Apellidos"
-                        className="w-full text-sm border p-2 rounded"
-                        value={signatureName}
-                        onChange={e => setSignatureName(e.target.value)}
-                    />
-                    <input
-                        required
-                        type="text"
-                        placeholder="DNI / NIE"
-                        className="w-full text-sm border p-2 rounded"
-                        value={signatureDNI}
-                        onChange={e => setSignatureDNI(e.target.value)}
-                    />
-                    <button
-                        type="submit"
-                        className="w-full bg-rentia-black text-white py-2 rounded-lg text-xs font-bold hover:bg-gray-800"
-                        disabled={!signatureName || !signatureDNI}
-                    >
-                        Firmar y Mostrar Claves
-                    </button>
-                </form>
-            </div>
-        ) : (
-        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-            <div className="bg-green-50 text-green-700 p-2 rounded text-xs flex items-center gap-2 border border-green-100">
-                <CheckCircle className="w-3 h-3" /> Firmado por: {signatureName}
-            </div>
-
-            <div className="space-y-3">
-                <button onClick={() => setShowCredentials(!showCredentials)} className="text-xs font-bold text-blue-600 flex items-center gap-1 hover:underline">
-                    {showCredentials ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                    {showCredentials ? 'Ocultar Credenciales' : 'Ver Credenciales Descifradas'}
-                </button>
-
-                <div className="grid gap-3">
-                    <CredentialCard platform="Idealista" user="info@rentiaroom.com" pass="rentiaroom25A!" show={showCredentials} />
-                    <CredentialCard platform="Gmail (Wallapop)" user="rentiaroom@gmail.com" pass="adminrentiaA!" show={showCredentials} note="Usar para Wallapop" />
-                    <CredentialCard platform="Milanuncios" user="rtrygestion@gmail.com" pass="victorpol26A!" show={showCredentials} />
-                    <CredentialCard platform="Facebook" user="Verificar Páginas" pass="-" show={showCredentials} />
-                    <CredentialCard platform="Fotocasa" user="info@rentiaroom.com" pass="Polvictorjose04!" show={showCredentials} />
-                    <div className="pt-2 border-t mt-2">
-                        <CredentialCard
-                            platform="TikTok Oficial"
-                            user="rtrygestion@gmail.com"
-                            pass="victorpol26A!"
-                            show={showCredentials}
-                            note="⚠️ Usar App Móvil | Recordar: MURCIA"
-                        />
-                        <div className="bg-pink-50 p-2 rounded text-[10px] text-pink-800 border border-pink-100 mt-1">
-                            <p className="font-bold mb-0.5">Gestión TikTok:</p>
-                            <ul className="list-disc pl-3 space-y-0.5">
-                                <li>Revisar Mensajes Privados (DMs)</li>
-                                <li>Responder comentarios en vídeos</li>
-                                <li>Aclarar siempre ubicación: <strong>Murcia</strong></li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div className="pt-2 border-t mt-2">
-                        <CredentialCard platform="CRM Rentger" user="administracion@rentiaroom.com" pass="administracion1A!murcia" show={showCredentials} />
-                    </div>
-                </div>
-            </div>
-        </div>
-    )
-    }
-                </div >
-            </div >
-        </div >
-    )
-}
-
-{
-    activeSection === 'general' && (
-        <div className="text-center py-20 bg-white rounded-xl text-gray-400 border border-gray-200 border-dashed">
-            <p>El protocolo general de la empresa se desarrollará a partir del modelo de Vanesa.</p>
-        </div>
-    )
-}
+            )}
         </div >
     );
 };

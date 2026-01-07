@@ -371,6 +371,81 @@ export const RoomManager: React.FC = () => {
                 </button>
             </div>
 
+            {/* --- MASTER VIEW FOR VANESA (Availability Overview) --- */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="p-4 border-b border-gray-100 bg-gray-50 flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-purple-600" />
+                    <h3 className="font-bold text-gray-800">Estado Global de Habitaciones</h3>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left">
+                        <thead className="text-xs text-gray-500 uppercase bg-gray-50 border-b">
+                            <tr>
+                                <th className="px-4 py-3">Estado</th>
+                                <th className="px-4 py-3">Propiedad</th>
+                                <th className="px-4 py-3">Habitación</th>
+                                <th className="px-4 py-3">Liberación / Disp.</th>
+                                <th className="px-4 py-3 text-right">Precio</th>
+                                <th className="px-4 py-3 text-right">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                            {properties
+                                .flatMap(p => p.rooms.map(r => ({ ...r, propName: p.address, propId: p.id })))
+                                .sort((a, b) => {
+                                    // Order: Available first, then by earliest availability date
+                                    if (a.status === 'available' && b.status !== 'available') return -1;
+                                    if (a.status !== 'available' && b.status === 'available') return 1;
+                                    // If both not available, sort by date
+                                    if (a.status !== 'available' && b.status !== 'available') {
+                                        const dateA = a.availableFrom ? new Date(a.availableFrom === 'Inmediata' ? new Date() : a.availableFrom.split('/').reverse().join('-')).getTime() : 9999999999999;
+                                        const dateB = b.availableFrom ? new Date(b.availableFrom === 'Inmediata' ? new Date() : b.availableFrom.split('/').reverse().join('-')).getTime() : 9999999999999;
+                                        return dateA - dateB;
+                                    }
+                                    return 0;
+                                })
+                                .map((room) => {
+                                    const isAvailable = room.status === 'available';
+                                    const isFreeSoon = !isAvailable && room.availableFrom && room.availableFrom !== 'Consultar' &&
+                                        (new Date(room.availableFrom.split('/').reverse().join('-')).getTime() - new Date().getTime()) < (30 * 24 * 60 * 60 * 1000); // Less than 30 days
+
+                                    return (
+                                        <tr key={`${room.propId}-${room.id}`} className={`hover:bg-gray-50 transition-colors ${isAvailable ? 'bg-green-50/30' : ''}`}>
+                                            <td className="px-4 py-3">
+                                                <span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${isAvailable ? 'bg-green-100 text-green-700 border-green-200' :
+                                                        room.status === 'reserved' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
+                                                            'bg-gray-100 text-gray-500 border-gray-200'
+                                                    }`}>
+                                                    {isAvailable ? 'LIBRE' : room.status === 'reserved' ? 'RESERVADA' : 'OCUPADA'}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3 font-medium text-gray-900">{room.propName}</td>
+                                            <td className="px-4 py-3 text-gray-500 font-bold">{room.name}</td>
+                                            <td className="px-4 py-3">
+                                                <div className="flex items-center gap-1.5">
+                                                    <Calendar className={`w-3.5 h-3.5 ${isAvailable ? 'text-green-500' : isFreeSoon ? 'text-orange-500' : 'text-gray-400'}`} />
+                                                    <span className={`font-mono ${isAvailable ? 'text-green-700 font-bold' : isFreeSoon ? 'text-orange-600 font-bold' : 'text-gray-500'}`}>
+                                                        {room.availableFrom || '-'}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-3 text-right font-bold text-gray-800">{room.price}€</td>
+                                            <td className="px-4 py-3 text-right">
+                                                <button
+                                                    onClick={() => setExpandedProp(expandedProp === room.propId ? null : room.propId)}
+                                                    className="text-xs text-rentia-blue hover:underline font-medium"
+                                                >
+                                                    Gestionar
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             {/* Create New Form */}
             {isCreating && (
                 <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 animate-in slide-in-from-top-4">

@@ -63,6 +63,10 @@ export const ProtocolsView: React.FC<{ isVanesa?: boolean, onOpenCandidateModal?
                                             <svg className="w-4 h-4 text-[#bfd600]" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 12h3v8h6v-6h2v6h6v-8h3L12 2z" /></svg>
                                             Idealista
                                         </a>
+                                        <a href="https://www.tiktok.com/login" target="_blank" rel="noreferrer" className="flex items-center gap-2 px-4 py-2 bg-white text-black border-2 border-black font-bold text-xs rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
+                                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93v6.16c0 2.52-1.12 4.84-2.9 6.24-1.72 1.36-4.03 2.06-6.17 1.67-2.61-.46-5.07-2.3-5.83-4.9-1.07-3.79 1.76-8.1 5.9-8.15.55-.01 1.07.03 1.67.07v4.18c-.37-.04-.77-.04-1.16-.01-1.28.1-2.2 1.32-2.03 2.58.12.98.87 1.79 1.83 1.96 1.34.25 2.65-.58 2.95-1.92.1-1.09.07-2.18.07-3.27V.02z" /></svg>
+                                            TikTok
+                                        </a>
                                         <a href="https://es.wallapop.com/login" target="_blank" rel="noreferrer" className="flex items-center gap-2 px-4 py-2 bg-white text-[#13C1AC] border-2 border-[#13C1AC] font-bold text-xs rounded-lg hover:bg-teal-50 transition-colors shadow-sm">
                                             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zm0-2a8 8 0 100-16 8 8 0 000 16zm-1-7h2v2h-2v-2zm0-6h2v4h-2V7z" /></svg>
                                             Wallapop
@@ -203,6 +207,23 @@ export const ProtocolsView: React.FC<{ isVanesa?: boolean, onOpenCandidateModal?
                                             <CredentialCard platform="Milanuncios" user="rtrygestion@gmail.com" pass="victorpol26A!" show={showCredentials} />
                                             <CredentialCard platform="Facebook" user="Verificar Páginas" pass="-" show={showCredentials} />
                                             <CredentialCard platform="Fotocasa" user="info@rentiaroom.com" pass="Polvictorjose04!" show={showCredentials} />
+                                            <div className="pt-2 border-t mt-2">
+                                                <CredentialCard
+                                                    platform="TikTok Oficial"
+                                                    user="rtrygestion@gmail.com"
+                                                    pass="victorpol26A!"
+                                                    show={showCredentials}
+                                                    note="⚠️ Usar App Móvil | Recordar: MURCIA"
+                                                />
+                                                <div className="bg-pink-50 p-2 rounded text-[10px] text-pink-800 border border-pink-100 mt-1">
+                                                    <p className="font-bold mb-0.5">Gestión TikTok:</p>
+                                                    <ul className="list-disc pl-3 space-y-0.5">
+                                                        <li>Revisar Mensajes Privados (DMs)</li>
+                                                        <li>Responder comentarios en vídeos</li>
+                                                        <li>Aclarar siempre ubicación: <strong>Murcia</strong></li>
+                                                    </ul>
+                                                </div>
+                                            </div>
                                             <div className="pt-2 border-t mt-2">
                                                 <CredentialCard platform="CRM Rentger" user="administracion@rentiaroom.com" pass="administracion1A!murcia" show={showCredentials} />
                                             </div>

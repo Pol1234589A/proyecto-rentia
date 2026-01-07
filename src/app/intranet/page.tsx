@@ -145,7 +145,7 @@ export default function IntranetPage() {
     if (userRole === 'tenant') return <TenantDashboard />;
     if (userRole === 'broker') return <BrokerDashboardInternal />;
     if (userRole === 'agency') return <AgencyDashboard />;
-    if (userRole === 'staff') return <StaffDashboard />;
+    if (userRole === 'staff' || userRole === 'manager') return <StaffDashboard />;
     if (userRole === 'worker') return <WorkerDashboard />;
 
     return (

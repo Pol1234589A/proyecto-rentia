@@ -6,7 +6,7 @@ import { onAuthStateChanged, User, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 
 // Definición estricta de roles según arquitectura
-export type UserRole = 'owner' | 'tenant' | 'broker' | 'agency' | 'staff' | 'worker' | null;
+export type UserRole = 'owner' | 'tenant' | 'broker' | 'agency' | 'staff' | 'worker' | 'manager' | null;
 
 interface AuthContextType {
   currentUser: User | null;

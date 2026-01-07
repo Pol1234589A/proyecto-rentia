@@ -71,6 +71,9 @@ export const StaffDashboard: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'overview' | 'room_manager' | 'real_estate' | 'accounting' | 'tools' | 'contracts' | 'calendar' | 'supplies' | 'calculator' | 'social' | 'tasks' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'transfers' | 'advanced_calc' | 'management_leads' | 'site_config' | 'blog_manager' | 'visual_editor' | 'agency_invoices' | 'protocols'>('overview');
     const [activeMobileTab, setActiveMobileTab] = useState<'overview' | 'tasks' | 'candidates' | 'properties' | 'menu' | 'accounting' | 'supplies' | 'calendar' | 'contracts' | 'social' | 'calculator' | 'tools' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'advanced_calc' | 'management_leads' | 'site_config' | 'blog_manager' | 'visual_editor' | 'agency_invoices' | 'protocols'>('overview');
 
+    const isManagerRole = userRole === 'manager';
+    const isVanesa = currentUser?.email === 'vanesa@rentiaroom.com';
+
     // ... (Keep existing state and effects unchanged) ...
     const [stats, setStats] = useState({
         totalRooms: 0,
@@ -288,6 +291,7 @@ export const StaffDashboard: React.FC = () => {
         { id: 'room_manager', label: 'Habitaciones', icon: <DoorOpen className="w-4 h-4" /> },
         { id: 'real_estate', label: 'Oportunidades', icon: <Building className="w-4 h-4" /> },
         { id: 'visual_editor', label: 'Editor Web', icon: <Palette className="w-4 h-4 text-pink-600" /> }, // NEW
+        { id: 'protocols', label: 'Protocolos', icon: <FileText className="w-4 h-4 text-indigo-500" /> },
         { id: 'management_leads', label: 'Leads Gestión', icon: <Key className="w-4 h-4" />, count: pendingMgmtLeadsCount },
         { id: 'requests', label: 'Solicitudes', icon: <Inbox className="w-4 h-4" />, count: pendingRequestsCount },
         { id: 'transfers', label: 'Traspasos', icon: <Share2 className="w-4 h-4" />, count: pendingTransfersCount },
@@ -404,9 +408,9 @@ export const StaffDashboard: React.FC = () => {
                     <div>
                         <h1 className="text-xl sm:text-2xl font-bold text-rentia-black flex items-center gap-2">
                             <LayoutDashboard className="w-5 h-5 sm:w-6 sm:h-6 text-rentia-blue" />
-                            Panel de Control
+                            {isVanesa ? 'Gestión: Vanesa' : 'Panel de Control'}
                         </h1>
-                        <p className="text-gray-500 text-xs sm:text-sm mt-1">Sistema Integrado de Gestión Empresarial</p>
+                        <p className="text-gray-500 text-xs sm:text-sm mt-1">{isVanesa ? 'Administración y Operaciones RentiaRoom' : 'Sistema Integrado de Gestión Empresarial'}</p>
                     </div>
 
                     <div className="hidden md:flex flex-wrap gap-1 justify-end bg-gray-100 p-1 rounded-lg max-w-full">

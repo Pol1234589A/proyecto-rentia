@@ -29,19 +29,19 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
             // Login directo contra Firebase Auth
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
 
-            // ASEGURAMOS ROL DE TRABAJADOR PARA VANESA
+            // ASEGURAMOS ROL DE GESTORA PARA VANESA
             if (email === 'vanesa@rentiaroom.com') {
                 const { doc, setDoc } = await import('firebase/firestore');
                 const { db: firestoreDb } = await import('../../firebase');
                 try {
                     await setDoc(doc(firestoreDb, 'users', userCredential.user.uid), {
-                        role: 'worker',
+                        role: 'manager',
                         email: 'vanesa@rentiaroom.com',
                         name: 'Vanesa',
                         active: true
                     }, { merge: true });
                 } catch (e) {
-                    console.error("No se pudo asegurar el rol de trabajador:", e);
+                    console.error("No se pudo asegurar el rol de gestora:", e);
                 }
             }
 
@@ -63,7 +63,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                     await setDoc(doc(db, 'users', userCredential.user.uid), {
                         email: email,
                         name: 'Vanesa',
-                        role: 'worker',
+                        role: 'manager',
                         active: true,
                         createdAt: new Date().toISOString()
                     });

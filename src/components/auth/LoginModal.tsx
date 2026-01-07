@@ -31,14 +31,17 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
 
             // ASEGURAMOS ROL DE TRABAJADOR PARA VANESA
             if (email === 'vanesa@rentiaroom.com') {
-                const { doc, updateDoc } = await import('firebase/firestore');
+                const { doc, setDoc } = await import('firebase/firestore');
                 const { db: firestoreDb } = await import('../../firebase');
                 try {
-                    await updateDoc(doc(firestoreDb, 'users', userCredential.user.uid), {
-                        role: 'worker'
-                    });
+                    await setDoc(doc(firestoreDb, 'users', userCredential.user.uid), {
+                        role: 'worker',
+                        email: 'vanesa@rentiaroom.com',
+                        name: 'Vanesa',
+                        active: true
+                    }, { merge: true });
                 } catch (e) {
-                    console.error("No se pudo forzar el rol de trabajador:", e);
+                    console.error("No se pudo asegurar el rol de trabajador:", e);
                 }
             }
 

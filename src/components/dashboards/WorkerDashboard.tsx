@@ -73,6 +73,8 @@ const NewsBanner: React.FC = () => {
             const list: InternalNews[] = [];
             snapshot.forEach((doc) => { list.push({ ...doc.data(), id: doc.id } as InternalNews); });
             setNews(list);
+        }, (error) => {
+            console.error("Error en el banner de noticias:", error);
         });
         return () => unsubscribe();
     }, []);

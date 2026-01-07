@@ -163,10 +163,13 @@ export const StaffDashboard: React.FC = () => {
                 totalRooms: totalRoomsCount,
                 occupancyRate: totalRoomsCount > 0 ? Math.round((occupiedCount / totalRoomsCount) * 100) : 0,
                 monthlyRevenue: revenueCount,
-                activeIncidents: renovationCount, // Este sigue siendo habitaciones en reforma
+                activeIncidents: renovationCount,
                 vacantRooms: totalRoomsCount - occupiedCount,
                 estimatedCommission: totalCommission
             }));
+            setLoadingStats(false);
+        }, (error) => {
+            console.error("Error cargando estadísticas de propiedades:", error);
             setLoadingStats(false);
         });
 
@@ -181,6 +184,8 @@ export const StaffDashboard: React.FC = () => {
                 ...prev,
                 maintenanceIncidents: snap.size
             }));
+        }, (error) => {
+            console.error("Error cargando incidencias de mantenimiento:", error);
         });
 
         const isInternalRole = userRole === 'staff' || userRole === 'agency';
@@ -197,12 +202,16 @@ export const StaffDashboard: React.FC = () => {
                     else balance -= d.amount;
                 });
                 setTotalRealBalance(balance);
+            }, (error) => {
+                console.error("Error cargando contabilidad:", error);
             });
         }
 
         const qPending = query(collection(db, "candidate_pipeline"), where("status", "==", "pending_review"));
         const unsubPending = onSnapshot(qPending, (snap) => {
             setPendingCandidatesCount(snap.size);
+        }, (error) => {
+            console.error("Error cargando candidatos pendientes:", error);
         });
 
         let unsubRequests = () => { };
@@ -210,6 +219,8 @@ export const StaffDashboard: React.FC = () => {
             const qRequests = query(collection(db, "opportunity_requests"), where("status", "==", "new"));
             unsubRequests = onSnapshot(qRequests, (snap) => {
                 setPendingRequestsCount(snap.size);
+            }, (error) => {
+                console.error("Error cargando solicitudes de oportunidad:", error);
             });
         }
 
@@ -218,6 +229,8 @@ export const StaffDashboard: React.FC = () => {
             const qTransfers = query(collection(db, "pending_transfers"), where("status", "==", "pending_review"));
             unsubTransfers = onSnapshot(qTransfers, (snap) => {
                 setPendingTransfersCount(snap.size);
+            }, (error) => {
+                console.error("Error cargando transferencias pendientes:", error);
             });
         }
 
@@ -226,6 +239,8 @@ export const StaffDashboard: React.FC = () => {
             const qMgmt = query(collection(db, "management_leads"), where("status", "==", "new"));
             unsubMgmt = onSnapshot(qMgmt, (snap) => {
                 setPendingMgmtLeadsCount(snap.size);
+            }, (error) => {
+                console.error("Error cargando leads de gestión:", error);
             });
         }
 

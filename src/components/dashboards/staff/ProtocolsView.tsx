@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
-import { FileText, Key, Eye, EyeOff, CheckCircle, AlertTriangle, MessageSquare, Shield, Smartphone } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { FileText, Key, Eye, EyeOff, CheckCircle, AlertTriangle, MessageSquare, Shield, Smartphone, Clock, XCircle, Check } from 'lucide-react';
+import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { db } from '../../../firebase';
 
 export const ProtocolsView: React.FC<{ isVanesa?: boolean, onOpenCandidateModal?: () => void }> = ({ isVanesa = false, onOpenCandidateModal }) => {
     const [activeSection, setActiveSection] = useState<'general' | 'vanesa'>('vanesa');
@@ -7,6 +9,16 @@ export const ProtocolsView: React.FC<{ isVanesa?: boolean, onOpenCandidateModal?
     const [showCredentials, setShowCredentials] = useState(false);
     const [signatureName, setSignatureName] = useState('');
     const [signatureDNI, setSignatureDNI] = useState('');
+
+    const [recentCandidates, setRecentCandidates] = useState<any[]>([]);
+
+    useEffect(() => {
+        const q = query(collection(db, "candidate_pipeline"), orderBy("submittedAt", "desc"), limit(5));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            setRecentCandidates(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        });
+        return () => unsubscribe();
+    }, []);
 
     const whatsappMessageAyoub = encodeURIComponent("Hola Ayoub, soy Vanesa. Te recuerdo que tienes un nuevo contacto aceptado en la aplicación para coordinar visita. Por favor, contáctalo lo antes posible.");
 
@@ -121,6 +133,42 @@ export const ProtocolsView: React.FC<{ isVanesa?: boolean, onOpenCandidateModal?
                                     )}
                                     <span className="text-[10px] text-green-700 font-medium">Acceso directo habilitado</span>
                                 </div>
+                            </div>
+                        </div>
+
+                        {/* Recent Candidates Feed */}
+                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                            <h3 className="font-bold text-lg text-gray-800 mb-4 flex items-center gap-2">
+                                <Clock className="w-5 h-5 text-blue-500" /> Últimos Candidatos Enviados
+                            </h3>
+                            <div className="space-y-3">
+                                {recentCandidates.length === 0 ? (
+                                    <p className="text-sm text-gray-400 italic">No hay actividad reciente.</p>
+                                ) : (
+                                    recentCandidates.map(candidate => {
+                                        const isApproved = candidate.status === 'accepted' || candidate.status === 'approved';
+                                        const isRejected = candidate.status === 'rejected';
+                                        return (
+                                            <div key={candidate.id} className={`p-3 rounded-lg border flex items-center justify-between ${isApproved ? 'bg-green-50 border-green-200' : isRejected ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'}`}>
+                                                <div className="flex flex-col">
+                                                    <span className="font-bold text-sm text-gray-700">{candidate.candidateName}</span>
+                                                    <span className="text-xs text-gray-500">{candidate.propertyName || 'Propiedad no esp.'}</span>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    {isApproved && (
+                                                        <div className="flex items-center gap-1 text-[10px] font-bold bg-green-100 text-green-800 px-2 py-1 rounded animate-pulse">
+                                                            <AlertTriangle className="w-3 h-3" />
+                                                            AVISAR A AYOUB
+                                                        </div>
+                                                    )}
+                                                    <span className={`text-xs font-bold px-2 py-1 rounded-full ${isApproved ? 'bg-green-200 text-green-800' : isRejected ? 'bg-red-200 text-red-800' : 'bg-orange-100 text-orange-800'}`}>
+                                                        {isApproved ? 'APROBADO' : isRejected ? 'RECHAZADO' : 'PENDIENTE'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                )}
                             </div>
                         </div>
 

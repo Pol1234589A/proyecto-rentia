@@ -62,9 +62,9 @@ export const ContractManager: React.FC<any> = ({ initialMode = 'list', preSelect
                 alert(`Sincronización completada. ${result.updated} contratos actualizados desde Rentger.`);
                 await reloadContracts(); // Recargar para ver cambios
             }
-        } catch (error) {
-            console.error(error);
-            alert("Error al sincronizar con Rentger. Verifica la conexión.");
+        } catch (error: any) {
+            console.error("Sync Error:", error);
+            alert(`Error de sincronización: ${error.message || "Fallo desconocido"}`);
         } finally {
             setSyncing(false);
         }

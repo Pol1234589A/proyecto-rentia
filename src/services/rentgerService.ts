@@ -4,7 +4,7 @@ import { db } from '../firebase';
 import { collection, getDocs, query, where, updateDoc, doc, Timestamp, addDoc } from 'firebase/firestore';
 
 const RENTGER_API_KEY = process.env.NEXT_PUBLIC_RENTGER_API_KEY || "gAAAAABhSDSf3Ss-8s3vFOBF-KqVx5Xz5Mfw87YYbdwLSVO0Ijg6z7IsYVJc1RKhN7SV_7V2W--WFB2nOGvLEdmV6yJe90nQw==";
-const DIRECT_URL = "/api-rentger"; // Proxy configured in next.config.ts
+const DIRECT_URL = "/api-rentger";
 
 let authToken: string | null = null;
 let tokenExpiration: number = 0;
@@ -19,7 +19,6 @@ export const RentgerService = {
 
         try {
             console.log("Rentger: Autenticando...");
-            // IMPORTANTE: EncodeURIComponent para manejar caracteres como '==' o '/' en la key
             const encodedKey = encodeURIComponent(RENTGER_API_KEY);
             const response = await axios.get(`${DIRECT_URL}/token/${encodedKey}`);
 
@@ -28,113 +27,123 @@ export const RentgerService = {
                 if (token) {
                     authToken = token;
                     tokenExpiration = Date.now() + (55 * 60 * 1000);
-                    console.log("Rentger: Autenticado correctamente.");
                     return authToken;
                 }
             }
             return null;
         } catch (error) {
-            console.error("Rentger: Error de autenticación (Posible bloqueo CORS/403)", error);
+            console.error("Rentger: Auth Fallido", error);
             return null;
         }
     },
 
     /**
-     * Obtiene el listado de contratos desde Rentger.
+     * Obtiene todos los activos (propiedades/habitaciones).
      */
-    getContracts: async () => {
+    getAssets: async () => {
         const token = await RentgerService.authenticate();
-        if (!token) throw new Error("No se pudo obtener token de Rentger (Auth Fallido)");
+        if (!token) throw new Error("Auth required");
 
-        try {
-            const response = await axios.get(`${DIRECT_URL}/contracts`, {
-                headers: { 'X-Auth-Token': token }
-            });
-            return Array.isArray(response.data) ? response.data : response.data.data || [];
-        } catch (error) {
-            console.error("Rentger: Error obteniendo contratos", error);
-            throw error;
-        }
+        const response = await axios.get(`${DIRECT_URL}/v1/assets`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        return response.data.data || response.data || [];
     },
 
     /**
-     * Sincroniza (Actualiza e IMPORTA) contratos desde Rentger a Firestore.
-     * Incluye FALLBACK a MOCK DATA si la API falla, para permitir testing de UI.
+     * Obtiene los contratos de un activo específico.
+     */
+    getContractsByAsset: async (assetId: string | number) => {
+        const token = await RentgerService.authenticate();
+        if (!token) throw new Error("Auth required");
+
+        const response = await axios.get(`${DIRECT_URL}/v1/contracts/asset/${assetId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        return response.data.data || response.data || [];
+    },
+
+    /**
+     * Sincronización Maestra (Híbrida)
      */
     syncContractEndDates: async () => {
-        console.log("Rentger: Iniciando sincronización HÍBRIDA...");
-        let rentgerContracts: any[] = [];
+        console.log("Rentger: Sincronización iniciada...");
+        let allRemoteContracts: any[] = [];
         let usedMock = false;
 
         try {
-            // Intentar llamada REAL
-            rentgerContracts = await RentgerService.getContracts();
-            console.log(`Rentger (API): Recuperados ${rentgerContracts.length} contratos.`);
+            const assets = await RentgerService.getAssets();
+            console.log(`Rentger: Procesando ${assets.length} activos...`);
+
+            for (const asset of assets) {
+                const contracts = await RentgerService.getContractsByAsset(asset.id);
+                // Inyectar nombre del activo en los contratos para mapeo posterior
+                const mapped = contracts.map((c: any) => ({
+                    ...c,
+                    propertyName: asset.alias || asset.name,
+                    assetId: asset.id
+                }));
+                allRemoteContracts = [...allRemoteContracts, ...mapped];
+            }
         } catch (e) {
-            console.error("Rentger: La API real falló. Activando MOCK DATA para demostración.", e);
+            console.error("Rentger: API real bloqueada o fallida. Usando Mock de investigación.");
             usedMock = true;
-            // --- MOCK DATA FALLBACK ---
-            rentgerContracts = [
-                { id: 'mock_r1', tenantName: 'Danny R.', property: { name: 'Calle Jesús Quesada 12' }, room: { name: 'H3' }, price: 260, dateStart: '2025-01-01', dateEnd: '2026-06-30', status: 'active' },
-                { id: 'mock_r2', tenantName: 'Mazori Bris', property: { name: 'Av. Primero de Mayo 54' }, room: { name: 'H5 (Baño Privado)' }, price: 405, dateStart: '2024-09-01', dateEnd: '2025-06-30', status: 'active' },
-                { id: 'mock_r3', tenantName: 'Giulia Germoni', property: { name: 'Calle Rosario, 71' }, room: { name: 'H8' }, price: 330, dateStart: '2024-11-01', dateEnd: '2025-08-31', status: 'active' }
+            // Estructura MOCK basada en la investigación de Postman (v1/assets + v1/contracts)
+            allRemoteContracts = [
+                { id: 101, propertyName: 'Av. Primero de Mayo 54', roomName: 'H5', users: [{ name: 'Mazori Bris', type: 2 }], date_start: '2024-09-01', date_end: '2025-06-30', price: 405 },
+                { id: 102, propertyName: 'Calle Jesús Quesada 12', roomName: 'H3', users: [{ name: 'Danny R.', type: 2 }], date_start: '2025-01-01', date_end: '2026-06-30', price: 260 },
+                { id: 103, propertyName: 'Calle Rosario, 71', roomName: 'H8', users: [{ name: 'Giulia Germoni', type: 2 }], date_start: '2024-11-01', date_end: '2025-08-31', price: 330 }
             ];
-            // --- END MOCK ---
         }
 
-        if (rentgerContracts.length === 0) {
-            return { success: false, updated: 0, message: "No headers found." };
-        }
-
-        let updatedCount = 0;
-        let createdCount = 0;
+        let updated = 0;
+        let created = 0;
 
         const snapshot = await getDocs(collection(db, "contracts"));
-        const localContracts = snapshot.docs.map(d => ({ id: d.id, ...d.data() as any }));
+        const local = snapshot.docs.map(d => ({ id: d.id, ...d.data() as any }));
 
-        for (const rc of rentgerContracts) {
-            const tenantName = rc.tenantName || rc.tenant?.name || "Inquilino Rentger";
-            const endDate = rc.dateEnd || rc.endDate;
-            const rentAmount = rc.price || rc.rent;
-            const propertyName = rc.property?.name || rc.propertyName || "Propiedad Externa";
-            const roomId = rc.room?.id || 'unknown';
+        for (const rc of allRemoteContracts) {
+            // Extraer inquilino (type: 2 en users) o usar fallback
+            const tenant = rc.users?.find((u: any) => u.type === 2) || { name: rc.tenantName || 'Inquilino Rentger' };
+            const tenantName = tenant.name;
+            const endDate = rc.date_end || rc.endDate;
+            const startDate = rc.date_start || rc.startDate;
 
-            const existingLocal = localContracts.find(lc =>
+            const existing = local.find(lc =>
                 (lc.rentgerId && lc.rentgerId == rc.id) ||
                 (lc.tenantName?.toLowerCase() === tenantName.toLowerCase())
             );
 
-            if (existingLocal) {
-                if (endDate && existingLocal.endDate !== endDate) {
-                    await updateDoc(doc(db, "contracts", existingLocal.id), {
+            if (existing) {
+                if (endDate && existing.endDate !== endDate) {
+                    await updateDoc(doc(db, "contracts", existing.id), {
                         endDate: endDate,
                         rentgerId: rc.id,
                         lastRentgerSync: new Date()
                     });
-                    updatedCount++;
+                    updated++;
                 }
             } else {
-                const isRelevant = !endDate || new Date(endDate).getFullYear() >= 2024;
-                if (isRelevant) {
+                if (!endDate || new Date(endDate).getFullYear() >= 2024) {
                     await addDoc(collection(db, "contracts"), {
                         tenantName: tenantName,
-                        propertyName: propertyName,
-                        roomName: rc.room?.name || 'Habitación s/d',
-                        rentAmount: Number(rentAmount || 0),
-                        depositAmount: Number(rentAmount || 0),
-                        startDate: rc.dateStart || rc.startDate || new Date().toISOString().split('T')[0],
+                        propertyName: rc.propertyName || "Propiedad Rentger",
+                        roomName: rc.roomName || "S/N",
+                        rentAmount: Number(rc.price || 0),
+                        depositAmount: Number(rc.price || 0),
+                        startDate: startDate || new Date().toISOString().split('T')[0],
                         endDate: endDate || '',
                         status: endDate && new Date(endDate) < new Date() ? 'finished' : 'active',
                         rentgerId: rc.id,
                         rentgerSynced: true,
                         createdAt: new Date(),
-                        notes: usedMock ? "Simulación Rentger (API Block)" : "Importado API Rentger"
+                        notes: usedMock ? "Simulación (Activo -> Contrato)" : "Sincronizado vía API v1"
                     });
-                    createdCount++;
+                    created++;
                 }
             }
         }
 
-        return { success: true, updated: updatedCount, created: createdCount, mockUsed: usedMock };
+        return { success: true, updated, created, mockUsed: usedMock };
     }
 };

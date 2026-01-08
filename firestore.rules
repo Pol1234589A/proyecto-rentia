@@ -139,7 +139,7 @@ service cloud.firestore {
       allow read: if isStaffOrWorker() || 
                   (isOwner() && resource.data.ownerId == request.auth.uid) || 
                   (isTenant() && resource.data.tenantId == request.auth.uid);
-      allow write: if isInternal();
+      allow write: if isStaffOrWorker();
     }
 
     // 10. TAREAS (Gestión interna)

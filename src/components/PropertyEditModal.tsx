@@ -6,7 +6,7 @@ import {
     Edit, Save, X, Loader2, MapPin, Building, Bath, Layout,
     Wind, Tv, Lock, Monitor, Users, BedDouble,
     Droplets, History, Info, Sparkles, Calendar, Percent,
-    Camera, Video, Trash2, Film, Plus, Clipboard
+    Camera, Video, Trash2, Film, Plus, Clipboard, Fan, ShieldCheck
 } from 'lucide-react';
 import { storage } from '../firebase';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
@@ -14,19 +14,34 @@ import { compressImage } from '../utils/imageOptimizer';
 
 interface PropertyEditModalProps {
     property: Property;
+    initialRoomId?: string;
     onClose: () => void;
     onSave: (updatedProperty: Property) => Promise<void>;
 }
 
-export const PropertyEditModal: React.FC<PropertyEditModalProps> = ({ property, onClose, onSave }) => {
+export const PropertyEditModal: React.FC<PropertyEditModalProps> = ({ property, initialRoomId, onClose, onSave }) => {
     const [editedProperty, setEditedProperty] = useState<Property>(property);
     const [saving, setSaving] = useState(false);
-    const [activeTab, setActiveTab] = useState<'info' | 'rooms' | 'media' | 'filters'>('info');
+    const [activeTab, setActiveTab] = useState<'info' | 'rooms' | 'media' | 'filters'>(initialRoomId ? 'rooms' : 'info');
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
         setMounted(true);
         document.body.style.overflow = 'hidden';
+
+        if (initialRoomId) {
+            setTimeout(() => {
+                const element = document.getElementById(`room-edit-${initialRoomId}`);
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    element.classList.add('ring-4', 'ring-rentia-blue/30', 'border-rentia-blue');
+                    setTimeout(() => {
+                        element.classList.remove('ring-4', 'ring-rentia-blue/30');
+                    }, 3000);
+                }
+            }, 600);
+        }
+
         return () => {
             document.body.style.overflow = 'unset';
         };
@@ -35,7 +50,11 @@ export const PropertyEditModal: React.FC<PropertyEditModalProps> = ({ property, 
     const handleSave = async () => {
         setSaving(true);
         try {
-            await onSave(editedProperty);
+            const finalProperty = {
+                ...editedProperty,
+                adType: 'professional' as const
+            };
+            await onSave(finalProperty);
             onClose();
         } catch (error) {
             console.error("Error saving property:", error);
@@ -96,6 +115,48 @@ export const PropertyEditModal: React.FC<PropertyEditModalProps> = ({ property, 
         }));
     };
 
+
+
+    const removeCommonZoneImage = (imageUrl: string) => {
+        setEditedProperty(prev => ({
+            ...prev,
+            commonZonesImages: (prev.commonZonesImages || []).filter(img => img !== imageUrl)
+        }));
+    };
+
+    const addCommonZoneImage = (imageUrl: string) => {
+        setEditedProperty(prev => ({
+            ...prev,
+            commonZonesImages: [...(prev.commonZonesImages || []), imageUrl]
+        }));
+    };
+
+    const addNewRoom = () => {
+        const newRoom: Room = {
+            id: `ROOM_${Date.now()}`,
+            name: `Habitación ${editedProperty.rooms.length + 1}`,
+            price: 0,
+            status: 'available',
+            expenses: 'A repartir',
+            features: [],
+            images: [],
+            description: '',
+            availableFrom: new Date().toISOString().split('T')[0]
+        };
+        setEditedProperty(prev => ({
+            ...prev,
+            rooms: [...prev.rooms, newRoom]
+        }));
+    };
+
+    const deleteRoom = (roomId: string) => {
+        if (!window.confirm("¿Estás seguro de que deseas eliminar esta habitación? Esta acción no se puede deshacer de forma sencilla.")) return;
+        setEditedProperty(prev => ({
+            ...prev,
+            rooms: prev.rooms.filter(r => r.id !== roomId)
+        }));
+    };
+
     const handlePasteToRoom = async (e: React.ClipboardEvent, roomId: string) => {
         const items = e.clipboardData.items;
         const filesToUpload: File[] = [];
@@ -153,6 +214,7 @@ export const PropertyEditModal: React.FC<PropertyEditModalProps> = ({ property, 
         { id: 'garden', label: 'Jardín' },
         { id: 'pool', label: 'Piscina' },
         { id: 'owner_lives', label: 'Propietario Vive' },
+        { id: 'balcony', label: 'Balcón' },
     ];
 
     if (!mounted) return null;
@@ -229,16 +291,6 @@ export const PropertyEditModal: React.FC<PropertyEditModalProps> = ({ property, 
                                             className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm"
                                         />
                                     </div>
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Piso / Planta</label>
-                                        <input
-                                            type="text"
-                                            value={editedProperty.floor || ''}
-                                            onChange={e => setEditedProperty({ ...editedProperty, floor: e.target.value })}
-                                            className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm"
-                                            placeholder="Ej: 3º B"
-                                        />
-                                    </div>
                                 </div>
                             </section>
 
@@ -296,7 +348,7 @@ export const PropertyEditModal: React.FC<PropertyEditModalProps> = ({ property, 
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-bold text-gray-501 uppercase mb-1">Teléfono Admin</label>
+                                        <label className="block text-[10px] font-bold text-gray-501 uppercase mb-1">Teléfono Admin / Comunidad</label>
                                         <input
                                             type="text"
                                             value={editedProperty.communityInfo?.presidentPhone || ''}
@@ -306,6 +358,32 @@ export const PropertyEditModal: React.FC<PropertyEditModalProps> = ({ property, 
                                             })}
                                             className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-mono"
                                             placeholder="Teléfono"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-gray-501 uppercase mb-1">Nombre del Seguro</label>
+                                        <input
+                                            type="text"
+                                            value={editedProperty.communityInfo?.insuranceName || ''}
+                                            onChange={e => setEditedProperty({
+                                                ...editedProperty,
+                                                communityInfo: { ...(editedProperty.communityInfo || {}), insuranceName: e.target.value }
+                                            })}
+                                            className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm"
+                                            placeholder="Ej: Mapfre"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-gray-501 uppercase mb-1">Teléfono del Seguro</label>
+                                        <input
+                                            type="text"
+                                            value={editedProperty.communityInfo?.insurancePhone || ''}
+                                            onChange={e => setEditedProperty({
+                                                ...editedProperty,
+                                                communityInfo: { ...(editedProperty.communityInfo || {}), insurancePhone: e.target.value }
+                                            })}
+                                            className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-mono"
+                                            placeholder="Teléfono Seguro"
                                         />
                                     </div>
                                     <div className="md:col-span-2">
@@ -359,6 +437,100 @@ export const PropertyEditModal: React.FC<PropertyEditModalProps> = ({ property, 
                                     />
                                 </div>
                             </section>
+
+                            {/* ZONAS COMUNES */}
+                            <section className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm transition-all hover:shadow-md">
+                                <div className="flex justify-between items-center mb-6">
+                                    <div>
+                                        <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
+                                            <Users className="w-5 h-5 text-rentia-blue" />
+                                            Zonas Comunes (Salón, Cocina, Baños...)
+                                        </h4>
+                                        <p className="text-xs text-gray-500 mt-1">Sube aquí fotos generales de la casa que no sean de habitaciones específicas.</p>
+                                    </div>
+                                    <ImageUploader
+                                        folder={`properties/${editedProperty.id}/common`}
+                                        onUploadComplete={addCommonZoneImage}
+                                        label="Añadir Fotos Zonas Comunes"
+                                        compact
+                                    />
+                                </div>
+
+                                <div
+                                    className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 outline-none"
+                                    tabIndex={0}
+                                    onPaste={async (e) => {
+                                        const items = e.clipboardData.items;
+                                        const filesToUpload: File[] = [];
+                                        for (let i = 0; i < items.length; i++) {
+                                            if (items[i].kind === 'file') {
+                                                const file = items[i].getAsFile();
+                                                if (file && file.type.startsWith('image/')) filesToUpload.push(file);
+                                            }
+                                        }
+                                        if (filesToUpload.length > 0) {
+                                            e.preventDefault();
+                                            // Feedback visual básico (cursor)
+                                            document.body.style.cursor = 'wait';
+
+                                            for (const file of filesToUpload) {
+                                                try {
+                                                    let blobToUpload: Blob = file;
+                                                    if (file.type.startsWith('image/') && !file.type.includes('gif')) {
+                                                        try {
+                                                            blobToUpload = await compressImage(file);
+                                                        } catch (e) {
+                                                            console.warn("Fallo compresión, usando original", e);
+                                                        }
+                                                    }
+
+                                                    const isWebP = blobToUpload.type === 'image/webp';
+                                                    const ext = isWebP ? 'webp' : (file.type.split('/')[1] || 'bin');
+                                                    const finalFileName = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
+
+                                                    const formData = new FormData();
+                                                    formData.append('file', blobToUpload, finalFileName);
+
+                                                    const response = await fetch('/api/upload-hostinger', {
+                                                        method: 'POST',
+                                                        body: formData
+                                                    });
+
+                                                    if (!response.ok) throw new Error('Error subiendo imagen');
+                                                    const data = await response.json();
+
+                                                    addCommonZoneImage(data.url);
+                                                } catch (err) {
+                                                    console.error("Error upload paste:", err);
+                                                    alert("Error al subir imagen pegada. Revisa la consola.");
+                                                }
+                                            }
+                                            document.body.style.cursor = 'default';
+                                        }
+                                    }}
+                                >
+                                    {(editedProperty.commonZonesImages || []).map((img, i) => (
+                                        <div key={i} className="relative aspect-square rounded-xl overflow-hidden bg-gray-100 group border border-gray-100 ring-offset-2 hover:ring-2 hover:ring-rentia-blue/50 transition-all">
+                                            <img src={img} alt={`Common Zone ${i}`} className="w-full h-full object-cover" />
+                                            <button
+                                                onClick={() => removeCommonZoneImage(img)}
+                                                className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-all transform scale-90 group-hover:scale-100 shadow-lg"
+                                            >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                    {(!editedProperty.commonZonesImages || editedProperty.commonZonesImages.length === 0) && (
+                                        <div className="col-span-full py-8 text-center border-2 border-dashed border-gray-200 rounded-xl bg-gray-50/50 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-gray-100 transition-colors">
+                                            <Users className="w-8 h-8 text-gray-300" />
+                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">No hay fotos de zonas comunes</p>
+                                            <p className="text-[10px] text-rentia-blue font-bold mt-2">Usa el botón de arriba a la derecha para subir o pegar fotos</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </section>
+
+                            {/* Rooms Media Management */}
 
                             {/* Rooms Media Management */}
                             <div className="space-y-4">
@@ -455,18 +627,39 @@ export const PropertyEditModal: React.FC<PropertyEditModalProps> = ({ property, 
                                             <option value="ground">Bajo / Entreplanta</option>
                                         </select>
                                     </div>
-                                    <div>
+                                    <div className="md:col-span-2">
                                         <label className="block text-[10px] font-bold text-gray-500 uppercase mb-2">Tipo de Anuncio</label>
-                                        <select
-                                            value={editedProperty.adType || 'professional'}
-                                            onChange={e => setEditedProperty({ ...editedProperty, adType: e.target.value as any })}
-                                            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold cursor-pointer hover:bg-white transition-colors"
-                                        >
-                                            <option value="professional">Profesional (Rentia)</option>
-                                            <option value="particular">Particular</option>
-                                        </select>
+                                        <div className="w-full p-3 bg-blue-50 border border-blue-200 rounded-xl text-sm font-black text-rentia-blue flex items-center justify-between">
+                                            <span>PROFESIONAL (RENTIA)</span>
+                                            <ShieldCheck className="w-4 h-4" />
+                                        </div>
                                     </div>
                                 </div>
+
+                                {editedProperty.floorType === 'intermediate' && (
+                                    <div className="grid grid-cols-2 gap-4 mt-6 p-4 bg-gray-50 rounded-xl border border-gray-200 animate-in slide-in-from-top-2">
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-gray-500 uppercase mb-2">Piso / Altura</label>
+                                            <input
+                                                type="text"
+                                                value={editedProperty.floor || ''}
+                                                onChange={e => setEditedProperty({ ...editedProperty, floor: e.target.value })}
+                                                placeholder="Ej: 3º"
+                                                className="w-full p-3 bg-white border border-gray-200 rounded-lg text-sm font-bold focus:ring-2 focus:ring-rentia-blue/20 outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-gray-500 uppercase mb-2">Letra / Puerta</label>
+                                            <input
+                                                type="text"
+                                                value={editedProperty.door || ''}
+                                                onChange={e => setEditedProperty({ ...editedProperty, door: e.target.value })}
+                                                placeholder="Ej: B"
+                                                className="w-full p-3 bg-white border border-gray-200 rounded-lg text-sm font-bold focus:ring-2 focus:ring-rentia-blue/20 outline-none"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
 
                                 <div className="pt-4">
                                     <label className="block text-[10px] font-bold text-gray-500 uppercase mb-3">Características Generales</label>
@@ -485,137 +678,188 @@ export const PropertyEditModal: React.FC<PropertyEditModalProps> = ({ property, 
                             </section>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                            {editedProperty.rooms.map((room: Room, idx: number) => (
-                                <div key={room.id} className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:border-rentia-blue/30 transition-all group overflow-hidden relative text-gray-900">
-                                    <div className="absolute top-0 right-0 w-24 h-24 bg-gray-50 rounded-full -translate-y-12 translate-x-12 group-hover:bg-blue-50 transition-colors"></div>
-
-                                    <div className="flex justify-between items-start mb-4 relative z-10">
-                                        <div className="flex items-center gap-2">
-                                            <span className="w-8 h-8 bg-gray-900 text-white rounded-lg flex items-center justify-center font-black text-sm">{idx + 1}</span>
-                                            <div>
-                                                <h4 className="font-bold text-gray-900">{room.name}</h4>
-                                                <span className="text-[10px] uppercase font-black text-gray-400 tracking-tighter">Habitación</span>
-                                            </div>
-                                        </div>
-                                        <select
-                                            value={room.status}
-                                            onChange={e => updateRoom(room.id, 'status', e.target.value)}
-                                            className={`text-[10px] uppercase font-black px-3 py-1.5 rounded-full border transition-colors cursor-pointer outline-none ${room.status === 'available' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}
-                                        >
-                                            <option value="available">Disponible</option>
-                                            <option value="occupied">Ocupada</option>
-                                            <option value="reserved">Reservada</option>
-                                        </select>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4 mb-4 relative z-10">
-                                        <div>
-                                            <label className="block text-[10px] text-gray-400 uppercase font-black mb-1">Fianza / Precio (€)</label>
-                                            <div className="relative">
-                                                <input
-                                                    type="number"
-                                                    value={room.price}
-                                                    onChange={e => updateRoom(room.id, 'price', Number(e.target.value))}
-                                                    className="w-full p-2 bg-blue-50/50 border border-blue-100 rounded-lg text-sm font-black text-rentia-blue pl-6"
-                                                />
-                                                <span className="absolute left-2 top-2 text-rentia-blue/40 font-bold text-xs">€</span>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="block text-[10px] text-gray-400 uppercase font-bold mb-1">Disponibilidad</label>
-                                            <input
-                                                type="text"
-                                                value={room.availableFrom || ''}
-                                                onChange={e => updateRoom(room.id, 'availableFrom', e.target.value)}
-                                                className="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium"
-                                                placeholder="Ej: Inmediata"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-3 mb-4 relative z-10">
-                                        <div>
-                                            <label className="block text-[10px] text-gray-400 uppercase font-bold mb-1">Perfil Buscado</label>
-                                            <select
-                                                value={room.targetProfile || 'both'}
-                                                onChange={e => updateRoom(room.id, 'targetProfile', e.target.value)}
-                                                className="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold"
-                                            >
-                                                <option value="both">Hombres y Mujeres</option>
-                                                <option value="students">Estudiantes</option>
-                                                <option value="workers">Trabajadores</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="block text-[10px] text-gray-400 uppercase font-bold mb-1">Sexo (Convivencia)</label>
-                                            <select
-                                                value={room.gender || 'both'}
-                                                onChange={e => updateRoom(room.id, 'gender', e.target.value)}
-                                                className="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold"
-                                            >
-                                                <option value="both">Indiferente / Mixto</option>
-                                                <option value="male">Solo Chicos</option>
-                                                <option value="female">Solo Chicas</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="block text-[10px] text-gray-400 uppercase font-bold mb-1">Tipo de Cama</label>
-                                            <select
-                                                value={room.bedType || 'single'}
-                                                onChange={e => updateRoom(room.id, 'bedType', e.target.value)}
-                                                className="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold"
-                                            >
-                                                <option value="single">Individual</option>
-                                                <option value="double">Doble</option>
-                                                <option value="king">Premium / 2 Camas</option>
-                                                <option value="sofa">Sofá Cama</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="block text-[10px] text-gray-400 uppercase font-bold mb-1">Gestión Gastos</label>
-                                            <select
-                                                value={room.expenses || 'Gastos fijos aparte'}
-                                                onChange={e => updateRoom(room.id, 'expenses', e.target.value)}
-                                                className="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold"
-                                            >
-                                                <option value="Gastos fijos aparte">Fijos Aparte</option>
-                                                <option value="Se reparten los gastos">A Repartir</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div className="pt-3 border-t border-gray-100 flex flex-wrap gap-1.5 relative z-10">
-                                        {[
-                                            { id: 'lock', icon: <Lock className="w-3 h-3" />, label: 'Llave' },
-                                            { id: 'smart_tv', icon: <Tv className="w-3 h-3" />, label: 'TV' },
-                                            { id: 'desk', icon: <Monitor className="w-3 h-3" />, label: 'Mesa' },
-                                            { id: 'private_bath', icon: <Droplets className="w-3 h-3" />, label: 'Baño' },
-                                            { id: 'couples_allowed', icon: <Users className="w-3 h-3" />, label: 'Parejas' },
-                                            { id: 'pets_allowed', icon: <Sparkles className="w-3 h-3" />, label: 'Mascotas' },
-                                            { id: 'smoking_allowed', icon: <Info className="w-3 h-3" />, label: 'Fumar' },
-                                            { id: 'window_street', icon: <Layout className="w-3 h-3" />, label: 'Ventana' },
-                                            { id: 'online_booking', icon: <History className="w-3 h-3" />, label: 'Booking' },
-                                        ].map(feat => (
-                                            <button
-                                                key={feat.id}
-                                                onClick={() => toggleRoomFeature(room.id, feat.id)}
-                                                className={`flex items-center gap-1 px-2 py-1 rounded text-[9px] font-black uppercase tracking-tight border transition-all ${room.features?.includes(feat.id) ? 'bg-rentia-blue text-white border-transparent' : 'bg-white text-gray-400 border-gray-100 hover:border-gray-400'}`}
-                                            >
-                                                {feat.icon}
-                                                {feat.label}
-                                            </button>
-                                        ))}
-                                        <button
-                                            onClick={() => updateRoom(room.id, 'hasAirConditioning', !room.hasAirConditioning)}
-                                            className={`flex items-center gap-1 px-2 py-1 rounded text-[9px] font-black uppercase tracking-tight border transition-all ${room.hasAirConditioning ? 'bg-blue-500 text-white border-transparent' : 'bg-white text-gray-400 border-gray-100'}`}
-                                        >
-                                            <Wind className="w-3 h-3" />
-                                            A/C
-                                        </button>
-                                    </div>
+                        <div className="space-y-6">
+                            <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-gray-200 shadow-sm transition-all hover:shadow-md">
+                                <div>
+                                    <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
+                                        <Layout className="w-5 h-5 text-rentia-blue" />
+                                        Gestión de Habitaciones
+                                    </h4>
+                                    <p className="text-xs text-gray-500 mt-1">Configura el precio, estado y disponibilidad de cada unidad.</p>
                                 </div>
-                            ))}
+                                <button
+                                    onClick={addNewRoom}
+                                    className="flex items-center gap-2 bg-rentia-black text-white px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-rentia-blue transition-all shadow-lg active:scale-95 group"
+                                >
+                                    <Plus className="w-4 h-4 text-rentia-gold group-hover:rotate-90 transition-transform" />
+                                    Añadir Habitación
+                                </button>
+                            </div>
+
+                            {editedProperty.rooms.length === 0 && (
+                                <div className="py-20 text-center bg-white rounded-3xl border-2 border-dashed border-gray-200">
+                                    <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-300">
+                                        <Plus className="w-8 h-8" />
+                                    </div>
+                                    <h3 className="text-lg font-bold text-gray-900">No hay habitaciones añadidas</h3>
+                                    <p className="text-sm text-gray-500 max-w-xs mx-auto mt-1 mb-6">Esta propiedad aún no tiene habitaciones registradas. Pulsa el botón de arriba para añadir la primera.</p>
+                                    <button
+                                        onClick={addNewRoom}
+                                        className="bg-rentia-blue text-white px-8 py-3 rounded-xl font-bold text-sm shadow-xl shadow-rentia-blue/20 hover:scale-105 transition-transform"
+                                    >
+                                        Crear Primera Habitación
+                                    </button>
+                                </div>
+                            )}
+
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                {editedProperty.rooms.map((room: Room, idx: number) => (
+                                    <div key={room.id} id={`room-edit-${room.id}`} className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:border-rentia-blue/30 transition-all group overflow-hidden relative text-gray-900">
+                                        <div className="absolute top-0 right-0 w-24 h-24 bg-gray-50 rounded-full -translate-y-12 translate-x-12 group-hover:bg-blue-50 transition-colors"></div>
+
+                                        <div className="flex justify-between items-start mb-4 relative z-10">
+                                            <div className="flex items-center gap-2">
+                                                <span className="w-8 h-8 bg-gray-900 text-white rounded-lg flex items-center justify-center font-black text-sm">{idx + 1}</span>
+                                                <div>
+                                                    <h4 className="font-bold text-gray-900">{room.name}</h4>
+                                                    <span className="text-[10px] uppercase font-black text-gray-400 tracking-tighter">Habitación</span>
+                                                </div>
+                                            </div>
+                                            <select
+                                                value={room.status}
+                                                onChange={e => updateRoom(room.id, 'status', e.target.value)}
+                                                className={`text-[10px] uppercase font-black px-3 py-1.5 rounded-full border transition-colors cursor-pointer outline-none ${room.status === 'available' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}
+                                            >
+                                                <option value="available">Disponible</option>
+                                                <option value="occupied">Alquilada</option>
+                                                <option value="reserved">Reservada</option>
+                                            </select>
+                                            <button
+                                                onClick={() => deleteRoom(room.id)}
+                                                className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                                title="Eliminar Habitación"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4 mb-4 relative z-10">
+                                            <div>
+                                                <label className="block text-[10px] text-gray-400 uppercase font-black mb-1">Fianza / Precio (€)</label>
+                                                <div className="relative">
+                                                    <input
+                                                        type="number"
+                                                        value={room.price}
+                                                        onChange={e => updateRoom(room.id, 'price', Number(e.target.value))}
+                                                        className="w-full p-2 bg-blue-50/50 border border-blue-100 rounded-lg text-sm font-black text-rentia-blue pl-6"
+                                                    />
+                                                    <span className="absolute left-2 top-2 text-rentia-blue/40 font-bold text-xs">€</span>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] text-gray-400 uppercase font-bold mb-1">
+                                                    {room.status === 'occupied' ? 'Se libera el (dd/mm/aaaa)' : 'Disponibilidad'}
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={room.availableFrom || ''}
+                                                    onChange={e => updateRoom(room.id, 'availableFrom', e.target.value)}
+                                                    className="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium"
+                                                    placeholder="Ej: 01/05/2025"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-3 mb-4 relative z-10">
+                                            <div>
+                                                <label className="block text-[10px] text-gray-400 uppercase font-bold mb-1">Perfil Buscado</label>
+                                                <select
+                                                    value={room.targetProfile || 'both'}
+                                                    onChange={e => updateRoom(room.id, 'targetProfile', e.target.value)}
+                                                    className="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold"
+                                                >
+                                                    <option value="both">Estudiantes y trabajadores</option>
+                                                    <option value="students">Estudiantes</option>
+                                                    <option value="workers">Trabajadores</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] text-gray-400 uppercase font-bold mb-1">Sexo (Convivencia)</label>
+                                                <select
+                                                    value={room.gender || 'both'}
+                                                    onChange={e => updateRoom(room.id, 'gender', e.target.value)}
+                                                    className="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold"
+                                                >
+                                                    <option value="both">Indiferente / Mixto</option>
+                                                    <option value="male">Solo Chicos</option>
+                                                    <option value="female">Solo Chicas</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] text-gray-400 uppercase font-bold mb-1">Tipo de Cama</label>
+                                                <select
+                                                    value={room.bedType || 'single'}
+                                                    onChange={e => updateRoom(room.id, 'bedType', e.target.value)}
+                                                    className="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold"
+                                                >
+                                                    <option value="single">Individual</option>
+                                                    <option value="double">Doble</option>
+                                                    <option value="king">Premium / 2 Camas</option>
+                                                    <option value="sofa">Sofá Cama</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] text-gray-400 uppercase font-bold mb-1">Gestión Gastos</label>
+                                                <select
+                                                    value={room.expenses || 'Gastos fijos aparte'}
+                                                    onChange={e => updateRoom(room.id, 'expenses', e.target.value)}
+                                                    className="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold"
+                                                >
+                                                    <option value="Gastos fijos aparte">Fijos Aparte</option>
+                                                    <option value="Se reparten los gastos">A Repartir</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div className="pt-3 border-t border-gray-100 flex flex-wrap gap-1.5 relative z-10">
+                                            {[
+                                                { id: 'lock', icon: <Lock className="w-3 h-3" />, label: 'Llave' },
+                                                { id: 'smart_tv', icon: <Tv className="w-3 h-3" />, label: 'TV' },
+                                                { id: 'desk', icon: <Monitor className="w-3 h-3" />, label: 'Mesa' },
+                                                { id: 'private_bath', icon: <Droplets className="w-3 h-3" />, label: 'Baño' },
+                                                { id: 'couples_allowed', icon: <Users className="w-3 h-3" />, label: 'Parejas' },
+                                                { id: 'pets_allowed', icon: <Sparkles className="w-3 h-3" />, label: 'Mascotas' },
+                                                { id: 'smoking_allowed', icon: <Info className="w-3 h-3" />, label: 'Fumar' },
+                                                { id: 'window_street', icon: <Layout className="w-3 h-3" />, label: 'Ventana' },
+                                                { id: 'balcony', icon: <Layout className="w-3 h-3" />, label: 'Balcón' },
+                                            ].map(feat => (
+                                                <button
+                                                    key={feat.id}
+                                                    onClick={() => toggleRoomFeature(room.id, feat.id)}
+                                                    className={`flex items-center gap-1 px-2 py-1 rounded text-[9px] font-black uppercase tracking-tight border transition-all ${room.features?.includes(feat.id) ? 'bg-rentia-blue text-white border-transparent' : 'bg-white text-gray-400 border-gray-100 hover:border-gray-400'}`}
+                                                >
+                                                    {feat.icon}
+                                                    {feat.label}
+                                                </button>
+                                            ))}
+                                            <button
+                                                onClick={() => updateRoom(room.id, 'hasAirConditioning', !room.hasAirConditioning)}
+                                                className={`flex items-center gap-1 px-2 py-1 rounded text-[9px] font-black uppercase tracking-tight border transition-all ${room.hasAirConditioning ? 'bg-blue-500 text-white border-transparent' : 'bg-white text-gray-400 border-gray-100'}`}
+                                            >
+                                                <Wind className="w-3 h-3" />
+                                                A/C
+                                            </button>
+                                            <button
+                                                onClick={() => updateRoom(room.id, 'hasFan', !room.hasFan)}
+                                                className={`flex items-center gap-1 px-2 py-1 rounded text-[9px] font-black uppercase tracking-tight border transition-all ${room.hasFan ? 'bg-orange-500 text-white border-transparent' : 'bg-white text-gray-400 border-gray-100'}`}
+                                            >
+                                                <Fan className="w-3 h-3" />
+                                                Ventilador
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     )}
                 </div>
@@ -643,7 +887,7 @@ export const PropertyEditModal: React.FC<PropertyEditModalProps> = ({ property, 
                         </button>
                     </div>
                 </div>
-            </div>
+            </div >
         </div >
     );
 

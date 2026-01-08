@@ -130,7 +130,12 @@ export const ManagementSubmissionForm: React.FC = () => {
             if (!user) throw new Error("No se pudo establecer la identidad del usuario.");
 
             // 2. ENVIAR VERIFICACIÓN DE EMAIL (DOBLE OPT-IN - LSSI/RGPD)
-            await sendEmailVerification(user);
+            const actionCodeSettings = {
+                // Forzamos el dominio .com para evitar errores con .es o localhost en producción
+                url: `https://www.rentiaroom.com/auth/action`,
+                handleCodeInApp: true,
+            };
+            await sendEmailVerification(user, actionCodeSettings);
 
             // 3. Crear Perfil en Firestore (users collection)
             await setDoc(doc(db, "users", user.uid), {
@@ -206,9 +211,9 @@ export const ManagementSubmissionForm: React.FC = () => {
                     </div>
                     <h2 className="text-2xl font-bold text-gray-900 mb-2">¡Casi listo! Revisa tu email</h2>
                     <p className="text-gray-600 mb-6 leading-relaxed">
-                        Hemos enviado un **correo de verificación** a {contact.email}.
+                        Hemos enviado un <strong className="font-bold text-gray-900">correo de verificación</strong> a {contact.email}.
                         <br />
-                        Para cumplir con la normativa de protección de datos (Doble Opt-In), es necesario que hagas clic en el enlace del correo **antes de poder acceder** a tu panel completo.
+                        Para cumplir con la normativa de protección de datos (Doble Opt-In), es necesario que hagas clic en el enlace del correo <strong className="font-bold text-gray-900">antes de poder acceder</strong> a tu panel completo.
                     </p>
                     <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 flex items-start gap-3 text-left animate-pulse">
                         <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
@@ -227,7 +232,7 @@ export const ManagementSubmissionForm: React.FC = () => {
                     </div>
                     <div className="flex flex-col gap-3 justify-center">
                         <button
-                            onClick={() => window.location.hash = '#/intranet'}
+                            onClick={() => window.location.href = '/intranet'}
                             className="bg-rentia-black text-white px-6 py-3 rounded-xl font-bold hover:bg-gray-800 transition-colors shadow-lg"
                         >
                             Ir al Área de Acceso
@@ -246,7 +251,7 @@ export const ManagementSubmissionForm: React.FC = () => {
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div className="flex items-start gap-3">
                         <button
-                            onClick={() => window.location.hash = '#/'}
+                            onClick={() => window.location.href = '/'}
                             className="mt-1 p-1 text-gray-400 hover:text-rentia-blue hover:bg-blue-50 rounded-full transition-all"
                             aria-label="Volver"
                         >

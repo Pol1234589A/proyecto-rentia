@@ -13,7 +13,7 @@ import {
     Briefcase, User, FileCheck, Megaphone, Lock, FileText,
     Upload, Receipt, Download, Loader2, CreditCard, LayoutDashboard, Plus, CheckCircle, Percent, Gift, Sparkles, Clock, Calendar, AlertCircle, Save, ArrowRight, Trash2, Eye, FilePlus, Info, Printer, X, Wrench, Coins, Settings2
 } from 'lucide-react';
-
+import { OwnerOnboarding } from '../owners/OwnerOnboarding';
 type Tab = 'overview' | 'documents' | 'supplies' | 'invoices' | 'profile';
 
 // ... (REQUIRED_DOCS remains unchanged) ...
@@ -470,11 +470,7 @@ export const OwnerDashboard: React.FC = () => {
                 )}
 
                 {properties.length === 0 && pendingLeads.length === 0 && !loading && (
-                    <div className="bg-white rounded-2xl p-12 text-center border-2 border-dashed border-gray-200 mb-8">
-                        <Building2 className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                        <h3 className="text-lg font-bold text-gray-800">No tienes activos asignados</h3>
-                        <p className="text-gray-500 text-sm">Si eres propietario, contacta con administración para vincular tus activos.</p>
-                    </div>
+                    <OwnerOnboarding />
                 )}
 
                 {activeTab === 'overview' && properties.length > 0 && (

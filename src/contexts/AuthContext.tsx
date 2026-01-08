@@ -52,6 +52,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             }
 
             // SEGURIDAD: Verificar si el usuario ha completado el Doble Opt-In (DOI)
+            // BYPASS TEMPORAL: Permitimos acceso aunque no esté verificado para firmar dentro
+            /*
             if (userData.role === 'owner' && !user.emailVerified) {
               console.warn('Usuario con email pendiente de verificación. Acceso restringido.');
               // No cerramos sesión aquí para no romper el flujo de registro, 
@@ -61,6 +63,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               setLoading(false);
               return;
             }
+            */
 
             // Asignamos el rol desde el campo 'role'
             let assignedRole = userData.role as UserRole;

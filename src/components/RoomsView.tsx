@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Home, MapPin, CheckCircle, User, MessageCircle, Filter, AlertCircle, Receipt, Sparkles, Hammer, HelpCircle, Building, Gift, Users as UsersIcon, Wallet, PlayCircle, Camera, Timer, Bath, Wind, ExternalLink, GraduationCap, Briefcase, Users, ZoomIn, DoorClosed, DoorOpen, ChevronDown, Info, Layout, X, Euro, BedDouble, Bed, Tv, Lock, Sun, Monitor, Loader2, Megaphone, AlertTriangle, Ban as DoNotDisturb, Edit, Save, Plus, Trash2, Film, Calendar, Maximize } from 'lucide-react';
+import { Home, MapPin, CheckCircle, User, MessageCircle, Filter, AlertCircle, Receipt, Sparkles, Hammer, HelpCircle, Building, Gift, Users as UsersIcon, Wallet, PlayCircle, Camera, Timer, Bath, Wind, ExternalLink, GraduationCap, Briefcase, Users, ZoomIn, DoorClosed, DoorOpen, ChevronLeft, ChevronRight, ChevronDown, Info, Layout, X, Euro, BedDouble, Bed, Tv, Lock, Sun, Monitor, Loader2, Megaphone, AlertTriangle, Ban as DoNotDisturb, Edit, Save, Plus, Trash2, Film, Calendar, Maximize, ShieldCheck } from 'lucide-react';
 import { db } from '../firebase';
 import { collection, onSnapshot, doc, setDoc } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
@@ -11,6 +11,7 @@ import { ImageLightbox } from './ImageLightbox';
 import { PropertyEditModal } from './PropertyEditModal';
 import { ContactLeadModal } from './modals/ContactLeadModal';
 import { useConfig } from '../contexts/ConfigContext';
+import Head from 'next/head';
 
 // Helper Component for Loading State
 const ImageWithLoader = ({ src, alt, className, onClick }: { src: string, alt: string, className?: string, onClick?: (e: React.MouseEvent) => void }) => {
@@ -109,14 +110,21 @@ export const RoomsView: React.FC = () => {
     const [loadingProperties, setLoadingProperties] = useState(true);
 
     const { userRole } = useAuth();
-    const isAdmin = userRole === 'agency' || userRole === 'staff';
+    const isAdmin = userRole === 'agency' || userRole === 'staff' || userRole === 'manager' || userRole === 'worker';
     const [editingProperty, setEditingProperty] = useState<Property | null>(null);
+    const [editingRoomId, setEditingRoomId] = useState<string | undefined>(undefined);
 
     const handleSaveProperty = async (updatedProperty: Property) => {
         try {
             await setDoc(doc(db, "properties", updatedProperty.id), updatedProperty, { merge: true });
             // Optimistic update
-            setProperties(prev => prev.map(p => p.id === updatedProperty.id ? updatedProperty : p));
+            setProperties(prev => {
+                const exists = prev.some(p => p.id === updatedProperty.id);
+                if (exists) {
+                    return prev.map(p => p.id === updatedProperty.id ? updatedProperty : p);
+                }
+                return [updatedProperty, ...prev];
+            });
         } catch (error) {
             console.error("Error updating property:", error);
             throw error;
@@ -137,10 +145,11 @@ export const RoomsView: React.FC = () => {
     const [selectedFloorType, setSelectedFloorType] = useState('all');
     const [selectedBedType, setSelectedBedType] = useState('all');
     const [filterFeatures, setFilterFeatures] = useState<string[]>([]);
-    const [selectedAdType, setSelectedAdType] = useState('all');
+    const [sortBy, setSortBy] = useState('relevance');
 
     const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
     const [expandedProperties, setExpandedProperties] = useState<Record<string, boolean>>({});
+    const [propImageIndices, setPropImageIndices] = useState<Record<string, number>>({});
     const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
     const [lightboxImages, setLightboxImages] = useState<string[]>([]);
     const [lightboxIndex, setLightboxIndex] = useState(0);
@@ -219,112 +228,96 @@ export const RoomsView: React.FC = () => {
     }, [properties]);
 
     const filteredProperties = useMemo(() => {
-        return properties.filter(p => {
-            if (showOnlyAvailable && !p.rooms.some(r => r.status === 'available')) {
-                return false;
-            }
-            if (selectedZone && p.city !== selectedZone) {
-                return false;
-            }
-            if (selectedProfile) {
-                const matchesProfile = p.rooms.some(r => {
+        const result = properties.map(p => {
+            const matchingRooms = p.rooms.filter(r => {
+                // 1. Availability
+                if (showOnlyAvailable && r.status !== 'available') return false;
+
+                // 2. Profile
+                if (selectedProfile) {
                     const profile = r.targetProfile || 'both';
-                    if (selectedProfile === 'students') return profile === 'students' || profile === 'both';
-                    if (selectedProfile === 'workers') return profile === 'workers' || profile === 'both';
-                    return false;
-                });
-                if (!matchesProfile) return false;
-            }
-            if (filterAirCon !== 'all') {
-                const matchesAir = p.rooms.some(r => {
-                    if (filterAirCon === 'yes') return r.hasAirConditioning === true;
-                    if (filterAirCon === 'no') return !r.hasAirConditioning;
-                    return true;
-                });
-                if (!matchesAir) return false;
-            }
-            if (filterExpenses !== 'all') {
-                const matchesExpenses = p.rooms.some(r => {
-                    const exp = r.expenses.toLowerCase();
-                    if (filterExpenses === 'fixed') return exp.includes('fijos');
-                    if (filterExpenses === 'shared') return exp.includes('reparten');
-                    return true;
-                });
-                if (!matchesExpenses) return false;
-            }
-            if (minPrice !== '' || maxPrice !== '') {
-                const matchesPrice = p.rooms.some(r => {
-                    if (showOnlyAvailable && r.status !== 'available') return false;
-                    const p = r.price;
-                    if (minPrice !== '' && p < minPrice) return false;
-                    if (maxPrice !== '' && p > maxPrice) return false;
-                    return true;
-                });
-                if (!matchesPrice) return false;
-            }
-            if (filterComingSoon) {
-                const matchesComingSoon = p.rooms.some(room => {
-                    if (room.specialStatus === 'renovation') return false;
-                    if (!room.availableFrom || room.availableFrom === 'Consultar' || room.availableFrom === 'Inmediata') return false;
+                    const matches = selectedProfile === 'students' ? (profile === 'students' || profile === 'both') : (profile === 'workers' || profile === 'both');
+                    if (!matches) return false;
+                }
+
+                // 3. Price
+                if (minPrice !== '' || maxPrice !== '') {
+                    const isAvailable = r.status === 'available';
+                    const isComingSoon = r.availableFrom && r.availableFrom !== 'Consultar' && r.availableFrom !== 'Inmediata';
+                    if (!isAvailable && !isComingSoon) return false;
+                    if (minPrice !== '' && r.price < minPrice) return false;
+                    if (maxPrice !== '' && r.price > maxPrice) return false;
+                }
+
+                // 4. Coming Soon (Manual Filter)
+                if (filterComingSoon) {
+                    if (r.specialStatus === 'renovation') return false;
+                    if (!r.availableFrom || r.availableFrom === 'Consultar' || r.availableFrom === 'Inmediata') return false;
                     try {
-                        const [day, month, year] = room.availableFrom.split('/').map(Number);
+                        const [day, month, year] = r.availableFrom.split('/').map(Number);
                         const exitDate = new Date(year, month - 1, day);
                         const today = new Date();
                         exitDate.setHours(23, 59, 59);
                         today.setHours(0, 0, 0);
                         const diffTime = exitDate.getTime() - today.getTime();
                         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                        return diffDays > 0;
+                        if (diffDays <= 0) return false;
                     } catch (e) { return false; }
-                });
-                if (!matchesComingSoon) return false;
-            }
+                }
 
-            // --- ADVANCED FILTERS LOGIC ---
-
-            // 1. Property Level Filters
-            if (selectedFloorType !== 'all') {
-                if (p.floorType !== selectedFloorType) return false;
-            }
-            if (selectedAdType !== 'all') {
-                if (p.adType !== selectedAdType) return false;
-            }
-
-            // 2. Room Level Filters (Gender, Bed)
-            if (selectedGender !== 'all') {
-                // If filtering by gender, at least one available room must match (or be 'both')
-                const matches = p.rooms.some(r => {
+                // 5. Gender
+                if (selectedGender !== 'all') {
                     const g = r.gender || 'both';
-                    return g === 'both' || g === selectedGender;
-                });
-                if (!matches) return false;
-            }
+                    if (g !== 'both' && g !== selectedGender) return false;
+                }
 
-            if (selectedBedType !== 'all') {
-                const matches = p.rooms.some(r => r.bedType === selectedBedType);
-                if (!matches) return false;
-            }
+                // 6. Bed Type
+                if (selectedBedType !== 'all' && r.bedType !== selectedBedType) return false;
 
-            // 3. Feature Filters (Mixed Property/Room)
-            if (filterFeatures.length > 0) {
-                // Must match ALL selected features
-                const matchesAllFeatures = filterFeatures.every(feature => {
-                    // Check Property Features
-                    const matchesProp = p.features?.includes(feature);
-                    if (matchesProp) return true;
+                // 7. Air Conditioning
+                if (filterAirCon === 'yes' && !r.hasAirConditioning) return false;
+                if (filterAirCon === 'no' && r.hasAirConditioning) return false;
 
-                    // Check if ANY room has the feature
-                    const matchesRoom = p.rooms.some(r => r.features?.includes(feature));
-                    if (matchesRoom) return true;
+                // 8. Expenses
+                if (filterExpenses !== 'all') {
+                    const exp = r.expenses.toLowerCase();
+                    if (filterExpenses === 'fixed' && !exp.includes('fijos')) return false;
+                    if (filterExpenses === 'shared' && !exp.includes('reparten')) return false;
+                }
 
-                    return false;
-                });
-                if (!matchesAllFeatures) return false;
-            }
+                // 9. Room Features
+                if (filterFeatures.length > 0) {
+                    const roomPropFeatures = [...(p.features || []), ...(r.features || [])];
+                    if (!filterFeatures.every(f => roomPropFeatures.includes(f))) return false;
+                }
 
-            return true;
+                return true;
+            });
+
+            return { property: p, matchingRooms };
+        }).filter(item => {
+            // Property level filters
+            if (selectedZone && item.property.city !== selectedZone) return false;
+            if (selectedFloorType !== 'all' && item.property.floorType !== selectedFloorType) return false;
+
+            // Must have at least one matching room
+            return item.matchingRooms.length > 0;
         });
-    }, [properties, showOnlyAvailable, selectedZone, selectedProfile, filterAirCon, filterExpenses, filterComingSoon, minPrice, maxPrice, selectedGender, selectedFloorType, selectedBedType, filterFeatures, selectedAdType]);
+
+        // --- SORTING LOGIC ---
+        if (sortBy === 'price-asc' || sortBy === 'price-desc') {
+            result.sort((a, b) => {
+                const getCheapestPrice = (rooms: Room[]) => {
+                    const prices = rooms.map(r => r.price);
+                    return prices.length > 0 ? Math.min(...prices) : Infinity;
+                };
+                const priceA = getCheapestPrice(a.matchingRooms);
+                const priceB = getCheapestPrice(b.matchingRooms);
+                return sortBy === 'price-asc' ? priceA - priceB : priceB - priceA;
+            });
+        }
+        return result;
+    }, [properties, showOnlyAvailable, selectedZone, selectedProfile, filterAirCon, filterExpenses, filterComingSoon, minPrice, maxPrice, selectedGender, selectedFloorType, selectedBedType, filterFeatures, sortBy]);
 
     const activeFiltersCount = useMemo(() => {
         let count = 0;
@@ -339,10 +332,9 @@ export const RoomsView: React.FC = () => {
         if (selectedGender !== 'all') count++;
         if (selectedFloorType !== 'all') count++;
         if (selectedBedType !== 'all') count++;
-        if (selectedAdType !== 'all') count++;
         count += filterFeatures.length;
         return count;
-    }, [selectedZone, selectedProfile, filterAirCon, filterExpenses, showOnlyAvailable, filterComingSoon, minPrice, maxPrice, selectedGender, selectedFloorType, selectedBedType, filterFeatures, selectedAdType]);
+    }, [selectedZone, selectedProfile, filterAirCon, filterExpenses, showOnlyAvailable, filterComingSoon, minPrice, maxPrice, selectedGender, selectedFloorType, selectedBedType, filterFeatures]);
 
     const clearFilters = () => {
         setSelectedZone('');
@@ -357,12 +349,20 @@ export const RoomsView: React.FC = () => {
         setSelectedFloorType('all');
         setSelectedBedType('all');
         setFilterFeatures([]);
-        setSelectedAdType('all');
     };
 
     const toggleFeature = (feature: string) => {
-        setFilterFeatures(prev => prev.includes(feature) ? prev.filter(f => f !== feature) : [...prev, feature]);
+        setFilterFeatures(prev =>
+            prev.includes(feature)
+                ? prev.filter(f => f !== feature)
+                : [...prev, feature]
+        );
     };
+
+    const selectedPropertyMatch = useMemo(() => {
+        if (!selectedProperty) return null;
+        return filteredProperties.find(item => item.property.id === selectedProperty.id);
+    }, [selectedProperty, filteredProperties]);
 
     const getRoomStatusContainerStyle = (room: Room) => {
         if (room.specialStatus === 'renovation') {
@@ -466,7 +466,11 @@ export const RoomsView: React.FC = () => {
             {editingProperty && (
                 <PropertyEditModal
                     property={editingProperty}
-                    onClose={() => setEditingProperty(null)}
+                    initialRoomId={editingRoomId}
+                    onClose={() => {
+                        setEditingProperty(null);
+                        setEditingRoomId(undefined);
+                    }}
                     onSave={handleSaveProperty}
                 />
             )}
@@ -490,7 +494,7 @@ export const RoomsView: React.FC = () => {
                             <span>{t('rooms.hero.badge')}</span>
                         </div>
                         <h1 className="text-3xl md:text-6xl font-bold font-display mb-6 tracking-tight drop-shadow-2xl text-white leading-tight">
-                            {t('rooms.hero.title')}
+                            Alquiler de <span className="text-rentia-gold text-white/90">Habitaciones</span> en Murcia
                         </h1>
                         <p className="text-lg md:text-xl text-gray-300 font-light max-w-2xl mx-auto mb-8 leading-relaxed">
                             {t('rooms.hero.subtitle')}
@@ -670,32 +674,18 @@ export const RoomsView: React.FC = () => {
                                     </select>
                                 </div>
 
-                                {/* 5. Profile & Ad Type */}
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Perfil</label>
-                                        <select
-                                            value={selectedProfile}
-                                            onChange={(e) => setSelectedProfile(e.target.value)}
-                                            className="w-full px-2 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs"
-                                        >
-                                            <option value="">Todos</option>
-                                            <option value="students">Estudiantes</option>
-                                            <option value="workers">Trabajadores</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Anuncio</label>
-                                        <select
-                                            value={selectedAdType}
-                                            onChange={(e) => setSelectedAdType(e.target.value)}
-                                            className="w-full px-2 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs"
-                                        >
-                                            <option value="all">Todos</option>
-                                            <option value="professional">Profesional</option>
-                                            <option value="particular">Particular</option>
-                                        </select>
-                                    </div>
+                                {/* 5. Profile */}
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Perfil</label>
+                                    <select
+                                        value={selectedProfile}
+                                        onChange={(e) => setSelectedProfile(e.target.value)}
+                                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-rentia-blue/20 focus:border-rentia-blue outline-none transition-all"
+                                    >
+                                        <option value="">Todos</option>
+                                        <option value="students">Estudiantes</option>
+                                        <option value="workers">Trabajadores</option>
+                                    </select>
                                 </div>
 
                                 {/* 6. Bed Type */}
@@ -731,9 +721,9 @@ export const RoomsView: React.FC = () => {
                                             { id: 'private_bath', label: 'Baño Privado' },
                                             { id: 'hasAirConditioning', label: 'Aire Acondicionado' }, // Mapping 'hasAirConditioning' room field logic effectively
                                             { id: 'window_street', label: 'Ventana a la calle' },
-                                            { id: 'online_booking', label: 'Reserva Online' },
                                             { id: 'smart_tv', label: 'TV en habitación' },
                                             { id: 'lock', label: 'Llave en habitación' },
+                                            { id: 'balcony', label: 'Con Balcón' },
                                         ].map(feat => {
                                             // Special handling for old AirCon filter if needed, or just map it to new general filterFeatures
                                             // In 'filteredProperties', we check p.rooms.some(r => r.features.includes(feature)).
@@ -792,7 +782,8 @@ export const RoomsView: React.FC = () => {
                                             { id: 'accessible', label: 'Acesible' },
                                             { id: 'garden', label: 'Jardín' },
                                             { id: 'pool', label: 'Piscina' },
-                                            { id: 'owner_lives', label: 'Propietario en casa' },
+                                            { id: 'owner_lives', label: 'Propietario Vive' },
+                                            { id: 'balcony', label: 'Balcón' },
                                         ].map(feat => {
                                             const isActive = filterFeatures.includes(feat.id);
                                             return (
@@ -846,16 +837,39 @@ export const RoomsView: React.FC = () => {
 
                             {/* Top Header & Sort (Desktop) */}
                             <div className="hidden md:flex justify-between items-center mb-6">
-                                <h2 className="text-2xl font-bold text-gray-800">
-                                    {filteredProperties.length} Habitaciones en alquiler
+                                <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-4">
+                                    {filteredProperties.reduce((acc, item) => acc + item.matchingRooms.length, 0)} Habitaciones en alquiler
+                                    {isAdmin && (
+                                        <button
+                                            onClick={() => setEditingProperty({
+                                                id: `prop_${Date.now()}`,
+                                                address: '',
+                                                city: '',
+                                                image: '',
+                                                googleMapsLink: '',
+                                                rooms: [],
+                                                commonZonesImages: [],
+                                                features: [],
+                                                floorType: 'intermediate',
+                                                adType: 'professional',
+                                                description: ''
+                                            })}
+                                            className="bg-rentia-blue text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg hover:bg-black transition-all flex items-center gap-2"
+                                        >
+                                            <Plus className="w-4 h-4" /> Nueva Propiedad
+                                        </button>
+                                    )}
                                 </h2>
-                                {/* Sorting Mockup */}
                                 <div className="flex items-center gap-2 text-sm text-gray-500">
                                     <span>Ordenar:</span>
-                                    <select className="bg-transparent font-bold text-gray-800 cursor-pointer outline-none">
-                                        <option>Relevancia</option>
-                                        <option>Precio: menor a mayor</option>
-                                        <option>Precio: mayor a menor</option>
+                                    <select
+                                        value={sortBy}
+                                        onChange={(e) => setSortBy(e.target.value)}
+                                        className="bg-transparent font-bold text-gray-800 cursor-pointer outline-none"
+                                    >
+                                        <option value="relevance">Relevancia</option>
+                                        <option value="price-asc">Precio: menor a mayor</option>
+                                        <option value="price-desc">Precio: mayor a menor</option>
                                     </select>
                                 </div>
                             </div >
@@ -915,6 +929,16 @@ export const RoomsView: React.FC = () => {
                                             </select>
                                         </div>
 
+                                        <label className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+                                            <input
+                                                type="checkbox"
+                                                checked={filterFeatures.includes('balcony')}
+                                                onChange={() => toggleFeature('balcony')}
+                                                className="rounded text-rentia-blue"
+                                            />
+                                            <span className="text-sm text-gray-700">Con Balcón</span>
+                                        </label>
+
                                         {activeFiltersCount > 0 && (
                                             <button onClick={clearFilters} className="w-full py-2 bg-red-50 text-red-600 rounded-lg text-sm font-bold">Limpiar Filtros</button>
                                         )}
@@ -943,20 +967,46 @@ export const RoomsView: React.FC = () => {
                                         </button>
                                     </div>
                                 ) : (
-                                    filteredProperties.map(property => {
-                                        const availableCount = property.rooms.filter(r => r.status === 'available').length;
+                                    filteredProperties.map(({ property, matchingRooms }) => {
+                                        const availableCount = property.rooms.filter((r: Room) => r.status === 'available').length;
                                         const totalRooms = property.rooms.length;
                                         const isExpanded = expandedProperties[property.id] || false;
-                                        const hasNew = property.rooms.some(r => r.specialStatus === 'new');
-                                        const hasRenovation = property.rooms.some(r => r.specialStatus === 'renovation');
+                                        const hasNew = property.rooms.some((r: Room) => r.specialStatus === 'new');
+                                        const hasRenovation = property.rooms.some((r: Room) => r.specialStatus === 'renovation');
                                         const propertyProfile = getPropertyProfile(property.rooms);
                                         const profileBadge = getProfileBadge(propertyProfile);
 
-                                        // Calculate min price
-                                        const availablePrices = property.rooms
-                                            .filter(r => r.status === 'available' && typeof r.price === 'number' && r.price > 0)
-                                            .map(r => r.price);
-                                        const minPrice = availablePrices.length > 0 ? Math.min(...availablePrices) : 0;
+                                        // Calculate min price based on MATCHING rooms
+                                        const matchingPrices = matchingRooms
+                                            .filter((r: Room) => typeof r.price === 'number' && r.price > 0)
+                                            .map((r: Room) => r.price);
+                                        const minPrice = matchingPrices.length > 0 ? Math.min(...matchingPrices) : 0;
+
+                                        // Collect all images for carousel
+                                        const allImages = [
+                                            ...(property.image ? [property.image] : []),
+                                            ...(property.commonZonesImages || []),
+                                            ...property.rooms.flatMap(r => r.images || [])
+                                        ].filter((img, index, self) => self.indexOf(img) === index);
+
+                                        const currentImageIndex = propImageIndices[property.id] || 0;
+                                        const currentImage = allImages.length > 0 ? allImages[currentImageIndex] : property.image;
+
+                                        const nextImage = (e: React.MouseEvent) => {
+                                            e.stopPropagation();
+                                            setPropImageIndices(prev => ({
+                                                ...prev,
+                                                [property.id]: (currentImageIndex + 1) % allImages.length
+                                            }));
+                                        };
+
+                                        const prevImage = (e: React.MouseEvent) => {
+                                            e.stopPropagation();
+                                            setPropImageIndices(prev => ({
+                                                ...prev,
+                                                [property.id]: (currentImageIndex - 1 + allImages.length) % allImages.length
+                                            }));
+                                        };
 
                                         return (
                                             <div key={property.id} className={`bg-white rounded-sm overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-xl border border-gray-200 transition-all duration-300 group ${isExpanded ? 'col-span-2 ring-1 ring-rentia-blue/20 z-10' : 'col-span-1'}`}>
@@ -983,9 +1033,9 @@ export const RoomsView: React.FC = () => {
                                                     <div
                                                         className={`w-full md:w-80 relative flex-shrink-0 bg-gray-100 overflow-hidden ${isExpanded ? 'h-48 md:h-auto' : 'aspect-[4/3] md:h-auto md:aspect-auto md:min-h-[16rem]'}`}
                                                     >
-                                                        {property.image ? (
+                                                        {currentImage ? (
                                                             <ImageWithLoader
-                                                                src={property.image}
+                                                                src={currentImage}
                                                                 alt={`Habitación en ${property.address}`}
                                                                 className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
                                                             />
@@ -993,6 +1043,28 @@ export const RoomsView: React.FC = () => {
                                                             <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-300 p-4 bg-gray-50">
                                                                 <Camera className="w-8 h-8 opacity-50" />
                                                             </div>
+                                                        )}
+
+                                                        {/* Carousel Arrows */}
+                                                        {allImages.length > 1 && (
+                                                            <>
+                                                                <button
+                                                                    onClick={prevImage}
+                                                                    className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-black/30 hover:bg-black/60 text-white p-1.5 rounded-full backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100"
+                                                                >
+                                                                    <ChevronLeft className="w-5 h-5" />
+                                                                </button>
+                                                                <button
+                                                                    onClick={nextImage}
+                                                                    className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-black/30 hover:bg-black/60 text-white p-1.5 rounded-full backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100"
+                                                                >
+                                                                    <ChevronRight className="w-5 h-5" />
+                                                                </button>
+                                                                {/* Image Counter */}
+                                                                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-20 bg-black/40 backdrop-blur-md text-[10px] text-white px-2 py-0.5 rounded-full font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                    {currentImageIndex + 1} / {allImages.length}
+                                                                </div>
+                                                            </>
                                                         )}
 
                                                         {/* Gradients & Overlays */}
@@ -1113,6 +1185,10 @@ export const RoomsView: React.FC = () => {
                                                                             <span className="font-black text-xl md:text-3xl text-rentia-blue tracking-tight">{minPrice}€</span>
                                                                             <span className="text-[10px] md:text-sm text-gray-400 font-medium">/mes</span>
                                                                         </div>
+                                                                        {(matchingRooms.some(r => r.expenses.toLowerCase().includes('reparten')) ||
+                                                                            matchingRooms.some(r => r.expenses.toLowerCase().includes('fijos'))) && (
+                                                                                <span className="text-[10px] font-black text-rentia-blue uppercase tracking-tighter mt-1">+ Gastos aparte</span>
+                                                                            )}
                                                                     </div>
                                                                 ) : (
                                                                     <div className="flex items-center gap-1.5 text-gray-400">
@@ -1145,9 +1221,8 @@ export const RoomsView: React.FC = () => {
                                                 <div className={`transition-all duration-500 ease-in-out border-t border-gray-100 bg-gray-50/30 ${isExpanded ? 'max-h-[8000px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
                                                     <div className="p-4 md:p-8 space-y-8">
 
-                                                        {/* Property Highlights & Trust Bar */}
-                                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                            <div className="md:col-span-2 grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                                            <div className="md:col-span-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
                                                                 {property.bathrooms && (
                                                                     <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex items-center gap-3">
                                                                         <div className="bg-blue-50 p-2 rounded-lg"><Bath className="w-4 h-4 text-blue-600" /></div>
@@ -1162,7 +1237,7 @@ export const RoomsView: React.FC = () => {
                                                                         <div className="bg-emerald-50 p-2 rounded-lg"><Sparkles className="w-4 h-4 text-emerald-600" /></div>
                                                                         <div>
                                                                             <p className="text-[10px] uppercase font-bold text-gray-400">Limpieza</p>
-                                                                            <p className="text-xs font-bold text-gray-700">Seminal Inc.</p>
+                                                                            <p className="text-xs font-bold text-gray-700">Semanal Inc.</p>
                                                                         </div>
                                                                     </div>
                                                                 )}
@@ -1175,19 +1250,50 @@ export const RoomsView: React.FC = () => {
                                                                         </div>
                                                                     </div>
                                                                 )}
+                                                                <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex items-center gap-3">
+                                                                    <div className="bg-amber-50 p-2 rounded-lg"><MapPin className="w-4 h-4 text-amber-600" /></div>
+                                                                    <div>
+                                                                        <p className="text-[10px] uppercase font-bold text-gray-400">Zona</p>
+                                                                        <p className="text-xs font-bold text-gray-700">{property.city}</p>
+                                                                    </div>
+                                                                </div>
                                                             </div>
+
                                                             <div className="bg-gradient-to-br from-rentia-blue to-blue-800 p-4 rounded-xl text-white shadow-lg flex flex-col justify-center">
                                                                 <div className="flex items-center gap-2 mb-1">
                                                                     <CheckCircle className="w-4 h-4 text-blue-200" />
-                                                                    <span className="text-xs font-black uppercase tracking-wider">Garantía Rentia</span>
+                                                                    <span className="text-xs font-black uppercase tracking-wider">Acompañamiento Rentia</span>
                                                                 </div>
-                                                                <p className="text-[10px] text-blue-100 leading-tight">Habitaciones verificadas, contratos legales y soporte 24/7 para incidencias.</p>
+                                                                <p className="text-[10px] text-blue-100 leading-tight italic">Resolución de dudas y soporte durante toda tu estancia.</p>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Map Section */}
+                                                        <div className="bg-white p-2 rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                                                            <div className="flex items-center gap-3 mb-2 px-3 py-1">
+                                                                <div className="bg-red-50 p-1.5 rounded-lg"><MapPin className="w-4 h-4 text-red-500" /></div>
+                                                                <div>
+                                                                    <h4 className="text-xs font-black uppercase tracking-widest text-gray-700">Ubicación Aproximada</h4>
+                                                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">{property.address.split(',')[0].replace(/\d+$/, '').trim()}, {property.city}</p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="relative w-full h-48 md:h-64 rounded-xl overflow-hidden bg-gray-100 grayscale-[0.3] hover:grayscale-0 transition-all duration-700">
+                                                                <iframe
+                                                                    width="100%"
+                                                                    height="100%"
+                                                                    style={{ border: 0 }}
+                                                                    loading="lazy"
+                                                                    allowFullScreen
+                                                                    src={`https://www.google.com/maps?q=${encodeURIComponent(property.address.split(',')[0].replace(/\d+$/, '').trim() + ', ' + property.city)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                                                                ></iframe>
+                                                                {/* Overlay to prevent accidental scrolling while scrolling page */}
+                                                                <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/20 via-transparent to-transparent"></div>
                                                             </div>
                                                         </div>
 
                                                         <div className="grid grid-cols-1 gap-4">
 
-                                                            {property.rooms.map((room, idx) => {
+                                                            {matchingRooms.map((room, idx) => {
                                                                 const statusInfo = getStatusLabel(room);
                                                                 const isAvailable = room.status === 'available';
                                                                 const displayName = room.name.replace(/^H(\d+)$/i, 'Habitación $1');
@@ -1352,16 +1458,34 @@ export const RoomsView: React.FC = () => {
 
                                                                                 {/* Desktop Status & Price Block */}
                                                                                 <div className="hidden md:flex flex-col items-end gap-1 text-right">
+                                                                                    {isAdmin && (
+                                                                                        <button
+                                                                                            onClick={(e) => {
+                                                                                                e.stopPropagation();
+                                                                                                setEditingRoomId(room.id);
+                                                                                                setEditingProperty(property);
+                                                                                            }}
+                                                                                            className="mb-2 p-1.5 bg-gray-50 text-gray-400 hover:text-rentia-blue hover:bg-blue-50 rounded-lg border border-gray-100 transition-all flex items-center gap-1 text-[10px] font-bold uppercase"
+                                                                                        >
+                                                                                            <Edit className="w-3 h-3" /> Editar Hab
+                                                                                        </button>
+                                                                                    )}
                                                                                     <div className={`flex items-center gap-1.5 text-xs font-black uppercase tracking-wide px-3 py-1 rounded-full border shadow-sm ${isAvailable
                                                                                         ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
                                                                                         : 'bg-gray-50 text-gray-500 border-gray-100 opacity-80'
                                                                                         }`}>
                                                                                         {statusInfo.icon} {statusInfo.text}
                                                                                     </div>
-                                                                                    <div className="mt-2">
+                                                                                    <div className="mt-2 text-right">
                                                                                         {room.price > 0 ? (
-                                                                                            <div className="flex items-baseline gap-1 justify-end">
-                                                                                                <span className="text-2xl font-bold text-gray-900">{room.price}€</span>
+                                                                                            <div className="flex flex-col items-end">
+                                                                                                <div className="flex items-baseline gap-1">
+                                                                                                    <span className="text-2xl font-bold text-gray-900 leading-none">{room.price}€</span>
+                                                                                                    <span className="text-[10px] font-black text-gray-400 uppercase">/ Mes</span>
+                                                                                                </div>
+                                                                                                {(room.expenses.toLowerCase().includes('reparten') || room.expenses.toLowerCase().includes('fijos')) && (
+                                                                                                    <span className="text-[9px] font-black text-rentia-blue uppercase tracking-tighter mt-0.5">+ Gastos aparte</span>
+                                                                                                )}
                                                                                             </div>
                                                                                         ) : (
                                                                                             <span className="text-sm font-bold text-gray-400">Consultar</span>
@@ -1374,8 +1498,14 @@ export const RoomsView: React.FC = () => {
                                                                         {/* Mobile Price & Action Bar */}
                                                                         <div className="flex items-center gap-4 w-full md:w-auto mt-2 md:mt-0 pt-4 md:pt-0 border-t md:border-t-0 border-gray-100 md:block">
                                                                             <div className="md:hidden flex-1">
-                                                                                <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-0.5">Precio</p>
-                                                                                <p className="text-xl font-black text-rentia-black">{room.price > 0 ? `${room.price}€` : 'Consultar'}</p>
+                                                                                <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-0.5">Alquiler</p>
+                                                                                <div className="flex items-baseline gap-1">
+                                                                                    <p className="text-xl font-black text-rentia-black">{room.price > 0 ? `${room.price}€` : 'Consultar'}</p>
+                                                                                    <span className="text-[10px] font-bold text-gray-400">/mes</span>
+                                                                                </div>
+                                                                                {room.price > 0 && (room.expenses.toLowerCase().includes('reparten') || room.expenses.toLowerCase().includes('fijos')) && (
+                                                                                    <p className="text-[9px] font-black text-rentia-blue uppercase">+ Gastos aparte</p>
+                                                                                )}
                                                                             </div>
 
                                                                             <div className="flex-1 md:flex-none">
@@ -1407,9 +1537,9 @@ export const RoomsView: React.FC = () => {
                                                                                         <div className="w-full">
                                                                                             <button
                                                                                                 onClick={() => openContactModal(room.name, selectedProperty?.address || property.address, property.id, room.id)}
-                                                                                                className="w-full bg-[#25D366] hover:bg-[#20ba5c] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm hover:shadow-md flex items-center justify-center gap-1.5 transition-all active:scale-95 whitespace-nowrap"
+                                                                                                className="w-full bg-rentia-black hover:bg-rentia-blue text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm hover:shadow-md flex items-center justify-center gap-1.5 transition-all active:scale-95 whitespace-nowrap"
                                                                                             >
-                                                                                                <MessageCircle className="w-3.5 h-3.5" /> Contactar / WhatsApp
+                                                                                                <MessageCircle className="w-3.5 h-3.5" /> Solicitar información
                                                                                             </button>
                                                                                         </div>
                                                                                     </div>
@@ -1572,7 +1702,7 @@ export const RoomsView: React.FC = () => {
                                     {/* Room List */}
                                     <div className="space-y-4">
                                         <h4 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Habitaciones Disponibles</h4>
-                                        {selectedProperty.rooms.map((room) => {
+                                        {(selectedPropertyMatch?.matchingRooms || selectedProperty.rooms).map((room) => {
                                             const isAvailable = room.status === 'available';
                                             const displayName = room.name.replace(/^H(\d+)$/i, 'Habitación $1');
 
@@ -1669,10 +1799,15 @@ export const RoomsView: React.FC = () => {
                                                                 {isAvailable ? (
                                                                     <div className="flex flex-col items-end">
                                                                         <span className="bg-emerald-100 text-emerald-700 text-[10px] font-black uppercase px-2 py-0.5 rounded mb-1">Libre</span>
-                                                                        <span className="font-black text-xl text-rentia-blue">{room.price}€</span>
+                                                                        <div className="flex items-baseline gap-1">
+                                                                            <span className="font-black text-xl text-rentia-blue leading-none">{room.price}€</span>
+                                                                            <span className="text-[10px] font-bold text-gray-400">/mes</span>
+                                                                        </div>
+                                                                        {(room.expenses.toLowerCase().includes('reparten') || room.expenses.toLowerCase().includes('fijos')) && (
+                                                                            <span className="text-[9px] font-black text-rentia-blue uppercase tracking-tighter">+ Gastos aparte</span>
+                                                                        )}
                                                                     </div>
-                                                                ) : (
-                                                                    <span className="bg-gray-100 text-gray-500 text-[10px] font-bold uppercase px-2 py-1 rounded">Alquilada</span>
+                                                                ) : (<span className="bg-gray-100 text-gray-500 text-[10px] font-bold uppercase px-2 py-1 rounded">Alquilada</span>
                                                                 )}
                                                             </div>
                                                         </div>
@@ -1704,9 +1839,9 @@ export const RoomsView: React.FC = () => {
                                                                 <div className="grid grid-cols-1 gap-2">
                                                                     <button
                                                                         onClick={() => openContactModal(room.name, selectedProperty.address, selectedProperty.id, room.id)}
-                                                                        className="flex items-center justify-center gap-2 bg-[#25D366] text-white py-3 rounded-xl font-bold text-xs hover:bg-[#20ba5c] transition-colors shadow-sm active:scale-95 w-full"
+                                                                        className="flex items-center justify-center gap-2 bg-rentia-black text-white py-3 rounded-xl font-bold text-xs hover:bg-rentia-blue transition-colors shadow-sm active:scale-95 w-full"
                                                                     >
-                                                                        <MessageCircle className="w-4 h-4" /> Contactar / WhatsApp
+                                                                        <MessageCircle className="w-4 h-4" /> Solicitar información
                                                                     </button>
                                                                 </div>
                                                             </div>
@@ -1729,6 +1864,68 @@ export const RoomsView: React.FC = () => {
                                             Al contactar aceptas nuestra <strong>cláusula de no elusión</strong>.
                                             Toda gestión y pago debe realizarse a través de la plataforma Rentia.
                                         </p>
+                                    </div>
+
+                                    {/* SEO Content Block (Authority content for AI & Search) */}
+                                    <div className="mt-20 border-t border-gray-100 pt-16 pb-12 text-gray-600 space-y-8 max-w-4xl mx-auto">
+
+                                        {/* Popular Searches / internal linking for SEO */}
+                                        <div className="text-center mb-12">
+                                            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Búsquedas Populares en Murcia</h3>
+                                            <div className="flex flex-wrap gap-2 justify-center">
+                                                {['Vistabella', 'San Andrés', 'Centro', 'Espinardo', 'La Merced', 'San Antón'].map(zone => (
+                                                    <button
+                                                        key={zone}
+                                                        onClick={() => {
+                                                            setSelectedZone(zone);
+                                                            window.scrollTo({ top: 600, behavior: 'smooth' });
+                                                        }}
+                                                        className="px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-medium hover:border-rentia-blue hover:text-rentia-blue transition-all shadow-sm"
+                                                    >
+                                                        Habitaciones en {zone}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 text-left">
+                                            <div>
+                                                <h2 className="text-2xl font-bold text-gray-800 mb-4">¿Por qué alquilar habitaciones en Murcia con RentiaRoom?</h2>
+                                                <p className="text-sm leading-relaxed mb-4">
+                                                    Murcia se ha convertido en uno de los principales destinos para estudiantes y jóvenes profesionales en España. En <strong>RentiaRoom</strong> entendemos que buscar un piso compartido puede ser una tarea estresante, por eso ofrecemos una gestión integral que garantiza transparencia y seguridad.
+                                                </p>
+                                                <p className="text-sm leading-relaxed">
+                                                    Nuestras viviendas están estratégicamente situadas cerca de los puntos clave de la ciudad: la Universidad de Murcia (UMU), la UCAM en Guadalupe y las principales zonas de ocio y servicios del centro. Alquilar una habitación en Murcia nunca ha sido tan sencillo y profesional.
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <h2 className="text-2xl font-bold text-gray-800 mb-4">Mejores zonas para alquilar en Murcia</h2>
+                                                <ul className="space-y-2 text-sm">
+                                                    <li><strong className="text-rentia-blue">Vistabella:</strong> Barrio tranquilo, carismático y muy cerca del hospital Reina Sofía y el centro.</li>
+                                                    <li><strong className="text-rentia-blue">San Andrés:</strong> Excelente conexión con la estación de autobuses y el centro histórico de la capital murciana.</li>
+                                                    <li><strong className="text-rentia-blue">Espinardo:</strong> Ideal para estudiantes que buscan proximidad con el Campus de Espinardo de la UMU.</li>
+                                                    <li><strong className="text-rentia-blue">Centro de Murcia:</strong> Para quienes quieren vivir el pulso de la ciudad, cerca de la Catedral y La Merced.</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm text-left">
+                                            <h2 className="text-2xl font-bold text-gray-800 mb-4 text-center">Preguntas Frecuentes sobre Alquiler de Habitaciones (FAQ)</h2>
+                                            <div className="space-y-6">
+                                                <div>
+                                                    <h3 className="font-bold text-gray-900 border-l-4 border-rentia-gold pl-3 mb-2">¿Cómo reservar una habitación en Murcia?</h3>
+                                                    <p className="text-sm">En RentiaRoom puedes reservar de forma digital. Tras elegir tu habitación y pasar el filtro de solvencia, podrás firmar tu contrato de alquiler de forma legal y segura.</p>
+                                                </div>
+                                                <div>
+                                                    <h3 className="font-bold text-gray-900 border-l-4 border-rentia-gold pl-3 mb-2">¿Están incluidos los gastos en el precio?</h3>
+                                                    <p className="text-sm">Contamos con dos modalidades: gastos fijos (una cuota fija al mes que incluye luz, agua e internet) o gastos a repartir entre los inquilinos. Puedes filtrarlos en el buscador lateral.</p>
+                                                </div>
+                                                <div>
+                                                    <h3 className="font-bold text-gray-900 border-l-4 border-rentia-gold pl-3 mb-2">¿Es seguro alquilar con RentiaRoom?</h3>
+                                                    <p className="text-sm">Sí, somos una empresa de gestión profesional con sede en Murcia. Ofrecemos contratos legales bajo la LAU y atención directa vía WhatsApp para cualquier incidencia.</p>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1753,6 +1950,71 @@ export const RoomsView: React.FC = () => {
                     propertyName={contactRoomData?.propertyName || ''}
                     propertyId={contactRoomData?.propertyId}
                     roomId={contactRoomData?.roomId}
+                />
+
+                {/* JSON-LD Structured Data for AEO / SEO */}
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{
+                        __html: JSON.stringify({
+                            "@context": "https://schema.org",
+                            "@type": "ItemList",
+                            "name": "Alquiler de habitaciones en Murcia | RentiaRoom",
+                            "description": "Explora nuestra selección de habitaciones premium en alquiler en las mejores zonas de Murcia para estudiantes y trabajadores.",
+                            "url": "https://rentiaroom.com/habitaciones",
+                            "numberOfItems": filteredProperties.reduce((acc, item) => acc + item.matchingRooms.length, 0),
+                            "itemListElement": filteredProperties.slice(0, 10).map(({ property: prop }, index) => ({
+                                "@type": "ListItem",
+                                "position": index + 1,
+                                "item": {
+                                    "@type": "Accommodation",
+                                    "name": `Habitación en ${prop.address}, Murcia`,
+                                    "description": prop.description || `Habitación en alquiler en la zona de ${prop.city}`,
+                                    "image": prop.image,
+                                    "address": {
+                                        "@type": "PostalAddress",
+                                        "addressLocality": "Murcia",
+                                        "addressRegion": "Murcia",
+                                        "addressCountry": "ES"
+                                    },
+                                    "amenityFeature": (prop.features || []).map((f: string) => ({
+                                        "@type": "LocationFeatureSpecification",
+                                        "name": f,
+                                        "value": true
+                                    }))
+                                }
+                            }))
+                        })
+                    }}
+                />
+
+                {/* FAQ Schema for rich results and AI models */}
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{
+                        __html: JSON.stringify({
+                            "@context": "https://schema.org",
+                            "@type": "FAQPage",
+                            "mainEntity": [
+                                {
+                                    "@type": "Question",
+                                    "name": "¿Dónde encontrar habitaciones de alquiler para estudiantes en Murcia?",
+                                    "acceptedAnswer": {
+                                        "@type": "Answer",
+                                        "text": "Las mejores zonas para estudiantes en Murcia son Espinardo (cerca del Campus), La Merced (centro histórico) y Vistabella. RentiaRoom gestiona habitaciones premium en estas ubicaciones con todos los servicios."
+                                    }
+                                },
+                                {
+                                    "@type": "Question",
+                                    "name": "¿Qué precio tiene una habitación en Murcia?",
+                                    "acceptedAnswer": {
+                                        "@type": "Answer",
+                                        "text": "Los precios de las habitaciones en Murcia oscilan entre los 250€ y 400€ mensuales, dependiendo de la ubicación y servicios incluidos. En RentiaRoom ofrecemos opciones competitivas con gestión profesional."
+                                    }
+                                }
+                            ]
+                        })
+                    }}
                 />
 
             </div >

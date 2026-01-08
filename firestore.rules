@@ -73,7 +73,8 @@ service cloud.firestore {
     // - Usuario: Solo lee/edita su propio perfil.
     match /users/{userId} {
       allow read: if isAuthenticated() && (request.auth.uid == userId || isWorker() || isInternal());
-      allow create: if isAuthenticated(); 
+      // Permitimos que un usuario autenticado cree SU propio documento
+      allow create: if isAuthenticated() && request.auth.uid == userId; 
       allow update: if (isAuthenticated() && request.auth.uid == userId) || isStaff();
       allow delete: if isStaff();
     }

@@ -24,7 +24,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://www.rentiaroom.es'),
+  metadataBase: new URL('https://www.rentiaroom.com'),
   title: {
     template: '%s | RentiaRoom Murcia',
     default: 'RentiaRoom | Gestión Integral de Alquiler por Habitaciones en Murcia',
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'es_ES',
-    url: 'https://www.rentiaroom.es',
+    url: 'https://www.rentiaroom.com',
     siteName: 'RentiaRoom Murcia',
     title: 'RentiaRoom | Líderes en Gestión de Habitaciones en Murcia',
     description: 'Transformamos tu vivienda en un activo de alta rentabilidad. Gestión integral de alquiler por habitaciones sin preocupaciones.',

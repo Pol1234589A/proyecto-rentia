@@ -8,7 +8,7 @@ export function GlobalBusinessSchema() {
                 '@type': 'RealEstateAgent',
                 name: 'RentiaRoom Murcia',
                 alternateName: 'Rentia Investments S.L.',
-                url: 'https://www.rentiaroom.es',
+                url: 'https://www.rentiaroom.com',
                 logo: 'https://i.ibb.co/QvzK6db3/Logo-Negativo.png',
                 image: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1600&q=80',
                 description: 'Especialistas en Gestión Integral de Alquiler por Habitaciones en Murcia. Maximizamos la rentabilidad de propietarios e inversores con gestión pasiva garantizada.',

@@ -65,7 +65,7 @@ const MotivationalBanner = () => {
 
 export const StaffDashboard: React.FC = () => {
     const { currentUser, userRole } = useAuth();
-    const isInternal = userRole === 'staff' || userRole === 'agency';
+    const isInternal = userRole === 'staff' || userRole === 'agency' || userRole === 'manager';
     const isWorker = userRole === 'worker';
 
     const [activeTab, setActiveTab] = useState<'overview' | 'room_manager' | 'real_estate' | 'accounting' | 'tools' | 'contracts' | 'calendar' | 'supplies' | 'calculator' | 'social' | 'tasks' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'transfers' | 'advanced_calc' | 'management_leads' | 'site_config' | 'blog_manager' | 'visual_editor' | 'agency_invoices' | 'protocols' | 'candidates'>('overview');

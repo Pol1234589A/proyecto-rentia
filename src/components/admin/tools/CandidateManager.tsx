@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { db } from '../../../firebase';
-import { collection, onSnapshot, updateDoc, doc, query, orderBy, getDocs, serverTimestamp } from 'firebase/firestore';
+import { collection, onSnapshot, updateDoc, doc, query, orderBy, getDocs, serverTimestamp, deleteDoc, deleteField } from 'firebase/firestore';
 import { Candidate, CandidateStatus, StaffMember } from '../../../types';
 import { Property } from '../../../data/rooms';
-import { UserCheck, Search, Phone, X, CheckCircle, AlertCircle, Loader2, Mail, Calendar, Filter, Archive, Key, Eye, HelpCircle, FileText, UserPlus, Building, ChevronDown, ChevronRight } from 'lucide-react';
+import { UserCheck, Search, Phone, X, CheckCircle, AlertCircle, Loader2, Mail, Calendar, Filter, Archive, Key, Eye, HelpCircle, FileText, UserPlus, Building, ChevronDown, ChevronRight, RotateCcw, Trash2 } from 'lucide-react';
 import { SensitiveDataDisplay } from '../../common/SecurityComponents';
 
 const STAFF_MEMBERS: StaffMember[] = ['Pol', 'Vanesa', 'Sandra', 'Víctor', 'Ayoub', 'Hugo', 'Colaboradores'];
@@ -13,7 +13,7 @@ export const CandidateManager: React.FC = () => {
     const [candidates, setCandidates] = useState<Candidate[]>([]);
     const [properties, setProperties] = useState<Property[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'rejected'>('pending');
+    const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'rented' | 'rejected'>('pending');
     const [viewMode, setViewMode] = useState<'list' | 'property'>('property'); // Nuevo modo por defecto
     const [searchTerm, setSearchTerm] = useState('');
     const [notification, setNotification] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -197,12 +197,57 @@ export const CandidateManager: React.FC = () => {
             await updateDoc(propRef, { rooms: updatedRooms });
 
 
-            showNotification('success', "¡Éxito! Candidato asignado y habitación ocupada.");
+            showNotification('success', "¡Éxito! Candidato asignado y habitación alquilada.");
             setModalMode(null);
             setRentSelection({ propertyId: '', roomId: '' });
         } catch (e) {
             console.error(e);
             showNotification('error', "Error al procesar el alquiler.");
+        } finally {
+            setProcessingId(null);
+        }
+    };
+
+    // DESHACER ALQUILER
+    const handleUnrent = async (c: Candidate) => {
+        if (!confirm(`¿Estás seguro de que quieres cancelar el alquiler de ${c.candidateName}? Esto liberará la habitación.`)) return;
+        setProcessingId(c.id);
+        try {
+            await updateDoc(doc(db, "candidate_pipeline", c.id), {
+                status: 'approved',
+                assignedRoomId: deleteField(),
+                propertyId: deleteField(),
+                assignedDate: deleteField()
+            });
+
+            if (c.propertyId && c.assignedRoomId) {
+                const prop = properties.find(p => p.id === c.propertyId);
+                if (prop) {
+                    const updatedRooms = prop.rooms.map(r =>
+                        r.id === c.assignedRoomId ? { ...r, status: 'available' as const } : r
+                    );
+                    await updateDoc(doc(db, "properties", c.propertyId), { rooms: updatedRooms });
+                }
+            }
+
+            showNotification('success', "Alquiler cancelado. Candidato devuelto a Aprobados.");
+        } catch (e) {
+            console.error(e);
+            showNotification('error', "Error al cancelar.");
+        } finally {
+            setProcessingId(null);
+        }
+    };
+
+    // BORRAR
+    const handleDelete = async (c: Candidate) => {
+        if (!confirm(`¿Eliminar DEFINITIVAMENTE a ${c.candidateName}? Esta acción no se puede deshacer.`)) return;
+        setProcessingId(c.id);
+        try {
+            await deleteDoc(doc(db, "candidate_pipeline", c.id));
+            showNotification('success', "Candidato eliminado.");
+        } catch (e) {
+            showNotification('error', "Error al eliminar.");
         } finally {
             setProcessingId(null);
         }
@@ -223,7 +268,8 @@ export const CandidateManager: React.FC = () => {
 
             if (activeTab === 'pending') return c.status === 'pending_review';
             if (activeTab === 'approved') return c.status === 'approved';
-            if (activeTab === 'rejected') return c.status === 'rejected' || c.status === 'archived' || c.status === 'rented';
+            if (activeTab === 'rented') return c.status === 'rented';
+            if (activeTab === 'rejected') return c.status === 'rejected' || c.status === 'archived';
             return false;
         });
     }, [candidates, activeTab, searchTerm]);
@@ -246,7 +292,8 @@ export const CandidateManager: React.FC = () => {
     const counts = useMemo(() => ({
         pending: candidates.filter(c => c.status === 'pending_review').length,
         approved: candidates.filter(c => c.status === 'approved').length,
-        history: candidates.filter(c => ['rejected', 'archived', 'rented'].includes(c.status)).length,
+        rented: candidates.filter(c => c.status === 'rented').length,
+        history: candidates.filter(c => ['rejected', 'archived'].includes(c.status)).length,
     }), [candidates]);
 
     // COMPONENTE DE TARJETA DE CANDIDATO (Reutilizable)
@@ -334,6 +381,16 @@ export const CandidateManager: React.FC = () => {
                         </button>
                         <button onClick={() => { setSelectedCandidate(c); setModalMode('archive'); }} className="flex-1 md:flex-none bg-white hover:bg-gray-50 text-gray-600 border border-gray-200 px-4 py-2 text-xs font-bold rounded-lg flex justify-center items-center gap-2">
                             <Archive className="w-4 h-4" /> Archivar
+                        </button>
+                    </>
+                )}
+                {c.status === 'rented' && (
+                    <>
+                        <button onClick={() => handleUnrent(c)} disabled={!!processingId} className="flex-1 md:flex-none bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 px-4 py-2 text-xs font-bold rounded-lg flex justify-center items-center gap-2">
+                            <RotateCcw className="w-4 h-4" /> Deshacer
+                        </button>
+                        <button onClick={() => handleDelete(c)} disabled={!!processingId} className="flex-1 md:flex-none bg-white hover:bg-red-50 text-red-600 border border-red-200 px-4 py-2 text-xs font-bold rounded-lg flex justify-center items-center gap-2">
+                            <Trash2 className="w-4 h-4" /> Borrar
                         </button>
                     </>
                 )}
@@ -438,6 +495,9 @@ export const CandidateManager: React.FC = () => {
                         <button onClick={() => setActiveTab('approved')} className={`flex-1 py-2 px-4 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${activeTab === 'approved' ? 'bg-white shadow text-green-700' : 'text-gray-500'}`}>
                             Aprobados ({counts.approved})
                         </button>
+                        <button onClick={() => setActiveTab('rented')} className={`flex-1 py-2 px-4 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${activeTab === 'rented' ? 'bg-white shadow text-blue-700' : 'text-gray-500'}`}>
+                            Alquilados ({counts.rented})
+                        </button>
                         <button onClick={() => setActiveTab('rejected')} className={`flex-1 py-2 px-4 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${activeTab === 'rejected' ? 'bg-white shadow text-gray-700' : 'text-gray-500'}`}>
                             Historial ({counts.history})
                         </button>
@@ -525,7 +585,7 @@ export const CandidateManager: React.FC = () => {
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95">
                         <div className="p-4 border-b bg-green-50 flex items-center gap-2 text-green-800"><CheckCircle className="w-5 h-5" /><h3 className="font-bold">Formalizar Alquiler</h3></div>
                         <div className="p-6 space-y-4">
-                            <p className="text-sm text-gray-600">Confirma la asignación. Esto creará el contrato en Rentger y ocupará la habitación.</p>
+                            <p className="text-sm text-gray-600">Confirma la asignación. Esto creará el contrato en Rentger y alquilará la habitación.</p>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="col-span-2">

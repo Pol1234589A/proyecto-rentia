@@ -5,8 +5,8 @@ export const translations = {
     rooms: {
       hero: {
         badge: 'Catálogo en tiempo real',
-        title: 'Habitaciones Disponibles',
-        subtitle: 'Consulta el estado de todas nuestras viviendas gestionadas.',
+        title: 'Alquiler de Habitaciones en Murcia',
+        subtitle: 'Encuentra tu habitación ideal en Murcia: pisos compartidos, suites premium y habitaciones para estudiantes y trabajadores en las mejores zonas de la ciudad.',
         count_label: 'Habitaciones en gestión'
       },
       update_alert: {

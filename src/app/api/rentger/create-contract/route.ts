@@ -3,6 +3,11 @@ import { RentgerBackendService } from '@/lib/rentger/service';
 
 export async function POST(req: Request) {
     try {
+        console.log("Rentger Create Contract API: Start");
+        // Check ENV var availability
+        const key = process.env.RENTGER_API_KEY || process.env.NEXT_PUBLIC_RENTGER_API_KEY;
+        console.log(`Rentger Key check: ${key ? 'Found' : 'Missing'} (Length: ${key?.length || 0})`);
+
         const body = await req.json();
         const {
             candidateName,

@@ -5,6 +5,22 @@ const nextConfig: NextConfig = {
     // !! WARN !!
     ignoreBuildErrors: true,
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'rentiaroom.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.rentiaroom.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'firebasestorage.googleapis.com',
+      }
+    ],
+  },
   async rewrites() {
     return [
       {

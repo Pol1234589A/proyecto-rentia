@@ -46,12 +46,13 @@ export const Header: React.FC<HeaderProps> = () => {
 
   const handleIntranetClick = (e: React.MouseEvent) => {
     e.preventDefault();
+    setIsMenuOpen(false);
+
     if (userRole) {
       router.push('/intranet');
     } else {
       setIsLoginOpen(true);
     }
-    setIsMenuOpen(false);
   };
 
   return (

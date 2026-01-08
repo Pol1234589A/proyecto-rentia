@@ -25,7 +25,7 @@ export const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }
     // Intranet logic: Workers/Staff might hide WhatsApp, etc.
     // LegacyApp: !isStandaloneView && !(view === 'intranet' && (userRole === 'worker' || userRole === 'staff'))
     const isIntranet = pathname === '/intranet';
-    const hideWhatsApp = isStandalone || (isIntranet && (userRole === 'worker' || userRole === 'staff'));
+    const hideWhatsApp = isStandalone || (isIntranet && (userRole === 'worker' || userRole === 'staff' || userRole === 'manager'));
 
     return (
         <div className="min-h-screen flex flex-col font-sans">

@@ -290,7 +290,7 @@ export const ContactLeadModal: React.FC<ContactLeadModalProps> = ({ isOpen, onCl
                                 <p><strong>3. LEGITIMACIÓN</strong><br />La base legal es su consentimiento explícito al rellenar y firmar este formulario, así como la aplicación de medidas precontractuales a petición del interesado.</p>
                                 <p><strong>4. DESTINATARIOS</strong><br />Sus datos no se cederán a terceros salvo obligación legal. En caso de formalizar el alquiler, los datos necesarios podrán ser comunicados al propietario del inmueble (si es distinto a Rentia) para la redacción del contrato.</p>
                                 <p><strong>5. CONSERVACIÓN</strong><br />Se conservarán durante el tiempo necesario para cumplir con la finalidad para la que se recabaron y para determinar las posibles responsabilidades que se pudieran derivar de dicha finalidad.</p>
-                                <p><strong>6. DERECHOS</strong><br />Puede ejercer sus derechos de acceso, rectificación, supresión, portabilidad y limitación dirigiendo una comunicación a info@rentiaroom.es.</p>
+                                <p><strong>6. DERECHOS</strong><br />Puede ejercer sus derechos de acceso, rectificación, supresión, portabilidad y limitación dirigiendo una comunicación a info@rentiaroom.com.</p>
                             </div>
                             <div className="p-4 border-t bg-gray-50 text-center">
                                 <button onClick={() => setShowPrivacyPolicy(false)} className="w-full bg-rentia-black text-white py-3 rounded-xl font-bold">
@@ -320,7 +320,7 @@ export const ContactLeadModal: React.FC<ContactLeadModalProps> = ({ isOpen, onCl
                                 </div>
 
                                 <div className="col-span-2">
-                                    <label className="text-xs font-bold text-gray-700 mb-1 block">Teléfono (WhatsApp) *</label>
+                                    <label className="text-xs font-bold text-gray-700 mb-1 block">Teléfono *</label>
                                     <input
                                         type="tel"
                                         placeholder="+34 600 000 000"

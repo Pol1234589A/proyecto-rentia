@@ -51,6 +51,7 @@ export interface Property {
   address: string;
   city: string;
   floor?: string;
+  door?: string;
   image: string;
   bathrooms?: number;
   googleMapsLink: string;
@@ -58,6 +59,7 @@ export interface Property {
   transferDay?: number;
   managementCommission?: number;
   investmentAmount?: number;
+  commonZonesImages?: string[];
   ibiYearly?: number;
   communityMonthly?: number;
   insuranceYearly?: number;
@@ -74,6 +76,8 @@ export interface Property {
     presidentPhone?: string;
     adminCompany?: string;
     adminContact?: string;
+    insuranceName?: string;
+    insurancePhone?: string;
   };
 
   // Internal Notes (Admin only)

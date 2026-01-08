@@ -129,7 +129,7 @@ export const HomeView: React.FC<HomeViewProps> = () => {
             role: "Propietario",
             date: "Hace 3 meses",
             title: "Pol es un gran profesional",
-            text: "Pol es un gran profesional y buena gente. Está constantemente ayudando y ofreciendo siempre lo mejor, buscando soluciones y ver que te conviene en cada momento. Estoy muy contento con ellos porque mantienen las habitaciones siempre ocupadas y eligen siempre los mejores inquilinos. Los recomiendo 100% unos cracks.",
+            text: "Pol es un gran profesional y buena gente. Está constantemente ayudando y ofreciendo siempre lo mejor, buscando soluciones y ver que te conviene en cada momento. Estoy muy contento con ellos porque mantienen las habitaciones siempre alquiladas y eligen siempre los mejores inquilinos. Los recomiendo 100% unos cracks.",
             initial: "P",
             color: "bg-[#edcd20]"
         },

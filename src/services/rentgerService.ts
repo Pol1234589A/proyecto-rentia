@@ -19,8 +19,12 @@ export const RentgerService = {
 
         try {
             console.log("Rentger: Autenticando...");
-            const encodedKey = encodeURIComponent(RENTGER_API_KEY);
-            const response = await axios.get(`${DIRECT_URL}/token/${encodedKey}`);
+            const encodedKey = encodeURIComponent(RENTGER_API_KEY.trim());
+            const response = await axios.get(`${DIRECT_URL}/token/${encodedKey}`, {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                }
+            });
 
             if (response.data) {
                 const token = typeof response.data === 'string' ? response.data : response.data.token || response.data.access_token;
@@ -45,7 +49,10 @@ export const RentgerService = {
         if (!token) throw new Error("Auth required");
 
         const response = await axios.get(`${DIRECT_URL}/v1/assets`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            }
         });
         return response.data.data || response.data || [];
     },
@@ -58,7 +65,10 @@ export const RentgerService = {
         if (!token) throw new Error("Auth required");
 
         const response = await axios.get(`${DIRECT_URL}/v1/contracts/asset/${assetId}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            }
         });
         return response.data.data || response.data || [];
     },

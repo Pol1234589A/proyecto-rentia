@@ -358,8 +358,8 @@ export const ProtocolsView: React.FC<{ isVanesa?: boolean, onOpenCandidateModal?
                                             <div className="pt-2 border-t mt-2">
                                                 <CredentialCard
                                                     platform="CRM Rentger (Contratos)"
-                                                    user="info@rentiaroom.com"
-                                                    pass="polvictorjoseA!1"
+                                                    user="administracion@rentiaroom.com"
+                                                    pass="administracion1A!murcia"
                                                     show={showCredentials}
                                                     note="★ Firma Contratos y Base de Datos Oficial"
                                                 />

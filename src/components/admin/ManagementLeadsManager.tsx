@@ -87,7 +87,7 @@ export const ManagementLeadsManager: React.FC = () => {
                 googleMapsLink: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lead.property.address)}`,
                 rooms: roomsData,
                 internalNotes: `IBI: ${lead.property.ibi}, Com: ${lead.property.communityFee}. RefCat: ${lead.property.catastralRef}. Observaciones: ${lead.property.observations}`,
-                managementCommission: lead.calculatorData.estimatedFee,
+                managementCommission: lead.calculatorData?.estimatedFee || 15,
                 cleaningConfig: { enabled: false, days: [], hours: '', costPerHour: 10, included: false },
                 documents: lead.documents || {} // Include the uploaded documents
             };
@@ -175,7 +175,7 @@ export const ManagementLeadsManager: React.FC = () => {
                                     <p className="text-lg font-bold text-blue-900 capitalize">{selectedLead.pricing.strategy === 'rooms' ? 'Por Habitaciones' : 'Tradicional'}</p>
                                     {selectedLead.pricing.strategy === 'traditional' && <p className="text-sm">Precio: {selectedLead.pricing.traditionalPrice}€</p>}
                                     <div className="mt-2 pt-2 border-t border-blue-200">
-                                        <p className="text-xs">Tarifa pactada: <strong>{selectedLead.calculatorData.estimatedFee}%</strong></p>
+                                        <p className="text-xs">Tarifa pactada: <strong>{selectedLead.calculatorData?.estimatedFee || 15}%</strong></p>
                                     </div>
                                 </div>
                                 <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">

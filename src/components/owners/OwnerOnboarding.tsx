@@ -115,7 +115,12 @@ export const OwnerOnboarding: React.FC = () => {
                 createdAt: serverTimestamp(),
                 tempId,
                 linkedOwnerId: currentUser.uid,
-                source: 'owner_onboarding_wizard'
+                source: 'owner_onboarding_wizard',
+                calculatorData: {
+                    estimatedFee: 15,
+                    declaredProperties: 1,
+                    declaredReferrals: 0
+                }
             });
 
             // El Dashboard principal detectará el nuevo lead y mostrará la pantalla de "En Revisión"

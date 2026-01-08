@@ -35,16 +35,14 @@ export const ProtocolsView: React.FC<{ isVanesa?: boolean, onOpenCandidateModal?
     const [myTasks, setMyTasks] = useState<any[]>([]);
 
     useEffect(() => {
-        // Tareas asignadas a Vanesa o generales de "Gestión"
-        // Simplificamos query a "pending" y filtramos en cliente para evitar problemas de updates de reglas/indices complejos ahora mismo
-        const qTasks = query(collection(db, "tasks"), where("status", "in", ["pending", "in_progress"]));
+        // Tareas asignadas a Vanesa o de la categoría "Gestión"
+        // Coincidir con los estados y campos de TaskManager.tsx
+        const qTasks = query(collection(db, "tasks"), where("status", "in", ["Pendiente", "En Curso"]));
         const unsubscribeTasks = onSnapshot(qTasks, (snapshot) => {
             const tasks = snapshot.docs
                 .map(doc => ({ id: doc.id, ...doc.data() } as any))
                 .filter(t =>
-                    t.assignedTo?.toLowerCase().includes('vanesa') ||
-                    t.contactName?.toLowerCase().includes('vanesa') ||
-                    t.category === 'management' // Tareas generales de gestión
+                    t.assignee?.toLowerCase().includes('vanesa')
                 )
                 .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
             setMyTasks(tasks);
@@ -55,7 +53,7 @@ export const ProtocolsView: React.FC<{ isVanesa?: boolean, onOpenCandidateModal?
     const handleCompleteTask = async (taskId: string) => {
         try {
             await updateDoc(doc(db, "tasks", taskId), {
-                status: 'completed',
+                status: 'Completada',
                 completedAt: new Date(),
                 completedBy: 'Vanesa'
             });

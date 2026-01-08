@@ -7,7 +7,7 @@ import { StaffMember, Task, TaskPriority, TaskStatus, TaskCategory, TaskBoard } 
 import { Plus, Calendar, AlertTriangle, CheckCircle, Trash2, Edit2, X, Filter, List, Kanban, Save, Loader2, Wifi, WifiOff, Layout, FolderPlus, Folder, LayoutTemplate, Menu, Search, Clock, ChevronDown, Sparkles, Trophy, Play, MessageCircle, Send, User } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
-const STAFF_MEMBERS: StaffMember[] = ['Pol', 'Sandra', 'Víctor', 'Ayoub', 'Hugo', 'Colaboradores'];
+const STAFF_MEMBERS: StaffMember[] = ['Pol', 'Vanesa', 'Sandra', 'Víctor', 'Ayoub', 'Hugo', 'Colaboradores'];
 const PRIORITIES: TaskPriority[] = ['Alta', 'Media', 'Baja'];
 const STATUSES: TaskStatus[] = ['Pendiente', 'En Curso', 'Completada', 'Bloqueada'];
 const CATEGORIES: TaskCategory[] = ['Gestión', 'Marketing', 'Legal', 'Operaciones', 'Reformas', 'Contabilidad', 'Mantenimiento'];

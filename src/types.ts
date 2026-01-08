@@ -132,7 +132,7 @@ export interface PropertyDocument {
     ownerId?: string;
 }
 
-export type StaffMember = 'Pol' | 'Sandra' | 'Víctor' | 'Ayoub' | 'Hugo' | 'Colaboradores';
+export type StaffMember = 'Pol' | 'Vanesa' | 'Sandra' | 'Víctor' | 'Ayoub' | 'Hugo' | 'Colaboradores';
 export type TaskPriority = 'Alta' | 'Media' | 'Baja';
 export type TaskStatus = 'Pendiente' | 'En Curso' | 'Completada' | 'Bloqueada';
 export type TaskCategory = 'Gestión' | 'Marketing' | 'Legal' | 'Operaciones' | 'Reformas' | 'Contabilidad' | 'Mantenimiento';

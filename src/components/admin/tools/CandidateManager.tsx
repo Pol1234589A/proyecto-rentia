@@ -7,7 +7,7 @@ import { Property } from '../../../data/rooms';
 import { UserCheck, Search, Phone, X, CheckCircle, AlertCircle, Loader2, Mail, Calendar, Filter, Archive, Key, Eye, HelpCircle, FileText, UserPlus, Building, ChevronDown, ChevronRight } from 'lucide-react';
 import { SensitiveDataDisplay } from '../../common/SecurityComponents';
 
-const STAFF_MEMBERS: StaffMember[] = ['Pol', 'Sandra', 'Víctor', 'Ayoub', 'Hugo', 'Colaboradores'];
+const STAFF_MEMBERS: StaffMember[] = ['Pol', 'Vanesa', 'Sandra', 'Víctor', 'Ayoub', 'Hugo', 'Colaboradores'];
 
 export const CandidateManager: React.FC = () => {
     const [candidates, setCandidates] = useState<Candidate[]>([]);

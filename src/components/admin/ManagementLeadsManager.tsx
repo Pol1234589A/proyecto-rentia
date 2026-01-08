@@ -66,9 +66,9 @@ export const ManagementLeadsManager: React.FC = () => {
             }
 
             // 2. Convert to Property Structure
-            const roomsData = lead.pricing.rooms 
+            const roomsData = lead.pricing.rooms
                 ? lead.pricing.rooms.map((r, idx) => ({
-                    id: `${lead.property.address.replace(/[^a-zA-Z0-9]/g,'').slice(0,5)}_H${idx+1}`,
+                    id: `${lead.property.address.replace(/[^a-zA-Z0-9]/g, '').slice(0, 5)}_H${idx + 1}`,
                     name: r.name,
                     price: r.price,
                     status: 'available',
@@ -77,7 +77,7 @@ export const ManagementLeadsManager: React.FC = () => {
                     targetProfile: 'both',
                     expenses: 'Gastos fijos aparte'
                 }))
-                : []; 
+                : [];
 
             const newProperty: any = {
                 ownerId: ownerId, // LINK TO OWNER
@@ -88,15 +88,16 @@ export const ManagementLeadsManager: React.FC = () => {
                 rooms: roomsData,
                 internalNotes: `IBI: ${lead.property.ibi}, Com: ${lead.property.communityFee}. RefCat: ${lead.property.catastralRef}. Observaciones: ${lead.property.observations}`,
                 managementCommission: lead.calculatorData.estimatedFee,
-                cleaningConfig: { enabled: false, days: [], hours: '', costPerHour: 10, included: false }
+                cleaningConfig: { enabled: false, days: [], hours: '', costPerHour: 10, included: false },
+                documents: lead.documents || {} // Include the uploaded documents
             };
 
             // 3. Add to properties
             await addDoc(collection(db, "properties"), newProperty);
-            
+
             // 4. Update lead status
             await updateDoc(doc(db, "management_leads", lead.id), { status: 'approved', linkedOwnerId: ownerId });
-            
+
             alert("Propietario verificado y Activo creado correctamente. Lead archivado.");
             setSelectedLead(null);
 
@@ -140,18 +141,18 @@ export const ManagementLeadsManager: React.FC = () => {
                     <div className="flex flex-col h-full">
                         <div className="p-6 border-b flex justify-between items-center bg-gray-50">
                             <div>
-                                <h2 className="text-lg font-bold flex items-center gap-2"><Building className="w-5 h-5 text-rentia-blue"/> {selectedLead.property.address}</h2>
+                                <h2 className="text-lg font-bold flex items-center gap-2"><Building className="w-5 h-5 text-rentia-blue" /> {selectedLead.property.address}</h2>
                                 <p className="text-xs text-gray-500">{selectedLead.property.city} • {selectedLead.property.type}</p>
                             </div>
-                            <button onClick={() => handleDelete(selectedLead.id)} className="p-2 text-red-400 hover:bg-red-50 rounded"><Trash2 className="w-5 h-5"/></button>
+                            <button onClick={() => handleDelete(selectedLead.id)} className="p-2 text-red-400 hover:bg-red-50 rounded"><Trash2 className="w-5 h-5" /></button>
                         </div>
-                        
+
                         <div className="flex-grow overflow-y-auto p-6 space-y-6">
-                            
+
                             {/* Contact Info */}
                             <div className="bg-white p-4 rounded-xl border border-gray-200">
                                 <div className="flex justify-between items-start mb-3">
-                                    <h3 className="text-xs font-bold uppercase text-gray-400 flex items-center gap-2"><User className="w-4 h-4"/> Propietario</h3>
+                                    <h3 className="text-xs font-bold uppercase text-gray-400 flex items-center gap-2"><User className="w-4 h-4" /> Propietario</h3>
                                     {selectedLead.linkedOwnerId && <span className="text-xs font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded border border-purple-100">Cuenta Activa</span>}
                                 </div>
                                 <div className="grid grid-cols-2 gap-4 text-sm">
@@ -162,7 +163,7 @@ export const ManagementLeadsManager: React.FC = () => {
                                 </div>
                                 {selectedLead.consent && (
                                     <div className="mt-3 text-xs text-green-600 bg-green-50 p-2 rounded flex items-center gap-2">
-                                        <CheckCircle className="w-3 h-3"/> RGPD Aceptado: {selectedLead.consent.date?.toDate().toLocaleString()}
+                                        <CheckCircle className="w-3 h-3" /> RGPD Aceptado: {selectedLead.consent.date?.toDate().toLocaleString()}
                                     </div>
                                 )}
                             </div>
@@ -170,7 +171,7 @@ export const ManagementLeadsManager: React.FC = () => {
                             {/* Financials & Strategy */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                                    <h3 className="text-xs font-bold uppercase text-blue-800 mb-2 flex items-center gap-2"><Calculator className="w-4 h-4"/> Estrategia</h3>
+                                    <h3 className="text-xs font-bold uppercase text-blue-800 mb-2 flex items-center gap-2"><Calculator className="w-4 h-4" /> Estrategia</h3>
                                     <p className="text-lg font-bold text-blue-900 capitalize">{selectedLead.pricing.strategy === 'rooms' ? 'Por Habitaciones' : 'Tradicional'}</p>
                                     {selectedLead.pricing.strategy === 'traditional' && <p className="text-sm">Precio: {selectedLead.pricing.traditionalPrice}€</p>}
                                     <div className="mt-2 pt-2 border-t border-blue-200">
@@ -178,7 +179,7 @@ export const ManagementLeadsManager: React.FC = () => {
                                     </div>
                                 </div>
                                 <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                                    <h3 className="text-xs font-bold uppercase text-gray-500 mb-2 flex items-center gap-2"><FileText className="w-4 h-4"/> Datos Finca</h3>
+                                    <h3 className="text-xs font-bold uppercase text-gray-500 mb-2 flex items-center gap-2"><FileText className="w-4 h-4" /> Datos Finca</h3>
                                     <p className="text-xs"><strong>RefCat:</strong> {selectedLead.property.catastralRef}</p>
                                     <p className="text-xs"><strong>IBI:</strong> {selectedLead.property.ibi}</p>
                                     <p className="text-xs"><strong>Comunidad:</strong> {selectedLead.property.communityFee}</p>
@@ -194,7 +195,7 @@ export const ManagementLeadsManager: React.FC = () => {
                                         {selectedLead.pricing.rooms.map((r, i) => (
                                             <div key={i} className="bg-white border rounded-lg p-3 flex gap-4 items-center">
                                                 <div className="w-16 h-16 bg-gray-100 rounded overflow-hidden flex-shrink-0">
-                                                    {r.images[0] ? <img src={r.images[0]} className="w-full h-full object-cover"/> : <div className="w-full h-full flex items-center justify-center text-gray-300"><EyeOff className="w-6 h-6"/></div>}
+                                                    {r.images[0] ? <img src={r.images[0]} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-300"><EyeOff className="w-6 h-6" /></div>}
                                                 </div>
                                                 <div>
                                                     <p className="font-bold text-sm">{r.name}</p>
@@ -212,7 +213,7 @@ export const ManagementLeadsManager: React.FC = () => {
                                     <p className="text-xs font-bold mb-2">Fotos Comunes:</p>
                                     <div className="flex gap-2 overflow-x-auto pb-2">
                                         {selectedLead.images.common.map((img, i) => (
-                                            <img key={i} src={img} className="w-20 h-20 rounded border object-cover"/>
+                                            <img key={i} src={img} className="w-20 h-20 rounded border object-cover" />
                                         ))}
                                     </div>
                                 </div>
@@ -230,12 +231,12 @@ export const ManagementLeadsManager: React.FC = () => {
                         {/* Footer Actions */}
                         {selectedLead.status === 'new' && (
                             <div className="p-4 border-t bg-gray-50 flex justify-end gap-3">
-                                <button 
-                                    onClick={handleApprove} 
+                                <button
+                                    onClick={handleApprove}
                                     disabled={isProcessing}
                                     className="bg-green-600 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-green-700 shadow-lg disabled:opacity-50"
                                 >
-                                    {isProcessing ? <Loader2 className="w-4 h-4 animate-spin"/> : <CheckCircle className="w-4 h-4"/>}
+                                    {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
                                     {isProcessing ? 'Procesando...' : selectedLead.linkedOwnerId ? 'Aprobar y Vincular' : 'Aprobar y Crear Todo'}
                                 </button>
                             </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Home, MapPin, CheckCircle, User, MessageCircle, Filter, AlertCircle, Receipt, Sparkles, Hammer, HelpCircle, Building, Gift, Users as UsersIcon, Wallet, PlayCircle, Camera, Timer, Bath, Wind, ExternalLink, GraduationCap, Briefcase, Users, ZoomIn, DoorClosed, DoorOpen, ChevronDown, Info, Layout, X, Euro, BedDouble, Bed, Tv, Lock, Sun, Monitor, Loader2, Megaphone, AlertTriangle, Ban as DoNotDisturb, Edit, Save, Plus, Trash2, Film } from 'lucide-react';
+import { Home, MapPin, CheckCircle, User, MessageCircle, Filter, AlertCircle, Receipt, Sparkles, Hammer, HelpCircle, Building, Gift, Users as UsersIcon, Wallet, PlayCircle, Camera, Timer, Bath, Wind, ExternalLink, GraduationCap, Briefcase, Users, ZoomIn, DoorClosed, DoorOpen, ChevronDown, Info, Layout, X, Euro, BedDouble, Bed, Tv, Lock, Sun, Monitor, Loader2, Megaphone, AlertTriangle, Ban as DoNotDisturb, Edit, Save, Plus, Trash2, Film, Calendar, Maximize } from 'lucide-react';
 import { db } from '../firebase';
 import { collection, onSnapshot, doc, setDoc } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
@@ -9,6 +9,7 @@ import { properties as staticProperties, Property, Room } from '../data/rooms';
 import { useLanguage } from '../contexts/LanguageContext';
 import { ImageLightbox } from './ImageLightbox';
 import { PropertyEditModal } from './PropertyEditModal';
+import { ContactLeadModal } from './modals/ContactLeadModal';
 import { useConfig } from '../contexts/ConfigContext';
 
 // Helper Component for Loading State
@@ -144,6 +145,15 @@ export const RoomsView: React.FC = () => {
     const [lightboxImages, setLightboxImages] = useState<string[]>([]);
     const [lightboxIndex, setLightboxIndex] = useState(0);
     const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+
+    // Contact Modal State
+    const [contactModalOpen, setContactModalOpen] = useState(false);
+    const [contactRoomData, setContactRoomData] = useState<{ roomName: string, propertyName: string, propertyId?: string, roomId?: string } | null>(null);
+
+    const openContactModal = (roomName: string, propertyName: string, propertyId?: string, roomId?: string) => {
+        setContactRoomData({ roomName, propertyName, propertyId, roomId });
+        setContactModalOpen(true);
+    };
 
     const { t } = useLanguage();
     const config = useConfig();
@@ -1132,140 +1142,328 @@ export const RoomsView: React.FC = () => {
                                                 </div>
 
                                                 {/* --- ROOM LIST (Accordion) --- */}
-                                                <div className={`transition-all duration-500 ease-in-out border-t border-gray-100 bg-gray-50/30 ${isExpanded ? 'max-h-[5000px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
-                                                    <div className="p-4 md:p-8 grid grid-cols-1 gap-4">
-                                                        {property.bathrooms && (
-                                                            <div className="mb-2 flex justify-center">
-                                                                <span className="inline-flex items-center gap-2 bg-amber-50 text-amber-800 text-xs font-bold px-4 py-2 rounded-full border border-amber-200 shadow-sm animate-in fade-in zoom-in duration-300">
-                                                                    <div className="bg-amber-200 p-1 rounded-full"><Bath className="w-3 h-3 text-amber-700" /></div>
-                                                                    {property.bathrooms} baños completos en la vivienda
-                                                                </span>
-                                                            </div>
-                                                        )}
+                                                <div className={`transition-all duration-500 ease-in-out border-t border-gray-100 bg-gray-50/30 ${isExpanded ? 'max-h-[8000px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
+                                                    <div className="p-4 md:p-8 space-y-8">
 
-                                                        {property.rooms.map((room, idx) => {
-                                                            const statusInfo = getStatusLabel(room);
-                                                            const isAvailable = room.status === 'available';
-                                                            const displayName = room.name.replace(/^H(\d+)$/i, 'Habitación $1');
-
-                                                            return (
-                                                                <div key={room.id} className="bg-white p-4 md:p-5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-300 transition-all duration-300 flex flex-col md:flex-row gap-5 items-start md:items-center group/room">
-
-                                                                    {/* Room Image */}
-                                                                    {room.images && room.images.length > 0 && (
-                                                                        <div
-                                                                            className="w-full md:w-32 h-40 md:h-28 rounded-xl overflow-hidden flex-shrink-0 cursor-pointer relative group/room-img shadow-inner bg-gray-100 border border-gray-100"
-                                                                            onClick={(e) => { e.stopPropagation(); openRoomImages(room.images!, 0); }}
-                                                                        >
-                                                                            <ImageWithLoader
-                                                                                src={room.images[0]}
-                                                                                alt={displayName}
-                                                                                className="w-full h-full object-cover transition-transform duration-700 group-hover/room-img:scale-110"
-                                                                            />
-                                                                            <div className="absolute inset-0 bg-black/0 group-hover/room-img:bg-black/10 transition-colors flex items-center justify-center">
-                                                                                <ZoomIn className="w-8 h-8 text-white opacity-0 group-hover/room-img:opacity-100 transition-opacity drop-shadow-md transform scale-75 group-hover/room-img:scale-100 duration-300" />
-                                                                            </div>
-                                                                            {room.video && (
-                                                                                <div className="absolute top-2 right-2 bg-rentia-blue bg-opacity-90 text-white p-1 rounded-md shadow-lg z-10 border border-white/20">
-                                                                                    <Film className="w-3.5 h-3.5" />
-                                                                                </div>
-                                                                            )}
-                                                                            {room.images.length > 1 && (
-                                                                                <div className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-sm text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md">
-                                                                                    +{room.images.length - 1}
-                                                                                </div>
-                                                                            )}
+                                                        {/* Property Highlights & Trust Bar */}
+                                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                            <div className="md:col-span-2 grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                                                {property.bathrooms && (
+                                                                    <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex items-center gap-3">
+                                                                        <div className="bg-blue-50 p-2 rounded-lg"><Bath className="w-4 h-4 text-blue-600" /></div>
+                                                                        <div>
+                                                                            <p className="text-[10px] uppercase font-bold text-gray-400">Baños</p>
+                                                                            <p className="text-xs font-bold text-gray-700">{property.bathrooms} Compartidos</p>
                                                                         </div>
-                                                                    )}
+                                                                    </div>
+                                                                )}
+                                                                {property.cleaningConfig?.enabled && (
+                                                                    <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex items-center gap-3">
+                                                                        <div className="bg-emerald-50 p-2 rounded-lg"><Sparkles className="w-4 h-4 text-emerald-600" /></div>
+                                                                        <div>
+                                                                            <p className="text-[10px] uppercase font-bold text-gray-400">Limpieza</p>
+                                                                            <p className="text-xs font-bold text-gray-700">Seminal Inc.</p>
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                                {property.wifiConfig?.ssid && (
+                                                                    <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex items-center gap-3">
+                                                                        <div className="bg-indigo-50 p-2 rounded-lg"><Monitor className="w-4 h-4 text-indigo-600" /></div>
+                                                                        <div>
+                                                                            <p className="text-[10px] uppercase font-bold text-gray-400">Conexión</p>
+                                                                            <p className="text-xs font-bold text-gray-700">Fibra Alta Vel.</p>
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            <div className="bg-gradient-to-br from-rentia-blue to-blue-800 p-4 rounded-xl text-white shadow-lg flex flex-col justify-center">
+                                                                <div className="flex items-center gap-2 mb-1">
+                                                                    <CheckCircle className="w-4 h-4 text-blue-200" />
+                                                                    <span className="text-xs font-black uppercase tracking-wider">Garantía Rentia</span>
+                                                                </div>
+                                                                <p className="text-[10px] text-blue-100 leading-tight">Habitaciones verificadas, contratos legales y soporte 24/7 para incidencias.</p>
+                                                            </div>
+                                                        </div>
 
-                                                                    {/* Room Info */}
-                                                                    <div className="flex-1 w-full min-w-0">
-                                                                        <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-3 md:gap-0">
-                                                                            <div>
-                                                                                <div className="flex items-center gap-3 mb-1">
-                                                                                    <h4 className="font-bold text-gray-900 text-lg group-hover/room:text-rentia-blue transition-colors">
-                                                                                        {displayName}
-                                                                                    </h4>
-                                                                                    {isAvailable && (
-                                                                                        <span className="md:hidden text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-black uppercase tracking-wide border border-green-200">Libre</span>
+                                                        <div className="grid grid-cols-1 gap-4">
+
+                                                            {property.rooms.map((room, idx) => {
+                                                                const statusInfo = getStatusLabel(room);
+                                                                const isAvailable = room.status === 'available';
+                                                                const displayName = room.name.replace(/^H(\d+)$/i, 'Habitación $1');
+
+                                                                return (
+                                                                    <div key={room.id} className="bg-white p-4 md:p-5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-300 transition-all duration-300 flex flex-col md:flex-row gap-5 items-start md:items-center group/room">
+
+                                                                        {/* Room Image */}
+                                                                        {room.images && room.images.length > 0 && (
+                                                                            <div
+                                                                                className="w-full md:w-32 h-40 md:h-28 rounded-xl overflow-hidden flex-shrink-0 cursor-pointer relative group/room-img shadow-inner bg-gray-100 border border-gray-100"
+                                                                                onClick={(e) => { e.stopPropagation(); openRoomImages(room.images!, 0); }}
+                                                                            >
+                                                                                <ImageWithLoader
+                                                                                    src={room.images[0]}
+                                                                                    alt={displayName}
+                                                                                    className="w-full h-full object-cover transition-transform duration-700 group-hover/room-img:scale-110"
+                                                                                />
+                                                                                <div className="absolute inset-0 bg-black/0 group-hover/room-img:bg-black/10 transition-colors flex items-center justify-center">
+                                                                                    <ZoomIn className="w-8 h-8 text-white opacity-0 group-hover/room-img:opacity-100 transition-opacity drop-shadow-md transform scale-75 group-hover/room-img:scale-100 duration-300" />
+                                                                                </div>
+                                                                                {room.video && (
+                                                                                    <div className="absolute top-2 right-2 bg-rentia-blue bg-opacity-90 text-white p-1 rounded-md shadow-lg z-10 border border-white/20">
+                                                                                        <Film className="w-3.5 h-3.5" />
+                                                                                    </div>
+                                                                                )}
+                                                                                {room.images.length > 1 && (
+                                                                                    <div className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-sm text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md">
+                                                                                        +{room.images.length - 1}
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        )}
+
+                                                                        {/* Room Info */}
+                                                                        <div className="flex-1 w-full min-w-0">
+                                                                            <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-3 md:gap-0">
+                                                                                <div>
+                                                                                    <div className="flex items-center gap-3 mb-1">
+                                                                                        <h4 className="font-bold text-gray-900 text-lg group-hover/room:text-rentia-blue transition-colors">
+                                                                                            {displayName}
+                                                                                        </h4>
+                                                                                        {isAvailable && (
+                                                                                            <span className="md:hidden text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-black uppercase tracking-wide border border-green-200">Libre</span>
+                                                                                        )}
+                                                                                    </div>
+
+                                                                                    {/* Simplified Features for better mobile reading */}
+                                                                                    {/* Full detailed features */}
+                                                                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mt-2">
+                                                                                        {room.availableFrom && (
+                                                                                            <div className="flex items-center gap-1.5 bg-blue-50 text-blue-700 px-2 py-1 rounded-md border border-blue-100" title="Disponibilidad">
+                                                                                                <Calendar className="w-3 h-3" />
+                                                                                                <span className="font-bold text-[10px] uppercase whitespace-nowrap">
+                                                                                                    {room.availableFrom === 'Inmediata' ? 'Inmediata' : `Desde ${room.availableFrom}`}
+                                                                                                </span>
+                                                                                            </div>
+                                                                                        )}
+
+                                                                                        {room.sqm && (
+                                                                                            <div className="flex items-center gap-1.5 bg-gray-50 text-gray-600 px-2 py-1 rounded-md border border-gray-100" title="Superficie">
+                                                                                                <Maximize className="w-3 h-3" />
+                                                                                                <span className="font-bold text-[10px] uppercase">{room.sqm} m²</span>
+                                                                                            </div>
+                                                                                        )}
+
+                                                                                        {room.bedType && (
+                                                                                            <div className="flex items-center gap-1.5 bg-gray-50 text-gray-600 px-2 py-1 rounded-md border border-gray-100" title="Cama">
+                                                                                                {getBedIcon(room.bedType)}
+                                                                                                <span className="font-bold text-[10px] uppercase">{getBedLabel(room.bedType)}</span>
+                                                                                            </div>
+                                                                                        )}
+
+                                                                                        <div className="flex items-center gap-1.5 bg-slate-50 text-slate-600 px-2 py-1 rounded-md border border-slate-100" title="Gastos">
+                                                                                            <Receipt className="w-3 h-3" />
+                                                                                            <span className="font-bold text-[10px] uppercase">{translateExpenses(room.expenses)}</span>
+                                                                                        </div>
+
+                                                                                        {room.targetProfile && room.targetProfile !== 'both' && (
+                                                                                            <div className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 px-2 py-1 rounded-md border border-indigo-100">
+                                                                                                {room.targetProfile === 'students' ? <GraduationCap className="w-3 h-3" /> : <Briefcase className="w-3 h-3" />}
+                                                                                                <span className="font-bold text-[10px] uppercase">{room.targetProfile === 'students' ? 'Estudiantes' : 'Trabajadores'}</span>
+                                                                                            </div>
+                                                                                        )}
+
+                                                                                        {room.gender && room.gender !== 'both' && (
+                                                                                            <div className="flex items-center gap-1.5 bg-pink-50 text-pink-700 px-2 py-1 rounded-md border border-pink-100">
+                                                                                                <Users className="w-3 h-3" />
+                                                                                                <span className="font-bold text-[10px] uppercase">{room.gender === 'male' ? 'Chicos' : 'Chicas'}</span>
+                                                                                            </div>
+                                                                                        )}
+
+                                                                                        {room.hasFan && (
+                                                                                            <div className="flex items-center gap-1.5 bg-sky-50 text-sky-700 px-2 py-1 rounded-md border border-sky-100" title="Ventilador">
+                                                                                                <Sparkles className="w-3 h-3" />
+                                                                                                <span className="font-bold text-[10px] uppercase">Ventilador</span>
+                                                                                            </div>
+                                                                                        )}
+
+                                                                                        {/* Icons from features array */}
+                                                                                        {room.features?.includes('private_bath') && (
+                                                                                            <div className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2 py-1 rounded-md border border-emerald-100">
+                                                                                                <Bath className="w-3 h-3" />
+                                                                                                <span className="font-bold text-[10px] uppercase">Baño Privado</span>
+                                                                                            </div>
+                                                                                        )}
+
+                                                                                        {room.hasAirConditioning && (
+                                                                                            <div className="flex items-center gap-1.5 bg-cyan-50 text-cyan-700 px-2 py-1 rounded-md border border-cyan-100">
+                                                                                                <Wind className="w-3 h-3" />
+                                                                                                <span className="font-bold text-[10px] uppercase">A/C</span>
+                                                                                            </div>
+                                                                                        )}
+
+                                                                                        {room.features?.includes('desk') && (
+                                                                                            <div className="flex items-center gap-1.5 bg-gray-50 text-gray-500 px-2 py-1 rounded-md border border-gray-100">
+                                                                                                <Monitor className="w-3 h-3" />
+                                                                                                <span className="font-bold text-[10px] uppercase">Mesa</span>
+                                                                                            </div>
+                                                                                        )}
+
+                                                                                        {room.features?.includes('lock') && (
+                                                                                            <div className="flex items-center gap-1.5 bg-gray-50 text-gray-500 px-2 py-1 rounded-md border border-gray-100">
+                                                                                                <Lock className="w-3 h-3" />
+                                                                                                <span className="font-bold text-[10px] uppercase">Llave</span>
+                                                                                            </div>
+                                                                                        )}
+
+                                                                                        {room.features?.includes('smart_tv') || room.features?.includes('tv') ? (
+                                                                                            <div className="flex items-center gap-1.5 bg-gray-50 text-gray-500 px-2 py-1 rounded-md border border-gray-100">
+                                                                                                <Tv className="w-3 h-3" />
+                                                                                                <span className="font-bold text-[10px] uppercase">TV</span>
+                                                                                            </div>
+                                                                                        ) : null}
+                                                                                        {room.features?.includes('window_street') && (
+                                                                                            <div className="flex items-center gap-1.5 bg-yellow-50 text-yellow-700 px-2 py-1 rounded-md border border-yellow-100">
+                                                                                                <Sun className="w-3 h-3" />
+                                                                                                <span className="font-bold text-[10px] uppercase">Exterior</span>
+                                                                                            </div>
+                                                                                        )}
+                                                                                        {room.features?.includes('balcony') && (
+                                                                                            <div className="flex items-center gap-1.5 bg-orange-50 text-orange-700 px-2 py-1 rounded-md border border-orange-100">
+                                                                                                <Layout className="w-3 h-3" />
+                                                                                                <span className="font-bold text-[10px] uppercase">Balcón</span>
+                                                                                            </div>
+                                                                                        )}
+                                                                                    </div>
+
+                                                                                    {room.description && (
+                                                                                        <p className="mt-3 text-xs text-gray-500 leading-relaxed italic border-l-2 border-gray-100 pl-3">
+                                                                                            "{room.description}"
+                                                                                        </p>
+                                                                                    )}
+
+                                                                                    {room.notes && (
+                                                                                        <div className="mt-2 flex items-center gap-2 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-100 italic">
+                                                                                            <Info className="w-3 h-3" />
+                                                                                            <span className="uppercase">{room.notes}</span>
+                                                                                        </div>
                                                                                     )}
                                                                                 </div>
 
-                                                                                {/* Simplified Features for better mobile reading */}
-                                                                                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2 text-sm text-gray-600">
-                                                                                    {room.bedType && (
-                                                                                        <div className="flex items-center gap-1.5" title="Tipo de cama">
-                                                                                            {getBedIcon(room.bedType)}
-                                                                                            <span className="font-medium text-xs">{getBedLabel(room.bedType)}</span>
-                                                                                        </div>
-                                                                                    )}
-                                                                                    <div className="flex items-center gap-1.5" title="Gastos">
-                                                                                        <Receipt className="w-3.5 h-3.5 text-gray-400" />
-                                                                                        <span className="font-medium text-xs">{translateExpenses(room.expenses)}</span>
+                                                                                {/* Desktop Status & Price Block */}
+                                                                                <div className="hidden md:flex flex-col items-end gap-1 text-right">
+                                                                                    <div className={`flex items-center gap-1.5 text-xs font-black uppercase tracking-wide px-3 py-1 rounded-full border shadow-sm ${isAvailable
+                                                                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                                                                                        : 'bg-gray-50 text-gray-500 border-gray-100 opacity-80'
+                                                                                        }`}>
+                                                                                        {statusInfo.icon} {statusInfo.text}
                                                                                     </div>
-                                                                                    {room.hasAirConditioning && (
-                                                                                        <div className="flex items-center gap-1.5 text-cyan-700 bg-cyan-50 px-2 py-0.5 rounded border border-cyan-100">
-                                                                                            <Wind className="w-3 h-3" />
-                                                                                            <span className="font-bold text-[10px] uppercase">Aire Acond.</span>
-                                                                                        </div>
-                                                                                    )}
-                                                                                    {room.features?.includes('balcony') && (
-                                                                                        <div className="flex items-center gap-1.5 text-orange-700 bg-orange-50 px-2 py-0.5 rounded border border-orange-100">
-                                                                                            <Sun className="w-3 h-3" />
-                                                                                            <span className="font-bold text-[10px] uppercase">Balcón</span>
-                                                                                        </div>
-                                                                                    )}
+                                                                                    <div className="mt-2">
+                                                                                        {room.price > 0 ? (
+                                                                                            <div className="flex items-baseline gap-1 justify-end">
+                                                                                                <span className="text-2xl font-bold text-gray-900">{room.price}€</span>
+                                                                                            </div>
+                                                                                        ) : (
+                                                                                            <span className="text-sm font-bold text-gray-400">Consultar</span>
+                                                                                        )}
+                                                                                    </div>
                                                                                 </div>
                                                                             </div>
+                                                                        </div>
 
-                                                                            {/* Desktop Status & Price Block */}
-                                                                            <div className="hidden md:flex flex-col items-end gap-1 text-right">
-                                                                                <div className={`flex items-center gap-1.5 text-xs font-black uppercase tracking-wide px-3 py-1 rounded-full border shadow-sm ${isAvailable
-                                                                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
-                                                                                    : 'bg-gray-50 text-gray-500 border-gray-100 opacity-80'
-                                                                                    }`}>
-                                                                                    {statusInfo.icon} {statusInfo.text}
-                                                                                </div>
-                                                                                <div className="mt-2">
-                                                                                    {room.price > 0 ? (
-                                                                                        <div className="flex items-baseline gap-1 justify-end">
-                                                                                            <span className="text-2xl font-bold text-gray-900">{room.price}€</span>
+                                                                        {/* Mobile Price & Action Bar */}
+                                                                        <div className="flex items-center gap-4 w-full md:w-auto mt-2 md:mt-0 pt-4 md:pt-0 border-t md:border-t-0 border-gray-100 md:block">
+                                                                            <div className="md:hidden flex-1">
+                                                                                <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-0.5">Precio</p>
+                                                                                <p className="text-xl font-black text-rentia-black">{room.price > 0 ? `${room.price}€` : 'Consultar'}</p>
+                                                                            </div>
+
+                                                                            <div className="flex-1 md:flex-none">
+                                                                                {isAvailable ? (
+
+                                                                                    <div className="flex flex-col gap-2 w-full md:w-auto items-center md:items-end" >
+                                                                                        {(() => {
+                                                                                            const now = new Date();
+                                                                                            const hour = now.getHours();
+                                                                                            const minute = now.getMinutes();
+                                                                                            const isOpen = hour >= 9 && (hour < 14 || (hour === 14 && minute === 0));
+
+                                                                                            return isOpen ? (
+                                                                                                <span className="flex items-center gap-1.5 text-[9px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 animate-pulse">
+                                                                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                                                                                    Abierto · 9:00 - 14:00
+                                                                                                </span>
+                                                                                            ) : (
+                                                                                                <div className="flex flex-col items-center md:items-end">
+                                                                                                    <span className="flex items-center gap-1.5 text-[9px] font-black text-rose-500 uppercase tracking-widest bg-rose-50 px-2 py-0.5 rounded border border-rose-100 mb-1">
+                                                                                                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                                                                                                        Cerrado · Abrimos a las 9:00
+                                                                                                    </span>
+                                                                                                    <span className="text-[9px] text-gray-400 font-medium italic">Deja tu mensaje</span>
+                                                                                                </div>
+                                                                                            );
+                                                                                        })()}
+
+                                                                                        <div className="w-full">
+                                                                                            <button
+                                                                                                onClick={() => openContactModal(room.name, selectedProperty?.address || property.address, property.id, room.id)}
+                                                                                                className="w-full bg-[#25D366] hover:bg-[#20ba5c] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm hover:shadow-md flex items-center justify-center gap-1.5 transition-all active:scale-95 whitespace-nowrap"
+                                                                                            >
+                                                                                                <MessageCircle className="w-3.5 h-3.5" /> Contactar / WhatsApp
+                                                                                            </button>
                                                                                         </div>
-                                                                                    ) : (
-                                                                                        <span className="text-sm font-bold text-gray-400">Consultar</span>
-                                                                                    )}
-                                                                                </div>
+                                                                                    </div>
+                                                                                ) : (
+                                                                                    <button disabled className="w-full md:w-auto bg-gray-100 text-gray-400 text-xs font-bold px-4 py-3 rounded-xl flex items-center justify-center gap-2 cursor-not-allowed border border-gray-200">
+                                                                                        <Lock className="w-3.5 h-3.5" /> <span className="md:hidden">Ocupada</span>
+                                                                                    </button>
+                                                                                )}
                                                                             </div>
                                                                         </div>
                                                                     </div>
+                                                                );
+                                                            })}
+                                                        </div>
 
-                                                                    {/* Mobile Price & Action Bar */}
-                                                                    <div className="flex items-center gap-4 w-full md:w-auto mt-2 md:mt-0 pt-4 md:pt-0 border-t md:border-t-0 border-gray-100 md:block">
-                                                                        <div className="md:hidden flex-1">
-                                                                            <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-0.5">Precio</p>
-                                                                            <p className="text-xl font-black text-rentia-black">{room.price > 0 ? `${room.price}€` : 'Consultar'}</p>
-                                                                        </div>
+                                                        {/* Disclaimer & Experience Footer (Desktop) */}
+                                                        <div className="mt-8 pt-8 border-t border-gray-100 hidden md:block">
 
-                                                                        <div className="flex-1 md:flex-none">
-                                                                            {isAvailable ? (
-                                                                                <a
-                                                                                    href={`https://api.whatsapp.com/send?phone=34672886369&text=Hola,%20me%20interesa%20la%20${encodeURIComponent(displayName)}%20en%20${property.address}`}
-                                                                                    target="_blank"
-                                                                                    rel="noreferrer"
-                                                                                    className="w-full md:w-auto bg-[#25D366] hover:bg-[#20ba5c] text-white text-sm font-bold px-6 py-3 rounded-xl shadow-lg shadow-green-200 flex items-center justify-center gap-2 transition-all transform hover:-translate-y-0.5"
-                                                                                >
-                                                                                    <MessageCircle className="w-4 h-4" /> <span className="hidden md:inline">Contactar</span> <span className="md:hidden">WhatsApp</span>
-                                                                                </a>
-                                                                            ) : (
-                                                                                <button disabled className="w-full md:w-auto bg-gray-100 text-gray-400 text-xs font-bold px-4 py-3 rounded-xl flex items-center justify-center gap-2 cursor-not-allowed border border-gray-200">
-                                                                                    <Lock className="w-3.5 h-3.5" /> <span className="md:hidden">Ocupada</span>
-                                                                                </button>
-                                                                            )}
-                                                                        </div>
+                                                            {/* Reservation Steps */}
+                                                            <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm mb-6">
+                                                                <h5 className="text-xs font-black text-gray-900 uppercase tracking-widest mb-6 text-center">Pasos para alquilar con Rentia</h5>
+                                                                <div className="grid grid-cols-4 gap-4 align-top">
+                                                                    <div className="text-center group">
+                                                                        <div className="w-8 h-8 rounded-full bg-gray-100 text-gray-900 flex items-center justify-center font-black mb-2 mx-auto group-hover:bg-rentia-blue group-hover:text-white transition-colors text-xs shadow-sm">1</div>
+                                                                        <p className="text-[10px] font-bold text-gray-800 uppercase mb-1">Solicita</p>
+                                                                        <p className="text-[10px] text-gray-400 leading-tight px-2">Rellena tus datos y perfil en el formulario.</p>
+                                                                    </div>
+                                                                    <div className="text-center group">
+                                                                        <div className="w-8 h-8 rounded-full bg-gray-100 text-gray-900 flex items-center justify-center font-black mb-2 mx-auto group-hover:bg-rentia-blue group-hover:text-white transition-colors text-xs shadow-sm">2</div>
+                                                                        <p className="text-[10px] font-bold text-gray-800 uppercase mb-1">Valoración</p>
+                                                                        <p className="text-[10px] text-gray-400 leading-tight px-2">En 24-48h te contactamos si eres aceptado.</p>
+                                                                    </div>
+                                                                    <div className="text-center group">
+                                                                        <div className="w-8 h-8 rounded-full bg-gray-100 text-gray-900 flex items-center justify-center font-black mb-2 mx-auto group-hover:bg-rentia-blue group-hover:text-white transition-colors text-xs shadow-sm">3</div>
+                                                                        <p className="text-[10px] font-bold text-gray-800 uppercase mb-1">Visita</p>
+                                                                        <p className="text-[10px] text-gray-400 leading-tight px-2">Coordinamos cita para ver el piso.</p>
+                                                                    </div>
+                                                                    <div className="text-center group">
+                                                                        <div className="w-8 h-8 rounded-full bg-gray-100 text-gray-900 flex items-center justify-center font-black mb-2 mx-auto group-hover:bg-rentia-blue group-hover:text-white transition-colors text-xs shadow-sm">4</div>
+                                                                        <p className="text-[10px] font-bold text-gray-800 uppercase mb-1">¡Dentro!</p>
+                                                                        <p className="text-[10px] text-gray-400 leading-tight px-2">Contrato digital y entrega de llaves.</p>
                                                                     </div>
                                                                 </div>
-                                                            );
-                                                        })}
+                                                            </div>
+
+                                                            {/* Legal Disclaimer */}
+                                                            <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 text-center">
+                                                                <p className="text-[10px] text-gray-400 leading-relaxed max-w-3xl mx-auto">
+                                                                    <span className="font-bold text-gray-500 uppercase">Información antes de contactar:</span> Rentia Investments S.L. actúa como plataforma de intermediación tecnológica.
+                                                                    El usuario reconoce y acepta nuestra <strong>cláusula de no elusión</strong>, comprometiéndose a realizar toda comunicación y pago inicial a través de Rentia.
+                                                                    Cualquier intento de negociación directa con la propiedad podrá suponer la cancelación del servicio. Los términos finales del alquiler (precio, duración, fianza) son definidos por el contrato de arrendamiento.
+                                                                </p>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1273,10 +1471,8 @@ export const RoomsView: React.FC = () => {
                                     })
                                 )}
                             </div>
-                        </div >
+                        </div>
                     </div >
-
-                    {/* Footer Legend */}
                 </section >
 
                 <section className="mt-16 border-t border-gray-200 pt-8 pb-12 bg-gray-50">
@@ -1331,8 +1527,35 @@ export const RoomsView: React.FC = () => {
                                     </button>
                                 </div>
 
+
                                 {/* Scrollable Body */}
                                 <div className="overflow-y-auto p-4 pb-24 space-y-6">
+
+                                    {/* Property Context */}
+                                    <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <div className="w-1 h-4 bg-rentia-blue rounded-full"></div>
+                                            <h4 className="text-xs font-black uppercase tracking-widest text-gray-900">Sobre la vivienda</h4>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="flex items-center gap-2 text-xs font-bold text-gray-600">
+                                                <UsersIcon className="w-3.5 h-3.5 text-gray-400" /> {selectedProperty.rooms.length} Vecinos
+                                            </div>
+                                            {selectedProperty.bathrooms && (
+                                                <div className="flex items-center gap-2 text-xs font-bold text-gray-600">
+                                                    <Bath className="w-3.5 h-3.5 text-gray-400" /> {selectedProperty.bathrooms} Baños
+                                                </div>
+                                            )}
+                                            {selectedProperty.cleaningConfig?.enabled && (
+                                                <div className="flex items-center gap-2 text-xs font-bold text-emerald-600">
+                                                    <Sparkles className="w-3.5 h-3.5" /> Limpieza Inc.
+                                                </div>
+                                            )}
+                                            <div className="flex items-center gap-2 text-xs font-bold text-indigo-600">
+                                                <Monitor className="w-3.5 h-3.5" /> Wifi Alta Vel.
+                                            </div>
+                                        </div>
+                                    </div>
 
                                     {/* Property Highlights */}
                                     <div className="flex items-center gap-3 overflow-x-auto pb-2 no-scrollbar">
@@ -1381,16 +1604,64 @@ export const RoomsView: React.FC = () => {
                                                         <div className="flex justify-between items-start mb-2">
                                                             <div>
                                                                 <h5 className="font-bold text-lg text-gray-900">{displayName}</h5>
-                                                                <div className="flex flex-wrap gap-2 mt-2">
-                                                                    {room.bedType && (
-                                                                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-600 bg-gray-50 px-2 py-1 rounded">
-                                                                            {getBedIcon(room.bedType)} {getBedLabel(room.bedType)}
-                                                                        </span>
-                                                                    )}
-                                                                    {room.hasAirConditioning && (
-                                                                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-cyan-700 bg-cyan-50 px-2 py-1 rounded">
-                                                                            <Wind className="w-3 h-3" /> A/C
-                                                                        </span>
+                                                                <div className="mt-3 space-y-3">
+                                                                    <div className="flex flex-wrap gap-2">
+                                                                        {room.availableFrom && (
+                                                                            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-1 rounded border border-blue-100 uppercase">
+                                                                                <Calendar className="w-3 h-3" /> {room.availableFrom === 'Inmediata' ? 'Inmediata' : `Desde ${room.availableFrom}`}
+                                                                            </span>
+                                                                        )}
+                                                                        {room.sqm && (
+                                                                            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-gray-700 bg-gray-50 px-2 py-1 rounded border border-gray-100 uppercase">
+                                                                                <Maximize className="w-3 h-3" /> {room.sqm} m²
+                                                                            </span>
+                                                                        )}
+                                                                        {room.bedType && (
+                                                                            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-gray-600 bg-gray-50 px-2 py-1 rounded uppercase">
+                                                                                {getBedIcon(room.bedType)} {getBedLabel(room.bedType)}
+                                                                            </span>
+                                                                        )}
+                                                                        {room.hasAirConditioning && (
+                                                                            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-cyan-700 bg-cyan-50 px-2 py-1 rounded uppercase">
+                                                                                <Wind className="w-3 h-3" /> A/C
+                                                                            </span>
+                                                                        )}
+                                                                        {room.features?.includes('private_bath') && (
+                                                                            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded border border-emerald-100 uppercase">
+                                                                                <Bath className="w-3 h-3" /> Baño Privado
+                                                                            </span>
+                                                                        )}
+                                                                        {room.targetProfile && room.targetProfile !== 'both' && (
+                                                                            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-1 rounded border border-indigo-100 uppercase">
+                                                                                {room.targetProfile === 'students' ? <GraduationCap className="w-3 h-3" /> : <Briefcase className="w-3 h-3" />}
+                                                                                {room.targetProfile === 'students' ? 'Estudiantes' : 'Trabajadores'}
+                                                                            </span>
+                                                                        )}
+                                                                        {room.hasFan && (
+                                                                            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-sky-700 bg-sky-50 px-2 py-1 rounded-md border border-sky-100 uppercase">
+                                                                                <Sparkles className="w-3 h-3" /> Ventilador
+                                                                            </span>
+                                                                        )}
+                                                                        {room.notes && (
+                                                                            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-md border border-amber-100 uppercase">
+                                                                                <Info className="w-3 h-3" /> {room.notes}
+                                                                            </span>
+                                                                        )}
+                                                                        {room.features?.includes('window_street') && (
+                                                                            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-yellow-700 bg-yellow-50 px-2 py-1 rounded-md border border-yellow-100 uppercase">
+                                                                                <Sun className="w-3 h-3" /> Exterior
+                                                                            </span>
+                                                                        )}
+                                                                        {room.features?.includes('balcony') && (
+                                                                            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-orange-700 bg-orange-50 px-2 py-1 rounded-md border border-orange-100 uppercase">
+                                                                                <Layout className="w-3 h-3" /> Balcón
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                    {room.description && (
+                                                                        <p className="text-[11px] text-gray-500 italic leading-snug border-l-2 border-gray-100 pl-2">
+                                                                            "{room.description}"
+                                                                        </p>
                                                                     )}
                                                                 </div>
                                                             </div>
@@ -1408,14 +1679,37 @@ export const RoomsView: React.FC = () => {
 
                                                         {/* Action Button */}
                                                         {isAvailable ? (
-                                                            <a
-                                                                href={`https://wa.me/34649666782?text=${encodeURIComponent(`Hola, estoy interesado en la habitación ${room.name} de ${selectedProperty.address}`)}`}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="mt-3 w-full flex items-center justify-center gap-2 bg-rentia-black text-white py-2.5 rounded-lg font-bold text-sm hover:bg-gray-800 transition-colors"
-                                                            >
-                                                                <MessageCircle className="w-4 h-4" /> Contactar Visita
-                                                            </a>
+                                                            <div className="flex flex-col gap-2 mt-3 w-full">
+                                                                {(() => {
+                                                                    const now = new Date();
+                                                                    const hour = now.getHours();
+                                                                    const minute = now.getMinutes();
+                                                                    const isOpen = hour >= 9 && (hour < 14 || (hour === 14 && minute === 0));
+
+                                                                    return isOpen ? (
+                                                                        <div className="text-[10px] font-black text-emerald-600 uppercase tracking-widest text-center mb-0.5 flex items-center justify-center gap-1.5 animate-pulse bg-emerald-50 py-1 rounded">
+                                                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                                                            Abierto · 9:00 - 14:00
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div className="flex flex-col items-center mb-1">
+                                                                            <div className="text-[10px] font-black text-rose-500 uppercase tracking-widest text-center flex items-center justify-center gap-1.5 bg-rose-50 py-1 rounded w-full">
+                                                                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                                                                                Cerrado · Abrimos a las 9:00
+                                                                            </div>
+                                                                            <span className="text-[9px] text-gray-400 font-medium italic mt-0.5">Deja tu mensaje y te responderemos</span>
+                                                                        </div>
+                                                                    );
+                                                                })()}
+                                                                <div className="grid grid-cols-1 gap-2">
+                                                                    <button
+                                                                        onClick={() => openContactModal(room.name, selectedProperty.address, selectedProperty.id, room.id)}
+                                                                        className="flex items-center justify-center gap-2 bg-[#25D366] text-white py-3 rounded-xl font-bold text-xs hover:bg-[#20ba5c] transition-colors shadow-sm active:scale-95 w-full"
+                                                                    >
+                                                                        <MessageCircle className="w-4 h-4" /> Contactar / WhatsApp
+                                                                    </button>
+                                                                </div>
+                                                            </div>
                                                         ) : (
                                                             <button disabled className="mt-3 w-full bg-gray-50 text-gray-300 py-2.5 rounded-lg font-bold text-sm cursor-not-allowed border border-gray-100">
                                                                 No disponible
@@ -1425,6 +1719,16 @@ export const RoomsView: React.FC = () => {
                                                 </div>
                                             );
                                         })}
+                                    </div>
+
+                                    {/* Mobile Disclaimer */}
+                                    <div className="bg-gray-50 -mx-4 px-4 py-8 border-t border-gray-100 text-center mt-6">
+                                        <p className="text-[10px] text-gray-400 leading-relaxed max-w-xs mx-auto">
+                                            <span className="font-bold text-gray-500 uppercase block mb-2">Información importante</span>
+                                            Rentia Investments S.L. actúa como intermediario.
+                                            Al contactar aceptas nuestra <strong>cláusula de no elusión</strong>.
+                                            Toda gestión y pago debe realizarse a través de la plataforma Rentia.
+                                        </p>
                                     </div>
                                 </div>
                             </div>
@@ -1442,7 +1746,16 @@ export const RoomsView: React.FC = () => {
                     )
                 }
 
-            </div>
+                <ContactLeadModal
+                    isOpen={contactModalOpen}
+                    onClose={() => setContactModalOpen(false)}
+                    roomName={contactRoomData?.roomName || ''}
+                    propertyName={contactRoomData?.propertyName || ''}
+                    propertyId={contactRoomData?.propertyId}
+                    roomId={contactRoomData?.roomId}
+                />
+
+            </div >
         </>
     );
 };

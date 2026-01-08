@@ -29,6 +29,16 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
             // Login directo contra Firebase Auth
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
 
+            // Verificación de Doble Opt-In (DOI) - Solo para propietarios (Excepciones: Vanesa y Info)
+            const allowedEmails = ['vanesa@rentiaroom.com', 'info@rentiaroom.com'];
+            if (userCredential.user && !userCredential.user.emailVerified && !allowedEmails.includes(email)) {
+                const { signOut } = await import('firebase/auth');
+                await signOut(auth);
+                setError('Tu cuenta requiere verificación. Revisa tu email para completar el Doble Opt-In antes de iniciar sesión.');
+                setLoading(false);
+                return;
+            }
+
             // ASEGURAMOS ROL DE GESTORA PARA VANESA
             if (email === 'vanesa@rentiaroom.com') {
                 const { doc, setDoc } = await import('firebase/firestore');

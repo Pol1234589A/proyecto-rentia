@@ -290,21 +290,17 @@ export const StaffDashboard: React.FC = () => {
         { id: 'tasks', label: 'Tareas', icon: <ClipboardList className="w-4 h-4" /> },
         { id: 'room_manager', label: 'Habitaciones', icon: <DoorOpen className="w-4 h-4" /> },
         { id: 'real_estate', label: 'Oportunidades', icon: <Building className="w-4 h-4" /> },
-        { id: 'visual_editor', label: 'Editor Web', icon: <Palette className="w-4 h-4 text-pink-600" /> }, // NEW
         { id: 'protocols', label: 'Protocolos', icon: <FileText className="w-4 h-4 text-indigo-500" /> },
         { id: 'management_leads', label: 'Leads Gestión', icon: <Key className="w-4 h-4" />, count: pendingMgmtLeadsCount },
         { id: 'requests', label: 'Solicitudes', icon: <Inbox className="w-4 h-4" />, count: pendingRequestsCount },
         { id: 'transfers', label: 'Traspasos', icon: <Share2 className="w-4 h-4" />, count: pendingTransfersCount },
-        { id: 'sales_tracker', label: 'Ventas', icon: <Activity className="w-4 h-4" /> },
         { id: 'blacklist', label: 'Gestión Riesgos', icon: <ShieldAlert className="w-4 h-4 text-red-500" /> },
-        { id: 'room_manager', label: 'Habitaciones', icon: <DoorOpen className="w-4 h-4 text-green-600" /> },
-        { id: 'contracts', label: 'Contratos', icon: <FileText className="w-4 h-4 text-indigo-600" /> },
+        { id: 'contracts', label: 'Contratos (MANTENIMIENTO)', icon: <FileText className="w-4 h-4 text-indigo-600" /> },
         { id: 'supplies', label: 'Suministros', icon: <Zap className="w-4 h-4" /> },
         { id: 'worker_invoices', label: 'Facturas Trabajadores', icon: <Receipt className="w-4 h-4" /> },
         { id: 'calculator', label: 'Reparto Gastos', icon: <Split className="w-4 h-4" /> },
         { id: 'accounting', label: 'Contabilidad', icon: <Calculator className="w-4 h-4" /> },
         { id: 'agency_invoices', label: 'Facturas Rentia', icon: <Printer className="w-4 h-4" /> },
-        { id: 'advanced_calc', label: 'Liquidaciones (BETA)', icon: <Calculator className="w-4 h-4" /> },
         { id: 'calendar', label: 'Calendario', icon: <CalendarIcon className="w-4 h-4" /> },
         { id: 'visits', label: 'Visitas', icon: <Footprints className="w-4 h-4" /> },
         { id: 'user_manager', label: 'Usuarios', icon: <UserCog className="w-4 h-4" /> },
@@ -316,7 +312,7 @@ export const StaffDashboard: React.FC = () => {
     const vanesaTools = [
         { id: 'protocols', label: 'Protocolos y Claves', icon: <Key className="w-4 h-4 text-indigo-500" /> },
         { id: 'room_manager', label: 'Gestión Habitaciones', icon: <DoorOpen className="w-4 h-4 text-green-400" /> },
-        { id: 'contracts', label: 'Contratos (Rentger)', icon: <FileText className="w-4 h-4 text-pink-400" /> },
+        { id: 'contracts', label: 'Contratos (MANTENIMIENTO)', icon: <FileText className="w-4 h-4 text-pink-400" /> },
         { id: 'tasks', label: 'Mis Tareas', icon: <ClipboardList className="w-4 h-4" /> },
         { id: 'management_leads', label: 'Captación', icon: <Key className="w-4 h-4" />, count: pendingMgmtLeadsCount },
         { id: 'requests', label: 'Solicitudes', icon: <Inbox className="w-4 h-4" />, count: pendingRequestsCount },
@@ -326,7 +322,7 @@ export const StaffDashboard: React.FC = () => {
 
     const mobileMenuOptions = [
         { id: 'room_manager', label: 'Habitaciones', icon: <DoorOpen className="w-6 h-6" />, color: 'bg-green-100 text-green-600' },
-        { id: 'contracts', label: 'Contratos', icon: <FileText className="w-6 h-6" />, color: 'bg-pink-100 text-pink-600' },
+        { id: 'contracts', label: 'Contratos (MANTENIMIENTO)', icon: <FileText className="w-6 h-6" />, color: 'bg-pink-100 text-pink-600' },
         { id: 'tasks', label: 'Tareas', icon: <ClipboardList className="w-6 h-6" />, color: 'bg-orange-100 text-orange-600', count: 0 },
         { id: 'management_leads', label: 'Captación', icon: <Key className="w-6 h-6" />, color: 'bg-indigo-100 text-indigo-600', count: pendingMgmtLeadsCount },
         { id: 'requests', label: 'Solicitudes', icon: <Inbox className="w-6 h-6" />, color: 'bg-blue-100 text-blue-600', count: pendingRequestsCount },
@@ -335,7 +331,6 @@ export const StaffDashboard: React.FC = () => {
 
         // Admin Extra Tools (Hidden for Vanesa in view logic if desired, but simplifying mobile menu for all)
         { id: 'site_config', label: 'Config Web', icon: <Settings className="w-6 h-6" />, color: 'bg-indigo-50 text-indigo-400' },
-        { id: 'visual_editor', label: 'Editor', icon: <Palette className="w-6 h-6" />, color: 'bg-pink-50 text-pink-400' },
         { id: 'accounting', label: 'Contabilidad', icon: <Calculator className="w-6 h-6" />, color: 'bg-blue-50 text-blue-400' },
     ];
 

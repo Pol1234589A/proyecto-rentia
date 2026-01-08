@@ -52,8 +52,14 @@ service firebase.storage {
     
     // Solicitudes de gestión propietarios (ManagementSubmissionForm)
     match /mgmt/{tempId}/{allPaths=**} {
-      allow create: if true;
-      allow read: if true;
+      allow read, write: if true;
+    }
+
+    // Firmas RGPD para leads de alquiler (ContactLeadModal)
+    match /legal/gdpr_leads/{fileName} {
+      allow create: if true; // Web pública sube firma
+      allow read: if isAuth(); // Staff lee
+      allow update, delete: if false; // Nadie modifica/borra por seguridad legal
     }
 
     // --- CARPETAS PRIVADAS / RESTRINGIDAS ---

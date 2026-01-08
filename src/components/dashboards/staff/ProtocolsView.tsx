@@ -81,20 +81,31 @@ export const ProtocolsView: React.FC<{ isVanesa?: boolean, onOpenCandidateModal?
                 </h2>
                 <p className="text-gray-500 mt-1">Base de conocimiento y flujos de trabajo de Rentia Investments.</p>
 
-                <div className="flex gap-2 mt-4">
-                    <button
-                        onClick={() => setActiveSection('vanesa')}
-                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${activeSection === 'vanesa' ? 'bg-rentia-blue text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                <div className="flex flex-wrap items-center justify-between gap-4 mt-4">
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => setActiveSection('vanesa')}
+                            className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${activeSection === 'vanesa' ? 'bg-rentia-blue text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                        >
+                            Onboarding & Captación (Vanesa)
+                        </button>
+                        <button
+                            onClick={() => setActiveSection('general')}
+                            className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${activeSection === 'general' ? 'bg-rentia-blue text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                        >
+                            Protocolo General
+                        </button>
+                    </div>
+
+                    <a
+                        href="https://whatsapp.com/channel/0029VbBsvhOIt5rpshbpYN1P"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 border border-green-200 rounded-lg text-sm font-bold hover:bg-green-100 transition-all shadow-sm"
                     >
-                        Onboarding & Captación (Vanesa)
-                    </button>
-                    {/* Más pestañas para futuros protocolos */}
-                    <button
-                        onClick={() => setActiveSection('general')}
-                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${activeSection === 'general' ? 'bg-rentia-blue text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-                    >
-                        Protocolo General
-                    </button>
+                        <MessageSquare className="w-4 h-4" />
+                        Canal Difusión Inversores
+                    </a>
                 </div>
             </div>
 
@@ -128,6 +139,10 @@ export const ProtocolsView: React.FC<{ isVanesa?: boolean, onOpenCandidateModal?
                                         <a href="https://www.facebook.com/" target="_blank" rel="noreferrer" className="flex items-center gap-2 px-4 py-2 bg-white text-[#1877F2] border-2 border-[#1877F2] font-bold text-xs rounded-lg hover:bg-blue-50 transition-colors shadow-sm">
                                             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
                                             Facebook
+                                        </a>
+                                        <a href="https://www.milanuncios.com/mis-anuncios/" target="_blank" rel="noreferrer" className="flex items-center gap-2 px-4 py-2 bg-white text-[#ad0808] border-2 border-[#ad0808] font-bold text-xs rounded-lg hover:bg-red-50 transition-colors shadow-sm">
+                                            <div className="w-4 h-4 flex items-center justify-center bg-[#ad0808] text-white rounded-full text-[10px]">M</div>
+                                            Milanuncios
                                         </a>
                                     </div>
                                     <li>Revisar mensajes entrantes.</li>

@@ -11,14 +11,16 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Obtiene los datos del usuario actual desde la colección 'users'
+    // Obtiene los datos del usuario actual desde la colección 'users' de forma segura
     function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      let path = /databases/$(database)/documents/users/$(request.auth.uid);
+      return exists(path) ? get(path).data : {};
     }
 
-    // Verifica el rol específico
+    // Verifica el rol específico (de forma segura contra nulos)
     function hasRole(role) {
-      return isAuthenticated() && getUserData().role == role;
+      let data = getUserData();
+      return isAuthenticated() && ('role' in data) && data.role == role;
     }
 
     // Roles Jerárquicos
@@ -70,9 +72,9 @@ service cloud.firestore {
     // - Staff: Control total.
     // - Usuario: Solo lee/edita su propio perfil.
     match /users/{userId} {
-      allow read: if isAuthenticated() && (request.auth.uid == userId || isInternal() || isWorker());
-      allow create: if isAuthenticated(); // Permitir creación inicial al registrarse (UserCreator usa admin SDK normalmente, pero esto cubre registros directos si los hubiera)
-      allow update: if isStaff() || (isAuthenticated() && request.auth.uid == userId);
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isWorker() || isInternal());
+      allow create: if isAuthenticated(); 
+      allow update: if (isAuthenticated() && request.auth.uid == userId) || isStaff();
       allow delete: if isStaff();
     }
 
@@ -154,7 +156,7 @@ service cloud.firestore {
     // 11. PIPELINE CANDIDATOS (CRM Alquiler)
     match /candidate_pipeline/{candidateId} {
       allow read, update: if isStaffOrWorker();
-      allow create: if isAuthenticated(); 
+      allow create: if true; // Web pública
       allow delete: if isInternal();
     }
 
@@ -207,7 +209,14 @@ service cloud.firestore {
     // 19. LEADS DE GESTIÓN (Propietarios que quieren gestión)
     match /management_leads/{leadId} {
         allow create: if true; 
-        allow read: if isInternal() || isWorker() || (isOwner() && resource.data.linkedOwnerId == request.auth.uid);
+        allow read: if (isAuthenticated() && resource.data.linkedOwnerId == request.auth.uid) || isWorker() || isInternal();
+        allow update, delete: if isInternal();
+    }
+
+    // 20. LEADS DE ALQUILER (Inquilinos interesados - WEB)
+    match /tenant_leads/{leadId} {
+        allow create: if true; // Web pública
+        allow read: if isStaffOrWorker(); // Staff/Workers gestionan leads
         allow update, delete: if isInternal();
     }
 
@@ -225,7 +234,7 @@ service cloud.firestore {
 
     // 22. FACTURAS DE AGENCIA (Liquidaciones a Owners)
     match /agency_invoices/{invoiceId} {
-        allow read: if isInternal() || isWorker() || (isOwner() && resource.data.ownerId == request.auth.uid);
+        allow read: if (isAuthenticated() && resource.data.ownerId == request.auth.uid) || isWorker() || isInternal();
         allow write: if isInternal();
     }
 

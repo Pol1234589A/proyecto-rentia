@@ -6,8 +6,11 @@ import {
     Edit, Save, X, Loader2, MapPin, Building, Bath, Layout,
     Wind, Tv, Lock, Monitor, Users, BedDouble,
     Droplets, History, Info, Sparkles, Calendar, Percent,
-    Camera, Video, Trash2, Film, Plus
+    Camera, Video, Trash2, Film, Plus, Clipboard
 } from 'lucide-react';
+import { storage } from '../firebase';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { compressImage } from '../utils/imageOptimizer';
 
 interface PropertyEditModalProps {
     property: Property;
@@ -91,6 +94,55 @@ export const PropertyEditModal: React.FC<PropertyEditModalProps> = ({ property, 
                 return { ...r, images: [...(r.images || []), imageUrl] };
             })
         }));
+    };
+
+    const handlePasteToRoom = async (e: React.ClipboardEvent, roomId: string) => {
+        const items = e.clipboardData.items;
+        const filesToUpload: File[] = [];
+
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].kind === 'file') {
+                const file = items[i].getAsFile();
+                if (file && file.type.startsWith('image/')) {
+                    filesToUpload.push(file);
+                }
+            }
+        }
+
+        if (filesToUpload.length > 0) {
+            e.preventDefault();
+            // Notificamos visualmente que algo está pasando (opcional, pero mejora UX)
+            console.log("Subiendo imágenes pegadas...");
+
+            for (const file of filesToUpload) {
+                try {
+                    let blobToUpload: Blob = file;
+                    // Solo comprimimos si no es GIF
+                    if (!file.type.includes('gif')) {
+                        blobToUpload = await compressImage(file);
+                    }
+
+                    const ext = blobToUpload.type === 'image/webp' ? 'webp' : (file.type.split('/')[1] || 'bin');
+                    const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
+                    const storageRef = ref(storage, `rooms/${roomId}/images/${fileName}`);
+
+                    const uploadTask = uploadBytesResumable(storageRef, blobToUpload);
+
+                    uploadTask.on('state_changed', null,
+                        (error) => {
+                            console.error("Error subiendo imagen pegada:", error);
+                            alert("Error al subir imagen pegada.");
+                        },
+                        async () => {
+                            const url = await getDownloadURL(uploadTask.snapshot.ref);
+                            addRoomImage(roomId, url);
+                        }
+                    );
+                } catch (err) {
+                    console.error("Fallo al procesar imagen pegada:", err);
+                }
+            }
+        }
     };
 
     const propertyFeatures = [
@@ -313,11 +365,19 @@ export const PropertyEditModal: React.FC<PropertyEditModalProps> = ({ property, 
                                 <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest pl-2">Galerías Individuales (Habitaciones)</h4>
                                 <div className="grid grid-cols-1 gap-4">
                                     {editedProperty.rooms.map((room: Room) => (
-                                        <div key={room.id} className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
+                                        <div
+                                            key={room.id}
+                                            className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4 focus-within:ring-2 focus-within:ring-rentia-blue/20 transition-all outline-none"
+                                            onPaste={(e) => handlePasteToRoom(e, room.id)}
+                                            tabIndex={0}
+                                        >
                                             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b pb-4">
                                                 <div className="flex items-center gap-2">
                                                     <span className="bg-gray-900 text-white w-6 h-6 rounded flex items-center justify-center text-[10px] font-black">{room.name}</span>
-                                                    <h5 className="font-bold text-gray-900 uppercase text-xs tracking-tight">Multimedia - {room.name}</h5>
+                                                    <div>
+                                                        <h5 className="font-bold text-gray-900 uppercase text-xs tracking-tight">Multimedia - {room.name}</h5>
+                                                        <p className="text-[9px] text-gray-400 font-bold flex items-center gap-1 mt-0.5"><Clipboard className="w-2.5 h-2.5" /> Haz clic aquí y pulsa Ctrl+V para pegar fotos</p>
+                                                    </div>
                                                 </div>
                                                 <div className="flex gap-2">
                                                     <ImageUploader
@@ -584,7 +644,7 @@ export const PropertyEditModal: React.FC<PropertyEditModalProps> = ({ property, 
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 
     return createPortal(modalLayout, document.body);

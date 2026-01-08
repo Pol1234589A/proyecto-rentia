@@ -19,7 +19,7 @@ export const AgencyInvoicesPanel: React.FC = () => {
             snapshot.forEach((doc) => {
                 invs.push({ ...doc.data(), id: doc.id } as AgencyInvoice);
             });
-            setInvoices(invs);
+            setInvoices([]); // Forzado vacío por petición hasta tener datos reales
             setLoading(false);
         });
         return () => unsubscribe();

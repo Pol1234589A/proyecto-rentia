@@ -537,26 +537,27 @@ export const translations = {
         header4: '4. Exclusión de Garantías y Responsabilidad',
         text4: 'Rentia Investments S.L. no se hace responsable, en ningún caso, de los daños y perjuicios de cualquier naturaleza que pudieran ocasionar, a título enunciativo: errores u omisiones en los contenidos, falta de disponibilidad del portal o la transmisión de virus o programas maliciosos o lesivos en los contenidos, a pesar de haber adoptado todas las medidas tecnológicas necesarias para evitarlo.',
         header_disclaimer: '5. Exención de Responsabilidad en Inversiones',
-        text_disclaimer: 'Rentia Investments S.L. no se hace responsable en ningún momento de las decisiones finales de propietarios o compradores. Toda la información, datos y estudios compartidos por la empresa a través de cualquier medio (web, documentos, comunicaciones directas) son estimaciones basadas en la experiencia del mercado y no constituyen una declaración contractual o garantía de resultados futuros. El usuario reconoce que cualquier operación inmobiliaria conlleva riesgos y debe realizar su propia diligencia debida.',
+        text_disclaimer: 'IMPORTANTE: Rentia Investments S.L. y su representante Pol Matencio Espinosa no garantizan rendimientos futuros. Toda la información, datos y estudios compartidos son estimaciones basadas en la experiencia del mercado y no constituyen una garantía contractual. El usuario asume el riesgo de cualquier operación inmobiliaria.',
         header5: '6. Ley Aplicable y Jurisdicción',
-        text5: 'La relación entre Rentia Investments S.L. y el Usuario se regirá por la normativa española vigente. Para la resolución de cualquier conflicto, las partes se someten expresamente a los Juzgados y Tribunales de la ciudad de Murcia, renunciando a cualquier otro fuero que pudiera corresponderles.'
+        text5: 'La relación entre Rentia Investments S.L. y el Usuario se regirá por la normativa española vigente. Para la resolución de cualquier conflicto, las partes se someten expresamente a los Juzgados y Tribunales de la ciudad de Murcia.'
       },
       privacy_policy: {
         intro: 'Rentia Investments S.L. se compromete con el cumplimiento del Reglamento (UE) 2016/679 (RGPD) y la Ley Orgánica 3/2018 (LOPDGDD).',
         header1: '1. Responsable del Tratamiento',
-        text1: 'El responsable del tratamiento de los datos es Rentia Investments S.L., con domicilio en C/ Brazal de Álamos, 7, 30130, Beniel, Murcia, España. Puede contactar con nosotros para cualquier cuestión relativa a la privacidad en info@rentiaroom.com.',
+        text1: 'El responsable del tratamiento de los datos es Rentia Investments S.L., representada por Pol Matencio Espinosa, con domicilio en C/ Brazal de Álamos, 7, 30130, Beniel, Murcia, España. Email: info@rentiaroom.com.',
         header2: '2. Finalidad del Tratamiento',
         text2: 'Sus datos personales serán tratados con las siguientes finalidades:',
         purpose_list: [
+          'Gestión de usuarios y cuentas privadas en la plataforma RentiaRoom.',
           'Gestión de consultas y solicitudes realizadas a través de la web o WhatsApp.',
-          'Ejecución de contratos de prestación de servicios o alquiler.',
-          'Envío de comunicaciones comerciales sobre oportunidades de inversión, siempre que haya otorgado su consentimiento expreso.',
-          'Cumplimiento de obligaciones legales, fiscales y contables.'
+          'Ejecución de contratos de prestación de servicios, mandatos de gestión o alquiler.',
+          'Envío de comunicaciones comerciales sobre oportunidades de inversión (bajo consentimiento).',
+          'Cumplimiento de obligaciones legales, fiscales y prevención de blanqueo de capitales.'
         ],
         header3: '3. Legitimación y Conservación',
-        text3: 'La base legal para el tratamiento es el consentimiento del usuario (al contactar) y/o la ejecución de una relación contractual. Los datos se conservarán mientras se mantenga la relación comercial o durante los años necesarios para cumplir con las obligaciones legales.',
+        text3: 'La base legal es el consentimiento expreso y la ejecución contractual. Los datos se conservarán mientras dure la relación comercial plus los plazos legales de prescripción.',
         header4: '4. Derechos del Usuario',
-        text4: 'Tiene derecho a acceder, rectificar y suprimir los datos, así como otros derechos (limitación, portabilidad, oposición), enviando una solicitud a info@rentiaroom.com. También tiene derecho a presentar una reclamación ante la Agencia Española de Protección de Datos (AEPD) si considera que el tratamiento no se ajusta a la normativa vigente.'
+        text4: 'Puede ejercer sus derechos de acceso, rectificación, supresión, oposición, limitación y portabilidad enviando un email a info@rentiaroom.com adjuntando copia de DNI/NIE.'
       },
       cookies: {
         intro: 'Una cookie es un pequeño fichero de texto que se almacena en su navegador cuando accede a casi cualquier página web. Su utilidad es que la web sea capaz de recordar su visita cuando vuelva a navegar por esa página.',

@@ -21,6 +21,7 @@ const app = initializeApp(firebaseConfig);
 
 // 2. Inicializar Auth
 export const auth = getAuth(app);
+auth.languageCode = 'es'; // Forzar emails en español
 if (!isServer) {
   setPersistence(auth, browserLocalPersistence).catch((error) => {
     console.error("Error setting auth persistence:", error);

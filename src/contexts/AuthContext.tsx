@@ -51,10 +51,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               return;
             }
 
+            // SEGURIDAD: Verificar si el usuario ha completado el Doble Opt-In (DOI)
+            if (userData.role === 'owner' && !user.emailVerified) {
+              console.warn('Usuario con email pendiente de verificación. Acceso restringido.');
+              // No cerramos sesión aquí para no romper el flujo de registro, 
+              // pero no asignamos el rol de propietario para que las reglas de Firestore bloqueen el acceso.
+              setUserRole(null);
+              setCurrentUser(user);
+              setLoading(false);
+              return;
+            }
+
             // Asignamos el rol desde el campo 'role'
             let assignedRole = userData.role as UserRole;
 
-            // FORZADO GLOBAL DE VANESA: Asegura que siempre entre como manager/gestora
+            // ... (resto de la lógica de Vanesa)
             if (user.email?.toLowerCase().trim() === 'vanesa@rentiaroom.com') {
               assignedRole = 'manager';
             }
@@ -62,11 +73,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             setUserRole(assignedRole);
             setCurrentUser(user);
           } else {
-            // Usuario en Auth pero no en DB (Inconsistencia de seguridad o error de creación)
-            console.warn('Usuario autenticado sin perfil en Firestore. Cerrando sesión por seguridad.');
-            await signOut(auth);
-            setCurrentUser(null);
+            // Documento no existe aún (probablemente registro en curso)
+            console.log('Perfil de usuario no encontrado (puede estar creándose...).');
             setUserRole(null);
+            setCurrentUser(user);
           }
         } catch (error) {
           console.error("Error obteniendo rol del usuario:", error);

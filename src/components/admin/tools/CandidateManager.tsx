@@ -30,6 +30,12 @@ export const CandidateManager: React.FC = () => {
     const [archiveReason, setArchiveReason] = useState('');
     const [assignee, setAssignee] = useState<StaffMember | ''>('');
     const [rentSelection, setRentSelection] = useState({ propertyId: '', roomId: '' });
+    const [contractParams, setContractParams] = useState({
+        startDate: new Date().toISOString().split('T')[0],
+        endDate: new Date(new Date().setMonth(new Date().getMonth() + 6)).toISOString().split('T')[0], // Default 6 months
+        price: 0,
+        deposit: 0
+    });
 
     useEffect(() => {
         // Cargar Candidatos
@@ -127,10 +133,56 @@ export const CandidateManager: React.FC = () => {
     };
 
     // ALQUILAR
+    // ALQUILAR
     const handleRentCandidate = async () => {
         if (!selectedCandidate || !rentSelection.propertyId || !rentSelection.roomId) return alert("Selecciona propiedad y habitación.");
+
         setProcessingId(selectedCandidate.id);
         try {
+            // 1. Crear Contrato en Rentger (si se desea)
+            const prop = properties.find(p => p.id === rentSelection.propertyId);
+            const room = prop?.rooms.find(r => r.id === rentSelection.roomId);
+
+            if (!prop || !room) throw new Error("Propiedad o habitación no encontrada");
+
+            // Llamada a la API de integración
+            try {
+                showNotification('success', "Conectando con Rentger...");
+                const response = await fetch('/api/rentger/create-contract', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        candidateName: selectedCandidate.candidateName,
+                        candidateEmail: selectedCandidate.candidateEmail || `${selectedCandidate.candidateName.replace(/\s+/g, '.').toLowerCase()}@placeholder.com`, // Fallback si no hay email
+                        candidatePhone: selectedCandidate.candidatePhone,
+                        propertyAddress: prop.address,
+                        roomName: room.name,
+                        price: contractParams.price,
+                        deposit: contractParams.deposit,
+                        startDate: contractParams.startDate,
+                        endDate: contractParams.endDate
+                    })
+                });
+
+                const data = await response.json();
+                if (!data.success) {
+                    console.error("Rentger Error:", data.error);
+                    if (!confirm(`Error al crear contrato en Rentger: ${data.error}\n\n¿Quieres continuar y marcarlo como alquilado en RentiA de todas formas?`)) {
+                        setProcessingId(null);
+                        return;
+                    }
+                } else {
+                    showNotification('success', "¡Contrato Rentger creado y enviado!");
+                }
+            } catch (err) {
+                console.error("Error de conexión con Rentger", err);
+                if (!confirm("Falló la conexión con Rentger. ¿Continuar solo en local?")) {
+                    setProcessingId(null);
+                    return;
+                }
+            }
+
+            // 2. Actualizar en Firestore (Local)
             await updateDoc(doc(db, "candidate_pipeline", selectedCandidate.id), {
                 status: 'rented',
                 assignedRoomId: rentSelection.roomId,
@@ -139,13 +191,11 @@ export const CandidateManager: React.FC = () => {
             });
 
             const propRef = doc(db, "properties", rentSelection.propertyId);
-            const prop = properties.find(p => p.id === rentSelection.propertyId);
-            if (prop) {
-                const updatedRooms = prop.rooms.map(r =>
-                    r.id === rentSelection.roomId ? { ...r, status: 'occupied' as const } : r
-                );
-                await updateDoc(propRef, { rooms: updatedRooms });
-            }
+            const updatedRooms = prop.rooms.map(r =>
+                r.id === rentSelection.roomId ? { ...r, status: 'occupied' as const } : r
+            );
+            await updateDoc(propRef, { rooms: updatedRooms });
+
 
             showNotification('success', "¡Éxito! Candidato asignado y habitación ocupada.");
             setModalMode(null);
@@ -230,6 +280,13 @@ export const CandidateManager: React.FC = () => {
                         <Eye className="w-3 h-3" /> Ver Historial
                     </button>
                 </div>
+
+                {c.additionalInfo && (
+                    <div className="bg-yellow-50 text-gray-700 text-xs px-3 py-2 rounded-lg border border-yellow-200 mb-3 italic flex items-start gap-2">
+                        <FileText className="w-4 h-4 text-yellow-500 shrink-0 mt-0.5" />
+                        <span>{c.additionalInfo}</span>
+                    </div>
+                )}
 
                 {/* Solo mostrar propiedad si estamos en modo lista plana, en modo propiedad es redundante */}
                 {viewMode === 'list' && (
@@ -467,7 +524,64 @@ export const CandidateManager: React.FC = () => {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95">
                         <div className="p-4 border-b bg-green-50 flex items-center gap-2 text-green-800"><CheckCircle className="w-5 h-5" /><h3 className="font-bold">Formalizar Alquiler</h3></div>
-                        <div className="p-6 space-y-4"><p className="text-sm text-gray-600">Confirma la asignación. Esto marcará la habitación como "Ocupada".</p><div><label className="text-xs font-bold text-gray-500 uppercase block mb-1">Propiedad</label><select className="w-full p-2 border rounded-lg text-sm bg-white" value={rentSelection.propertyId} onChange={(e) => setRentSelection({ ...rentSelection, propertyId: e.target.value, roomId: '' })}><option value="">Seleccionar...</option>{properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}</select></div><div><label className="text-xs font-bold text-gray-500 uppercase block mb-1">Habitación</label><select className="w-full p-2 border rounded-lg text-sm bg-white disabled:bg-gray-100" value={rentSelection.roomId} onChange={(e) => setRentSelection({ ...rentSelection, roomId: e.target.value })} disabled={!rentSelection.propertyId}><option value="">Seleccionar...</option>{properties.find(p => p.id === rentSelection.propertyId)?.rooms.map(r => (<option key={r.id} value={r.id}>{r.name} ({r.status})</option>))}</select></div><div className="flex justify-end gap-2 pt-4"><button onClick={() => setModalMode(null)} className="px-4 py-2 text-gray-500 font-bold text-sm">Cancelar</button><button onClick={handleRentCandidate} className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold text-sm shadow-md">Confirmar Alquiler</button></div></div>
+                        <div className="p-6 space-y-4">
+                            <p className="text-sm text-gray-600">Confirma la asignación. Esto creará el contrato en Rentger y ocupará la habitación.</p>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="col-span-2">
+                                    <label className="text-xs font-bold text-gray-500 uppercase block mb-1">Propiedad</label>
+                                    <select className="w-full p-2 border rounded-lg text-sm bg-white" value={rentSelection.propertyId} onChange={(e) => setRentSelection({ ...rentSelection, propertyId: e.target.value, roomId: '' })}>
+                                        <option value="">Seleccionar...</option>
+                                        {properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}
+                                    </select>
+                                </div>
+                                <div className="col-span-2">
+                                    <label className="text-xs font-bold text-gray-500 uppercase block mb-1">Habitación</label>
+                                    <select
+                                        className="w-full p-2 border rounded-lg text-sm bg-white disabled:bg-gray-100"
+                                        value={rentSelection.roomId}
+                                        onChange={(e) => {
+                                            const rid = e.target.value;
+                                            const prop = properties.find(p => p.id === rentSelection.propertyId);
+                                            const room = prop?.rooms.find(r => r.id === rid);
+                                            setRentSelection({ ...rentSelection, roomId: rid });
+                                            if (room) {
+                                                setContractParams(prev => ({ ...prev, price: room.price, deposit: room.price }));
+                                            }
+                                        }}
+                                        disabled={!rentSelection.propertyId}
+                                    >
+                                        <option value="">Seleccionar...</option>
+                                        {properties.find(p => p.id === rentSelection.propertyId)?.rooms.map(r => (<option key={r.id} value={r.id}>{r.name} ({r.status}) - {r.price}€</option>))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="text-xs font-bold text-gray-500 uppercase block mb-1">Fecha Inicio</label>
+                                    <input type="date" className="w-full p-2 border rounded-lg text-sm" value={contractParams.startDate} onChange={(e) => setContractParams({ ...contractParams, startDate: e.target.value })} />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-gray-500 uppercase block mb-1">Fecha Fin</label>
+                                    <input type="date" className="w-full p-2 border rounded-lg text-sm" value={contractParams.endDate} onChange={(e) => setContractParams({ ...contractParams, endDate: e.target.value })} />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-gray-500 uppercase block mb-1">Precio (€)</label>
+                                    <input type="number" className="w-full p-2 border rounded-lg text-sm" value={contractParams.price} onChange={(e) => setContractParams({ ...contractParams, price: Number(e.target.value) })} />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-gray-500 uppercase block mb-1">Fianza (€)</label>
+                                    <input type="number" className="w-full p-2 border rounded-lg text-sm" value={contractParams.deposit} onChange={(e) => setContractParams({ ...contractParams, deposit: Number(e.target.value) })} />
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end gap-2 pt-4">
+                                <button onClick={() => setModalMode(null)} className="px-4 py-2 text-gray-500 font-bold text-sm">Cancelar</button>
+                                <button onClick={handleRentCandidate} disabled={!!processingId} className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold text-sm shadow-md flex items-center gap-2">
+                                    {processingId ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+                                    Crear Contrato y Alquilar
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

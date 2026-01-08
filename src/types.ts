@@ -255,6 +255,12 @@ export interface UserProfile {
     address?: string;
     bankAccount?: string;
     active?: boolean;
+    emailVerified?: boolean;
+    doubleOptIn?: {
+        verificationSent: boolean;
+        acceptedAt: any;
+        ip?: string;
+    };
     createdAt?: any;
     gdpr?: {
         signed: boolean;
@@ -387,6 +393,12 @@ export interface ManagementLead {
         rooms: { id: number; name: string; price: number; images: string[] }[] | null;
     };
     images: { common: string[] };
+    documents?: {
+        dniFront: string;
+        dniBack: string;
+        escritura: string;
+        bankCertificate: string;
+    };
     calculatorData: { estimatedFee: number; declaredProperties: number };
     status: string;
     createdAt: any;

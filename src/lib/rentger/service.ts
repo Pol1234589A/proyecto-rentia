@@ -47,7 +47,13 @@ export const RentgerBackendService = {
             }
             return null;
         } catch (error: any) {
-            console.error('Rentger Auth Error:', error.response?.status, error.response?.data || error.message);
+            console.error('Rentger Auth Error Details:', {
+                status: error.response?.status,
+                data: error.response?.data,
+                message: error.message,
+                keyConfigured: !!RENTGER_API_KEY,
+                keyLength: RENTGER_API_KEY ? RENTGER_API_KEY.length : 0
+            });
             return null;
         }
     },
@@ -132,6 +138,83 @@ export const RentgerBackendService = {
         } catch (error: any) {
             console.error('Rentger Create Lead Error:', error.response?.status, error.response?.data || error.message);
             throw new Error(error.response?.data?.message || 'Error creating lead in Rentger');
+        }
+    },
+
+    /**
+     * Create a Tenant (User type 2)
+     */
+    async createTenant(user: { name: string; email: string; phone?: string }) {
+        const token = await this.authenticate();
+        if (!token) throw new Error('Rentger authentication failed');
+
+        try {
+            const payload = {
+                name: user.name,
+                email: user.email,
+                phone: user.phone,
+                user_type: 2, // Tenant
+                gender: 0,
+                birthdate: '1990-01-01', // Technical placeholder
+            };
+
+            const response = await axios.post(`${BASE_URL}/v1/user`, payload, {
+                headers: {
+                    ...commonHeaders,
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            // If response is just the ID or token, we normalize
+            return { success: true, data: response.data };
+        } catch (error: any) {
+            console.error('Rentger Create Tenant Error:', error.response?.status, error.response?.data || error.message);
+            // If email exists, we might need to handle it. Rentger returns existing user info sometimes.
+            throw new Error(error.response?.data?.message || 'Error creating tenant in Rentger');
+        }
+    },
+
+    /**
+     * Create a Contract
+     */
+    async createContract(contractData: {
+        asset_id: string | number;
+        tenant_id: string | number;
+        date_start: string;
+        date_end: string;
+        price: number;
+        deposit: number;
+    }) {
+        const token = await this.authenticate();
+        if (!token) throw new Error('Rentger authentication failed');
+
+        try {
+            const payload = {
+                asset_enc_id: contractData.asset_id,
+                users: [
+                    {
+                        user_enc_id: contractData.tenant_id,
+                        type: 2 // Tenant
+                    }
+                ],
+                date_start: contractData.date_start,
+                date_end: contractData.date_end,
+                price: contractData.price,
+                deposit: contractData.deposit,
+                status: 0, // 0: Borrador/Pendiente
+            };
+
+            const response = await axios.post(`${BASE_URL}/v1/contract`, payload, {
+                headers: {
+                    ...commonHeaders,
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            return { success: true, data: response.data };
+        } catch (error: any) {
+            console.error('Rentger Create Contract Error:', error.response?.status, error.response?.data || error.message);
+            throw new Error(error.response?.data?.message || 'Error creating contract in Rentger');
         }
     },
 

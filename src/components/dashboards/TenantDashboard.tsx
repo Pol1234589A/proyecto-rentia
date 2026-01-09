@@ -89,13 +89,12 @@ export const TenantDashboard: React.FC = () => {
         return () => unsubIncidents();
     }, [currentUser]);
 
-    // Fetch property when contract is found
+    // Fetch property when contract is found (REAL-TIME)
     useEffect(() => {
         if (!activeContract?.propertyId) return;
 
-        const fetchProp = async () => {
-            const propRef = doc(db, "properties", activeContract.propertyId);
-            const propSnap = await getDoc(propRef);
+        const propRef = doc(db, "properties", activeContract.propertyId);
+        const unsubProp = onSnapshot(propRef, (propSnap) => {
             if (propSnap.exists()) {
                 const pData = propSnap.data() as Property;
                 setProperty({ ...pData, id: propSnap.id });
@@ -105,9 +104,10 @@ export const TenantDashboard: React.FC = () => {
                     wifiPassword: pData.wifiConfig?.password || ''
                 }));
             }
-        };
-        fetchProp();
-    }, [activeContract]);
+        });
+
+        return () => unsubProp();
+    }, [activeContract?.propertyId]);
 
     const handleUpdateProfile = async () => {
         if (!currentUser) return;
@@ -415,6 +415,21 @@ export const TenantDashboard: React.FC = () => {
                                 </div>
                             </div>
                         </div>
+
+                        {property.cleaningConfig.cleanerName && (
+                            <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-purple-50 rounded-lg text-purple-600"><User className="w-5 h-5" /></div>
+                                    <div>
+                                        <p className="text-xs text-gray-500 font-bold uppercase">Personal Asignado</p>
+                                        <p className="text-sm font-medium text-gray-800">
+                                            {property.cleaningConfig.cleanerName.split(' ')[0]}
+                                            {property.cleaningConfig.cleanerPhone ? ` (${property.cleaningConfig.cleanerPhone.slice(0, 6)}***${property.cleaningConfig.cleanerPhone.slice(-3)})` : ''}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         <div className="bg-gray-50 p-3 rounded-lg text-xs text-gray-500 mt-2 flex items-start gap-2">
                             <AlertTriangle className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />

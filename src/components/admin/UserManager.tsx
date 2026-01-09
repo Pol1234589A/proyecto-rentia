@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { db, functions } from '../../firebase';
-import { collection, query, where, getDocs, updateDoc, doc, onSnapshot, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs, updateDoc, doc, onSnapshot, orderBy, setDoc, serverTimestamp } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { UserProfile } from '../../types';
 import { Users, Search, RefreshCw, ShieldAlert, CheckCircle, XCircle, FileText, Loader2, ExternalLink, Shield, User, Briefcase, Key, Trash2 } from 'lucide-react';
@@ -12,6 +12,14 @@ export const UserManager: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [resettingId, setResettingId] = useState<string | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+
+    // Estados para reparación manual
+    const [repairUid, setRepairUid] = useState('');
+    const [repairName, setRepairName] = useState('');
+    const [repairEmail, setRepairEmail] = useState('');
+    const [repairRole, setRepairRole] = useState<'worker' | 'staff' | 'tenant' | 'owner'>('worker');
+    const [isRepairing, setIsRepairing] = useState(false);
+    const [showRepairTool, setShowRepairTool] = useState(false);
 
     useEffect(() => {
         // Cargar todos los usuarios del sistema
@@ -100,10 +108,108 @@ export const UserManager: React.FC = () => {
                     </h3>
                     <p className="text-xs text-gray-500">Control de roles, firmas RGPD y estado de cuentas de toda la plataforma.</p>
                 </div>
-                <div className="bg-white px-3 py-1 rounded-full border text-[10px] font-bold text-gray-500 flex items-center gap-2 shadow-sm">
-                    <span className="w-2 h-2 rounded-full bg-green-500"></span> {users.length} Usuarios Registrados
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => setShowRepairTool(!showRepairTool)}
+                        className={`text-[10px] font-bold px-3 py-1.5 rounded-lg border transition-all flex items-center gap-1.5 ${showRepairTool ? 'bg-orange-600 text-white border-orange-700' : 'bg-white text-orange-600 border-orange-200 hover:bg-orange-50'}`}
+                    >
+                        <ShieldAlert className="w-3 h-3" />
+                        {showRepairTool ? 'Cerrar Reparador' : 'Reparar por UID'}
+                    </button>
+                    <div className="bg-white px-3 py-1 rounded-full border text-[10px] font-bold text-gray-500 flex items-center gap-2 shadow-sm">
+                        <span className="w-2 h-2 rounded-full bg-green-500"></span> {users.length} Usuarios Registrados
+                    </div>
                 </div>
             </div>
+
+            {/* SECCIÓN DE REPARACIÓN MANUAL (UID RECOVERY) */}
+            {showRepairTool && (
+                <div className="p-6 bg-orange-50 border-b border-orange-100 animate-in slide-in-from-top-4 duration-300">
+                    <div className="flex items-center gap-2 text-orange-800 mb-4">
+                        <ShieldAlert className="w-5 h-5" />
+                        <h4 className="font-bold text-sm">Herramienta de Recuperación de Emergencia (Ayub/Ayoub Fix)</h4>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div>
+                            <label className="block text-[10px] font-bold text-orange-700 uppercase mb-1">UID de Firebase Auth</label>
+                            <input
+                                type="text"
+                                placeholder="Pega el UID aquí..."
+                                className="w-full p-2 border border-orange-200 rounded text-sm focus:ring-2 focus:ring-orange-200 outline-none"
+                                value={repairUid}
+                                onChange={e => setRepairUid(e.target.value)}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-[10px] font-bold text-orange-700 uppercase mb-1">Nombre Completo</label>
+                            <input
+                                type="text"
+                                placeholder="Ej: Ayoub"
+                                className="w-full p-2 border border-orange-200 rounded text-sm focus:ring-2 focus:ring-orange-200 outline-none"
+                                value={repairName}
+                                onChange={e => setRepairName(e.target.value)}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-[10px] font-bold text-orange-700 uppercase mb-1">Email Registrado</label>
+                            <input
+                                type="email"
+                                placeholder="ayoub@rentiaroom.com"
+                                className="w-full p-2 border border-orange-200 rounded text-sm focus:ring-2 focus:ring-orange-200 outline-none"
+                                value={repairEmail}
+                                onChange={e => setRepairEmail(e.target.value)}
+                            />
+                        </div>
+                        <div className="flex items-end gap-2">
+                            <div className="flex-1">
+                                <label className="block text-[10px] font-bold text-orange-700 uppercase mb-1">Rol</label>
+                                <select
+                                    className="w-full p-2 border border-orange-200 rounded text-sm focus:ring-2 focus:ring-orange-200 outline-none"
+                                    value={repairRole}
+                                    onChange={e => setRepairRole(e.target.value as any)}
+                                >
+                                    <option value="worker">Trabajador (Worker)</option>
+                                    <option value="staff">Admin (Staff)</option>
+                                    <option value="tenant">Inquilino (Tenant)</option>
+                                    <option value="owner">Propietario (Owner)</option>
+                                </select>
+                            </div>
+                            <button
+                                disabled={!repairUid || !repairName || !repairEmail || isRepairing}
+                                onClick={async () => {
+                                    if (!confirm(`¿Seguro que quieres forzar la creación del perfil para ${repairName} con UID ${repairUid}?`)) return;
+                                    setIsRepairing(true);
+                                    try {
+                                        await setDoc(doc(db, "users", repairUid), {
+                                            uid: repairUid,
+                                            name: repairName,
+                                            email: repairEmail,
+                                            role: repairRole,
+                                            active: true,
+                                            gdprAccepted: true, // Forzamos true para que no le salga el muro si queremos
+                                            "gdpr.signed": true,
+                                            createdAt: serverTimestamp()
+                                        }, { merge: true });
+                                        alert("¡Perfil recuperado/actualizado con éxito!");
+                                        setRepairUid('');
+                                        setShowRepairTool(false);
+                                    } catch (e) {
+                                        console.error(e);
+                                        alert("Error al reparar: " + (e as Error).message);
+                                    } finally {
+                                        setIsRepairing(false);
+                                    }
+                                }}
+                                className="bg-orange-600 text-white p-2 rounded hover:bg-orange-700 transition-colors disabled:opacity-50"
+                                title="Reparar Ahora"
+                            >
+                                {isRepairing ? <Loader2 className="w-5 h-5 animate-spin" /> : <RefreshCw className="w-5 h-5" />}
+                            </button>
+                        </div>
+                    </div>
+                    <p className="mt-2 text-[10px] text-orange-600 italic">Esta herramienta crea un documento en Firestore vinculado al UID proporcionado. Úsala solo si el usuario existe en Authentication pero no en el listado de abajo.</p>
+                </div>
+            )}
 
             <div className="p-4 border-b border-gray-100">
                 <div className="relative max-w-md">

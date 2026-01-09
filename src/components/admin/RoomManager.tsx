@@ -218,22 +218,46 @@ export const RoomManager: React.FC = () => {
         }
     };
 
-    // Modificación local de datos (días, horas) sin guardar en BD todavía
-    const handleCleaningChange = (propId: string, field: keyof CleaningConfig, value: any) => {
+    const handleCleaningChange = async (propId: string, field: keyof CleaningConfig, value: any) => {
+        // Optimistic update
         setProperties(prev => prev.map(p => {
             if (p.id !== propId) return p;
             const currentConfig = p.cleaningConfig || { enabled: false, days: [], hours: '', costPerHour: 10, included: false };
             return { ...p, cleaningConfig: { ...currentConfig, [field]: value } };
         }));
+
+        // Actualización en Firestore
+        try {
+            const p = properties.find(p => p.id === propId);
+            if (!p) return;
+            const currentConfig = p.cleaningConfig || { enabled: false, days: [], hours: '', costPerHour: 10, included: false };
+            const newConfig = { ...currentConfig, [field]: value };
+            await setDoc(doc(db, "properties", propId), { cleaningConfig: newConfig }, { merge: true });
+        } catch (e) {
+            console.error("Error saving cleaning field:", e);
+        }
     };
 
-    const toggleCleaningDay = (propId: string, day: string) => {
+    const toggleCleaningDay = async (propId: string, day: string) => {
+        const prop = properties.find(p => p.id === propId);
+        if (!prop) return;
+
+        const config = prop.cleaningConfig || { enabled: true, days: [], hours: '', costPerHour: 10, included: false };
+        const newDays = config.days.includes(day) ? config.days.filter(d => d !== day) : [...config.days, day];
+        const newConfig = { ...config, days: newDays };
+
+        // Optimistic update
         setProperties(prev => prev.map(p => {
             if (p.id !== propId) return p;
-            const config = p.cleaningConfig || { enabled: true, days: [], hours: '', costPerHour: 10, included: false };
-            const newDays = config.days.includes(day) ? config.days.filter(d => d !== day) : [...config.days, day];
-            return { ...p, cleaningConfig: { ...config, days: newDays } };
+            return { ...p, cleaningConfig: newConfig };
         }));
+
+        // Firestore update
+        try {
+            await setDoc(doc(db, "properties", propId), { cleaningConfig: newConfig }, { merge: true });
+        } catch (e) {
+            console.error("Error toggling cleaning day:", e);
+        }
     };
 
     const handleRoomChange = (propId: string, roomId: string, field: keyof Room, value: any) => {

@@ -36,6 +36,8 @@ export interface CleaningConfig {
   hours: string;
   costPerHour: number;
   included: boolean;
+  cleanerName?: string;
+  cleanerPhone?: string;
 }
 
 export interface OwnerRecommendation {

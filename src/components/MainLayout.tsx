@@ -26,10 +26,11 @@ export const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }
     // LegacyApp: !isStandaloneView && !(view === 'intranet' && (userRole === 'worker' || userRole === 'staff'))
     const isIntranet = pathname === '/intranet';
     const hideWhatsApp = isStandalone || (isIntranet && (userRole === 'worker' || userRole === 'staff' || userRole === 'manager'));
+    const hideGlobalNav = isStandalone || (isIntranet && (userRole === 'worker' || userRole === 'manager' || userRole === 'staff'));
 
     return (
         <div className="min-h-screen flex flex-col font-sans">
-            {!isStandalone && <Header />}
+            {!hideGlobalNav && <Header />}
 
             <main className="flex-grow bg-[#f9f9f9] relative z-0">
                 {children}

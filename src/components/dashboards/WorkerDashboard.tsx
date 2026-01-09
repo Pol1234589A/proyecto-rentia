@@ -6,7 +6,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '../../contexts/AuthContext';
 import { Task, TaskStatus, Candidate, CandidateStatus, VisitOutcome, RoomVisit, InternalNews, WorkerInvoice, UserProfile } from '../../types';
 import { properties as staticProperties, Property, Room, CleaningConfig } from '../../data/rooms';
-import { ClipboardList, Home, CheckCircle, Clock, AlertCircle, MapPin, Search, Calendar, Wrench, Plus, X, AlertTriangle, ChevronLeft, Loader2, WifiOff, Monitor, Tv, Lock, Sun, Bed, Layout, Image as ImageIcon, UserPlus, Send, Users, UserX, UserCheck, ChevronRight, Eye, Megaphone, Bell, ChevronDown, Sparkles, Trophy, Euro, Save, Receipt, Trash2, Download, Upload, FileCheck, Siren, ArrowRight, Phone, MessageCircle, Shield, MousePointerClick, Briefcase, Footprints, BarChart3, Building, Grid, Globe, FileText } from 'lucide-react';
+import { ClipboardList, Home, CheckCircle, Clock, AlertCircle, MapPin, Search, Calendar, Wrench, Plus, X, AlertTriangle, ChevronLeft, Loader2, WifiOff, Monitor, Tv, Lock, Sun, Bed, Layout, Image as ImageIcon, UserPlus, Users, User, UserX, UserCheck, Send, ChevronRight, Eye, Megaphone, Bell, ChevronDown, Sparkles, Trophy, Euro, Save, Receipt, Trash2, Download, Upload, FileCheck, Siren, ArrowRight, Phone, MessageCircle, Shield, MousePointerClick, Briefcase, Footprints, BarChart3, Building, Grid, Globe, FileText } from 'lucide-react';
 import { ImageLightbox } from '../ImageLightbox';
 import { SensitiveDataDisplay } from '../common/SecurityComponents';
 import { ProtocolsView } from './staff/ProtocolsView';
@@ -56,12 +56,12 @@ const getPriorityBadge = (p: string) => {
 };
 
 const getTaskContainerStyles = (task: Task) => {
-    if (task.status === 'Completada') return 'border border-gray-200 opacity-50 bg-gray-50';
+    if (task.status === 'Completada') return 'border border-gray-100 opacity-60 bg-gray-50 bg-opacity-50 blur-[0.3px]';
     switch (task.priority) {
-        case 'Alta': return 'border-2 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.2)] animate-[pulse_2s_cubic-bezier(0.4,0,0.6,1)_infinite] z-10';
-        case 'Media': return 'border-l-4 border-l-yellow-400 border-y border-r border-gray-200 hover:-translate-y-0.5 transition-transform duration-75 ease-linear';
-        case 'Baja': return 'border border-green-100 opacity-60 grayscale-[0.3] hover:opacity-100 hover:grayscale-0 transition-all duration-700 ease-in-out hover:shadow-sm';
-        default: return 'border border-gray-200';
+        case 'Alta': return 'border-l-4 border-l-red-500 bg-white shadow-[0_4px_20px_rgba(239,68,68,0.1)] ring-1 ring-red-100';
+        case 'Media': return 'border-l-4 border-l-orange-400 bg-white shadow-lg shadow-orange-900/5 ring-1 ring-orange-100';
+        case 'Baja': return 'border-l-4 border-l-emerald-400 bg-white shadow-sm ring-1 ring-emerald-50';
+        default: return 'border border-gray-100 bg-white shadow-sm';
     }
 };
 
@@ -93,17 +93,61 @@ const NewsBanner: React.FC = () => {
 
 interface TaskCardProps { task: Task; onStatusChange: (taskId: string, newStatus: TaskStatus) => void; }
 const TaskCard: React.FC<TaskCardProps> = ({ task, onStatusChange }) => (
-    <div className={`bg-white p-4 rounded-xl shadow-sm relative transition-all duration-300 ${getTaskContainerStyles(task)}`}>
-        <div className="flex justify-between items-start mb-3"><span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider ${getPriorityBadge(task.priority)}`}>{task.priority}</span><div className="text-[10px] text-gray-500 bg-gray-50 px-2 py-0.5 rounded flex items-center gap-1 border border-gray-100">{task.category === 'Mantenimiento' && <Wrench className="w-3 h-3" />}{task.category}</div></div>
-        <h4 className="font-bold text-gray-800 text-sm mb-2 leading-snug break-words">{task.title}</h4>
-        <p className="text-xs text-gray-500 mb-4 whitespace-pre-line bg-gray-50 p-3 rounded border border-gray-100">{task.description}</p>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pt-3 border-t border-gray-50 gap-3">
-            {task.dueDate && (<div className={`flex items-center gap-1 text-[10px] font-medium ${new Date(task.dueDate) < new Date() && task.status !== 'Completada' ? 'text-red-500 font-bold' : 'text-gray-400'}`}><Calendar className="w-3 h-3" />{new Date(task.dueDate).toLocaleDateString()}</div>)}
-            <div className="flex gap-2 w-full sm:w-auto">
-                {task.status !== 'En Curso' && task.status !== 'Completada' && (<button onClick={() => onStatusChange(task.id, 'En Curso')} className="flex-1 sm:flex-none flex items-center justify-center gap-1 bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-blue-700 shadow-sm active:scale-95 transition-all"><Clock className="w-3 h-3" /> Empezar</button>)}
-                {task.status !== 'Completada' && (<button onClick={() => onStatusChange(task.id, 'Completada')} className="flex-1 sm:flex-none flex items-center justify-center gap-1 bg-green-50 text-green-700 px-4 py-2 rounded-lg text-xs font-bold border border-green-100 hover:bg-green-100 active:scale-95 transition-all"><CheckCircle className="w-3 h-3" /> Hecho</button>)}
-                {task.status === 'En Curso' && (<button onClick={() => onStatusChange(task.id, 'Pendiente')} className="p-2 text-gray-400 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"><X className="w-4 h-4" /></button>)}
+    <div className={`p-5 rounded-2xl relative transition-all duration-500 active:scale-[0.98] ${getTaskContainerStyles(task)}`}>
+        <div className="flex justify-between items-start mb-4">
+            <div className="flex flex-col gap-1">
+                <span className={`text-[9px] font-black px-2 py-0.5 rounded-full w-fit border uppercase tracking-[0.05em] ${getPriorityBadge(task.priority)}`}>
+                    {task.priority}
+                </span>
+                <div className="text-[10px] font-bold text-gray-400 flex items-center gap-1 mt-1 opacity-70">
+                    {task.category === 'Mantenimiento' ? <Wrench className="w-3 h-3 text-orange-500" /> : <Sparkles className="w-3 h-3 text-purple-400" />}
+                    {task.category}
+                </div>
             </div>
+            {task.dueDate && (
+                <div className={`text-[10px] font-bold px-2 py-1 rounded-lg flex items-center gap-1.5 ${new Date(task.dueDate) < new Date() && task.status !== 'Completada' ? 'bg-red-50 text-red-600 animate-pulse' : 'bg-gray-50 text-gray-400'}`}>
+                    <Clock className="w-3 h-3" />
+                    {new Date(task.dueDate).toLocaleDateString()}
+                </div>
+            )}
+        </div>
+
+        <h4 className="font-extrabold text-gray-900 text-[15px] mb-2 leading-tight tracking-tight">
+            {task.title}
+        </h4>
+
+        <p className="text-[12px] text-gray-500 mb-5 leading-relaxed bg-gray-50/50 p-3 rounded-xl border border-gray-100/50 italic">
+            {task.description}
+        </p>
+
+        <div className="flex items-center gap-2 pt-2">
+            {task.status !== 'Completada' && (
+                <>
+                    {task.status !== 'En Curso' ? (
+                        <button
+                            onClick={() => onStatusChange(task.id, 'En Curso')}
+                            className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-br from-blue-600 to-blue-700 text-white p-3.5 rounded-xl text-xs font-black shadow-lg shadow-blue-500/20 active:scale-95 transition-all"
+                        >
+                            <Clock className="w-4 h-4" /> EMPEZAR
+                        </button>
+                    ) : (
+                        <div className="flex-1 flex items-center justify-center gap-2 bg-blue-50 text-blue-700 p-3.5 rounded-xl text-xs font-black border border-blue-100">
+                            <Loader2 className="w-4 h-4 animate-spin" /> EN CURSO
+                        </div>
+                    )}
+                    <button
+                        onClick={() => onStatusChange(task.id, 'Completada')}
+                        className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-br from-emerald-500 to-teal-600 text-white p-3.5 rounded-xl text-xs font-black shadow-lg shadow-emerald-500/20 active:scale-95 transition-all"
+                    >
+                        <CheckCircle className="w-4 h-4" /> COMPLETAR
+                    </button>
+                </>
+            )}
+            {task.status === 'Completada' && (
+                <div className="w-full text-center py-2 text-emerald-600 font-black text-xs flex items-center justify-center gap-2 bg-emerald-50 rounded-xl">
+                    <CheckCircle className="w-4 h-4" /> TAREA FINALIZADA
+                </div>
+            )}
         </div>
     </div>
 );
@@ -139,7 +183,7 @@ export const WorkerDashboard: React.FC = () => {
     const [showVisitLogModal, setShowVisitLogModal] = useState<Room | null>(null);
     const [newVisitData, setNewVisitData] = useState({ outcome: 'pending' as VisitOutcome, comments: '', commission: 0 });
     const [editingCleaningPropId, setEditingCleaningPropId] = useState<string | null>(null);
-    const [cleaningConfigForm, setCleaningConfigForm] = useState<CleaningConfig>({ enabled: false, days: [], hours: '', costPerHour: 10, included: false });
+    const [cleaningConfigForm, setCleaningConfigForm] = useState<CleaningConfig>({ enabled: false, days: [], hours: '', costPerHour: 10, included: false, cleanerName: '', cleanerPhone: '' });
     const [isGdprOpen, setIsGdprOpen] = useState(false);
     const [isGdprChecked, setIsGdprChecked] = useState(false);
     const [signing, setSigning] = useState(false);
@@ -307,11 +351,35 @@ export const WorkerDashboard: React.FC = () => {
     const openImages = (images: string[], index = 0) => { setLightboxImages(images); setLightboxIndex(index); setIsLightboxOpen(true); };
     const getFeatureIcon = (id: string) => { switch (id) { case 'balcony': return <Sun className="w-3 h-3" />; case 'smart_tv': return <Tv className="w-3 h-3" />; case 'lock': return <Lock className="w-3 h-3" />; case 'desk': return <Monitor className="w-3 h-3" />; default: return <CheckCircle className="w-3 h-3" />; } };
     const handleStatusChange = async (taskId: string, newStatus: TaskStatus) => { await updateDoc(doc(db, "tasks", taskId), { status: newStatus }); if (newStatus === 'Completada') { const randomMsg = CELEBRATION_MESSAGES[Math.floor(Math.random() * CELEBRATION_MESSAGES.length)]; setCelebrationMessage(randomMsg); setTimeout(() => setCelebrationMessage(null), 3500); } };
-    const handleSaveIncident = async (e: React.FormEvent) => { e.preventDefault(); if (!newIncident.propertyId || !newIncident.title) return alert("Selecciona una propiedad y escribe un título."); const selectedProp = properties.find(p => p.id === newIncident.propertyId); const locationText = selectedProp?.address || 'Propiedad'; const taskTitle = `INCIDENCIA: ${newIncident.title} (${locationText})`; await addDoc(collection(db, "tasks"), { title: taskTitle, description: newIncident.description, assignee: workerName, priority: newIncident.priority, status: 'Pendiente', category: 'Mantenimiento', boardId: 'incidents', createdAt: serverTimestamp(), dueDate: new Date().toISOString() }); setShowIncidentModal(false); setNewIncident({ propertyId: '', roomId: 'common', title: '', description: '', priority: 'Media' }); alert("Incidencia reportada correctamente."); };
+    const handleSaveIncident = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newIncident.propertyId || !newIncident.title) return alert("Selecciona una propiedad y escribe un título.");
+        const selectedProp = properties.find(p => p.id === newIncident.propertyId);
+        const locationText = selectedProp?.address || 'Propiedad';
+        const taskTitle = `INCIDENCIA: ${newIncident.title} (${locationText})`;
+
+        await addDoc(collection(db, "tasks"), {
+            title: taskTitle,
+            description: newIncident.description,
+            assignee: workerName,
+            priority: newIncident.priority,
+            status: 'Pendiente',
+            category: 'Mantenimiento',
+            boardId: 'incidents',
+            propertyId: newIncident.propertyId,
+            ownerId: selectedProp?.ownerId || null,
+            createdAt: serverTimestamp(),
+            dueDate: new Date().toISOString()
+        });
+
+        setShowIncidentModal(false);
+        setNewIncident({ propertyId: '', roomId: 'common', title: '', description: '', priority: 'Media' });
+        alert("Incidencia reportada correctamente.");
+    };
     const handleSendCandidate = async (e: React.FormEvent) => { e.preventDefault(); if (!newCandidate.propertyId || !newCandidate.candidateName) { return alert("Completa los campos obligatorios: propiedad y nombre."); } const prop = properties.find(p => p.id === newCandidate.propertyId); const room = prop?.rooms?.find(r => r.id === newCandidate.roomId); try { await addDoc(collection(db, "candidate_pipeline"), { ...newCandidate, propertyName: prop?.address || 'N/A', ownerId: prop?.ownerId || null, roomName: room?.name || 'General / A definir', submittedBy: workerName, submittedAt: serverTimestamp(), status: 'pending_review' }); setShowCandidateModal(false); setNewCandidate({ propertyId: '', roomId: '', candidateName: '', additionalInfo: '', candidatePhone: '', candidateEmail: '', priority: 'Media', sourcePlatform: '' }); alert('Candidato enviado a filtrado correctamente.'); } catch (error) { console.error(error); alert('Error al enviar candidato.'); } };
     const handleSaveVisit = async (e: React.FormEvent) => { e.preventDefault(); if (!showVisitLogModal || !selectedProperty) return; try { await addDoc(collection(db, "room_visits"), { propertyId: selectedProperty.id, propertyName: selectedProperty.address, roomId: showVisitLogModal.id, roomName: showVisitLogModal.name, workerName: workerName, visitDate: serverTimestamp(), outcome: newVisitData.outcome, comments: newVisitData.comments, commission: Number(newVisitData.commission) || 0 }); setShowVisitLogModal(null); setNewVisitData({ outcome: 'pending', comments: '', commission: 0 }); alert('Visita registrada correctamente.'); } catch (err) { console.error(err); alert('Error al registrar la visita.'); } };
 
-    const startEditingCleaning = (prop: Property) => { setEditingCleaningPropId(prop.id); setCleaningConfigForm(prop.cleaningConfig || { enabled: false, days: [], hours: '', costPerHour: 10, included: false }); };
+    const startEditingCleaning = (prop: Property) => { setEditingCleaningPropId(prop.id); setCleaningConfigForm(prop.cleaningConfig || { enabled: false, days: [], hours: '', costPerHour: 10, included: false, cleanerName: '', cleanerPhone: '' }); };
 
     // UPDATED SAVE: Handle robust save for workers (create doc if needed)
     const handleCleaningSave = async () => {
@@ -511,6 +579,10 @@ export const WorkerDashboard: React.FC = () => {
                                                             <input type="text" placeholder="Horario" className="w-full p-1.5 border rounded text-xs" value={cleaningConfigForm.hours} onChange={e => setCleaningConfigForm({ ...cleaningConfigForm, hours: e.target.value })} />
                                                             <input type="number" placeholder="Coste/h" className="w-full p-1.5 border rounded text-xs" value={cleaningConfigForm.costPerHour} onChange={e => setCleaningConfigForm({ ...cleaningConfigForm, costPerHour: Number(e.target.value) })} />
                                                         </div>
+                                                        <div className="grid grid-cols-2 gap-2">
+                                                            <input type="text" placeholder="Nombre Limpiadora" className="w-full p-1.5 border rounded text-xs" value={cleaningConfigForm.cleanerName} onChange={e => setCleaningConfigForm({ ...cleaningConfigForm, cleanerName: e.target.value })} />
+                                                            <input type="tel" placeholder="Teléfono Limpiadora" className="w-full p-1.5 border rounded text-xs" value={cleaningConfigForm.cleanerPhone} onChange={e => setCleaningConfigForm({ ...cleaningConfigForm, cleanerPhone: e.target.value })} />
+                                                        </div>
                                                     </>
                                                 )}
                                             </div>
@@ -520,7 +592,7 @@ export const WorkerDashboard: React.FC = () => {
                                                     <div className="flex flex-col gap-1">
                                                         <span className="text-green-600 font-bold flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Servicio Activo</span>
                                                         <span>{p.cleaningConfig.days.join(', ')} • {p.cleaningConfig.hours}</span>
-                                                        <span>{p.cleaningConfig.costPerHour}€ / hora</span>
+                                                        <span>{p.cleaningConfig.costPerHour}€ / h • <span className="text-indigo-600 font-bold">{p.cleaningConfig.cleanerName?.split(' ')[0] || 'Limpiadora'}</span> ({p.cleaningConfig.cleanerPhone ? `${p.cleaningConfig.cleanerPhone.slice(0, 6)}***${p.cleaningConfig.cleanerPhone.slice(-3)}` : 'Sin tlf'})</span>
                                                     </div>
                                                 ) : (
                                                     <span className="text-gray-400">Servicio inactivo</span>
@@ -588,13 +660,74 @@ export const WorkerDashboard: React.FC = () => {
             case 'protocols':
                 return (
                     <div className="space-y-6 animate-in fade-in">
-                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                            <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-indigo-600"><FileText className="w-5 h-5" /> Mis Protocolos de Trabajo</h3>
-                            <p className="text-sm text-gray-500 mb-6">Consulta tus guías y claves de acceso corporativas.</p>
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 overflow-hidden relative">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full translate-x-1/2 -translate-y-1/2 -z-0"></div>
 
-                            {/* Incluimos la vista de protocolos específica que estaba en staff */}
-                            <div className="border-t pt-2">
-                                <ProtocolsView />
+                            <h3 className="font-black text-xl mb-6 flex items-center gap-2 text-gray-900 relative z-10">
+                                <Shield className="w-6 h-6 text-rentia-blue" />
+                                Central de Soporte y Ayuda
+                            </h3>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
+                                {/* Sandra */}
+                                <div className="bg-gray-50 border border-gray-100 p-5 rounded-2xl flex items-center gap-4 transition-all hover:bg-white hover:shadow-md group">
+                                    <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                                        <User className="w-6 h-6" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className="flex justify-between items-start">
+                                            <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">Administrativa</p>
+                                            <span className="bg-green-100 text-green-700 text-[9px] font-black px-2 py-0.5 rounded-full">9:00 - 14:00</span>
+                                        </div>
+                                        <h4 className="font-bold text-gray-900">Sandra</h4>
+                                        <div className="flex gap-3 mt-2">
+                                            <a href="tel:+34611978589" className="text-xs font-bold text-gray-500 hover:text-blue-600 flex items-center gap-1 transition-colors">
+                                                <Phone className="w-3.5 h-3.5" /> +34 611 97 85 89
+                                            </a>
+                                            <a href="https://wa.me/34611978589" target="_blank" className="text-xs font-bold text-green-600 hover:opacity-80 flex items-center gap-1">
+                                                <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Victor / Vanesa */}
+                                <div className="bg-gray-50 border border-gray-100 p-5 rounded-2xl flex items-center gap-4 transition-all hover:bg-white hover:shadow-md group">
+                                    <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                                        <Users className="w-6 h-6" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className="flex justify-between items-start">
+                                            <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-1">Gerencia / Soporte</p>
+                                            <span className="bg-green-100 text-green-700 text-[9px] font-black px-2 py-0.5 rounded-full">9:00 - 14:00</span>
+                                        </div>
+                                        <h4 className="font-bold text-gray-900">Victor & Vanesa</h4>
+                                        <p className="text-[10px] text-gray-400 font-medium italic mt-0.5">*Vanesa atiende de 9:00 a 14:00</p>
+                                        <div className="flex gap-3 mt-2">
+                                            <a href="tel:+34611919812" className="text-xs font-bold text-gray-500 hover:text-indigo-600 flex items-center gap-1 transition-colors">
+                                                <Phone className="w-3.5 h-3.5" /> +34 611 91 98 12
+                                            </a>
+                                            <a href="https://wa.me/34611919812" target="_blank" className="text-xs font-bold text-green-600 hover:opacity-80 flex items-center gap-1">
+                                                <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="mt-8 bg-blue-600 p-6 rounded-2xl text-white shadow-lg shadow-blue-500/20">
+                                <div className="flex items-start gap-4">
+                                    <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center shrink-0">
+                                        <Clock className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <p className="font-bold text-sm">Horario de Atención de Oficina</p>
+                                        <p className="text-blue-100 text-xs mt-1 leading-relaxed">
+                                            Sandra y Vanesa están disponibles para resolver cualquier duda administrativa o de gestión de **Lunes a Viernes de 9:00 a 14:00**.
+                                            Fuera de este horario, por favor deja un mensaje y te atenderán lo antes posible.
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -608,28 +741,79 @@ export const WorkerDashboard: React.FC = () => {
     if (!workerName) return <div className="h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-rentia-blue" /></div>;
 
     return (
-        <div className="min-h-[100dvh] bg-gray-50 font-sans">
+        <div className="min-h-[100dvh] bg-[#f8fbff] font-sans pb-32">
             {celebrationMessage && createPortal(<div className="fixed top-24 left-1/2 transform -translate-x-1/2 z-[10000] animate-in slide-in-from-top-4 fade-in duration-300 pointer-events-none"><div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 border-2 border-white/20 backdrop-blur-md"><Sparkles className="w-5 h-5 text-yellow-300 animate-pulse fill-current" /><span className="font-bold text-sm md:text-base tracking-wide text-shadow-sm">{celebrationMessage}</span><Trophy className="w-5 h-5 text-yellow-300" /></div></div>, document.body)}
 
-            <div className="max-w-6xl mx-auto p-4 md:p-6 pb-32">
-                <header className="mb-6"><h1 className="text-xl md:text-2xl font-bold text-rentia-black font-display">Hola, {workerName} <span className="text-xl">🛠️</span></h1>{error && <div className="mt-2 bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-sm flex items-center gap-2"><WifiOff className="w-4 h-4" />{error}</div>}</header>
-                <main>{renderContent()}</main>
+            {/* MODERN APP HEADER */}
+            <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-gray-100 px-6 py-5 flex justify-between items-center shadow-sm">
+                <div>
+                    <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] mb-0.5">Rentia Portal</p>
+                    <h1 className="text-xl font-black text-gray-900 leading-none">Hola, {workerName.split(' ')[0]} 👋</h1>
+                </div>
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white font-black text-xs shadow-lg shadow-blue-500/20">
+                        {workerName.charAt(0)}
+                    </div>
+                </div>
+            </header>
 
-                {/* FAB */}
-                <div className="fixed bottom-24 right-6 z-40">
-                    {activeTab === 'tasks' && <button onClick={() => setShowIncidentModal(true)} className="w-14 h-14 bg-red-600 text-white rounded-full shadow-xl flex items-center justify-center active:scale-90 transition-transform"><AlertTriangle className="w-6 h-6" /></button>}
-                    {activeTab === 'candidates' && <button onClick={() => setShowCandidateModal(true)} className="w-14 h-14 bg-green-600 text-white rounded-full shadow-xl flex items-center justify-center active:scale-90 transition-transform"><UserPlus className="w-6 h-6" /></button>}
+            <div className="max-w-6xl mx-auto p-6">
+                {error && (
+                    <div className="mb-6 bg-red-50 border border-red-200 text-red-700 p-4 rounded-2xl text-xs font-bold flex items-center gap-3 animate-pulse">
+                        <Siren className="w-5 h-5" />
+                        {error}
+                    </div>
+                )}
+
+                <main className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+                    {renderContent()}
+                </main>
+
+                {/* APP-LIKE FAB DESIGN */}
+                <div className="fixed bottom-28 right-6 z-40 flex flex-col gap-3">
+                    {activeTab === 'tasks' && (
+                        <button
+                            onClick={() => setShowIncidentModal(true)}
+                            className="w-16 h-16 bg-gradient-to-br from-red-500 to-rose-600 text-white rounded-[2rem] shadow-2xl shadow-rose-500/40 flex items-center justify-center active:scale-90 transition-all group scale-100 hover:scale-110"
+                        >
+                            <AlertTriangle className="w-8 h-8 drop-shadow-md" />
+                        </button>
+                    )}
+                    {activeTab === 'candidates' && (
+                        <button
+                            onClick={() => setShowCandidateModal(true)}
+                            className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-[2rem] shadow-2xl shadow-emerald-500/40 flex items-center justify-center active:scale-90 transition-all group scale-100 hover:scale-110"
+                        >
+                            <UserPlus className="w-8 h-8 drop-shadow-md" />
+                        </button>
+                    )}
                 </div>
 
-                {/* Bottom Nav */}
-                <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] grid grid-cols-6 z-50">
-                    <button onClick={() => setActiveTab('tasks')} className={`py-3 flex flex-col items-center justify-center gap-1 transition-colors ${activeTab === 'tasks' ? 'text-rentia-blue' : 'text-gray-400'}`}><ClipboardList className="w-6 h-6" /><span className="text-[9px] font-bold">Tareas</span></button>
-                    <button onClick={() => setActiveTab('candidates')} className={`py-3 flex flex-col items-center justify-center gap-1 transition-colors ${activeTab === 'candidates' ? 'text-rentia-blue' : 'text-gray-400'}`}><Users className="w-6 h-6" /><span className="text-[9px] font-bold">Candidatos</span></button>
-                    <button onClick={() => setActiveTab('rooms')} className={`py-3 flex flex-col items-center justify-center gap-1 transition-colors ${activeTab === 'rooms' ? 'text-rentia-blue' : 'text-gray-400'}`}><Home className="w-6 h-6" /><span className="text-[9px] font-bold">Catálogo</span></button>
-                    <button onClick={() => setActiveTab('cleaning')} className={`py-3 flex flex-col items-center justify-center gap-1 transition-colors ${activeTab === 'cleaning' ? 'text-rentia-blue' : 'text-gray-400'}`}><Sparkles className="w-6 h-6" /><span className="text-[9px] font-bold">Limpieza</span></button>
-                    <button onClick={() => setActiveTab('invoices')} className={`py-3 flex flex-col items-center justify-center gap-1 transition-colors ${activeTab === 'invoices' ? 'text-rentia-blue' : 'text-gray-400'}`}><Receipt className="w-6 h-6" /><span className="text-[9px] font-bold">Facturas</span></button>
-                    <button onClick={() => setActiveTab('protocols')} className={`py-3 flex flex-col items-center justify-center gap-1 transition-colors ${activeTab === 'protocols' ? 'text-rentia-blue' : 'text-gray-400'}`}><FileText className="w-6 h-6" /><span className="text-[9px] font-bold">Ayuda</span></button>
-                </div>
+                {/* PREMIUM TAB BAR */}
+                <nav className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-2xl border-t border-gray-100 shadow-[0_-8px_30px_rgba(0,0,0,0.06)] grid grid-cols-6 z-50 px-2 pb-8 pt-4">
+                    {[
+                        { id: 'tasks', icon: ClipboardList, label: 'Tareas' },
+                        { id: 'candidates', icon: Users, label: 'Visitas' },
+                        { id: 'rooms', icon: Grid, label: 'Stocks' },
+                        { id: 'cleaning', icon: Sparkles, iconClass: 'text-purple-500', label: 'Limpieza' },
+                        { id: 'invoices', icon: Receipt, label: 'Pagos' },
+                        { id: 'protocols', icon: Shield, label: 'Ayuda' }
+                    ].map((item) => (
+                        <button
+                            key={item.id}
+                            onClick={() => setActiveTab(item.id as any)}
+                            className={`flex flex-col items-center justify-center gap-1.5 transition-all duration-300 relative ${activeTab === item.id ? 'text-blue-600 scale-110' : 'text-gray-400'}`}
+                        >
+                            {activeTab === item.id && (
+                                <span className="absolute -top-1 w-1 h-1 bg-blue-600 rounded-full animate-ping" />
+                            )}
+                            <item.icon className={`w-6 h-6 ${activeTab === item.id ? 'fill-blue-500/10' : ''}`} strokeWidth={activeTab === item.id ? 2.5 : 2} />
+                            <span className={`text-[9px] font-black uppercase tracking-wider ${activeTab === item.id ? 'opacity-100' : 'opacity-60'}`}>
+                                {item.label}
+                            </span>
+                        </button>
+                    ))}
+                </nav>
             </div>
 
             {/* Modals included (VisitLog, Incident, Candidate, etc.) */}

@@ -11,7 +11,7 @@ import { compressImage } from '../../utils/imageOptimizer';
 import {
     Building2, MapPin, ChevronDown, TrendingUp, DollarSign,
     Briefcase, User, FileCheck, Megaphone, Lock, FileText,
-    Upload, Receipt, Download, Loader2, CreditCard, LayoutDashboard, Plus, CheckCircle, Percent, Gift, Sparkles, Clock, Calendar, AlertCircle, Save, ArrowRight, Trash2, Eye, FilePlus, Info, Printer, X, Wrench, Coins, Settings2
+    Upload, Receipt, Download, Loader2, CreditCard, LayoutDashboard, Plus, CheckCircle, Percent, Gift, Sparkles, Clock, Calendar, AlertCircle, Save, ArrowRight, Trash2, Eye, FilePlus, Info, Printer, X, Wrench, Coins, Settings2, AlertTriangle
 } from 'lucide-react';
 import { OwnerOnboarding } from '../owners/OwnerOnboarding';
 type Tab = 'overview' | 'documents' | 'supplies' | 'invoices' | 'profile';
@@ -37,6 +37,7 @@ export const OwnerDashboard: React.FC = () => {
     const [invoices, setInvoices] = useState<SupplyInvoice[]>([]);
     const [agencyInvoices, setAgencyInvoices] = useState<AgencyInvoice[]>([]);
     const [pendingLeads, setPendingLeads] = useState<any[]>([]);
+    const [incidents, setIncidents] = useState<any[]>([]);
 
     // User Profile Data (for Bank Account editing)
     const [ownerProfile, setOwnerProfile] = useState<any>(null);
@@ -52,11 +53,13 @@ export const OwnerDashboard: React.FC = () => {
     const [supplyForm, setSupplyForm] = useState({ propertyId: '', type: 'luz', amount: '', date: new Date().toISOString().split('T')[0] });
     const [supplyFile, setSupplyFile] = useState<File | null>(null);
 
-    // Investment Forms
+    // Investment & Config Forms (Local State to avoid spamming Firestore)
     const [investmentInputs, setInvestmentInputs] = useState<Record<string, number>>({});
+    const [configInputs, setConfigInputs] = useState<Record<string, { ibi: number, community: number, insurance: number }>>({});
 
     // Viewer State
     const [viewingPdf, setViewingPdf] = useState<string | null>(null);
+    const [workerInvoices, setWorkerInvoices] = useState<any[]>([]);
 
     useEffect(() => {
         if (!currentUser) return;
@@ -122,12 +125,34 @@ export const OwnerDashboard: React.FC = () => {
             setPendingLeads(leads);
         });
 
+        // 5. Fetch Incidents (Tasks as Incidents)
+        const qIncidents = query(
+            collection(db, 'tasks'),
+            where('ownerId', '==', currentUser.uid),
+            where('boardId', '==', 'incidents')
+        );
+        const unsubIncidents = onSnapshot(qIncidents, (snapshot) => {
+            const incs: any[] = [];
+            snapshot.forEach((doc) => incs.push({ ...doc.data(), id: doc.id }));
+            setIncidents(incs);
+        });
+
+        // 6. Fetch Worker Invoices (for cleaning costs etc)
+        const qWorkerInvoices = query(collection(db, 'worker_invoices'), where('propertyId', '!=', '')); // Need to filter by owner's properties later in memo or here
+        const unsubWorkerInv = onSnapshot(qWorkerInvoices, (snapshot) => {
+            const wInvs: any[] = [];
+            snapshot.forEach((doc) => wInvs.push({ ...doc.data(), id: doc.id }));
+            setWorkerInvoices(wInvs);
+        });
+
         return () => {
             unsubUser();
             unsubProps();
             unsubContracts();
             unsubAgencyInv();
             unsubLeads();
+            unsubIncidents();
+            unsubWorkerInv();
         };
     }, [currentUser]);
 
@@ -273,12 +298,19 @@ export const OwnerDashboard: React.FC = () => {
     };
 
     const handleSaveInvestment = async (propId: string) => {
-        const val = investmentInputs[propId] || 0;
+        const investment = investmentInputs[propId] || 0;
+        const config = configInputs[propId] || { ibi: 0, community: 0, insurance: 0 };
+
         try {
-            await updateDoc(doc(db, 'properties', propId), { investmentAmount: val });
-            alert("Inversión guardada.");
+            await updateDoc(doc(db, 'properties', propId), {
+                investmentAmount: investment,
+                ibiYearly: config.ibi,
+                communityMonthly: config.community,
+                insuranceYearly: config.insurance
+            });
+            alert("Configuración de vivienda guardada correctamente.");
         } catch (e) {
-            alert("Error al guardar.");
+            alert("Error al guardar la configuración.");
         }
     };
 
@@ -315,13 +347,24 @@ export const OwnerDashboard: React.FC = () => {
 
         properties.forEach(p => {
             const propInvoices = invoices.filter(i => i.propertyId === p.id);
+            const propWorkerInvoices = workerInvoices.filter(i => i.propertyId === p.id);
+            const allVariableInvoices = [...propInvoices, ...propWorkerInvoices];
+
             const propContracts = contracts.filter(c => c.propertyId === p.id);
             const investment = investmentInputs[p.id] || p.investmentAmount || 0;
+
+            // Use local state if exists, otherwise data from property
+            const currentConfig = configInputs[p.id] || {
+                ibi: p.ibiYearly || 0,
+                community: p.communityMonthly || 0,
+                insurance: p.insuranceYearly || 0
+            };
+
             const stats = calculateRealOwnerCashflow(
-                propInvoices,
+                allVariableInvoices,
                 propContracts,
                 p.managementCommission || 15,
-                { ibi: p.ibiYearly, community: p.communityMonthly, insurance: p.insuranceYearly },
+                currentConfig,
                 investment
             );
             totalRevenue += stats.revenue;
@@ -452,7 +495,7 @@ export const OwnerDashboard: React.FC = () => {
                     </button>
                 </div>
 
-                {/* --- TAB CONTENT (Rest of the rendering logic) --- */}
+                {/* --- TAB CONTENT --- */}
                 {properties.length === 0 && pendingLeads.length > 0 && (
                     <div className="bg-blue-50 border-2 border-dashed border-blue-200 rounded-2xl p-8 text-center animate-in zoom-in-95 mb-8">
                         <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -460,7 +503,7 @@ export const OwnerDashboard: React.FC = () => {
                         </div>
                         <h3 className="text-xl font-bold text-gray-900 mb-2">Tu vivienda está en revisión</h3>
                         <p className="text-gray-600 text-sm max-w-md mx-auto mb-6">
-                            Hemos recibido correctamente la información de <strong>{pendingLeads[0].property?.address}</strong>.
+                            Hemos recibido correctamente la información de <strong>{pendingLeads[0].property?.address || 'tu propiedad'}</strong>.
                             Nuestro equipo está validando el activo para activarlo en tu portal. Recibirás un aviso en breve.
                         </p>
                         <div className="flex justify-center gap-2">
@@ -475,27 +518,20 @@ export const OwnerDashboard: React.FC = () => {
 
                 {activeTab === 'overview' && properties.length > 0 && (
                     <div className="space-y-6">
-                        {/* ... (Property cards loop using real data) ... */}
                         {properties.map(p => {
                             const isExpanded = expandedPropId === p.id;
-                            const propOccupancy = p.rooms.filter(r => r.status === 'occupied').length;
 
-                            // Filter invoices for this property
+                            // Filter invoices and contracts for this property
                             const propInvoices = invoices.filter(i => i.propertyId === p.id);
-                            // Filter contracts for this property
                             const propContracts = contracts.filter(c => c.propertyId === p.id);
 
-                            // Calculate real financial for this specific property
+                            // Calculate real stats
                             const propInvestment = investmentInputs[p.id] || p.investmentAmount || 0;
                             const propRealStats = calculateRealOwnerCashflow(
                                 propInvoices,
                                 propContracts,
                                 p.managementCommission || 15,
-                                {
-                                    ibi: p.ibiYearly,
-                                    community: p.communityMonthly,
-                                    insurance: p.insuranceYearly
-                                },
+                                { ibi: p.ibiYearly, community: p.communityMonthly, insurance: p.insuranceYearly },
                                 propInvestment
                             );
 
@@ -511,55 +547,121 @@ export const OwnerDashboard: React.FC = () => {
                                             </div>
                                             <div>
                                                 <h3 className="font-bold text-gray-800 text-lg">{p.address}</h3>
-                                                <p className="text-gray-500 text-xs flex items-center gap-1">
-                                                    <MapPin className="w-3 h-3" /> {p.city} • {p.rooms.length} Habs
-                                                </p>
+                                                <div className="flex flex-wrap items-center gap-2 mt-1">
+                                                    <span className="text-gray-500 text-xs flex items-center gap-1">
+                                                        <MapPin className="w-3 h-3" /> {p.city} • {p.rooms.length} Habs
+                                                    </span>
+                                                    {p.cleaningConfig?.enabled && (
+                                                        <span className="bg-purple-100 text-purple-700 text-[10px] px-2 py-0.5 rounded-full font-black flex items-center gap-1 uppercase tracking-tighter">
+                                                            <Sparkles className="w-3 h-3" /> Limpieza Pro
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {/* ROOM STATUS DOTS (Image 1 Style) */}
+                                                <div className="flex gap-1 mt-2 flex-wrap">
+                                                    {p.rooms?.map((r: any, idx: number) => (
+                                                        <div
+                                                            key={idx}
+                                                            className={`w-3 h-3 rounded-full ${r.status === 'occupied' ? 'bg-red-500' : r.status === 'reserved' ? 'bg-orange-400' : 'bg-green-500'}`}
+                                                            title={`H${r.name}: ${r.status}`}
+                                                        ></div>
+                                                    ))}
+                                                </div>
                                             </div>
                                         </div>
 
                                         {/* REAL CASHFLOW MINI-BADGE */}
                                         <div className="text-right">
-                                            <div className="text-[10px] text-gray-400 font-bold uppercase">Cashflow Real</div>
-                                            <div className={`font-bold ${propRealStats.net > 0 ? 'text-green-600' : 'text-red-500'}`}>
-                                                {propRealStats.net.toFixed(0)}€ / mes
+                                            <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Beneficio Neto Estimado</div>
+                                            <div className={`font-black text-xl ${propRealStats.net > 0 ? 'text-rentia-black' : 'text-red-500'}`}>
+                                                {propRealStats.net.toFixed(0)}€<span className="text-xs font-normal opacity-50">/mes</span>
                                             </div>
                                         </div>
                                     </div>
 
                                     {isExpanded && (
                                         <div className="bg-gray-50 border-t border-gray-100 p-4 md:p-6 animate-in slide-in-from-top-2">
-                                            {/* ... Expanded details ... */}
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                                                <div className="bg-white p-4 rounded border">
-                                                    <span className="text-xs text-gray-500">Ingresos (Contratos)</span>
-                                                    <p className="font-bold text-green-600">+{propRealStats.revenue}€</p>
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                                                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Ingresos Activos</span>
+                                                    <p className="font-black text-2xl text-green-600">+{propRealStats.revenue}€</p>
+                                                    <p className="text-[9px] text-gray-400 mt-1 italic">Suma de rentas vigentes</p>
                                                 </div>
-                                                <div className="bg-white p-4 rounded border">
-                                                    <span className="text-xs text-gray-500">Gastos (Facturas)</span>
-                                                    <p className="font-bold text-red-500">-{propRealStats.expenses.toFixed(0)}€</p>
+                                                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Gastos Registrados</span>
+                                                    <p className="font-black text-2xl text-red-500">-{propRealStats.expenses.toFixed(0)}€</p>
+                                                    <p className="text-[9px] text-gray-400 mt-1 italic">Suministros + IBI + Comu.</p>
                                                 </div>
-                                                <div className="bg-white p-4 rounded border">
-                                                    <span className="text-xs text-gray-500">Honorarios (Est.)</span>
-                                                    <p className="font-bold text-blue-500">-{propRealStats.fee.toFixed(0)}€</p>
-                                                </div>
+                                                {p.cleaningConfig?.enabled ? (
+                                                    <div className="bg-gradient-to-br from-purple-500 to-indigo-600 p-5 rounded-2xl shadow-lg text-white">
+                                                        <span className="text-[10px] font-black text-indigo-100 uppercase tracking-widest block mb-2">Limpieza Profesional</span>
+                                                        <div className="flex items-center gap-2">
+                                                            <Sparkles className="w-5 h-5 text-yellow-300" />
+                                                            <p className="font-black text-xl">Activa</p>
+                                                        </div>
+                                                        <p className="text-[10px] text-white/70 mt-1">{p.cleaningConfig.days.join(', ')} • {p.cleaningConfig.hours}</p>
+                                                        {p.cleaningConfig.cleanerName && (
+                                                            <p className="text-[10px] text-yellow-200 font-black mt-1 uppercase tracking-tighter">
+                                                                {p.cleaningConfig.cleanerName.split(' ')[0]}
+                                                                {p.cleaningConfig.cleanerPhone ? ` (${p.cleaningConfig.cleanerPhone.slice(0, 6)}***${p.cleaningConfig.cleanerPhone.slice(-3)})` : ''}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm opacity-60">
+                                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Limpieza Profesional</span>
+                                                        <p className="font-black text-xl text-gray-300 italic">No contratada</p>
+                                                    </div>
+                                                )}
                                             </div>
+
+                                            {/* INCIDENTS SECTION */}
+                                            {incidents.filter(inc => inc.propertyId === p.id).length > 0 && (
+                                                <div className="mb-8 animate-in fade-in">
+                                                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                                        <AlertTriangle className="w-4 h-4 text-red-500" />
+                                                        Incidencias Reportadas (Por Colaboradores)
+                                                    </h4>
+                                                    <div className="space-y-3">
+                                                        {incidents.filter(inc => inc.propertyId === p.id).map(inc => (
+                                                            <div key={inc.id} className="bg-red-50 border border-red-100 p-4 rounded-2xl flex justify-between items-center group shadow-sm transition-all hover:shadow-md">
+                                                                <div className="flex gap-4 items-center">
+                                                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${inc.priority === 'Alta' ? 'bg-red-200 text-red-700' : 'bg-orange-100 text-orange-600'}`}>
+                                                                        <Wrench className="w-5 h-5" />
+                                                                    </div>
+                                                                    <div>
+                                                                        <p className="font-bold text-gray-900 text-sm">{inc.title}</p>
+                                                                        <p className="text-xs text-gray-500 mt-0.5">{inc.description}</p>
+                                                                        <div className="flex items-center gap-2 mt-2">
+                                                                            <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest ${inc.status === 'Completada' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                                                {inc.status}
+                                                                            </span>
+                                                                            <span className="text-[10px] text-gray-400 italic font-medium">Por: {inc.assignee}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
 
                                             {/* ROOMS LIST */}
                                             <div className="mb-8">
-                                                <h4 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
                                                     <LayoutDashboard className="w-4 h-4 text-rentia-blue" />
-                                                    Listado de Habitaciones
+                                                    Ocupación por Habitaciones
                                                 </h4>
-                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
                                                     {p.rooms.map((room, idx) => (
-                                                        <div key={idx} className="bg-white p-3 rounded-xl border border-gray-100 flex flex-col gap-1">
+                                                        <div key={idx} className="bg-white p-4 rounded-2xl border border-gray-100 flex flex-col gap-2 shadow-sm">
                                                             <div className="flex justify-between items-center">
-                                                                <span className="text-xs font-bold text-gray-800">{room.name}</span>
-                                                                <span className={`w-2 h-2 rounded-full ${room.status === 'occupied' ? 'bg-green-500' : room.status === 'reserved' ? 'bg-yellow-500' : 'bg-blue-400'}`}></span>
+                                                                <span className="text-xs font-bold text-gray-900">{room.name}</span>
+                                                                <div className={`w-3 h-3 rounded-full ${room.status === 'occupied' ? 'bg-red-500' : room.status === 'reserved' ? 'bg-orange-400' : 'bg-green-500'}`}></div>
                                                             </div>
-                                                            <div className="flex justify-between items-center mt-1">
-                                                                <span className="text-[10px] text-gray-400 uppercase font-black tracking-widest">{room.status}</span>
-                                                                <span className="text-xs font-black text-rentia-blue">{room.price}€</span>
+                                                            <div className="flex justify-between items-baseline">
+                                                                <span className="text-[9px] text-gray-400 font-bold uppercase">{room.status === 'occupied' ? 'Alquilada' : room.status}</span>
+                                                                <span className="text-sm font-black text-rentia-blue">{room.price}€</span>
                                                             </div>
                                                         </div>
                                                     ))}
@@ -567,20 +669,21 @@ export const OwnerDashboard: React.FC = () => {
                                             </div>
 
                                             {/* PROPERTY CONFIGURATION FORM */}
-                                            <div className="mt-8 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                                                <div className="flex items-center justify-between mb-6">
+                                            <div className="mt-8 bg-white p-6 rounded-3xl border border-gray-100 shadow-sm relative overflow-hidden">
+                                                <div className="absolute top-0 right-0 w-32 h-32 bg-gray-50 rounded-full translate-x-1/2 -translate-y-1/2 -z-10"></div>
+                                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                                                     <div>
-                                                        <h4 className="font-bold text-gray-800 flex items-center gap-2">
+                                                        <h4 className="font-bold text-gray-900 flex items-center gap-2">
                                                             <Settings2 className="w-5 h-5 text-rentia-blue" />
-                                                            Configuración de la Vivienda
+                                                            Configuración Financiera Activo
                                                         </h4>
-                                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Completa estos datos para calcular tu beneficio real neto</p>
+                                                        <p className="text-[11px] text-gray-500 font-medium">Actualiza estos costes para que el cálculo de beneficio neto sea exacto.</p>
                                                     </div>
                                                     <button
                                                         onClick={() => handleSaveInvestment(p.id)}
-                                                        className="bg-rentia-black text-white px-6 py-2 rounded-xl text-xs font-bold hover:bg-gray-800 transition-all flex items-center gap-2 shadow-lg active:scale-95"
+                                                        className="bg-rentia-black text-white px-6 py-3 rounded-xl text-xs font-bold hover:bg-gray-800 transition-all flex items-center justify-center gap-2 shadow-xl active:scale-95"
                                                     >
-                                                        <Save className="w-4 h-4" /> Guardar Cambios
+                                                        <Save className="w-4 h-4" /> Guardar Configuración
                                                     </button>
                                                 </div>
 
@@ -593,8 +696,14 @@ export const OwnerDashboard: React.FC = () => {
                                                             <input
                                                                 type="number"
                                                                 className="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold focus:ring-2 focus:ring-rentia-blue outline-none transition-shadow"
-                                                                value={p.ibiYearly || ''}
-                                                                onChange={(e) => updateDoc(doc(db, 'properties', p.id), { ibiYearly: parseFloat(e.target.value) })}
+                                                                value={configInputs[p.id]?.ibi ?? p.ibiYearly ?? ''}
+                                                                onChange={(e) => setConfigInputs(prev => ({
+                                                                    ...prev,
+                                                                    [p.id]: {
+                                                                        ...(prev[p.id] || { ibi: p.ibiYearly || 0, community: p.communityMonthly || 0, insurance: p.insuranceYearly || 0 }),
+                                                                        ibi: parseFloat(e.target.value)
+                                                                    }
+                                                                }))}
                                                                 placeholder="0€"
                                                             />
                                                             <span className="absolute right-3 top-3.5 text-gray-400 text-xs font-bold pointer-events-none">€</span>
@@ -609,8 +718,14 @@ export const OwnerDashboard: React.FC = () => {
                                                             <input
                                                                 type="number"
                                                                 className="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold focus:ring-2 focus:ring-rentia-blue outline-none transition-shadow"
-                                                                value={p.communityMonthly || ''}
-                                                                onChange={(e) => updateDoc(doc(db, 'properties', p.id), { communityMonthly: parseFloat(e.target.value) })}
+                                                                value={configInputs[p.id]?.community ?? p.communityMonthly ?? ''}
+                                                                onChange={(e) => setConfigInputs(prev => ({
+                                                                    ...prev,
+                                                                    [p.id]: {
+                                                                        ...(prev[p.id] || { ibi: p.ibiYearly || 0, community: p.communityMonthly || 0, insurance: p.insuranceYearly || 0 }),
+                                                                        community: parseFloat(e.target.value)
+                                                                    }
+                                                                }))}
                                                                 placeholder="0€"
                                                             />
                                                             <span className="absolute right-3 top-3.5 text-gray-400 text-xs font-bold pointer-events-none">€</span>
@@ -625,8 +740,14 @@ export const OwnerDashboard: React.FC = () => {
                                                             <input
                                                                 type="number"
                                                                 className="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold focus:ring-2 focus:ring-rentia-blue outline-none transition-shadow"
-                                                                value={p.insuranceYearly || ''}
-                                                                onChange={(e) => updateDoc(doc(db, 'properties', p.id), { insuranceYearly: parseFloat(e.target.value) })}
+                                                                value={configInputs[p.id]?.insurance ?? p.insuranceYearly ?? ''}
+                                                                onChange={(e) => setConfigInputs(prev => ({
+                                                                    ...prev,
+                                                                    [p.id]: {
+                                                                        ...(prev[p.id] || { ibi: p.ibiYearly || 0, community: p.communityMonthly || 0, insurance: p.insuranceYearly || 0 }),
+                                                                        insurance: parseFloat(e.target.value)
+                                                                    }
+                                                                }))}
                                                                 placeholder="0€"
                                                             />
                                                             <span className="absolute right-3 top-3.5 text-gray-400 text-xs font-bold pointer-events-none">€</span>
@@ -1025,6 +1146,6 @@ export const OwnerDashboard: React.FC = () => {
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 };

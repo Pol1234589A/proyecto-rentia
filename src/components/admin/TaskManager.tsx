@@ -97,59 +97,64 @@ const TaskTimer: React.FC<{ dateStr: string }> = ({ dateStr }) => {
     );
 };
 
-// Componente de Tarjeta para vista Kanban
 const KanbanCard: React.FC<{ task: Task, onEdit: (t: Task) => void, onDelete: (id: string) => Promise<void> | void, onStatusChange: (id: string, s: TaskStatus) => void }> = ({ task, onEdit, onDelete, onStatusChange }) => (
-    <div className={`bg-white p-4 rounded-lg shadow-sm group relative flex flex-col gap-2 ${getCardStyles(task)}`}>
+    <div className={`bg-white p-3 rounded-xl shadow-sm group relative flex flex-col gap-1.5 transition-all duration-200 hover:shadow-md border-t-4 ${task.priority === 'Alta' ? 'border-t-red-500' :
+        task.priority === 'Media' ? 'border-t-yellow-400' : 'border-t-green-400'
+        } ${task.status === 'Completada' ? 'opacity-60 grayscale-[0.5]' : ''}`}>
+
         <div className="flex justify-between items-start">
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider ${getPriorityColor(task.priority)}`}>
+            <span className={`text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider ${getPriorityColor(task.priority)}`}>
                 {task.priority}
             </span>
-            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button onClick={() => onEdit(task)} className="p-1 hover:bg-gray-100 rounded text-blue-600"><Edit2 className="w-3 h-3" /></button>
                 <button onClick={() => onDelete(task.id)} className="p-1 hover:bg-gray-100 rounded text-red-600"><Trash2 className="w-3 h-3" /></button>
             </div>
         </div>
 
-        <div>
-            <h4 className="font-bold text-gray-800 text-sm leading-tight mb-1">{task.title}</h4>
-            <p className="text-xs text-gray-500 line-clamp-2">{task.description}</p>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex items-center gap-2 mt-2">
-            {task.status === 'Pendiente' && (
-                <button
-                    onClick={() => onStatusChange(task.id, 'En Curso')}
-                    className="flex-1 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-100 text-xs font-bold py-1.5 rounded flex items-center justify-center gap-1 transition-colors"
-                >
-                    <Play className="w-3 h-3" /> Empezar
-                </button>
-            )}
-            {task.status === 'En Curso' && (
-                <button
-                    onClick={() => onStatusChange(task.id, 'Completada')}
-                    className="flex-1 bg-green-50 text-green-700 hover:bg-green-100 border border-green-100 text-xs font-bold py-1.5 rounded flex items-center justify-center gap-1 transition-colors"
-                >
-                    <CheckCircle className="w-3 h-3" /> Completar
-                </button>
+        <div className="cursor-pointer" onClick={() => onEdit(task)}>
+            <h4 className="font-bold text-gray-800 text-xs leading-tight mb-0.5 line-clamp-2">{task.title}</h4>
+            {task.description && (
+                <p className="text-[10px] text-gray-500 line-clamp-1 leading-tight">{task.description}</p>
             )}
         </div>
 
-        <div className="mt-auto pt-3 border-t border-gray-50 flex items-center justify-between text-xs text-gray-500">
-            <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full bg-rentia-blue text-white flex items-center justify-center font-bold text-[10px]" title={task.assignee}>
+        <div className="flex flex-wrap items-center gap-2 mt-1">
+            <div className="flex items-center gap-1.5 bg-gray-50 px-1.5 py-0.5 rounded-md border border-gray-100">
+                <div className="w-4 h-4 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-[8px]">
                     {task.assignee.charAt(0)}
                 </div>
-                <span>{task.assignee}</span>
+                <span className="text-[9px] font-bold text-gray-600">{task.assignee}</span>
             </div>
             {task.dueDate && (
-                <div className={`flex items-center ${new Date(task.dueDate) < new Date() && task.status !== 'Completada' ? 'text-red-500 font-bold' : ''}`}>
-                    <Calendar className="w-3 h-3 mr-1" />
-                    {new Date(task.dueDate).toLocaleDateString()}
+                <div className={`flex items-center text-[9px] font-medium ${new Date(task.dueDate) < new Date() && task.status !== 'Completada' ? 'text-red-600' : 'text-gray-400'}`}>
+                    <Calendar className="w-2.5 h-2.5 mr-0.5" />
+                    {new Date(task.dueDate).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
                     {task.status !== 'Completada' && <TaskTimer dateStr={task.dueDate} />}
                 </div>
             )}
         </div>
+
+        {/* Mini Action Buttons */}
+        {task.status !== 'Completada' && (
+            <div className="mt-1 flex gap-1 pt-1.5 border-t border-gray-50">
+                {task.status === 'Pendiente' ? (
+                    <button
+                        onClick={() => onStatusChange(task.id, 'En Curso')}
+                        className="flex-1 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 py-1 rounded text-[10px] font-black uppercase flex items-center justify-center gap-1 transition-all"
+                    >
+                        <Play className="w-2.5 h-2.5" /> Iniciar
+                    </button>
+                ) : (
+                    <button
+                        onClick={() => onStatusChange(task.id, 'Completada')}
+                        className="flex-1 bg-green-50 text-green-700 hover:bg-green-100 py-1 rounded text-[10px] font-black uppercase flex items-center justify-center gap-1 transition-all"
+                    >
+                        <CheckCircle className="w-2.5 h-2.5" /> Hecho
+                    </button>
+                )}
+            </div>
+        )}
     </div>
 );
 

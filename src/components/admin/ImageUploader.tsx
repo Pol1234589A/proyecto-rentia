@@ -21,7 +21,8 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
     label = "Subir Foto",
     compact = false,
     accept = "image/*",
-    maxSizeMB = 10
+    maxSizeMB = 10,
+    onlyFirebase = false
 }) => {
     const [uploading, setUploading] = useState(false);
     const [progress, setProgress] = useState<{ processed: number, total: number } | null>(null);
@@ -55,12 +56,26 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
         const ext = isWebP ? 'webp' : (file.type.split('/')[1] || 'bin');
         const finalFileName = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
 
-        // 4. Subida a HOSTINGER (vía API)
-        // Si la prop onlyFirebase está activa, podríamos mantener la lógica anterior, 
-        // pero por ahora migramos todo lo principal a Hostinger como solicitó el usuario.
+        // 4. Subida a FIREBASE o HOSTINGER
+        if (onlyFirebase) {
+            const storageRef = ref(storage, `${folder}/${finalFileName}`);
+            const uploadTask = uploadBytesResumable(storageRef, blobToUpload);
 
+            return new Promise((resolve, reject) => {
+                uploadTask.on('state_changed',
+                    null,
+                    (error) => reject(error),
+                    () => {
+                        getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+                            resolve(downloadURL);
+                        });
+                    }
+                );
+            });
+        }
+
+        // Subida a HOSTINGER (vía API)
         const formData = new FormData();
-        // Renombramos el archivo para que el servidor lo reciba con el nombre final deseado (aunque el servidor también genera únicos)
         formData.append('file', blobToUpload, finalFileName);
 
         const response = await fetch('/api/upload-hostinger', {

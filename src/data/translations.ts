@@ -122,8 +122,8 @@ export const translations = {
       privacy: 'Políticas de privacidad',
       cookies: 'Configurar Cookies',
       contact_title: 'Ponte en contacto',
-      admin_role: 'Secretaría y Administración',
-      director_role: 'Dirección y Oportunidades',
+      admin_role: 'Atención al Cliente',
+      director_role: 'Dirección General',
       schedule_admin: 'Lunes a Viernes: 09:00h - 14:00h',
       schedule_dir: 'Lunes a Viernes: 09:00h - 20:00h',
       rights: '© 2025 Todos los derechos reservados',
@@ -224,16 +224,16 @@ export const translations = {
         title: 'Contacta con el equipo',
         subtitle: 'Hemos simplificado nuestros canales para atenderte mejor. Elige con quién necesitas hablar.',
         admin_card: {
-          badge: 'Secretaría y Administración',
-          desc: 'Para propietarios actuales y gestión.',
-          btn: 'Contactar con Sandra',
-          label_phone: 'Atención a propietarios'
+          badge: 'Atención y Gestión',
+          desc: 'Para propietarios actuales y dudas generales.',
+          btn: 'Contactar con Gestión',
+          label_phone: 'Atención Propietarios'
         },
         dir_card: {
-          badge: 'Dirección y Estrategia',
-          desc: 'Inversión, expansión y nuevos proyectos.',
-          btn: 'Contactar con Pol',
-          label_phone: 'Oportunidades y General'
+          badge: 'Dirección de Inversión',
+          desc: 'Nuevos proyectos y estrategia de activos.',
+          btn: 'Hablar con Dirección',
+          label_phone: 'Dirección General'
         }
       }
     },
@@ -297,30 +297,29 @@ export const translations = {
     },
     about: {
       hero: {
-        badge: 'Nuestra Historia',
-        title: 'La unión de dos trayectorias',
-        subtitle: 'Gestión de activos inmobiliarios con un enfoque práctico y directo.'
+        badge: 'Nuestra Visión',
+        title: 'Gestión Experta de Activos',
+        subtitle: 'Un enfoque práctico, tecnológico y directo liderado por la Dirección.'
       },
       story: {
-        title: 'El Origen de RentiaRoom',
-        p1: 'RentiaRoom surge de la colaboración entre Pol y Víctor. Pol provenía del sector del Personal Shopper Inmobiliario (PSI), mientras que Víctor venía del ámbito de la gestión de alquileres vacacionales.',
-        p2: 'Ambos decidieron unir sus caminos y formas de trabajar para crear un proyecto conjunto enfocado en la gestión de alquileres.',
-        highlight: '"Agradecemos a todas las personas que han trabajado con nosotros y a los propietarios que han confiado en nuestra gestión desde el inicio."',
-        quote: '"Unimos la visión financiera y la gestión operativa diaria."'
+        title: 'El Enfoque RentiaRoom',
+        p1: 'RentiaRoom nace con el objetivo de profesionalizar la gestión de alquileres en Murcia, aportando transparencia y eficiencia tanto a propietarios como a inquilinos.',
+        p2: 'Nuestro sistema de gestión permite a los propietarios maximizar la rentabilidad de sus activos, delegando la operativa diaria en un equipo especializado y cercano.',
+        highlight: '"Trabajamos para que tu patrimonio crezca con total tranquilidad."',
+        quote: '"Gestión transparente y resultados reales para el inversor inmobiliario."'
       },
       team: {
-        title: 'Quiénes Somos',
-        subtitle: 'El equipo humano detrás de la gestión.',
-        pol: { role: 'Co-fundador y Gerente', desc: 'Co fundador y gerente. Encargado de la captación, relación con inversores, procesos y gestión de propiedades.' },
-        victor: { role: 'Co-founder', desc: 'Co fundador, estrategia, apoyo en procesos, captación y apoyo en otras tareas.' },
-        sandra: { role: 'Administración', desc: 'Administración, secretaría, relación con el propietario, gestión activa de las propiedades.' }
+        title: 'Liderazgo',
+        subtitle: 'Experiencia y compromiso en cada gestión.',
+        director: { role: 'Dirección General', desc: 'Encargado de la estrategia, visión de negocio y relación con inversores clave.' },
+        admin: { role: 'Administración', desc: 'Atención personalizada al propietario, gestión de incidencias y administración activa.' }
       },
       values: {
-        title: 'Gracias por la confianza',
-        collab_title: 'A nuestros colaboradores',
-        collab_desc: '"Agradecemos a todas las personas que han trabajado y colaborado con nosotros."',
-        owners_title: 'A los propietarios',
-        owners_desc: '"Gracias a los propietarios que han confiado en nuestra gestión."'
+        title: 'Confianza y Resultados',
+        collab_title: 'Nuestros Colaboradores',
+        collab_desc: '"Valoramos profundamente a cada profesional que suma valor a nuestra red operativa."',
+        owners_title: 'Nuestros Propietarios',
+        owners_desc: '"Vuestra confianza es el motor que nos impulsa a seguir optimizando cada activo."'
       },
       cta: {
         title: '¿Hablamos?',
@@ -337,24 +336,24 @@ export const translations = {
         title: 'Elige con quién necesitas hablar',
         subtitle: 'Haz clic en el botón de WhatsApp de la persona adecuada para tu consulta.'
       },
-      sandra: {
-        name: 'Sandra',
-        role: 'Secretaría y Administración',
+      admin: {
+        name: 'Administración',
+        role: 'Gestión Operativa',
         hours: 'Lunes a Viernes: 09:00 - 14:00',
         for_title: 'Contactar para:',
-        for_desc: 'Consultas generales, facturación, incidencias de inquilinos, gestión administrativa y propietarios actuales.',
-        btn: 'Hablar con Sandra',
-        btn_msg: 'Dejar mensaje a Sandra',
-        offline: 'Te responderá en el próximo horario laboral.'
+        for_desc: 'Incidencias, facturación, dudas de inquilinos y gestión administrativa diaria.',
+        btn: 'Hablar con Gestión',
+        btn_msg: 'Dejar un mensaje',
+        offline: 'Te responderemos en el próximo horario laboral.'
       },
-      pol: {
-        name: 'Pol',
-        role: 'Dirección y Oportunidades',
+      director: {
+        name: 'Dirección General',
+        role: 'Dirección General',
         hours: 'Lunes a Viernes: 09:00 - 20:00',
         for_title: 'Contactar para:',
-        for_desc: 'Consultas generales, nuevos inversores, estrategia, colaboraciones comerciales y oportunidades.',
-        btn: 'Hablar con Pol',
-        btn_msg: 'Dejar mensaje a Pol',
+        for_desc: 'Nuevas inversiones, estrategia patrimonial, oportunidades de compra y colaboraciones B2B.',
+        btn: 'Hablar con Dirección',
+        btn_msg: 'Dejar mensaje a Dirección',
         offline: 'Te responderá en el próximo horario laboral.'
       },
       email: {
@@ -529,7 +528,7 @@ export const translations = {
         address: 'Domicilio Social:',
         address_val: 'C/ Brazal de Álamos, 7, 30130, Beniel, Murcia, España.',
         registry: 'Datos Registrales:',
-        registry_data: 'Empresa inscrita en el Registro Mercantil de Murcia. Representante Legal: Pol Matencio Espinosa (44996927A).',
+        registry_data: 'Empresa inscrita en el Registro Mercantil de Murcia. Representante Legal: Dirección RentiaRoom.',
         header2: '2. Objeto y Ámbito',
         text2: 'Estas condiciones generales regulan el acceso y uso del sitio web <strong>www.rentiaroom.com</strong> (en adelante, el "Portal"). El acceso implica la aceptación sin reservas de estas condiciones. El usuario se compromete a hacer un uso adecuado de los contenidos y servicios, y a no emplearlos para actividades ilícitas o contrarias a la buena fe y al ordenamiento legal.',
         header3: '3. Propiedad Intelectual',
@@ -537,14 +536,14 @@ export const translations = {
         header4: '4. Exclusión de Garantías y Responsabilidad',
         text4: 'Rentia Investments S.L. no se hace responsable, en ningún caso, de los daños y perjuicios de cualquier naturaleza que pudieran ocasionar, a título enunciativo: errores u omisiones en los contenidos, falta de disponibilidad del portal o la transmisión de virus o programas maliciosos o lesivos en los contenidos, a pesar de haber adoptado todas las medidas tecnológicas necesarias para evitarlo.',
         header_disclaimer: '5. Exención de Responsabilidad en Inversiones',
-        text_disclaimer: 'IMPORTANTE: Rentia Investments S.L. y su representante Pol Matencio Espinosa no garantizan rendimientos futuros. Toda la información, datos y estudios compartidos son estimaciones basadas en la experiencia del mercado y no constituyen una garantía contractual. El usuario asume el riesgo de cualquier operación inmobiliaria.',
+        text_disclaimer: 'IMPORTANTE: Rentia Investments S.L. no garantiza rendimientos futuros. Toda la información, datos y estudios compartidos son estimaciones basadas en la experiencia del mercado y no constituyen una garantía contractual. El usuario asume el riesgo de cualquier operación inmobiliaria.',
         header5: '6. Ley Aplicable y Jurisdicción',
         text5: 'La relación entre Rentia Investments S.L. y el Usuario se regirá por la normativa española vigente. Para la resolución de cualquier conflicto, las partes se someten expresamente a los Juzgados y Tribunales de la ciudad de Murcia.'
       },
       privacy_policy: {
         intro: 'Rentia Investments S.L. se compromete con el cumplimiento del Reglamento (UE) 2016/679 (RGPD) y la Ley Orgánica 3/2018 (LOPDGDD).',
         header1: '1. Responsable del Tratamiento',
-        text1: 'El responsable del tratamiento de los datos es Rentia Investments S.L., representada por Pol Matencio Espinosa, con domicilio en C/ Brazal de Álamos, 7, 30130, Beniel, Murcia, España. Email: info@rentiaroom.com.',
+        text1: 'El responsable del tratamiento de los datos es Rentia Investments S.L., con domicilio en C/ Brazal de Álamos, 7, 30130, Beniel, Murcia, España. Email: info@rentiaroom.com.',
         header2: '2. Finalidad del Tratamiento',
         text2: 'Sus datos personales serán tratados con las siguientes finalidades:',
         purpose_list: [
@@ -580,10 +579,10 @@ export const translations = {
       online: 'En línea',
       closed: 'Cerrado',
       opens_at: 'Abre a las',
-      admin_label: 'Secretaría (Sandra)',
-      admin_desc: 'Admin y Propietarios',
-      dir_label: 'Dirección (Pol)',
-      dir_desc: 'Estrategia e Inversión'
+      admin_label: 'Gestión',
+      admin_desc: 'Atención Propietarios',
+      dir_label: 'Dirección',
+      dir_desc: 'Dirección e Inversión'
     }
   },
   en: {
@@ -811,16 +810,16 @@ export const translations = {
         title: 'Contact the team',
         subtitle: 'We have simplified our channels to serve you better. Choose who you need to talk to.',
         admin_card: {
-          badge: 'Secretary & Administration',
+          badge: 'Operations & Management',
           desc: 'For current owners and management.',
-          btn: 'Contact Sandra',
+          btn: 'Contact Administration',
           label_phone: 'Owner support'
         },
         dir_card: {
-          badge: 'Management & Strategy',
+          badge: 'Investment Management',
           desc: 'Investment, expansion, and new projects.',
-          btn: 'Contact Pol',
-          label_phone: 'Opportunities & General'
+          btn: 'Contact Direction',
+          label_phone: 'Direction & General'
         }
       }
     },
@@ -884,23 +883,21 @@ export const translations = {
     },
     about: {
       hero: {
-        badge: 'Our History',
-        title: 'The union of two paths',
-        subtitle: 'Real estate asset management with a practical and direct approach.'
+        badge: 'Our Journey',
+        title: 'Expert Asset Management',
+        subtitle: 'A practical, technological, and direct approach led by Management.'
       },
       story: {
-        title: 'The Origin of RentiaRoom',
-        p1: 'RentiaRoom arises from the collaboration between Pol y Víctor. Pol came from the Personal Real Estate Shopper (PSI) sector, while Víctor came from the field of vacation rental management.',
-        p2: 'Both decided to join their paths and ways of working to create a joint project focused on rental management.',
-        highlight: '"We thank all the people who have worked with us and the owners who have trusted our management from the beginning."',
-        quote: '"We unite financial vision and daily operational management."'
+        title: 'The RentiaRoom Approach',
+        p1: 'RentiaRoom was born from its Founder\'s vision to revolutionize traditional rental management. With a background in vacation rentals and a strong focus on property optimization, he decided to create a project that combines technology and personalized service.',
+        p2: 'Since then, RentiaRoom has specialized in maximizing profitability for owners through the room rental model, providing security and total peace of mind.',
+        highlight: '"We thank every owner who has trusted our management since the beginning of this journey."',
+        quote: '"We combine market analysis with daily operational efficiency."'
       },
       team: {
-        title: 'Who We Are',
-        subtitle: 'The human team behind the management.',
-        pol: { role: 'Co-founder & Manager', desc: 'Co-founder and manager. In charge of acquisition, investor relations, processes, and property management.' },
-        victor: { role: 'Co-founder', desc: 'Co-founder, strategy, process support, acquisition, and support in other tasks.' },
-        sandra: { role: 'Administration', desc: 'Administration, secretary, owner relations, active property management.' }
+        title: 'Our Leadership',
+        subtitle: 'The professional force behind RentiaRoom.',
+        director: { role: 'Founder & Director', desc: 'Founder and director. In charge of strategy, investor relations, and leading the property management operations.' }
       },
       values: {
         title: 'Thanks for the trust',
@@ -924,25 +921,25 @@ export const translations = {
         title: 'Choose who you need to talk to',
         subtitle: 'Click on the WhatsApp button of the appropriate person for your query.'
       },
-      sandra: {
-        name: 'Sandra',
-        role: 'Secretary & Administration',
+      admin: {
+        name: 'Administration',
+        role: 'Operations Management',
         hours: 'Monday to Friday: 09:00 - 14:00',
         for_title: 'Contact for:',
         for_desc: 'General inquiries, billing, tenant incidents, administrative management, and current owners.',
-        btn: 'Chat with Sandra',
-        btn_msg: 'Leave message for Sandra',
-        offline: 'She will answer you in the next business hours.'
+        btn: 'Talk to Admin',
+        btn_msg: 'Leave message for Admin',
+        offline: 'Our team will answer you in the next business hours.'
       },
-      pol: {
-        name: 'Pol',
-        role: 'Management & Opportunities',
+      director: {
+        name: 'General Direction',
+        role: 'General Direction',
         hours: 'Monday to Friday: 09:00 - 20:00',
         for_title: 'Contact for:',
         for_desc: 'General inquiries, new investors, strategy, commercial collaborations, and opportunities.',
-        btn: 'Chat with Pol',
-        btn_msg: 'Leave message for Pol',
-        offline: 'He will answer you in the next business hours.'
+        btn: 'Talk to Direction',
+        btn_msg: 'Leave message for Direction',
+        offline: 'Our team will answer you in the next business hours.'
       },
       email: {
         title: 'Prefer email?',
@@ -1116,7 +1113,7 @@ export const translations = {
         address: 'Registered Address:',
         address_val: 'C/ Brazal de Álamos, 7, 30130, Beniel, Murcia, Spain.',
         registry: 'Registry Data:',
-        registry_data: 'Company registered in the Mercantile Registry of Murcia. Legal Representative: Pol Matencio Espinosa (44996927A).',
+        registry_data: 'Company registered in the Mercantile Registry of Murcia. Legal Representative: Management (RentiaRoom).',
         header2: '2. Purpose and Scope',
         text2: 'These general conditions regulate access to and use of the website <strong>www.rentiaroom.com</strong> (hereinafter, the "Portal"). Access implies unreserved acceptance of these conditions. The user agrees to make appropriate use of the content and services, and a not to use them for illegal activities or contrary to good faith and legal order.',
         header3: '3. Intellectual Property',
@@ -1166,10 +1163,10 @@ export const translations = {
       online: 'En línea',
       closed: 'Cerrado',
       opens_at: 'Abre a las',
-      admin_label: 'Secretaría (Sandra)',
-      admin_desc: 'Admin y Propietarios',
-      dir_label: 'Dirección (Pol)',
-      dir_desc: 'Estrategia e Inversión'
+      admin_label: 'Management',
+      admin_desc: 'Owners Support',
+      dir_label: 'Dirección',
+      dir_desc: 'Strategy & Investment'
     }
   }
 };

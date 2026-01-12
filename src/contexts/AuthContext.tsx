@@ -68,7 +68,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             // Asignamos el rol desde el campo 'role'
             let assignedRole = userData.role as UserRole;
 
-            // ... (resto de la lógica de Vanesa)
+            // Lógica de acceso especial para el perfil de Administración/Operaciones
             if (user.email?.toLowerCase().trim() === 'vanesa@rentiaroom.com') {
               assignedRole = 'manager';
             }

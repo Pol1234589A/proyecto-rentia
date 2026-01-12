@@ -545,7 +545,7 @@ export const RoomsView: React.FC = () => {
 
                             <div className="flex-shrink-0 w-full md:w-auto">
                                 <a
-                                    href="https://api.whatsapp.com/send?phone=34611948589&text=Hola%20Sandra,%20soy%20inquilino%20y%20quiero%20recomendar%20a%20un%20amigo%20para%20el%20Plan%20Amigo."
+                                    href={`https://api.whatsapp.com/send?phone=${config.adminContact.phone}&text=Hola,%20soy%20inquilino%20y%20quiero%20recomendar%20a%20un%20amigo%20para%20el%20Plan%20Amigo.`}
                                     target="_blank"
                                     rel="noreferrer"
                                     className="flex items-center justify-center gap-2 bg-rentia-gold hover:bg-[#F5C518] text-rentia-black font-bold py-3.5 px-8 rounded-xl transition-all shadow-xl hover:shadow-2xl hover:shadow-rentia-gold/20 transform hover:-translate-y-0.5 w-full md:w-auto"

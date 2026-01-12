@@ -7,7 +7,7 @@ import { StaffMember, Task, TaskPriority, TaskStatus, TaskCategory, TaskBoard } 
 import { Plus, Calendar, AlertTriangle, CheckCircle, Trash2, Edit2, X, Filter, List, Kanban, Save, Loader2, Wifi, WifiOff, Layout, FolderPlus, Folder, LayoutTemplate, Menu, Search, Clock, ChevronDown, Sparkles, Trophy, Play, MessageCircle, Send, User } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
-const STAFF_MEMBERS: StaffMember[] = ['Pol', 'Vanesa', 'Sandra', 'Víctor', 'Ayoub', 'Hugo', 'Colaboradores'];
+const STAFF_MEMBERS: StaffMember[] = ['Víctor', 'Administración', 'Ayoub', 'Hugo', 'Colaboradores'];
 const PRIORITIES: TaskPriority[] = ['Alta', 'Media', 'Baja'];
 const STATUSES: TaskStatus[] = ['Pendiente', 'En Curso', 'Completada', 'Bloqueada'];
 const CATEGORIES: TaskCategory[] = ['Gestión', 'Marketing', 'Legal', 'Operaciones', 'Reformas', 'Contabilidad', 'Mantenimiento'];
@@ -237,7 +237,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({ initialCategoryFilter,
     const [celebrationMessage, setCelebrationMessage] = useState<string | null>(null);
 
     const [taskFormData, setTaskFormData] = useState<Partial<Task>>({
-        title: '', description: '', assignee: 'Pol', priority: 'Media', status: 'Pendiente', category: 'Gestión', dueDate: ''
+        title: '', description: '', assignee: 'Víctor', priority: 'Media', status: 'Pendiente', category: 'Gestión', dueDate: ''
     });
     const [newComment, setNewComment] = useState('');
     const [sendingComment, setSendingComment] = useState(false);
@@ -441,7 +441,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({ initialCategoryFilter,
 
     const resetTaskForm = () => {
         setTaskFormData({
-            title: '', description: '', assignee: 'Pol', priority: 'Media', status: 'Pendiente', category: 'Gestión', dueDate: ''
+            title: '', description: '', assignee: 'Víctor', priority: 'Media', status: 'Pendiente', category: 'Gestión', dueDate: ''
         });
         setIsEditing(null);
         setNewComment('');

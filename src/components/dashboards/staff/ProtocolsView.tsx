@@ -2,15 +2,54 @@ import React, { useState, useEffect } from 'react';
 import { FileText, Key, Eye, EyeOff, CheckCircle, AlertTriangle, MessageSquare, Shield, Smartphone, Clock, XCircle, Check, CheckSquare, Square, Calendar, ClipboardList } from 'lucide-react';
 import { collection, query, orderBy, limit, onSnapshot, where, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../../../firebase';
+import { askAiAssistant } from '../../../services/aiService';
+import { Bot, Sparkles, Send, Loader2 } from 'lucide-react';
 
-export const ProtocolsView: React.FC<{ isVanesa?: boolean, onOpenCandidateModal?: () => void }> = ({ isVanesa = false, onOpenCandidateModal }) => {
-    const [activeSection, setActiveSection] = useState<'general' | 'vanesa'>('vanesa');
-    const [signedConfidentiality, setSignedConfidentiality] = useState(isVanesa);
+const PROTOCOLS_CONTEXT = `
+PROTOCOLO DE RENTIAROOM - ADMINISTRACIÓN Y OPERACIONES
+
+1. RUTINA DIARIA Y OBJETIVOS:
+- Objetivo Principal: Obtener información cualificada de potenciales inquilinos para filtrar su viabilidad.
+- Datos Obligatorios a conseguir por chat: Nombre y Apellidos completos, y Ocupación (¿Estudia o Trabaja? ¿Tiene ingresos demostrables?).
+- No pasar al siguiente paso sin tener estos datos.
+
+2. CANALES DE CAPTACIÓN Y CREDENCIALES:
+- Idealista: info@rentiaroom.com | Pass: rentiaroom25A! 
+- Wallapop: Usar cuenta Gmail (rentiaroom@gmail.com) | Pass: adminrentiaA!
+- Milanuncios: rtrygestion@gmail.com | Pass: adminrentia25A!
+- Fotocasa: info@rentiaroom.com | Pass: adminrentia25A!
+- TikTok: rtrygestion@gmail.com | Pass: adminrentia25A! | NOTA: Usar App Móvil y recordar siempre que operamos en MURCIA. Revisar DMs y comentarios.
+
+3. REGISTRO EN EL SISTEMA:
+- Una vez obtenidos los datos (Nombre + Ocupación), registrar inmediatamente en la aplicación pulsando el botón "Registrar Candidato".
+- El sistema clasificará al candidato automáticamente según los criterios.
+
+4. COORDINACIÓN CON AYOUB (VISITAS):
+- Si el candidato es ACEPTADO por el sistema, hay que enviar un recordatorio MANUAL a Ayoub por WhatsApp.
+- Teléfono de Ayoub: +34 638 289 883.
+- Mensaje tipo: "Hola Ayoub, tienes un nuevo contacto aceptado. Por favor, contáctalo lo antes posible."
+
+5. GESTIÓN DE CONTRATOS EN RENTGER:
+- URL: Link a Rentger (administracion@rentiaroom.com | Pass: administracion1A!murcia).
+- Usar para crear contratos de gestión integral y contratos de inquilinos.
+
+6. TAREAS DE ADMINISTRACIÓN:
+- Revisar diariamente la sección de "Mis Tareas de Gestión" en el panel y completarlas.
+`;
+
+export const ProtocolsView: React.FC<{ onOpenCandidateModal?: () => void }> = ({ onOpenCandidateModal }) => {
+    const [activeSection, setActiveSection] = useState<'general' | 'admin'>('admin');
+    const [signedConfidentiality, setSignedConfidentiality] = useState(false);
     const [showCredentials, setShowCredentials] = useState(false);
     const [signatureName, setSignatureName] = useState('');
     const [signatureDNI, setSignatureDNI] = useState('');
 
     const [recentCandidates, setRecentCandidates] = useState<any[]>([]);
+
+    // AI Assistant State
+    const [aiQuery, setAiQuery] = useState('');
+    const [aiResponse, setAiResponse] = useState<string | null>(null);
+    const [isAiLoading, setIsAiLoading] = useState(false);
 
     useEffect(() => {
         // Query de los últimos candidatos (traemos 20 para asegurar que al filtrar por fecha en cliente queden algunos si hay actividad)
@@ -35,14 +74,13 @@ export const ProtocolsView: React.FC<{ isVanesa?: boolean, onOpenCandidateModal?
     const [myTasks, setMyTasks] = useState<any[]>([]);
 
     useEffect(() => {
-        // Tareas asignadas a Vanesa o de la categoría "Gestión"
-        // Coincidir con los estados y campos de TaskManager.tsx
+        // Tareas asignadas a Administración o de la categoría "Gestión"
         const qTasks = query(collection(db, "tasks"), where("status", "in", ["Pendiente", "En Curso"]));
         const unsubscribeTasks = onSnapshot(qTasks, (snapshot) => {
             const tasks = snapshot.docs
                 .map(doc => ({ id: doc.id, ...doc.data() } as any))
                 .filter(t =>
-                    t.assignee?.toLowerCase().includes('vanesa')
+                    t.assignee?.toLowerCase().includes('administración')
                 )
                 .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
             setMyTasks(tasks);
@@ -55,14 +93,14 @@ export const ProtocolsView: React.FC<{ isVanesa?: boolean, onOpenCandidateModal?
             await updateDoc(doc(db, "tasks", taskId), {
                 status: 'Completada',
                 completedAt: new Date(),
-                completedBy: 'Vanesa'
+                completedBy: 'Administración'
             });
         } catch (error) {
             console.error("Error completando tarea", error);
         }
     };
 
-    const whatsappMessageAyoub = encodeURIComponent("Hola Ayoub, soy Vanesa. Te recuerdo que tienes un nuevo contacto aceptado en la aplicación para coordinar visita. Por favor, contáctalo lo antes posible.");
+    const whatsappMessageAyoub = encodeURIComponent("Hola Ayoub, escribo desde Administración de Rentia. Te recuerdo que tienes un nuevo contacto aceptado en la aplicación para coordinar visita. Por favor, contáctalo lo antes posible.");
 
     const handleSign = (e: React.FormEvent) => {
         e.preventDefault();
@@ -71,23 +109,107 @@ export const ProtocolsView: React.FC<{ isVanesa?: boolean, onOpenCandidateModal?
         }
     };
 
+    const handleAiConsult = async () => {
+        if (aiQuery.trim().length < 5) return;
+
+        setIsAiLoading(true);
+        setAiResponse(null);
+
+        try {
+            const answer = await askAiAssistant(aiQuery, PROTOCOLS_CONTEXT, 'protocols');
+            setAiResponse(answer);
+        } catch (error) {
+            console.error("Error consultando protocolos con IA:", error);
+            setAiResponse("Lo siento, no he podido conectar con mi base de datos de protocolos. Por favor, revisa la sección manual.");
+        } finally {
+            setIsAiLoading(false);
+        }
+    };
+
     return (
         <div className="space-y-6 animate-in fade-in pb-20">
             {/* Header */}
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                    <FileText className="w-6 h-6 text-rentia-blue" />
-                    Protocolos y Procedimientos
-                </h2>
-                <p className="text-gray-500 mt-1">Base de conocimiento y flujos de trabajo de Rentia Investments.</p>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                    <div>
+                        <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                            <FileText className="w-6 h-6 text-rentia-blue" />
+                            Protocolos y Procedimientos
+                        </h2>
+                        <p className="text-gray-500 mt-1">Base de conocimiento y flujos de trabajo de Rentia Investments.</p>
+                    </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-4 mt-4">
+                    {/* AI Assistant Mini-Chat */}
+                    <div className="w-full md:w-96">
+                        <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-3 shadow-sm">
+                            <div className="flex items-center gap-2 mb-2">
+                                <Bot className="w-4 h-4 text-indigo-600" />
+                                <span className="text-[11px] font-bold text-indigo-700 uppercase tracking-wider">Asistente de Protocolos</span>
+                            </div>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    placeholder="¿Duda sobre un protocolo?"
+                                    className="flex-1 text-xs border border-indigo-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                    value={aiQuery}
+                                    onChange={(e) => setAiQuery(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleAiConsult()}
+                                />
+                                <button
+                                    onClick={handleAiConsult}
+                                    disabled={isAiLoading || aiQuery.length < 5}
+                                    className="bg-indigo-600 text-white p-1.5 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+                                >
+                                    {isAiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* AI Response Display */}
+                {aiResponse && (
+                    <div className="mb-6 p-5 bg-indigo-50/50 border border-indigo-100 rounded-2xl shadow-sm animate-in slide-in-from-top-2 duration-300 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-2 opacity-10">
+                            <Bot className="w-16 h-16 text-indigo-600" />
+                        </div>
+                        <div className="flex items-center gap-2 mb-3">
+                            <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center">
+                                <Sparkles className="w-4 h-4 text-white" />
+                            </div>
+                            <span className="text-[11px] font-bold text-indigo-700 uppercase">Respuesta del Asistente Mentor</span>
+                            <button
+                                onClick={() => setAiResponse(null)}
+                                className="ml-auto text-[10px] text-gray-400 hover:text-gray-600 font-bold bg-white px-2 py-1 rounded-lg border border-gray-100"
+                            >
+                                Cerrar
+                            </button>
+                        </div>
+                        <div className="text-sm text-gray-800 leading-relaxed font-medium">
+                            {aiResponse.split('\n').filter(line => line.trim()).map((line, i) => {
+                                const parts = line.split(/(\*\*.*?\*\*)/g);
+                                return (
+                                    <p key={i} className="mb-2">
+                                        {parts.map((part, j) => {
+                                            if (part.startsWith('**') && part.endsWith('**')) {
+                                                return <strong key={j} className="text-indigo-800 font-black">{part.slice(2, -2)}</strong>;
+                                            }
+                                            return part;
+                                        })}
+                                    </p>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+
+                <div className="flex flex-wrap items-center justify-between gap-4">
                     <div className="flex gap-2">
                         <button
-                            onClick={() => setActiveSection('vanesa')}
-                            className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${activeSection === 'vanesa' ? 'bg-rentia-blue text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                            onClick={() => setActiveSection('admin')}
+                            className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${activeSection === 'admin' ? 'bg-rentia-blue text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
                         >
-                            Onboarding & Captación (Vanesa)
+                            Onboarding & Captación (Administración)
                         </button>
                         <button
                             onClick={() => setActiveSection('general')}
@@ -110,7 +232,7 @@ export const ProtocolsView: React.FC<{ isVanesa?: boolean, onOpenCandidateModal?
             </div>
 
             {/* Content Area */}
-            {activeSection === 'vanesa' && (
+            {activeSection === 'admin' && (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Main Workflow Column */}
                     <div className="lg:col-span-2 space-y-6">
@@ -348,14 +470,14 @@ export const ProtocolsView: React.FC<{ isVanesa?: boolean, onOpenCandidateModal?
                                         <div className="grid gap-3">
                                             <CredentialCard platform="Idealista" user="info@rentiaroom.com" pass="rentiaroom25A!" show={showCredentials} />
                                             <CredentialCard platform="Gmail (Wallapop)" user="rentiaroom@gmail.com" pass="adminrentiaA!" show={showCredentials} note="Usar para Wallapop" />
-                                            <CredentialCard platform="Milanuncios" user="rtrygestion@gmail.com" pass="victorpol26A!" show={showCredentials} />
+                                            <CredentialCard platform="Milanuncios" user="rtrygestion@gmail.com" pass="adminrentia25A!" show={showCredentials} />
                                             <CredentialCard platform="Facebook" user="Verificar Páginas" pass="-" show={showCredentials} />
-                                            <CredentialCard platform="Fotocasa" user="info@rentiaroom.com" pass="Polvictorjose04!" show={showCredentials} />
+                                            <CredentialCard platform="Fotocasa" user="info@rentiaroom.com" pass="adminrentia25A!" show={showCredentials} />
                                             <div className="pt-2 border-t mt-2">
                                                 <CredentialCard
                                                     platform="TikTok Oficial"
                                                     user="rtrygestion@gmail.com"
-                                                    pass="victorpol26A!"
+                                                    pass="adminrentia25A!"
                                                     show={showCredentials}
                                                     note="⚠️ Usar App Móvil | Recordar: MURCIA"
                                                 />
@@ -386,11 +508,13 @@ export const ProtocolsView: React.FC<{ isVanesa?: boolean, onOpenCandidateModal?
                 </div>
             )}
 
-            {activeSection === 'general' && (
-                <div className="text-center py-20 bg-white rounded-xl text-gray-400 border border-gray-200 border-dashed">
-                    <p>El protocolo general de la empresa se desarrollará a partir del modelo de Vanesa.</p>
-                </div>
-            )}
+            {
+                activeSection === 'general' && (
+                    <div className="text-center py-20 bg-white rounded-xl text-gray-400 border border-gray-200 border-dashed">
+                        <p>El protocolo general de la empresa se desarrollará a partir del modelo de gestión operativa.</p>
+                    </div>
+                )
+            }
         </div >
     );
 };

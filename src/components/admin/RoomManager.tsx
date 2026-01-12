@@ -435,7 +435,7 @@ export const RoomManager: React.FC = () => {
                                         </h3>
                                         <p className="text-sm text-gray-500">{p.city} • {p.rooms.length} Habs</p>
 
-                                        {/* QUICK AVAILABILITY PREVIEW (VANESA REQUEST) */}
+                                        {/* QUICK AVAILABILITY PREVIEW (ADMIN REQUEST) */}
                                         <div className="flex flex-wrap gap-2 mt-2">
                                             {p.rooms.map(r => {
                                                 const isAvailable = r.status === 'available';

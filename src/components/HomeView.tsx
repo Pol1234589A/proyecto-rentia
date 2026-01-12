@@ -128,8 +128,8 @@ export const HomeView: React.FC<HomeViewProps> = () => {
             name: "Paulo Gazzaniga",
             role: "Propietario",
             date: "Hace 3 meses",
-            title: "Pol es un gran profesional",
-            text: "Pol es un gran profesional y buena gente. Está constantemente ayudando y ofreciendo siempre lo mejor, buscando soluciones y ver que te conviene en cada momento. Estoy muy contento con ellos porque mantienen las habitaciones siempre alquiladas y eligen siempre los mejores inquilinos. Los recomiendo 100% unos cracks.",
+            title: "El equipo es muy profesional",
+            text: "Son grandes profesionales y buena gente. Están constantemente ayudando y ofreciendo siempre lo mejor, buscando soluciones y ver qué te conviene en cada momento. Estoy muy contento con ellos porque mantienen las habitaciones siempre alquiladas y eligen siempre los mejores inquilinos. Los recomiendo 100% unos cracks.",
             initial: "P",
             color: "bg-[#edcd20]"
         },
@@ -138,7 +138,7 @@ export const HomeView: React.FC<HomeViewProps> = () => {
             role: "Cliente",
             date: "Hace 4 meses",
             title: "Recomendable 100%",
-            text: "Pol es un encanto, siempre dispuesto a resolver cualquier situación. Transmite mucha paz y confianza, de 10.",
+            text: "El equipo es un encanto, siempre dispuesto a resolver cualquier situación. Transmite mucha paz y confianza, de 10.",
             initial: "Á",
             color: "bg-[#1c1c1c]"
         },
@@ -339,7 +339,7 @@ export const HomeView: React.FC<HomeViewProps> = () => {
                                 </div>
 
                                 <a
-                                    href={`https://api.whatsapp.com/send?phone=34672886369&text=Hola,%20he%20calculado%20que%20puedo%20ganar%20${calcIncome}€%20con%20mi%20piso%20de%20${calcRooms}%20habitaciones.%20Me%20interesa%20un%20estudio%20exacto.`}
+                                    href={`https://api.whatsapp.com/send?phone=${config.directorContact.phone}&text=Hola, he calculado que puedo ganar ${calcIncome}€ con mi piso de ${calcRooms} habitaciones. Me interesa un estudio exacto.`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="w-full bg-rentia-black text-white font-bold py-4 rounded-xl shadow-lg hover:bg-gray-800 transition-all flex items-center justify-center gap-2 group"
@@ -395,7 +395,7 @@ export const HomeView: React.FC<HomeViewProps> = () => {
                                 {content.cta.subtitle}
                             </p>
                             <div className="flex flex-col sm:flex-row gap-4">
-                                <a href="https://api.whatsapp.com/send?phone=34672886369&text=Hola,%20quiero%20m%C3%A1s%20informaci%C3%B3n%20sobre%20vuestros%20servicios" target="_blank" rel="noopener noreferrer" className="inline-flex justify-center items-center bg-rentia-blue hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg transition-all duration-300 shadow-md">
+                                <a href={`https://api.whatsapp.com/send?phone=${config.directorContact.phone}&text=Hola, quiero más información sobre vuestros servicios`} target="_blank" rel="noopener noreferrer" className="inline-flex justify-center items-center bg-rentia-blue hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg transition-all duration-300 shadow-md">
                                     <MessageCircle className="w-5 h-5 mr-2" />
                                     {content.cta.buttonText}
                                 </a>
@@ -501,7 +501,7 @@ export const HomeView: React.FC<HomeViewProps> = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
 
-                        {/* Card 1: SANDRA */}
+                        {/* Card 1: Administración */}
                         <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                             <div className="bg-rentia-black p-6 text-white relative overflow-hidden">
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-gray-700 rounded-full mix-blend-overlay filter blur-2xl -translate-y-1/2 translate-x-1/2"></div>
@@ -547,7 +547,7 @@ export const HomeView: React.FC<HomeViewProps> = () => {
                             </div>
                         </div>
 
-                        {/* Card 2: POL */}
+                        {/* Card 2: Dirección */}
                         <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                             <div className="bg-rentia-blue p-6 text-white relative overflow-hidden">
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-blue-400 rounded-full mix-blend-overlay filter blur-2xl -translate-y-1/2 translate-x-1/2"></div>

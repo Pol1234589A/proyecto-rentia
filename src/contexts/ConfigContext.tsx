@@ -70,25 +70,25 @@ export interface SiteConfig {
 const defaultConfig: SiteConfig = {
     adminContact: {
         id: 'admin',
-        name: 'Sandra',
-        role: 'Secretaría y Administración',
+        name: 'Administración',
+        role: 'Gestión Operativa',
         phone: '34611948589',
         email: 'info@rentiaroom.com',
         image: '',
         startHour: 9,
         endHour: 14,
-        whatsappMessage: 'Hola Sandra, tengo una consulta administrativa...'
+        whatsappMessage: 'Hola, tengo una consulta administrativa...'
     },
     directorContact: {
         id: 'director',
-        name: 'Pol',
-        role: 'Dirección y Estrategia',
+        name: 'Dirección General',
+        role: 'Director General',
         phone: '34672886369',
         email: 'info@rentiaroom.com',
         image: '',
         startHour: 9,
         endHour: 20,
-        whatsappMessage: 'Hola Pol, estoy interesado en oportunidades de inversión...'
+        whatsappMessage: 'Hola, estoy interesado en oportunidades de inversión...'
     },
     general: {
         email: 'info@rentiaroom.com',

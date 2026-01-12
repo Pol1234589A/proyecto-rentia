@@ -580,7 +580,6 @@ export const WorkerDashboard: React.FC = () => {
                                                             <input type="number" placeholder="Coste/h" className="w-full p-1.5 border rounded text-xs" value={cleaningConfigForm.costPerHour} onChange={e => setCleaningConfigForm({ ...cleaningConfigForm, costPerHour: Number(e.target.value) })} />
                                                         </div>
                                                         <div className="grid grid-cols-2 gap-2">
-                                                            <input type="text" placeholder="Nombre Limpiadora" className="w-full p-1.5 border rounded text-xs" value={cleaningConfigForm.cleanerName} onChange={e => setCleaningConfigForm({ ...cleaningConfigForm, cleanerName: e.target.value })} />
                                                             <input type="tel" placeholder="Teléfono Limpiadora" className="w-full p-1.5 border rounded text-xs" value={cleaningConfigForm.cleanerPhone} onChange={e => setCleaningConfigForm({ ...cleaningConfigForm, cleanerPhone: e.target.value })} />
                                                         </div>
                                                     </>
@@ -669,17 +668,17 @@ export const WorkerDashboard: React.FC = () => {
                             </h3>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
-                                {/* Sandra */}
+                                {/* Administración */}
                                 <div className="bg-gray-50 border border-gray-100 p-5 rounded-2xl flex items-center gap-4 transition-all hover:bg-white hover:shadow-md group">
                                     <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                                        <User className="w-6 h-6" />
+                                        <Briefcase className="w-6 h-6" />
                                     </div>
                                     <div className="flex-1">
                                         <div className="flex justify-between items-start">
-                                            <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">Administrativa</p>
+                                            <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">Gestión Operativa</p>
                                             <span className="bg-green-100 text-green-700 text-[9px] font-black px-2 py-0.5 rounded-full">9:00 - 14:00</span>
                                         </div>
-                                        <h4 className="font-bold text-gray-900">Sandra</h4>
+                                        <h4 className="font-bold text-gray-900">Administración</h4>
                                         <div className="flex gap-3 mt-2">
                                             <a href="tel:+34611978589" className="text-xs font-bold text-gray-500 hover:text-blue-600 flex items-center gap-1 transition-colors">
                                                 <Phone className="w-3.5 h-3.5" /> +34 611 97 85 89
@@ -691,18 +690,17 @@ export const WorkerDashboard: React.FC = () => {
                                     </div>
                                 </div>
 
-                                {/* Victor / Vanesa */}
+                                {/* Victor */}
                                 <div className="bg-gray-50 border border-gray-100 p-5 rounded-2xl flex items-center gap-4 transition-all hover:bg-white hover:shadow-md group">
                                     <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                                        <Users className="w-6 h-6" />
+                                        <User className="w-6 h-6" />
                                     </div>
                                     <div className="flex-1">
                                         <div className="flex justify-between items-start">
-                                            <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-1">Gerencia / Soporte</p>
+                                            <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-1">Dirección / Soporte</p>
                                             <span className="bg-green-100 text-green-700 text-[9px] font-black px-2 py-0.5 rounded-full">9:00 - 14:00</span>
                                         </div>
-                                        <h4 className="font-bold text-gray-900">Victor & Vanesa</h4>
-                                        <p className="text-[10px] text-gray-400 font-medium italic mt-0.5">*Vanesa atiende de 9:00 a 14:00</p>
+                                        <h4 className="font-bold text-gray-900">Dirección / Soporte</h4>
                                         <div className="flex gap-3 mt-2">
                                             <a href="tel:+34611919812" className="text-xs font-bold text-gray-500 hover:text-indigo-600 flex items-center gap-1 transition-colors">
                                                 <Phone className="w-3.5 h-3.5" /> +34 611 91 98 12
@@ -723,8 +721,8 @@ export const WorkerDashboard: React.FC = () => {
                                     <div>
                                         <p className="font-bold text-sm">Horario de Atención de Oficina</p>
                                         <p className="text-blue-100 text-xs mt-1 leading-relaxed">
-                                            Sandra y Vanesa están disponibles para resolver cualquier duda administrativa o de gestión de **Lunes a Viernes de 9:00 a 14:00**.
-                                            Fuera de este horario, por favor deja un mensaje y te atenderán lo antes posible.
+                                            Nuestro equipo de gestión está disponible para resolver cualquier duda administrativa o operativa de **Lunes a Viernes de 9:00 a 14:00**.
+                                            Fuera de este horario, por favor deja un mensaje y te atenderemos lo antes posible.
                                         </p>
                                     </div>
                                 </div>

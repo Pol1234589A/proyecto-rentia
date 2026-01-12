@@ -3,8 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, Clock, MessageCircle, User, Briefcase, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useConfig } from '../contexts/ConfigContext';
 
 export const ContactView: React.FC = () => {
+    const config = useConfig();
     const [now, setNow] = useState(new Date());
     const [heroLoaded, setHeroLoaded] = useState(false);
     const { t } = useLanguage();
@@ -35,8 +37,8 @@ export const ContactView: React.FC = () => {
         return { isOpen: false, label: t('common.closed_now') };
     };
 
-    const sandraStatus = getStatus(9, 14);
-    const polStatus = getStatus(9, 20);
+    const adminStatus = getStatus(9, 14);
+    const dirStatus = getStatus(9, 20);
 
     return (
         <div className="bg-white min-h-screen font-sans animate-in fade-in duration-500 flex flex-col">
@@ -79,94 +81,94 @@ export const ContactView: React.FC = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
 
-                        {/* Sandra Card */}
+                        {/* Admin/Gestion Card */}
                         <div className="bg-white p-6 md:p-8 rounded-2xl shadow-idealista border border-gray-100 hover:border-rentia-gold transition-all duration-300 hover:-translate-y-1 group relative overflow-hidden">
                             {/* Status Indicator */}
-                            <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 border ${sandraStatus.isOpen ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
-                                {sandraStatus.isOpen ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-                                {sandraStatus.label}
+                            <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 border ${adminStatus.isOpen ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
+                                {adminStatus.isOpen ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+                                {adminStatus.label}
                             </div>
 
                             <div className="flex flex-col items-center text-center">
                                 <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center text-rentia-black font-bold text-3xl mb-4 shadow-sm group-hover:scale-110 transition-transform">
-                                    S
+                                    <Briefcase className="w-10 h-10" />
                                 </div>
-                                <h3 className="font-bold text-2xl text-rentia-black mb-1">{t('contact.sandra.name')}</h3>
-                                <p className="text-rentia-blue font-medium mb-4">{t('contact.sandra.role')}</p>
+                                <h3 className="font-bold text-2xl text-rentia-black mb-1">{t('contact.admin.name')}</h3>
+                                <p className="text-rentia-blue font-medium mb-4">{t('contact.admin.role')}</p>
 
                                 <div className="w-full border-t border-gray-100 my-4"></div>
 
                                 <div className="space-y-3 text-sm text-gray-600 mb-8 w-full">
                                     <div className="flex items-center justify-center gap-2">
                                         <Clock className="w-4 h-4 text-rentia-gold" />
-                                        <span><strong>{t('contact.sandra.hours')}</strong></span>
+                                        <span><strong>{t('contact.admin.hours')}</strong></span>
                                     </div>
                                     <div className="bg-gray-50 p-3 rounded-lg text-center mx-auto w-full">
-                                        <p className="font-bold text-gray-800 mb-1 text-xs uppercase tracking-wide">{t('contact.sandra.for_title')}</p>
-                                        <p>{t('contact.sandra.for_desc')}</p>
+                                        <p className="font-bold text-gray-800 mb-1 text-xs uppercase tracking-wide">{t('contact.admin.for_title')}</p>
+                                        <p>{t('contact.admin.for_desc')}</p>
                                     </div>
                                 </div>
 
                                 <a
-                                    href="https://api.whatsapp.com/send?phone=34611948589"
+                                    href={`https://api.whatsapp.com/send?phone=${config.adminContact.phone}&text=${encodeURIComponent(config.adminContact.whatsappMessage)}`}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className={`flex items-center justify-center w-full py-4 rounded-xl font-bold text-lg transition-all shadow-md ${sandraStatus.isOpen
-                                            ? 'bg-[#25D366] hover:bg-[#20ba5c] text-white hover:shadow-green-200/50'
-                                            : 'bg-white border-2 border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600'
+                                    className={`flex items-center justify-center w-full py-4 rounded-xl font-bold text-lg transition-all shadow-md ${adminStatus.isOpen
+                                        ? 'bg-[#25D366] hover:bg-[#20ba5c] text-white hover:shadow-green-200/50'
+                                        : 'bg-white border-2 border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600'
                                         }`}
                                 >
                                     <MessageCircle className="w-5 h-5 mr-2" />
-                                    {sandraStatus.isOpen ? t('contact.sandra.btn') : t('contact.sandra.btn_msg')}
+                                    {adminStatus.isOpen ? t('contact.admin.btn') : t('contact.admin.btn_msg')}
                                 </a>
-                                {!sandraStatus.isOpen && (
-                                    <p className="text-xs text-gray-400 mt-2">{t('contact.sandra.offline')}</p>
+                                {!adminStatus.isOpen && (
+                                    <p className="text-xs text-gray-400 mt-2">{t('contact.admin.offline')}</p>
                                 )}
                             </div>
                         </div>
 
-                        {/* Pol Card */}
+                        {/* Dirección Card */}
                         <div className="bg-white p-6 md:p-8 rounded-2xl shadow-idealista border border-gray-100 hover:border-rentia-blue transition-all duration-300 hover:-translate-y-1 group relative overflow-hidden">
                             {/* Status Indicator */}
-                            <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 border ${polStatus.isOpen ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
-                                {polStatus.isOpen ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-                                {polStatus.label}
+                            <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 border ${dirStatus.isOpen ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
+                                {dirStatus.isOpen ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+                                {dirStatus.label}
                             </div>
 
                             <div className="flex flex-col items-center text-center">
-                                <div className="w-20 h-20 rounded-full bg-blue-50 flex items-center justify-center text-rentia-blue font-bold text-3xl mb-4 shadow-sm group-hover:scale-110 transition-transform">
-                                    P
+                                <div className="w-20 h-20 rounded-full bg-blue-50 flex items-center justify-center text-rentia-blue font-bold text-3xl mb-4 shadow-sm group-hover:scale-110 transition-transform overflow-hidden">
+                                    {config.directorContact.image ? <img src={config.directorContact.image} alt={config.directorContact.name} className="w-full h-full object-cover" /> : config.directorContact.name.charAt(0)}
                                 </div>
-                                <h3 className="font-bold text-2xl text-rentia-black mb-1">{t('contact.pol.name')}</h3>
-                                <p className="text-rentia-blue font-medium mb-4">{t('contact.pol.role')}</p>
+                                <h3 className="font-bold text-2xl text-rentia-black mb-1">{config.directorContact.name}</h3>
+                                <p className="text-rentia-blue font-medium mb-4">{t('contact.director.role')}</p>
 
                                 <div className="w-full border-t border-gray-100 my-4"></div>
 
                                 <div className="space-y-3 text-sm text-gray-600 mb-8 w-full">
                                     <div className="flex items-center justify-center gap-2">
                                         <Clock className="w-4 h-4 text-rentia-gold" />
-                                        <span><strong>{t('contact.pol.hours')}</strong></span>
+                                        <span><strong>{t('contact.director.hours')}</strong></span>
                                     </div>
                                     <div className="bg-blue-50 p-3 rounded-lg text-center mx-auto w-full">
-                                        <p className="font-bold text-blue-800 mb-1 text-xs uppercase tracking-wide">{t('contact.pol.for_title')}</p>
-                                        <p className="text-blue-900">{t('contact.pol.for_desc')}</p>
+                                        <p className="font-bold text-blue-800 mb-1 text-xs uppercase tracking-wide">{t('contact.director.for_title')}</p>
+                                        <p className="text-blue-900">{t('contact.director.for_desc')}</p>
                                     </div>
                                 </div>
 
                                 <a
-                                    href="https://api.whatsapp.com/send?phone=34672886369"
+                                    href={`https://api.whatsapp.com/send?phone=${config.directorContact.phone}&text=${encodeURIComponent(config.directorContact.whatsappMessage)}`}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className={`flex items-center justify-center w-full py-4 rounded-xl font-bold text-lg transition-all shadow-md ${polStatus.isOpen
-                                            ? 'bg-[#25D366] hover:bg-[#20ba5c] text-white hover:shadow-green-200/50'
-                                            : 'bg-white border-2 border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600'
+                                    className={`flex items-center justify-center w-full py-4 rounded-xl font-bold text-lg transition-all shadow-md ${dirStatus.isOpen
+                                        ? 'bg-[#25D366] hover:bg-[#20ba5c] text-white hover:shadow-green-200/50'
+                                        : 'bg-white border-2 border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600'
                                         }`}
                                 >
                                     <MessageCircle className="w-5 h-5 mr-2" />
-                                    {polStatus.isOpen ? t('contact.pol.btn') : t('contact.pol.btn_msg')}
+                                    {dirStatus.isOpen ? t('contact.director.btn') : t('contact.director.btn_msg')}
                                 </a>
-                                {!polStatus.isOpen && (
-                                    <p className="text-xs text-gray-400 mt-2">{t('contact.pol.offline')}</p>
+                                {!dirStatus.isOpen && (
+                                    <p className="text-xs text-gray-400 mt-2">{t('contact.director.offline')}</p>
                                 )}
                             </div>
                         </div>
@@ -181,10 +183,10 @@ export const ContactView: React.FC = () => {
                     <h3 className="text-xl font-bold text-rentia-black mb-2">{t('contact.email.title')}</h3>
                     <p className="text-gray-500 mb-6">{t('contact.email.desc')}</p>
                     <a
-                        href="mailto:info@rentiaroom.com"
+                        href={`mailto:${config.general.email}`}
                         className="text-rentia-blue font-bold hover:underline text-lg"
                     >
-                        info@rentiaroom.com
+                        {config.general.email}
                     </a>
                 </div>
 

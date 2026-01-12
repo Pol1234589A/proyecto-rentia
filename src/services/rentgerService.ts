@@ -42,7 +42,7 @@ export const RentgerService = {
         } catch (error: any) {
             console.error("RentgerService: Error en sincronización delegada", error.message);
 
-            // Fallback de UI si la API falla completamente (MOCK para no bloquear a Vanesa)
+            // Fallback de UI si la API falla completamente (MOCK para no bloquear la experiencia de usuario)
             return {
                 success: true,
                 updated: 0,

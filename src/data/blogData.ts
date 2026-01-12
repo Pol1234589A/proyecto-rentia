@@ -30,7 +30,7 @@ export const blogPosts: BlogPost[] = [
       es: 'Análisis exhaustivo de las mejores zonas para invertir en Murcia capital. Desglosamos rentabilidades por barrio (El Carmen, Vistalegre, Espinardo) y estrategias para maximizar el retorno.',
       en: 'Comprehensive analysis of the best areas to invest in Murcia city. We break down profitability by neighborhood (El Carmen, Vistalegre, Espinardo) and strategies to maximize return.'
     },
-    author: 'Pol (Dirección)',
+    author: 'Dirección',
     date: { es: '28 de Noviembre, 2025', en: 'November 28, 2025' },
     readTime: 15,
     image: 'https://images.unsplash.com/photo-1575607678366-00296519f0f3?auto=format&fit=crop&w=1200&q=80',
@@ -445,7 +445,7 @@ export const blogPosts: BlogPost[] = [
       es: 'El modelo de negocio que está revolucionando el sector. Cómo gestionar propiedades de terceros legalmente y obtener un cashflow mensual sin hipotecarte.',
       en: 'The business model that is revolutionizing the sector. How to manage third-party properties legally and get monthly cash flow without taking out a mortgage.'
     },
-    author: 'Pol (Dirección)',
+    author: 'Dirección',
     date: { es: '13 de Noviembre, 2025', en: 'November 13, 2025' },
     readTime: 12,
     image: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=1200&q=80',
@@ -646,7 +646,7 @@ export const blogPosts: BlogPost[] = [
       es: 'Hemos visto perder mucho dinero a inversores por cometer estos 5 errores básicos. Aprende de la experiencia ajena y protege tu capital.',
       en: 'We have seen investors lose a lot of money by making these 5 basic mistakes. Learn from others\' experience and protect your capital.'
     },
-    author: 'Pol (Dirección)',
+    author: 'Dirección',
     date: { es: '04 de Noviembre, 2025', en: 'November 04, 2025' },
     readTime: 13,
     image: 'https://images.unsplash.com/photo-1512428559087-560fa0db7901?auto=format&fit=crop&w=1200&q=80',

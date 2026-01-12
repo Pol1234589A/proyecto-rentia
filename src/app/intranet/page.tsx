@@ -102,7 +102,7 @@ export default function IntranetPage() {
                     <div style="page-break-before: always; border-top: 2px dashed #eee; margin-top: 60px; padding-top: 20px;">
                         <h2 style="color: #0072CE; font-size: 15px; text-transform: uppercase;">ANEXO LEGAL: AVISO LEGAL Y CONDICIONES</h2>
                         <div style="font-size: 10px; color: #555; text-align: justify;">
-                            <p><strong>Identificación:</strong> Rentia Investments S.L. (NIF: B-75995308). Registro Mercantil de Murcia. Representante Legal: Pol Matencio Espinosa.</p>
+                            <p><strong>Identificación:</strong> Rentia Investments S.L. (NIF: B-75995308). Registro Mercantil de Murcia. Representante Legal: Víctor (Dirección RentiaRoom).</p>
                             <p><strong>Exención Inversiones:</strong> Toda información de rentabilidades son estimaciones de mercado y no garantizan resultados futuros.</p>
                             <p><strong>Propiedad Intelectual:</strong> Todos los contenidos de la plataforma son propiedad exclusiva de la empresa.</p>
                         </div>

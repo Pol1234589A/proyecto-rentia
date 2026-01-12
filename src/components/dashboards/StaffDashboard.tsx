@@ -34,8 +34,10 @@ import { SiteConfigManager } from '../admin/SiteConfigManager';
 import { BlogManager } from '../admin/BlogManager';
 import { VisualEditor } from '../admin/VisualEditor'; // Import new editor
 import { AgencyInvoicesPanel } from '../admin/AgencyInvoicesPanel';
-import { LayoutDashboard, Calculator, Briefcase, Wrench, Plus, Search, FileText, Save, X, DollarSign, Calendar as CalendarIcon, Filter, Pencil, PieChart, Landmark, Wallet, Clock, Zap, Settings, Receipt, Split, Info, MessageCircle, Share2, ClipboardList, UserCheck, Mail, Phone, ArrowRight, UserPlus, Inbox, Home, DoorOpen, Menu, Activity, ShieldAlert, UserCog, Siren, Footprints, BarChart3, Building, Grid, Globe, Send, Users, Key, Layout, Palette, Printer, Book } from 'lucide-react';
+import { LayoutDashboard, Calculator, Briefcase, Wrench, Plus, Search, FileText, Save, X, DollarSign, Calendar as CalendarIcon, Filter, Pencil, PieChart, Landmark, Wallet, Clock, Zap, Settings, Receipt, Split, Info, MessageCircle, Share2, ClipboardList, UserCheck, Mail, Phone, ArrowRight, UserPlus, Inbox, Home, DoorOpen, Menu, Activity, ShieldAlert, UserCog, Siren, Footprints, BarChart3, Building, Grid, Globe, Send, Users, Key, Layout, Palette, Printer, Book, BookOpen } from 'lucide-react';
 import { ProtocolsView } from './staff/ProtocolsView';
+import { TrainingView } from './staff/TrainingView';
+import { GlobalAiAssistant } from './staff/GlobalAiAssistant';
 
 
 const MOTIVATIONAL_QUOTES = [
@@ -68,11 +70,11 @@ export const StaffDashboard: React.FC = () => {
     const isInternal = userRole === 'staff' || userRole === 'agency' || userRole === 'manager';
     const isWorker = userRole === 'worker';
 
-    const [activeTab, setActiveTab] = useState<'overview' | 'room_manager' | 'real_estate' | 'accounting' | 'tools' | 'contracts' | 'calendar' | 'supplies' | 'calculator' | 'social' | 'tasks' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'transfers' | 'advanced_calc' | 'management_leads' | 'site_config' | 'blog_manager' | 'visual_editor' | 'agency_invoices' | 'protocols' | 'candidates'>('overview');
-    const [activeMobileTab, setActiveMobileTab] = useState<'overview' | 'tasks' | 'candidates' | 'properties' | 'menu' | 'accounting' | 'supplies' | 'calendar' | 'contracts' | 'social' | 'calculator' | 'tools' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'advanced_calc' | 'management_leads' | 'site_config' | 'blog_manager' | 'visual_editor' | 'agency_invoices' | 'protocols'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'room_manager' | 'real_estate' | 'accounting' | 'tools' | 'contracts' | 'calendar' | 'supplies' | 'calculator' | 'social' | 'tasks' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'transfers' | 'advanced_calc' | 'management_leads' | 'site_config' | 'blog_manager' | 'visual_editor' | 'agency_invoices' | 'protocols' | 'candidates' | 'training'>('overview');
+    const [activeMobileTab, setActiveMobileTab] = useState<'overview' | 'tasks' | 'candidates' | 'properties' | 'menu' | 'accounting' | 'supplies' | 'calendar' | 'contracts' | 'social' | 'calculator' | 'tools' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'advanced_calc' | 'management_leads' | 'site_config' | 'blog_manager' | 'visual_editor' | 'agency_invoices' | 'protocols' | 'training'>('overview');
 
     const isManagerRole = userRole === 'manager';
-    const isVanesa = currentUser?.email === 'vanesa@rentiaroom.com';
+    const isAdminUI = currentUser?.email === 'vanesa@rentiaroom.com' || currentUser?.email === 'info@rentiaroom.com';
 
     // ... (Keep existing state and effects unchanged) ...
     const [stats, setStats] = useState({
@@ -306,10 +308,11 @@ export const StaffDashboard: React.FC = () => {
         { id: 'user_manager', label: 'Usuarios', icon: <UserCog className="w-4 h-4" /> },
         { id: 'site_config', label: 'Configuración Web', icon: <Settings className="w-4 h-4 text-indigo-600" /> },
         { id: 'blog_manager', label: 'Blog / Noticias', icon: <Layout className="w-4 h-4 text-purple-600" /> },
+        { id: 'training', label: 'Formación', icon: <BookOpen className="w-4 h-4 text-purple-500" /> },
         { id: 'tools', label: 'Admin', icon: <Wrench className="w-4 h-4" /> },
     ];
 
-    const vanesaTools = [
+    const adminTools = [
         { id: 'protocols', label: 'Protocolos y Claves', icon: <Key className="w-4 h-4 text-indigo-500" /> },
         { id: 'room_manager', label: 'Gestión Habitaciones', icon: <DoorOpen className="w-4 h-4 text-green-400" /> },
         { id: 'contracts', label: 'Contratos (MANTENIMIENTO)', icon: <FileText className="w-4 h-4 text-pink-400" /> },
@@ -317,6 +320,7 @@ export const StaffDashboard: React.FC = () => {
         { id: 'management_leads', label: 'Captación', icon: <Key className="w-4 h-4" />, count: pendingMgmtLeadsCount },
         { id: 'requests', label: 'Solicitudes', icon: <Inbox className="w-4 h-4" />, count: pendingRequestsCount },
         { id: 'agency_invoices', label: 'Facturas Rentia', icon: <Printer className="w-4 h-4" /> },
+        { id: 'training', label: 'Formación', icon: <BookOpen className="w-4 h-4 text-purple-500" /> },
     ];
 
 
@@ -328,9 +332,11 @@ export const StaffDashboard: React.FC = () => {
         { id: 'requests', label: 'Solicitudes', icon: <Inbox className="w-6 h-6" />, color: 'bg-blue-100 text-blue-600', count: pendingRequestsCount },
         { id: 'agency_invoices', label: 'Facturas', icon: <Printer className="w-6 h-6" />, color: 'bg-gray-100 text-gray-600' },
         { id: 'protocols', label: 'Protocolos', icon: <Book className="w-6 h-6" />, color: 'bg-sky-100 text-sky-600' },
+        { id: 'training', label: 'Formación', icon: <BookOpen className="w-6 h-6" />, color: 'bg-purple-100 text-purple-600' },
 
         // Admin Extra Tools (Hidden for Vanesa in view logic if desired, but simplifying mobile menu for all)
         { id: 'site_config', label: 'Config Web', icon: <Settings className="w-6 h-6" />, color: 'bg-indigo-50 text-indigo-400' },
+        { id: 'training', label: 'Formación', icon: <BookOpen className="w-6 h-6" />, color: 'bg-purple-50 text-purple-400' },
         { id: 'accounting', label: 'Contabilidad', icon: <Calculator className="w-6 h-6" />, color: 'bg-blue-50 text-blue-400' },
     ];
 
@@ -393,6 +399,7 @@ export const StaffDashboard: React.FC = () => {
             case 'site_config': return <div className="h-full overflow-y-auto pb-24"><SiteConfigManager /></div>;
             case 'blog_manager': return <div className="h-full overflow-y-auto pb-24"><BlogManager /></div>;
             case 'protocols': return <div className="h-full overflow-y-auto pb-24"><ProtocolsView /></div>;
+            case 'training': return <div className="h-full overflow-y-auto pb-24"><TrainingView /></div>;
             case 'agency_invoices': return <div className="h-full overflow-y-auto pb-24"><AgencyInvoicesPanel /></div>;
             case 'calculator': return <div className="h-full overflow-y-auto pb-24"><SupplyCalculator properties={propertiesList} preSelectedPropertyId={selectedPropId} /></div>;
             case 'social': return <div className="h-full overflow-y-auto pb-24"><SocialInbox /></div>;
@@ -406,21 +413,21 @@ export const StaffDashboard: React.FC = () => {
             <div className="max-w-7xl mx-auto">
 
                 {/* --- HEADER --- */}
-                <header className={`p-4 md:p-6 mb-4 sm:mb-6 rounded-xl shadow-sm border flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition-all duration-500 ${isVanesa ? 'bg-gradient-to-br from-indigo-900 via-slate-900 to-indigo-950 border-indigo-500/30' : 'bg-white border-gray-200'}`}>
+                <header className={`p-4 md:p-6 mb-4 sm:mb-6 rounded-xl shadow-sm border flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition-all duration-500 ${isAdminUI ? 'bg-gradient-to-br from-indigo-900 via-slate-900 to-indigo-950 border-indigo-500/30' : 'bg-white border-gray-200'}`}>
                     <div>
-                        <h1 className={`text-xl sm:text-2xl font-bold flex items-center gap-2 ${isVanesa ? 'text-white' : 'text-rentia-black'}`}>
-                            <LayoutDashboard className={`w-5 h-5 sm:w-6 sm:h-6 ${isVanesa ? 'text-indigo-400' : 'text-rentia-blue'}`} />
-                            {isVanesa ? 'Gestión: Vanesa' : 'Panel de Control'}
+                        <h1 className={`text-xl sm:text-2xl font-bold flex items-center gap-2 ${isAdminUI ? 'text-white' : 'text-rentia-black'}`}>
+                            <LayoutDashboard className={`w-5 h-5 sm:w-6 sm:h-6 ${isAdminUI ? 'text-indigo-400' : 'text-rentia-blue'}`} />
+                            {isAdminUI ? 'Gestión: Administración' : 'Panel de Control'}
                         </h1>
-                        <p className={`text-xs sm:text-sm mt-1 ${isVanesa ? 'text-indigo-200/70' : 'text-gray-500'}`}>{isVanesa ? 'Administración y Operaciones RentiaRoom' : 'Sistema Integrado de Gestión Empresarial'}</p>
+                        <p className={`text-xs sm:text-sm mt-1 ${isAdminUI ? 'text-indigo-200/70' : 'text-gray-500'}`}>{isAdminUI ? 'Administración y Operaciones RentiaRoom' : 'Sistema Integrado de Gestión Empresarial'}</p>
                     </div>
 
-                    <div className={`hidden md:flex flex-wrap gap-2 justify-end p-2 rounded-xl max-w-full ${isVanesa ? '' : 'bg-gray-100'}`}>
-                        <button onClick={() => setActiveTab('overview')} className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2 whitespace-nowrap shadow-sm border ${activeTab === 'overview' ? (isVanesa ? 'bg-indigo-600 text-white border-indigo-500 shadow-indigo-500/30' : 'bg-white text-rentia-blue border-transparent') : (isVanesa ? 'bg-gray-900/40 text-white border-white/10 hover:bg-gray-900/60' : 'text-gray-500 hover:text-gray-700 border-transparent')}`}>
+                    <div className={`hidden md:flex flex-wrap gap-2 justify-end p-2 rounded-xl max-w-full ${isAdminUI ? '' : 'bg-gray-100'}`}>
+                        <button onClick={() => setActiveTab('overview')} className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2 whitespace-nowrap shadow-sm border ${activeTab === 'overview' ? (isAdminUI ? 'bg-indigo-600 text-white border-indigo-500 shadow-indigo-500/30' : 'bg-white text-rentia-blue border-transparent') : (isAdminUI ? 'bg-gray-900/40 text-white border-white/10 hover:bg-gray-900/60' : 'text-gray-500 hover:text-gray-700 border-transparent')}`}>
                             <BarChart3 className="w-4 h-4" /> Resumen
                         </button>
-                        {(isVanesa ? vanesaTools : desktopTools).map(tool => (
-                            <button key={tool.id} onClick={() => setActiveTab(tool.id as any)} className={`relative px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2 whitespace-nowrap shadow-sm border ${activeTab === tool.id ? (isVanesa ? 'bg-pink-600 text-white border-pink-500 shadow-pink-500/30' : 'bg-white text-rentia-blue border-transparent') : (isVanesa ? 'bg-gray-900/40 text-white border-white/10 hover:bg-gray-900/60' : 'text-gray-500 hover:text-gray-700 border-transparent')}`}>
+                        {(isAdminUI ? adminTools : desktopTools).map(tool => (
+                            <button key={tool.id} onClick={() => setActiveTab(tool.id as any)} className={`relative px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2 whitespace-nowrap shadow-sm border ${activeTab === tool.id ? (isAdminUI ? 'bg-pink-600 text-white border-pink-500 shadow-pink-500/30' : 'bg-white text-rentia-blue border-transparent') : (isAdminUI ? 'bg-gray-900/40 text-white border-white/10 hover:bg-gray-900/60' : 'text-gray-500 hover:text-gray-700 border-transparent')}`}>
                                 {tool.icon} {tool.label}
                                 {tool.count ? <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full border-2 border-indigo-900">{tool.count}</span> : null}
                             </button>
@@ -434,18 +441,21 @@ export const StaffDashboard: React.FC = () => {
                 </div>
 
                 <div className="hidden md:block">
+                    {/* GLOBAL AI ASSISTANT (Persistent help) */}
+                    <GlobalAiAssistant />
+
                     {/* DESKTOP CONTENT RENDER */}
                     {activeTab === 'overview' && (
                         // ... (Keep existing overview render) ...
                         <div className="animate-in slide-in-from-bottom-4 duration-300">
                             <MotivationalBanner />
                             {/* Stats Grid */}
-                            <div className={`grid grid-cols-1 sm:grid-cols-2 ${isVanesa ? 'md:grid-cols-3' : 'md:grid-cols-5'} gap-4 mb-8`}>
+                            <div className={`grid grid-cols-1 sm:grid-cols-2 ${isAdminUI ? 'md:grid-cols-3' : 'md:grid-cols-5'} gap-4 mb-8`}>
                                 <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-500 relative overflow-hidden"><span className="text-xs text-gray-500 uppercase font-bold">Total Habitaciones</span><div className="flex justify-between items-end mt-2"><span className="text-3xl font-bold text-gray-800">{loadingStats ? '-' : stats.totalRooms}</span><Building className="w-6 h-6 text-blue-100 absolute right-4 top-4 transform scale-150" /></div></div>
                                 <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-green-500 relative overflow-hidden"><span className="text-xs text-gray-500 uppercase font-bold">Ocupación Actual</span><div className="flex justify-between items-end mt-2"><span className={`text-3xl font-bold ${stats.occupancyRate > 90 ? 'text-green-600' : 'text-gray-800'}`}>{loadingStats ? '-' : `${stats.occupancyRate}%`}</span><Users className="w-6 h-6 text-green-100 absolute right-4 top-4 transform scale-150" /></div></div>
                                 <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-orange-500 relative overflow-hidden"><span className="text-xs text-gray-500 uppercase font-bold">Habitaciones Vacías</span><div className="flex justify-between items-end mt-2"><span className="text-3xl font-bold text-orange-600">{loadingStats ? '-' : stats.vacantRooms}</span><DoorOpen className="w-6 h-6 text-orange-100 absolute right-4 top-4 transform scale-150" /></div></div>
 
-                                {!isVanesa && (
+                                {!isAdminUI && (
                                     <>
                                         <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-purple-500 relative overflow-hidden">
                                             <span className="text-xs text-gray-500 uppercase font-bold flex items-center gap-1"><DollarSign className="w-3 h-3 text-purple-500" /> Comisión Mensual (Est)</span>
@@ -547,7 +557,8 @@ export const StaffDashboard: React.FC = () => {
                     {activeTab === 'site_config' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><SiteConfigManager /></div>}
                     {activeTab === 'blog_manager' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><BlogManager /></div>}
                     {activeTab === 'agency_invoices' && <div className="animate-in slide-in-from-bottom-4 duration-300"><AgencyInvoicesPanel /></div>}
-                    {activeTab === 'protocols' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-full"><ProtocolsView isVanesa={isVanesa} onOpenCandidateModal={() => setShowCandidateModal(true)} /></div>}
+                    {activeTab === 'protocols' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-full"><ProtocolsView onOpenCandidateModal={() => setShowCandidateModal(true)} /></div>}
+                    {activeTab === 'training' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-full"><TrainingView /></div>}
                     {/* Reuse Candidate Manager for explicit tab if needed, or redirect logic */}
                     {activeTab === 'candidates' && <div className="animate-in slide-in-from-bottom-4 duration-300"><CandidateManager /></div>}
 

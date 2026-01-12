@@ -96,12 +96,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                     }
                     */
 
-                    // ASEGURAMOS ROL DE GESTORA PARA VANESA (Legacy logic)
+                    // ASEGURAMOS ROL DE GESTORA PARA ADMINISTRACIÓN (Legacy logic)
                     if (email === 'vanesa@rentiaroom.com') {
                         await setDoc(doc(db, 'users', userCredential.user.uid), {
                             role: 'manager',
                             email: 'vanesa@rentiaroom.com',
-                            name: 'Vanesa',
+                            name: 'Administración',
                             active: true
                         }, { merge: true }).catch(console.error);
                     }
@@ -136,7 +136,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
         }
     };
 
-    const whatsappResetLink = `https://api.whatsapp.com/send?phone=34611948589&text=Hola%20Sandra,%20soy%20cliente%20y%20he%20olvidado%20mi%20contrase%C3%B1a%20de%20acceso%20al%20%C3%A1rea%20privada.`;
+    const whatsappResetLink = `https://api.whatsapp.com/send?phone=34611948589&text=Hola,%20soy%20cliente%20y%20he%20olvidado%20mi%20contrase%C3%B1a%20de%20acceso%20al%20%C3%A1rea%20privada.`;
 
     return (
         <div className="fixed inset-0 z-[10002] flex items-center justify-center p-4">

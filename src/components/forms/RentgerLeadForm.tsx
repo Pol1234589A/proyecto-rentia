@@ -41,7 +41,7 @@ export const RentgerLeadForm: React.FC<RentgerLeadFormProps> = ({ propertyId, pr
                     <CheckCircle className="text-green-600 w-8 h-8" />
                 </div>
                 <h3 className="text-xl font-bold text-green-900 mb-2">¡Solicitud Enviada!</h3>
-                <p className="text-green-700">Vanesa o Pol se pondrán en contacto contigo muy pronto.</p>
+                <p className="text-green-700">Nuestro equipo se pondrá en contacto contigo muy pronto.</p>
                 <button
                     onClick={() => setStatus('idle')}
                     className="mt-6 text-sm font-semibold text-green-800 hover:underline"

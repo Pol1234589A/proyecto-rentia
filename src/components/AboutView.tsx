@@ -92,7 +92,7 @@ export const AboutView: React.FC = () => {
                         </div>
 
                         <div className="relative order-1 lg:order-2">
-                            {/* IMAGEN DE GRUPO (POL Y VÍCTOR) */}
+                            {/* IMAGEN DE DIRECCIÓN / CORPORATIVA */}
                             <div className="rounded-2xl overflow-hidden shadow-2xl aspect-[4/3] bg-gray-100 relative group rotate-1 hover:rotate-0 transition-transform duration-500">
                                 {!storyLoaded && (
                                     <div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-10">
@@ -100,8 +100,8 @@ export const AboutView: React.FC = () => {
                                     </div>
                                 )}
                                 <img
-                                    src="https://i.ibb.co/zT3d68yG/Whats-App-Image-2025-11-21-at-00-46-35-1.jpg"
-                                    alt="Pol y Víctor - Fundadores"
+                                    src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80"
+                                    alt="Oficinas RentiaRoom"
                                     className={`w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500 ${storyLoaded ? 'opacity-100' : 'opacity-0'}`}
                                     onLoad={() => setStoryLoaded(true)}
                                 />
@@ -130,66 +130,21 @@ export const AboutView: React.FC = () => {
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                    <div className="flex justify-center max-w-6xl mx-auto">
 
-                        {/* POL */}
-                        <div className="bg-white rounded-xl overflow-hidden shadow-idealista hover:shadow-idealista-hover transition-all duration-300 hover:-translate-y-2 group flex flex-col border border-gray-100">
-                            <div className="h-48 bg-gray-100 flex items-center justify-center relative overflow-hidden">
-                                {config.directorContact.image ? (
-                                    <img src={config.directorContact.image} alt="Pol" className="w-full h-full object-cover" />
-                                ) : (
-                                    <div className="w-24 h-24 bg-rentia-black rounded-full flex items-center justify-center shadow-md z-10 text-white">
-                                        <TrendingUp className="w-10 h-10" />
-                                    </div>
-                                )}
-                                <div className="absolute bottom-0 left-0 w-full bg-white p-4 border-t border-gray-100 z-10 text-center">
-                                    <h3 className="text-rentia-black font-bold text-xl font-display">{config.directorContact.name}</h3>
-                                    <p className="text-rentia-gold text-xs font-bold uppercase tracking-wide mt-1">{t('about.team.pol.role')}</p>
-                                </div>
-                            </div>
-                            <div className="p-8 bg-white flex-grow">
-                                <p className="text-gray-600 text-sm leading-relaxed">
-                                    {t('about.team.pol.desc')}
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* VÍCTOR */}
-                        <div className="bg-white rounded-xl overflow-hidden shadow-idealista hover:shadow-idealista-hover transition-all duration-300 hover:-translate-y-2 group flex flex-col border border-gray-100">
+                        <div className="bg-white rounded-xl overflow-hidden shadow-idealista hover:shadow-idealista-hover transition-all duration-300 hover:-translate-y-2 group flex flex-col border border-gray-100 max-w-md">
                             <div className="h-48 bg-gray-100 flex items-center justify-center relative overflow-hidden">
                                 <div className="w-24 h-24 bg-rentia-black rounded-full flex items-center justify-center shadow-md z-10 text-white">
                                     <Home className="w-10 h-10" />
                                 </div>
                                 <div className="absolute bottom-0 left-0 w-full bg-white p-4 border-t border-gray-100 z-10 text-center">
-                                    <h3 className="text-rentia-black font-bold text-xl font-display">Víctor</h3>
-                                    <p className="text-rentia-gold text-xs font-bold uppercase tracking-wide mt-1">{t('about.team.victor.role')}</p>
+                                    <h3 className="text-rentia-black font-bold text-xl font-display">Dirección</h3>
+                                    <p className="text-rentia-gold text-xs font-bold uppercase tracking-wide mt-1">{t('about.team.director.role')}</p>
                                 </div>
                             </div>
                             <div className="p-8 bg-white flex-grow">
                                 <p className="text-gray-600 text-sm leading-relaxed">
-                                    {t('about.team.victor.desc')}
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* SANDRA */}
-                        <div className="bg-white rounded-xl overflow-hidden shadow-idealista hover:shadow-idealista-hover transition-all duration-300 hover:-translate-y-2 group flex flex-col border border-gray-100">
-                            <div className="h-48 bg-gray-100 flex items-center justify-center relative overflow-hidden">
-                                {config.adminContact.image ? (
-                                    <img src={config.adminContact.image} alt="Sandra" className="w-full h-full object-cover" />
-                                ) : (
-                                    <div className="w-24 h-24 bg-rentia-blue rounded-full flex items-center justify-center shadow-md z-10 text-white">
-                                        <Briefcase className="w-10 h-10" />
-                                    </div>
-                                )}
-                                <div className="absolute bottom-0 left-0 w-full bg-white p-4 border-t border-gray-100 z-10 text-center">
-                                    <h3 className="text-rentia-black font-bold text-xl font-display">{config.adminContact.name}</h3>
-                                    <p className="text-rentia-blue text-xs font-bold uppercase tracking-wide mt-1">{t('about.team.sandra.role')}</p>
-                                </div>
-                            </div>
-                            <div className="p-8 bg-white flex-grow">
-                                <p className="text-gray-600 text-sm leading-relaxed">
-                                    {t('about.team.sandra.desc')}
+                                    {t('about.team.director.desc')}
                                 </p>
                             </div>
                         </div>
@@ -241,7 +196,6 @@ export const AboutView: React.FC = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
 
-                        {/* Admin Card */}
                         <div className="bg-white p-6 md:p-8 rounded-2xl shadow-idealista border border-gray-100 hover:border-rentia-gold transition-all duration-300 hover:-translate-y-1 group relative overflow-hidden">
                             <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 border ${adminStatus.isOpen ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
                                 {adminStatus.isOpen ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
@@ -253,7 +207,7 @@ export const AboutView: React.FC = () => {
                                     {config.adminContact.image ? <img src={config.adminContact.image} alt={config.adminContact.name} className="w-full h-full object-cover" /> : config.adminContact.name.charAt(0)}
                                 </div>
                                 <h3 className="font-bold text-2xl text-rentia-black mb-1">{config.adminContact.name}</h3>
-                                <p className="text-rentia-blue font-medium mb-4">{t('contact.sandra.role')}</p>
+                                <p className="text-rentia-blue font-medium mb-4">{t('contact.admin.role')}</p>
 
                                 <div className="w-full border-t border-gray-100 my-4"></div>
 
@@ -263,8 +217,8 @@ export const AboutView: React.FC = () => {
                                         <span><strong>{String(config.adminContact.startHour).padStart(2, '0')}:00 - {String(config.adminContact.endHour).padStart(2, '0')}:00</strong></span>
                                     </div>
                                     <div className="bg-gray-50 p-3 rounded-lg text-center mx-auto w-full">
-                                        <p className="font-bold text-gray-800 mb-1 text-xs uppercase tracking-wide">{t('contact.sandra.for_title')}</p>
-                                        <p>{t('contact.sandra.for_desc')}</p>
+                                        <p className="font-bold text-gray-800 mb-1 text-xs uppercase tracking-wide">{t('contact.admin.for_title')}</p>
+                                        <p>{t('contact.admin.for_desc')}</p>
                                     </div>
                                 </div>
 
@@ -273,17 +227,16 @@ export const AboutView: React.FC = () => {
                                     target="_blank"
                                     rel="noreferrer"
                                     className={`flex items-center justify-center w-full py-4 rounded-xl font-bold text-lg transition-all shadow-md ${adminStatus.isOpen
-                                            ? 'bg-[#25D366] hover:bg-[#20ba5c] text-white hover:shadow-green-200/50'
-                                            : 'bg-white border-2 border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600'
+                                        ? 'bg-[#25D366] hover:bg-[#20ba5c] text-white hover:shadow-green-200/50'
+                                        : 'bg-white border-2 border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600'
                                         }`}
                                 >
                                     <MessageCircle className="w-5 h-5 mr-2" />
-                                    {adminStatus.isOpen ? t('contact.sandra.btn') : t('contact.sandra.btn_msg')}
+                                    {adminStatus.isOpen ? t('contact.admin.btn') : t('contact.admin.btn_msg')}
                                 </a>
                             </div>
                         </div>
 
-                        {/* Director Card */}
                         <div className="bg-white p-6 md:p-8 rounded-2xl shadow-idealista border border-gray-100 hover:border-rentia-blue transition-all duration-300 hover:-translate-y-1 group relative overflow-hidden">
                             <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 border ${directorStatus.isOpen ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
                                 {directorStatus.isOpen ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
@@ -295,7 +248,7 @@ export const AboutView: React.FC = () => {
                                     {config.directorContact.image ? <img src={config.directorContact.image} alt={config.directorContact.name} className="w-full h-full object-cover" /> : config.directorContact.name.charAt(0)}
                                 </div>
                                 <h3 className="font-bold text-2xl text-rentia-black mb-1">{config.directorContact.name}</h3>
-                                <p className="text-rentia-blue font-medium mb-4">{t('contact.pol.role')}</p>
+                                <p className="text-rentia-blue font-medium mb-4">{t('contact.director.role')}</p>
 
                                 <div className="w-full border-t border-gray-100 my-4"></div>
 
@@ -305,8 +258,8 @@ export const AboutView: React.FC = () => {
                                         <span><strong>{String(config.directorContact.startHour).padStart(2, '0')}:00 - {String(config.directorContact.endHour).padStart(2, '0')}:00</strong></span>
                                     </div>
                                     <div className="bg-blue-50 p-3 rounded-lg text-center mx-auto w-full">
-                                        <p className="font-bold text-blue-800 mb-1 text-xs uppercase tracking-wide">{t('contact.pol.for_title')}</p>
-                                        <p className="text-blue-900">{t('contact.pol.for_desc')}</p>
+                                        <p className="font-bold text-blue-800 mb-1 text-xs uppercase tracking-wide">{t('contact.director.for_title')}</p>
+                                        <p className="text-blue-900">{t('contact.director.for_desc')}</p>
                                     </div>
                                 </div>
 
@@ -315,12 +268,12 @@ export const AboutView: React.FC = () => {
                                     target="_blank"
                                     rel="noreferrer"
                                     className={`flex items-center justify-center w-full py-4 rounded-xl font-bold text-lg transition-all shadow-md ${directorStatus.isOpen
-                                            ? 'bg-[#25D366] hover:bg-[#20ba5c] text-white hover:shadow-green-200/50'
-                                            : 'bg-white border-2 border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600'
+                                        ? 'bg-[#25D366] hover:bg-[#20ba5c] text-white hover:shadow-green-200/50'
+                                        : 'bg-white border-2 border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600'
                                         }`}
                                 >
                                     <MessageCircle className="w-5 h-5 mr-2" />
-                                    {directorStatus.isOpen ? t('contact.pol.btn') : t('contact.pol.btn_msg')}
+                                    {directorStatus.isOpen ? t('contact.director.btn') : t('contact.director.btn_msg')}
                                 </a>
                             </div>
                         </div>

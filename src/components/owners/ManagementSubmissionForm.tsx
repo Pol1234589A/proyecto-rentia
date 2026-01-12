@@ -489,7 +489,7 @@ export const ManagementSubmissionForm: React.FC = () => {
                                         </div>
                                         <div className="text-[11px] text-gray-600 leading-relaxed">
                                             <span className="font-bold block text-gray-800 mb-1 leading-tight">CONSENTIMIENTO PARA EL TRATAMIENTO DE DATOS Y REGISTRO (RGPD/LSSI-CE)</span>
-                                            Al marcar esta casilla, autorizo expresamente a **Rentia Investments S.L.**, representada por **Pol Matencio Espinosa (44996927A)**, a tratar mis datos para gestionar mi solicitud y crear mi cuenta de propietario.
+                                            Al marcar esta casilla, autorizo expresamente a **Rentia Investments S.L.**, representada por **Dirección RentiaRoom**, a tratar mis datos para gestionar mi solicitud y crear mi cuenta de propietario.
                                             <br /><br />
                                             Entiendo que el sistema utiliza un protocolo de **Doble Opt-In**: recibiré un email para verificar mi identidad y activar mi panel. Mis datos no serán cedidos a terceros salvo obligación legal o necesidad del servicio. Puedo ejercer mis derechos en info@rentiaroom.com.
                                         </div>

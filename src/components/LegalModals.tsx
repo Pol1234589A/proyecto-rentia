@@ -66,7 +66,7 @@ export const LegalModals: React.FC<LegalModalsProps> = ({ activeModal, onClose }
               <li><strong>Denominación Social:</strong> Rentia Investments S.L.</li>
               <li><strong>Nombre Comercial:</strong> RentiaRoom</li>
               <li><strong>NIF:</strong> B-75995308</li>
-              <li><strong>Representante Legal:</strong> Pol Matencio Espinosa (DNI 44996927A)</li>
+              <li><strong>Representante Legal:</strong> Dirección RentiaRoom</li>
               <li><strong>Domicilio Social:</strong> C/ Brazal de Álamos, 7, 30130, Beniel, Murcia, España.</li>
               <li><strong>Email de Contacto:</strong> <a href="mailto:info@rentiaroom.com" className="text-rentia-blue hover:underline">info@rentiaroom.com</a></li>
               <li><strong>Actividad:</strong> Intermediación inmobiliaria, servicios de gestión de alquileres y asesoramiento en inversiones.</li>
@@ -87,7 +87,7 @@ export const LegalModals: React.FC<LegalModalsProps> = ({ activeModal, onClose }
             <div className="bg-red-50 border-l-4 border-red-500 p-5 rounded-r italic">
               <p className="font-bold text-gray-800 mb-2 underline">AVISO PARA INVERSORES Y PROPIETARIOS:</p>
               <p>La información, estudios de mercado, previsiones de rentabilidad y datos financieros presentados en este portal o en cualquier comunicación emitida por Rentia Investments S.L. tienen carácter meramente orientativo y se basan en estimaciones históricas y condiciones actuales del mercado que pueden variar sin previo aviso.</p>
-              <p className="mt-2">Rentia Investments S.L. y su representante Pol Matencio Espinosa no garantizan la obtención de rendimientos específicos. Toda inversión inmobiliaria conlleva riesgos inherentes de pérdida de capital, vacancia o variaciones en la normativa legal. El usuario es el único responsable de realizar su propia diligencia debida (Due Diligence) y de la decisión final de compra, venta o delegación de gestión.</p>
+              <p className="mt-2">Rentia Investments S.L. y su dirección no garantizan la obtención de rendimientos específicos. Toda inversión inmobiliaria conlleva riesgos inherentes de pérdida de capital, vacancia o variaciones en la normativa legal. El usuario es el único responsable de realizar su propia diligencia debida (Due Diligence) y de la decisión final de compra, venta o delegación de gestión.</p>
             </div>
 
             <h3 className="text-rentia-black font-bold text-base mt-6 border-b border-gray-100 pb-2">6. LEGISLACIÓN APLICABLE</h3>
@@ -108,7 +108,7 @@ export const LegalModals: React.FC<LegalModalsProps> = ({ activeModal, onClose }
             <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
               <p><strong>Identidad:</strong> Rentia Investments S.L.</p>
               <p><strong>NIF:</strong> B-75995308</p>
-              <p><strong>Representante Legal:</strong> Pol Matencio Espinosa</p>
+              <p><strong>Representante Legal:</strong> Dirección RentiaRoom</p>
               <p><strong>Dirección:</strong> C/ Brazal de Álamos, 7, 30130, Beniel, Murcia, España.</p>
               <p><strong>Email:</strong> info@rentiaroom.com</p>
             </div>

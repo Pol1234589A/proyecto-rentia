@@ -153,6 +153,7 @@ export const AboutView: React.FC = () => {
                 </div>
             </section>
 
+
             {/* --- VALUES / GRATITUDE --- */}
             <section className="py-24 bg-rentia-blue text-white relative overflow-hidden">
                 {/* Background effects */}
@@ -194,50 +195,9 @@ export const AboutView: React.FC = () => {
                         <p className="text-gray-500">{t('contact.choose.subtitle')}</p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
+                    <div className="flex justify-center">
 
-                        <div className="bg-white p-6 md:p-8 rounded-2xl shadow-idealista border border-gray-100 hover:border-rentia-gold transition-all duration-300 hover:-translate-y-1 group relative overflow-hidden">
-                            <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 border ${adminStatus.isOpen ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
-                                {adminStatus.isOpen ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-                                {adminStatus.label}
-                            </div>
-
-                            <div className="flex flex-col items-center text-center">
-                                <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center text-rentia-black font-bold text-3xl mb-4 shadow-sm group-hover:scale-110 transition-transform overflow-hidden">
-                                    {config.adminContact.image ? <img src={config.adminContact.image} alt={config.adminContact.name} className="w-full h-full object-cover" /> : config.adminContact.name.charAt(0)}
-                                </div>
-                                <h3 className="font-bold text-2xl text-rentia-black mb-1">{config.adminContact.name}</h3>
-                                <p className="text-rentia-blue font-medium mb-4">{t('contact.admin.role')}</p>
-
-                                <div className="w-full border-t border-gray-100 my-4"></div>
-
-                                <div className="space-y-3 text-sm text-gray-600 mb-8 w-full">
-                                    <div className="flex items-center justify-center gap-2">
-                                        <Clock className="w-4 h-4 text-rentia-gold" />
-                                        <span><strong>{String(config.adminContact.startHour).padStart(2, '0')}:00 - {String(config.adminContact.endHour).padStart(2, '0')}:00</strong></span>
-                                    </div>
-                                    <div className="bg-gray-50 p-3 rounded-lg text-center mx-auto w-full">
-                                        <p className="font-bold text-gray-800 mb-1 text-xs uppercase tracking-wide">{t('contact.admin.for_title')}</p>
-                                        <p>{t('contact.admin.for_desc')}</p>
-                                    </div>
-                                </div>
-
-                                <a
-                                    href={`https://api.whatsapp.com/send?phone=${config.adminContact.phone}&text=${encodeURIComponent(config.adminContact.whatsappMessage)}`}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className={`flex items-center justify-center w-full py-4 rounded-xl font-bold text-lg transition-all shadow-md ${adminStatus.isOpen
-                                        ? 'bg-[#25D366] hover:bg-[#20ba5c] text-white hover:shadow-green-200/50'
-                                        : 'bg-white border-2 border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600'
-                                        }`}
-                                >
-                                    <MessageCircle className="w-5 h-5 mr-2" />
-                                    {adminStatus.isOpen ? t('contact.admin.btn') : t('contact.admin.btn_msg')}
-                                </a>
-                            </div>
-                        </div>
-
-                        <div className="bg-white p-6 md:p-8 rounded-2xl shadow-idealista border border-gray-100 hover:border-rentia-blue transition-all duration-300 hover:-translate-y-1 group relative overflow-hidden">
+                        <div className="bg-white p-6 md:p-8 rounded-2xl shadow-idealista border border-gray-100 hover:border-rentia-blue transition-all duration-300 hover:-translate-y-1 group relative overflow-hidden max-w-md w-full">
                             <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 border ${directorStatus.isOpen ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
                                 {directorStatus.isOpen ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
                                 {directorStatus.label}
@@ -266,7 +226,7 @@ export const AboutView: React.FC = () => {
                                 <a
                                     href={`https://api.whatsapp.com/send?phone=${config.directorContact.phone}&text=${encodeURIComponent(config.directorContact.whatsappMessage)}`}
                                     target="_blank"
-                                    rel="noreferrer"
+                                    rel="noopener noreferrer"
                                     className={`flex items-center justify-center w-full py-4 rounded-xl font-bold text-lg transition-all shadow-md ${directorStatus.isOpen
                                         ? 'bg-[#25D366] hover:bg-[#20ba5c] text-white hover:shadow-green-200/50'
                                         : 'bg-white border-2 border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600'

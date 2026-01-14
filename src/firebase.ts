@@ -39,3 +39,7 @@ export const db = isServer
 
 export const storage = getStorage(app);
 export const functions = getFunctions(app, 'europe-west1'); // Ajustado a España (europe-west1)
+
+if (!isServer) {
+  (window as any)._db = db;
+}

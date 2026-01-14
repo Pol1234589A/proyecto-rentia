@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { PlayCircle, BookOpen, Clock, CheckCircle2, ChevronRight, Award, Lightbulb, Rocket, Shield, Lock, Search, ExternalLink, MessageSquare, Sparkles, Send, Loader2, Bot } from 'lucide-react';
+import { PlayCircle, BookOpen, Clock, CheckCircle2, ChevronRight, Award, Lightbulb, Rocket, Shield, Lock, Search, ExternalLink, MessageSquare, Sparkles, Send, Loader2, Bot, CreditCard } from 'lucide-react';
 import { askTrainingAssistant } from '../../../services/aiService';
 
 interface Video {
@@ -20,6 +20,21 @@ interface Category {
 }
 
 const TRAINING_DATA: Category[] = [
+    {
+        id: 'processes',
+        title: 'Fundamentos y Procesos (Ciclo de Vida)',
+        icon: <Rocket className="w-5 h-5 text-orange-500" />,
+        videos: [
+            {
+                id: 'process-all',
+                title: 'Ciclo Completo: Vivienda, Habitaciones y Contratos',
+                description: 'Explicación detallada de cómo gestionamos una propiedad desde cero. Aprendemos a crear la vivienda en el sistema, definir sus habitaciones y formalizar legalmente la relación con el propietario mediante el contrato de gestión integral. Enlace externo: https://drive.google.com/file/d/1bFnWdDRSNM-9QZlFVgAPPRZnZlH7qoTM/view',
+                videoUrl: 'https://drive.google.com/file/d/1bFnWdDRSNM-9QZlFVgAPPRZnZlH7qoTM/preview',
+                type: 'drive',
+                keywords: ['proceso', 'crear', 'vivienda', 'propiedad', 'habitaciones', 'contrato', 'propietario', 'gestion', 'integral', 'alta', 'flujo', 'trabajo', 'completo', 'sistema']
+            }
+        ]
+    },
     {
         id: 'external_tools',
         title: 'Software y Herramientas (Rentger)',
@@ -64,6 +79,29 @@ const TRAINING_DATA: Category[] = [
                 videoUrl: 'https://drive.google.com/file/d/1N4clalwVuIhbqHnNIvLMl0-h9FyJmpSK/preview',
                 type: 'drive',
                 keywords: ['inquilino', 'contrato inquilino', 'nuevo contrato', 'arrendamiento', 'alquiler', 'hacer contrato', 'crear contrato', 'habitacion contrato']
+            }
+        ]
+    },
+    {
+        id: 'finance',
+        title: 'Administración y Finanzas',
+        icon: <CreditCard className="w-5 h-5 text-emerald-500" />,
+        videos: [
+            {
+                id: 'payouts-process',
+                title: 'Transferencias y Contabilidad de Propietarios',
+                description: 'Tutorial detallado sobre cómo realizar las transferencias mensuales a los propietarios y cómo contabilizarlas correctamente en la plataforma para mantener un control financiero impecable. Enlace externo: https://drive.google.com/file/d/1o1NxVAx0KuVkDaXj5aTAMe6m-lxI23gc/view',
+                videoUrl: 'https://drive.google.com/file/d/1o1NxVAx0KuVkDaXj5aTAMe6m-lxI23gc/preview',
+                type: 'drive',
+                keywords: ['transferencia', 'propietario', 'liquidación', 'contabilidad', 'pago', 'facturacion', 'banco', 'transferencias', 'liquidaciones', 'contabilizar', 'dueño', 'abono']
+            },
+            {
+                id: 'rosario-71-billing',
+                title: 'Caso Especial: Rosario 71 (Flujo Prop. → Rentia)',
+                description: 'Explicación del registro contable para Rosario 71. En este modelo, el inquilino paga directamente al propietario y este nos abona la comisión. Veremos los pasos a seguir una vez emitida la factura para cerrar la liquidación correctamente. Enlace externo: https://drive.google.com/file/d/11UASXKL0SBK3V34NJ8r2pYUxF00ToDMG/view',
+                videoUrl: 'https://drive.google.com/file/d/11UASXKL0SBK3V34NJ8r2pYUxF00ToDMG/preview',
+                type: 'drive',
+                keywords: ['rosario', 'rosario 71', 'propietario', 'comisión', 'pago directo', 'especial', 'flujo', 'liquidación', 'factura']
             }
         ]
     }

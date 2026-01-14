@@ -103,27 +103,7 @@ export const Footer: React.FC<FooterProps> = ({ openLegalModal }) => {
               <div className="space-y-4 text-[14px] text-white">
                 <p className="font-bold border-b border-white/20 pb-2 mb-3">{config.general.address}</p>
 
-                {/* Admin Contact */}
-                <div className="mb-4">
-                  <p className="font-bold text-[#edcd20]">{config.adminContact.role} ({config.adminContact.name})</p>
-                  <p className="text-white/80 text-xs mb-1">
-                    {t('common.monday_friday')}: {String(config.adminContact.startHour).padStart(2, '0')}:00 - {String(config.adminContact.endHour).padStart(2, '0')}:00
-                  </p>
-                  <a href={`tel:${config.adminContact.phone}`} className="hover:text-[#edcd20] transition-colors flex items-center gap-2 py-1">
-                    📞 {config.adminContact.phone}
-                  </a>
-                </div>
 
-                {/* Director Contact */}
-                <div>
-                  <p className="font-bold text-[#edcd20]">{config.directorContact.role} ({config.directorContact.name})</p>
-                  <p className="text-white/80 text-xs mb-1">
-                    {t('common.monday_friday')}: {String(config.directorContact.startHour).padStart(2, '0')}:00 - {String(config.directorContact.endHour).padStart(2, '0')}:00
-                  </p>
-                  <a href={`tel:${config.directorContact.phone}`} className="hover:text-[#edcd20] transition-colors flex items-center gap-2 py-1">
-                    📞 {config.directorContact.phone}
-                  </a>
-                </div>
 
                 <p className="pt-4 mt-2 border-t border-white/20">
                   <a href={`mailto:${config.general.email}`} className="hover:text-[#edcd20] transition-colors block py-1">

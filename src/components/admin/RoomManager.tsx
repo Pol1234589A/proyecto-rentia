@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { db } from '../../firebase';
 import { collection, getDocs, doc, setDoc, deleteDoc, query, where, onSnapshot, updateDoc, getDoc } from 'firebase/firestore';
 import { properties as staticProperties, Property, Room, CleaningConfig, OwnerRecommendation } from '../../data/rooms';
-import { Save, RefreshCw, Home, ChevronDown, ChevronRight, Building, Plus, Trash2, X, MapPin, ExternalLink, Wind, Image as ImageIcon, FileText, Settings, Hammer, DollarSign, Percent, Sun, Tv, Lock, Monitor, AlertCircle, User, CheckCircle, Sparkles, Clock, Euro, Calendar, ShieldCheck, ShieldAlert, FileCheck, Download, CreditCard, Phone, Mail, Megaphone, Zap, Info, Send, Wifi } from 'lucide-react';
+import { Save, RefreshCw, Home, ChevronDown, ChevronRight, Building, Plus, Trash2, X, MapPin, ExternalLink, Wind, Image as ImageIcon, FileText, Settings, Hammer, DollarSign, Percent, Sun, Tv, Lock, Monitor, AlertCircle, User, CheckCircle, Sparkles, Clock, Euro, Calendar, ShieldCheck, ShieldAlert, FileCheck, Download, CreditCard, Phone, Mail, Megaphone, Zap, Info, Send, Wifi, DoorOpen } from 'lucide-react';
 import { ImageUploader } from './ImageUploader';
 import { ContractManager } from './ContractManager';
 import { Contract, UserProfile, PropertyDocument, SupplyInvoice } from '../../types';
@@ -433,7 +433,7 @@ export const RoomManager: React.FC = () => {
                                             {ownerData && <span className="bg-green-100 text-green-800 text-[10px] px-2 py-0.5 rounded border border-green-200">RGPD OK</span>}
                                             {p.ownerRecommendations && p.ownerRecommendations.length > 0 && <span className="bg-yellow-100 text-yellow-800 text-[10px] px-2 py-0.5 rounded flex items-center gap-1"><Megaphone className="w-3 h-3" /> Avisos</span>}
                                         </h3>
-                                        <p className="text-sm text-gray-500">{p.city} • {p.rooms.length} Habs</p>
+                                        <p className="text-sm text-gray-500">{p.city} • {p.totalRooms || p.rooms.length} Habs</p>
 
                                         {/* QUICK AVAILABILITY PREVIEW (ADMIN REQUEST) */}
                                         <div className="flex flex-wrap gap-2 mt-2">
@@ -470,7 +470,7 @@ export const RoomManager: React.FC = () => {
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
-                                    <button onClick={(e) => { e.stopPropagation(); handleDeleteProperty(p.id) }} className="text-gray-400 hover:text-red-500 p-2"><Trash2 className="w-5 h-5" /></button>
+                                    <button onClick={(e) => { e.stopPropagation(); handleDeleteProperty(p.id) }} className="text-gray-400 hover:text-red-500 p-2" title="Eliminar propiedad"><Trash2 className="w-5 h-5" /></button>
                                     <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                                 </div>
                             </div>
@@ -524,12 +524,13 @@ export const RoomManager: React.FC = () => {
                                                 className="p-2 border rounded text-sm bg-gray-50"
                                                 value={newRec.type}
                                                 onChange={e => setNewRec({ ...newRec, type: e.target.value as any })}
+                                                title="Tipo de recomendación"
                                             >
                                                 <option value="info">Info</option>
                                                 <option value="price">Precio</option>
                                                 <option value="improvement">Mejora</option>
                                             </select>
-                                            <button onClick={() => handleAddRecommendation(p.id)} className="bg-rentia-black text-white px-4 py-2 rounded text-sm font-bold flex items-center gap-1">
+                                            <button onClick={() => handleAddRecommendation(p.id)} className="bg-rentia-black text-white px-4 py-2 rounded text-sm font-bold flex items-center gap-1" title="Aplicar recomendación">
                                                 <Plus className="w-3 h-3" /> Aplicar
                                             </button>
                                         </div>
@@ -546,7 +547,7 @@ export const RoomManager: React.FC = () => {
                                                             <p className="text-[10px] opacity-70">{new Date(rec.date).toLocaleDateString()}</p>
                                                         </div>
                                                     </div>
-                                                    <button onClick={() => handleDeleteRecommendation(p.id, rec.id)} className="text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+                                                    <button onClick={() => handleDeleteRecommendation(p.id, rec.id)} className="text-gray-400 hover:text-red-500" title="Eliminar recomendación"><Trash2 className="w-4 h-4" /></button>
                                                 </div>
                                             ))}
                                         </div>
@@ -560,15 +561,15 @@ export const RoomManager: React.FC = () => {
                                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                                             <div className="md:col-span-1">
                                                 <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Dirección</label>
-                                                <input type="text" className="w-full p-2 border rounded-lg text-sm bg-gray-50" value={p.address} onChange={e => handlePropertyFieldChange(p.id, 'address', e.target.value)} />
+                                                <input type="text" className="w-full p-2 border rounded-lg text-sm bg-gray-50" value={p.address} onChange={e => handlePropertyFieldChange(p.id, 'address', e.target.value)} title="Dirección de la propiedad" placeholder="Calle..." />
                                             </div>
                                             <div>
                                                 <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Planta (Texto)</label>
-                                                <input type="text" className="w-full p-2 border rounded-lg text-sm bg-gray-50" value={p.floor} onChange={e => handlePropertyFieldChange(p.id, 'floor', e.target.value)} />
+                                                <input type="text" className="w-full p-2 border rounded-lg text-sm bg-gray-50" value={p.floor} onChange={e => handlePropertyFieldChange(p.id, 'floor', e.target.value)} title="Planta" placeholder="Ej: 3º B" />
                                             </div>
                                             <div className="md:col-span-2">
                                                 <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Google Maps Link</label>
-                                                <input type="text" className="w-full p-2 border rounded-lg text-sm bg-gray-50 font-mono text-xs" value={p.googleMapsLink} onChange={e => handlePropertyFieldChange(p.id, 'googleMapsLink', e.target.value)} />
+                                                <input type="text" className="w-full p-2 border rounded-lg text-sm bg-gray-50 font-mono text-xs" value={p.googleMapsLink} onChange={e => handlePropertyFieldChange(p.id, 'googleMapsLink', e.target.value)} title="Google Maps Link" placeholder="https://maps.app.goo.gl/..." />
                                             </div>
                                             <div className="md:col-span-4">
                                                 <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Descripción Pública (Idealista Style)</label>
@@ -589,6 +590,7 @@ export const RoomManager: React.FC = () => {
                                                     className="w-full p-2 border rounded text-sm bg-white"
                                                     value={p.floorType || 'intermediate'}
                                                     onChange={e => handlePropertyFieldChange(p.id, 'floorType', e.target.value)}
+                                                    title="Tipo de planta"
                                                 >
                                                     <option value="intermediate">Intermedia</option>
                                                     <option value="top">Última planta</option>
@@ -601,6 +603,7 @@ export const RoomManager: React.FC = () => {
                                                     className="w-full p-2 border rounded text-sm bg-white"
                                                     value={p.adType || 'professional'}
                                                     onChange={e => handlePropertyFieldChange(p.id, 'adType', e.target.value)}
+                                                    title="Tipo de anuncio"
                                                 >
                                                     <option value="professional">Profesional</option>
                                                     <option value="particular">Particular</option>
@@ -642,6 +645,7 @@ export const RoomManager: React.FC = () => {
                                                     value={p.transferDay || ''}
                                                     onChange={(e) => handlePropertyFieldChange(p.id, 'transferDay', Number(e.target.value))}
                                                     placeholder="Ej: 5"
+                                                    title="Día de pago transferencia"
                                                 />
                                             </div>
                                             <div>
@@ -649,6 +653,8 @@ export const RoomManager: React.FC = () => {
                                                 <div className="relative">
                                                     <input
                                                         type="number"
+                                                        aria-label="Porcentaje de gestión"
+                                                        title="Porcentaje de gestión"
                                                         step="0.1"
                                                         className="w-full p-2 border border-rentia-blue/30 rounded-lg text-sm bg-blue-50 font-bold text-rentia-blue focus:ring-rentia-blue focus:border-rentia-blue"
                                                         value={p.managementCommission || ''}
@@ -656,6 +662,22 @@ export const RoomManager: React.FC = () => {
                                                         placeholder="10"
                                                     />
                                                     <Percent className="absolute right-3 top-2.5 w-3 h-3 text-rentia-blue/50 pointer-events-none" />
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 flex items-center gap-1 text-rentia-blue">Nº Habs Total</label>
+                                                <div className="relative">
+                                                    <input
+                                                        type="number"
+                                                        aria-label="Número total de habitaciones"
+                                                        title="Número total de habitaciones"
+                                                        min="1"
+                                                        className="w-full p-2 border border-rentia-blue/30 rounded-lg text-sm bg-blue-50 font-bold text-rentia-blue focus:ring-rentia-blue focus:border-rentia-blue"
+                                                        value={p.totalRooms || p.rooms.length}
+                                                        onChange={(e) => handlePropertyFieldChange(p.id, 'totalRooms', Number(e.target.value))}
+                                                        placeholder="Ej: 5"
+                                                    />
+                                                    <DoorOpen className="absolute right-3 top-2.5 w-3 h-3 text-rentia-blue/50 pointer-events-none" />
                                                 </div>
                                             </div>
                                         </div>
@@ -674,6 +696,7 @@ export const RoomManager: React.FC = () => {
                                                         value={p.wifiConfig?.ssid || ''}
                                                         onChange={e => handlePropertyNestedFieldChange(p.id, 'wifiConfig', 'ssid', e.target.value)}
                                                         placeholder="Ej: Rentia_Casa"
+                                                        title="Nombre de la red WiFi"
                                                     />
                                                 </div>
                                                 <div className="space-y-1">
@@ -684,6 +707,7 @@ export const RoomManager: React.FC = () => {
                                                         value={p.wifiConfig?.password || ''}
                                                         onChange={e => handlePropertyNestedFieldChange(p.id, 'wifiConfig', 'password', e.target.value)}
                                                         placeholder="Ej: Murcia2025!"
+                                                        title="Contraseña de la red WiFi"
                                                     />
                                                 </div>
                                                 <div className="space-y-1">
@@ -694,6 +718,7 @@ export const RoomManager: React.FC = () => {
                                                         value={p.whatsappGroupUrl || ''}
                                                         onChange={e => handlePropertyFieldChange(p.id, 'whatsappGroupUrl', e.target.value)}
                                                         placeholder="https://chat.whatsapp..."
+                                                        title="Enlace al grupo de WhatsApp"
                                                     />
                                                 </div>
                                                 <div className="space-y-1">
@@ -704,6 +729,7 @@ export const RoomManager: React.FC = () => {
                                                         value={p.supportUrls?.incidents || ''}
                                                         onChange={e => handlePropertyNestedFieldChange(p.id, 'supportUrls', 'incidents', e.target.value)}
                                                         placeholder="Ej: Formulario soporte"
+                                                        title="Enlace para reportar incidencias"
                                                     />
                                                 </div>
                                                 <div className="space-y-1">
@@ -714,6 +740,7 @@ export const RoomManager: React.FC = () => {
                                                         value={p.tenantCleaningSchedule || ''}
                                                         onChange={e => handlePropertyFieldChange(p.id, 'tenantCleaningSchedule', e.target.value)}
                                                         placeholder="Ej: Cocina (Lunes), Basura (Martes)..."
+                                                        title="Turnos de limpieza"
                                                     />
                                                 </div>
                                             </div>
@@ -761,6 +788,7 @@ export const RoomManager: React.FC = () => {
                                                                 className="p-1 border rounded text-xs w-full pr-8"
                                                                 value={p.cleaningConfig?.costPerHour || ''}
                                                                 onChange={(e) => handleCleaningChange(p.id, 'costPerHour', Number(e.target.value))}
+                                                                title="Coste por hora de limpieza"
                                                             />
                                                             <span className="absolute right-1 top-1.5 text-[8px] text-gray-400">(IVA inc.)</span>
                                                         </div>
@@ -796,6 +824,8 @@ export const RoomManager: React.FC = () => {
                                                                 className="w-20 p-1 border rounded text-right font-bold text-rentia-blue"
                                                                 value={room.price}
                                                                 onChange={e => handleRoomChange(p.id, room.id, 'price', Number(e.target.value))}
+                                                                title="Precio de la habitación"
+                                                                placeholder="0"
                                                             />
                                                         </div>
                                                     </div>
@@ -808,6 +838,7 @@ export const RoomManager: React.FC = () => {
                                                                 className="w-full p-2 border rounded text-sm bg-white"
                                                                 value={room.status}
                                                                 onChange={e => handleRoomChange(p.id, room.id, 'status', e.target.value)}
+                                                                title="Estado de la habitación"
                                                             >
                                                                 <option value="available">Disponible</option>
                                                                 <option value="occupied">Alquilada</option>
@@ -822,6 +853,7 @@ export const RoomManager: React.FC = () => {
                                                                 className="w-full p-2 border rounded text-sm"
                                                                 value={dateToInput(room.availableFrom)}
                                                                 onChange={e => handleRoomChange(p.id, room.id, 'availableFrom', inputToDate(e.target.value))}
+                                                                title="Fecha de disponibilidad"
                                                             />
                                                         </div>
 
@@ -831,6 +863,7 @@ export const RoomManager: React.FC = () => {
                                                                 className="w-full p-2 border rounded text-sm bg-white"
                                                                 value={room.expenses}
                                                                 onChange={e => handleRoomChange(p.id, room.id, 'expenses', e.target.value)}
+                                                                title="Política de gastos"
                                                             >
                                                                 <option value="Gastos fijos aparte">Fijos Aparte</option>
                                                                 <option value="Se reparten los gastos">A Repartir</option>
@@ -843,6 +876,7 @@ export const RoomManager: React.FC = () => {
                                                                 className="w-full p-2 border rounded text-sm bg-white"
                                                                 value={room.targetProfile || 'both'}
                                                                 onChange={e => handleRoomChange(p.id, room.id, 'targetProfile', e.target.value)}
+                                                                title="Perfil de inquilino"
                                                             >
                                                                 <option value="both">Indiferente</option>
                                                                 <option value="students">Estudiantes</option>
@@ -856,6 +890,7 @@ export const RoomManager: React.FC = () => {
                                                                 className="w-full p-2 border rounded text-sm bg-white"
                                                                 value={room.gender || 'both'}
                                                                 onChange={e => handleRoomChange(p.id, room.id, 'gender', e.target.value)}
+                                                                title="Sexo preferente"
                                                             >
                                                                 <option value="both">Indiferente</option>
                                                                 <option value="male">Solo Chicos</option>
@@ -869,6 +904,7 @@ export const RoomManager: React.FC = () => {
                                                                 className="w-full p-2 border rounded text-sm bg-white"
                                                                 value={room.bedType || 'single'}
                                                                 onChange={e => handleRoomChange(p.id, room.id, 'bedType', e.target.value)}
+                                                                title="Tipo de cama"
                                                             >
                                                                 <option value="single">Individual</option>
                                                                 <option value="double">Doble</option>
@@ -883,21 +919,21 @@ export const RoomManager: React.FC = () => {
                                                         <label className="block text-[10px] font-bold text-gray-400 uppercase mb-2">Extras / Características Habitación</label>
                                                         <div className="flex flex-wrap gap-2 text-xs">
                                                             {/* Standard Features */}
-                                                            <button onClick={() => handleRoomFeatureToggle(p.id, room.id, 'lock')} className={`px-2 py-1 rounded border transition-colors ${room.features?.includes('lock') ? 'bg-white border-rentia-blue text-rentia-blue shadow-sm' : 'border-transparent text-gray-400'}`}><Lock className="w-3 h-3 inline mr-1" /> Llave</button>
-                                                            <button onClick={() => handleRoomFeatureToggle(p.id, room.id, 'smart_tv')} className={`px-2 py-1 rounded border transition-colors ${room.features?.includes('smart_tv') ? 'bg-white border-rentia-blue text-rentia-blue shadow-sm' : 'border-transparent text-gray-400'}`}><Tv className="w-3 h-3 inline mr-1" /> TV</button>
-                                                            <button onClick={() => handleRoomFeatureToggle(p.id, room.id, 'desk')} className={`px-2 py-1 rounded border transition-colors ${room.features?.includes('desk') ? 'bg-white border-rentia-blue text-rentia-blue shadow-sm' : 'border-transparent text-gray-400'}`}><Monitor className="w-3 h-3 inline mr-1" /> Escritorio</button>
-                                                            <button onClick={() => handleRoomChange(p.id, room.id, 'hasAirConditioning', !room.hasAirConditioning)} className={`px-2 py-1 rounded border transition-colors ${room.hasAirConditioning ? 'bg-white border-rentia-blue text-rentia-blue shadow-sm' : 'border-transparent text-gray-400'}`}><Wind className="w-3 h-3 inline mr-1" /> A/C</button>
+                                                            <button onClick={() => handleRoomFeatureToggle(p.id, room.id, 'lock')} className={`px-2 py-1 rounded border transition-colors ${room.features?.includes('lock') ? 'bg-white border-rentia-blue text-rentia-blue shadow-sm' : 'border-transparent text-gray-400'}`} title="Interruptor Llave en puerta"><Lock className="w-3 h-3 inline mr-1" /> Llave</button>
+                                                            <button onClick={() => handleRoomFeatureToggle(p.id, room.id, 'smart_tv')} className={`px-2 py-1 rounded border transition-colors ${room.features?.includes('smart_tv') ? 'bg-white border-rentia-blue text-rentia-blue shadow-sm' : 'border-transparent text-gray-400'}`} title="Interruptor Smart TV"><Tv className="w-3 h-3 inline mr-1" /> TV</button>
+                                                            <button onClick={() => handleRoomFeatureToggle(p.id, room.id, 'desk')} className={`px-2 py-1 rounded border transition-colors ${room.features?.includes('desk') ? 'bg-white border-rentia-blue text-rentia-blue shadow-sm' : 'border-transparent text-gray-400'}`} title="Interruptor Escritorio"><Monitor className="w-3 h-3 inline mr-1" /> Escritorio</button>
+                                                            <button onClick={() => handleRoomChange(p.id, room.id, 'hasAirConditioning', !room.hasAirConditioning)} className={`px-2 py-1 rounded border transition-colors ${room.hasAirConditioning ? 'bg-white border-rentia-blue text-rentia-blue shadow-sm' : 'border-transparent text-gray-400'}`} title="Interruptor Aire Acondicionado"><Wind className="w-3 h-3 inline mr-1" /> A/C</button>
 
                                                             {/* New Idealista Filters */}
                                                             <div className="w-px h-4 bg-gray-300 mx-1 self-center"></div>
 
-                                                            <button onClick={() => handleRoomFeatureToggle(p.id, room.id, 'couples_allowed')} className={`px-2 py-1 rounded border transition-colors ${room.features?.includes('couples_allowed') ? 'bg-purple-50 border-purple-500 text-purple-700 font-bold' : 'border-transparent text-gray-400'}`}>Parejas</button>
-                                                            <button onClick={() => handleRoomFeatureToggle(p.id, room.id, 'minors_allowed')} className={`px-2 py-1 rounded border transition-colors ${room.features?.includes('minors_allowed') ? 'bg-purple-50 border-purple-500 text-purple-700 font-bold' : 'border-transparent text-gray-400'}`}>Menores</button>
-                                                            <button onClick={() => handleRoomFeatureToggle(p.id, room.id, 'pets_allowed')} className={`px-2 py-1 rounded border transition-colors ${room.features?.includes('pets_allowed') ? 'bg-orange-50 border-orange-500 text-orange-700 font-bold' : 'border-transparent text-gray-400'}`}>Mascotas</button>
-                                                            <button onClick={() => handleRoomFeatureToggle(p.id, room.id, 'smoking_allowed')} className={`px-2 py-1 rounded border transition-colors ${room.features?.includes('smoking_allowed') ? 'bg-orange-50 border-orange-500 text-orange-700 font-bold' : 'border-transparent text-gray-400'}`}>Fumadores</button>
-                                                            <button onClick={() => handleRoomFeatureToggle(p.id, room.id, 'private_bath')} className={`px-2 py-1 rounded border transition-colors ${room.features?.includes('private_bath') ? 'bg-blue-50 border-blue-500 text-blue-700 font-bold' : 'border-transparent text-gray-400'}`}>Baño Priv.</button>
-                                                            <button onClick={() => handleRoomFeatureToggle(p.id, room.id, 'window_street')} className={`px-2 py-1 rounded border transition-colors ${room.features?.includes('window_street') ? 'bg-white border-gray-400 text-gray-700' : 'border-transparent text-gray-400'}`}>Ventana Calle</button>
-                                                            <button onClick={() => handleRoomFeatureToggle(p.id, room.id, 'online_booking')} className={`px-2 py-1 rounded border transition-colors ${room.features?.includes('online_booking') ? 'bg-green-50 border-green-500 text-green-700 font-bold' : 'border-transparent text-gray-400'}`}>Reserva Online</button>
+                                                            <button onClick={() => handleRoomFeatureToggle(p.id, room.id, 'couples_allowed')} className={`px-2 py-1 rounded border transition-colors ${room.features?.includes('couples_allowed') ? 'bg-purple-50 border-purple-500 text-purple-700 font-bold' : 'border-transparent text-gray-400'}`} title="Permitir parejas">Parejas</button>
+                                                            <button onClick={() => handleRoomFeatureToggle(p.id, room.id, 'minors_allowed')} className={`px-2 py-1 rounded border transition-colors ${room.features?.includes('minors_allowed') ? 'bg-purple-50 border-purple-500 text-purple-700 font-bold' : 'border-transparent text-gray-400'}`} title="Permitir menores">Menores</button>
+                                                            <button onClick={() => handleRoomFeatureToggle(p.id, room.id, 'pets_allowed')} className={`px-2 py-1 rounded border transition-colors ${room.features?.includes('pets_allowed') ? 'bg-orange-50 border-orange-500 text-orange-700 font-bold' : 'border-transparent text-gray-400'}`} title="Permitir mascotas">Mascotas</button>
+                                                            <button onClick={() => handleRoomFeatureToggle(p.id, room.id, 'smoking_allowed')} className={`px-2 py-1 rounded border transition-colors ${room.features?.includes('smoking_allowed') ? 'bg-orange-50 border-orange-500 text-orange-700 font-bold' : 'border-transparent text-gray-400'}`} title="Permitir fumar">Fumadores</button>
+                                                            <button onClick={() => handleRoomFeatureToggle(p.id, room.id, 'private_bath')} className={`px-2 py-1 rounded border transition-colors ${room.features?.includes('private_bath') ? 'bg-blue-50 border-blue-500 text-blue-700 font-bold' : 'border-transparent text-gray-400'}`} title="Baño privado">Baño Priv.</button>
+                                                            <button onClick={() => handleRoomFeatureToggle(p.id, room.id, 'window_street')} className={`px-2 py-1 rounded border transition-colors ${room.features?.includes('window_street') ? 'bg-white border-gray-400 text-gray-700' : 'border-transparent text-gray-400'}`} title="Ventana a la calle">Ventana Calle</button>
+                                                            <button onClick={() => handleRoomFeatureToggle(p.id, room.id, 'online_booking')} className={`px-2 py-1 rounded border transition-colors ${room.features?.includes('online_booking') ? 'bg-green-50 border-green-500 text-green-700 font-bold' : 'border-transparent text-gray-400'}`} title="Reserva online">Reserva Online</button>
                                                         </div>
                                                     </div>
 
@@ -908,7 +944,7 @@ export const RoomManager: React.FC = () => {
                                                             {room.recommendations?.map((rec, i) => (
                                                                 <div key={i} className="flex justify-between items-center text-xs bg-white p-2 rounded border border-yellow-200">
                                                                     <span className="text-gray-600">{rec.text}</span>
-                                                                    <button onClick={() => handleDeleteRoomRecommendation(p.id, room.id, rec.id)} className="text-red-400 hover:text-red-600"><Trash2 className="w-3 h-3" /></button>
+                                                                    <button onClick={() => handleDeleteRoomRecommendation(p.id, room.id, rec.id)} className="text-red-400 hover:text-red-600" title="Eliminar aviso"><Trash2 className="w-3 h-3" /></button>
                                                                 </div>
                                                             ))}
                                                             <div className="flex gap-2 mt-2">
@@ -918,8 +954,9 @@ export const RoomManager: React.FC = () => {
                                                                     className="flex-grow p-1.5 border rounded text-xs"
                                                                     value={roomRecInputs[room.id] || ''}
                                                                     onChange={e => setRoomRecInputs({ ...roomRecInputs, [room.id]: e.target.value })}
+                                                                    title="Nuevo aviso de habitación"
                                                                 />
-                                                                <button onClick={() => handleAddRoomRecommendation(p.id, room.id)} className="bg-yellow-500 text-white px-2 rounded hover:bg-yellow-600"><Plus className="w-4 h-4" /></button>
+                                                                <button onClick={() => handleAddRoomRecommendation(p.id, room.id)} className="bg-yellow-500 text-white px-2 rounded hover:bg-yellow-600" title="Añadir aviso"><Plus className="w-4 h-4" /></button>
                                                             </div>
                                                         </div>
                                                     </div>

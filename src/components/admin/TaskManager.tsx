@@ -4,8 +4,9 @@ import { createPortal } from 'react-dom';
 import { db } from '../../firebase';
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy, arrayUnion } from 'firebase/firestore';
 import { StaffMember, Task, TaskPriority, TaskStatus, TaskCategory, TaskBoard } from '../../types';
-import { Plus, Calendar, AlertTriangle, CheckCircle, Trash2, Edit2, X, Filter, List, Kanban, Save, Loader2, Wifi, WifiOff, Layout, FolderPlus, Folder, LayoutTemplate, Menu, Search, Clock, ChevronDown, Sparkles, Trophy, Play, MessageCircle, Send, User } from 'lucide-react';
+import { Plus, Calendar, AlertTriangle, CheckCircle, Trash2, Edit2, X, Filter, List, Kanban, Save, Loader2, Wifi, WifiOff, Layout, FolderPlus, Folder, LayoutTemplate, Menu, Search, Clock, ChevronDown, Sparkles, Trophy, Play, MessageCircle, Send, User, Siren, ArrowRight, Building } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { Property } from '../../data/rooms';
 
 const STAFF_MEMBERS: StaffMember[] = ['Víctor', 'Administración', 'Ayoub', 'Hugo', 'Colaboradores'];
 const PRIORITIES: TaskPriority[] = ['Alta', 'Media', 'Baja'];
@@ -107,8 +108,8 @@ const KanbanCard: React.FC<{ task: Task, onEdit: (t: Task) => void, onDelete: (i
                 {task.priority}
             </span>
             <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button onClick={() => onEdit(task)} className="p-1 hover:bg-gray-100 rounded text-blue-600"><Edit2 className="w-3 h-3" /></button>
-                <button onClick={() => onDelete(task.id)} className="p-1 hover:bg-gray-100 rounded text-red-600"><Trash2 className="w-3 h-3" /></button>
+                <button onClick={() => onEdit(task)} title="Editar tarea" className="p-1 hover:bg-gray-100 rounded text-blue-600"><Edit2 className="w-3 h-3" /></button>
+                <button onClick={() => onDelete(task.id)} title="Borrar tarea" className="p-1 hover:bg-gray-100 rounded text-red-600"><Trash2 className="w-3 h-3" /></button>
             </div>
         </div>
 
@@ -217,9 +218,10 @@ interface TaskManagerProps {
     whitelistedBoardNames?: string[]; // Nueva prop para filtrar tableros visibles
     hideSidebar?: boolean;
     titleOverride?: string;
+    properties?: Property[]; // Para identificar tareas de nuevas viviendas
 }
 
-export const TaskManager: React.FC<TaskManagerProps> = ({ initialCategoryFilter, initialStatusFilter, whitelistedBoardNames, hideSidebar, titleOverride }) => {
+export const TaskManager: React.FC<TaskManagerProps> = ({ initialCategoryFilter, initialStatusFilter, whitelistedBoardNames, hideSidebar, titleOverride, properties }) => {
     const { currentUser } = useAuth();
     const [tasks, setTasks] = useState<Task[]>([]);
     const [boards, setBoards] = useState<TaskBoard[]>([]);
@@ -528,8 +530,8 @@ export const TaskManager: React.FC<TaskManagerProps> = ({ initialCategoryFilter,
                             <Layout className="w-5 h-5 text-rentia-blue" /> Tableros
                         </h3>
                         <div className="flex gap-1">
-                            <button onClick={() => setShowBoardModal(true)} className="p-1.5 hover:bg-white rounded-md text-gray-500 hover:text-rentia-blue transition-colors border border-transparent hover:border-gray-200"><FolderPlus className="w-4 h-4" /></button>
-                            <button onClick={() => setShowMobileSidebar(false)} className="md:hidden p-1.5 text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+                            <button onClick={() => setShowBoardModal(true)} title="Nuevo tablero" className="p-1.5 hover:bg-white rounded-md text-gray-500 hover:text-rentia-blue transition-colors border border-transparent hover:border-200"><FolderPlus className="w-4 h-4" /></button>
+                            <button onClick={() => setShowMobileSidebar(false)} title="Cerrar menú" className="md:hidden p-1.5 text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
                         </div>
                     </div>
 
@@ -542,7 +544,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({ initialCategoryFilter,
                                     {(groupBoards as TaskBoard[]).map(board => (
                                         <div key={board.id} onClick={() => { setSelectedBoardId(board.id); setShowMobileSidebar(false); }} className={`px-3 py-2 rounded-lg text-sm font-medium cursor-pointer flex justify-between items-center group transition-colors ${selectedBoardId === board.id ? 'bg-blue-50 text-rentia-blue border border-blue-100' : 'text-gray-600 hover:bg-gray-50 border border-transparent'}`}>
                                             <span className="truncate flex items-center gap-2"><LayoutTemplate className="w-3.5 h-3.5 opacity-70" />{board.title}</span>
-                                            {selectedBoardId === board.id && <button onClick={(e) => { e.stopPropagation(); handleDeleteBoard(board.id); }} className="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"><X className="w-3 h-3" /></button>}
+                                            {selectedBoardId === board.id && <button onClick={(e) => { e.stopPropagation(); handleDeleteBoard(board.id); }} title="Eliminar tablero" className="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"><X className="w-3 h-3" /></button>}
                                         </div>
                                     ))}
                                 </div>
@@ -558,7 +560,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({ initialCategoryFilter,
                     {/* Header Controls */}
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
                         <div className="flex items-center gap-3 w-full md:w-auto">
-                            {!hideSidebar && <button onClick={() => setShowMobileSidebar(true)} className="md:hidden p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-lg"><Menu className="w-6 h-6" /></button>}
+                            {!hideSidebar && <button onClick={() => setShowMobileSidebar(true)} title="Ver tableros" className="md:hidden p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-lg"><Menu className="w-6 h-6" /></button>}
                             <div className="flex-1">
                                 <h2 className="text-xl md:text-2xl font-bold text-rentia-black flex items-center gap-2 truncate">
                                     {titleOverride || boards.find(b => b.id === selectedBoardId)?.title || "Organizador de Tareas"}
@@ -573,8 +575,8 @@ export const TaskManager: React.FC<TaskManagerProps> = ({ initialCategoryFilter,
                         </div>
                         <div className="flex gap-2 w-full md:w-auto justify-between md:justify-end">
                             <div className="flex gap-2">
-                                <button onClick={() => setViewMode('kanban')} className={`p-2 rounded ${viewMode === 'kanban' ? 'bg-gray-100 text-rentia-blue' : 'text-gray-400'}`}><Kanban className="w-5 h-5" /></button>
-                                <button onClick={() => setViewMode('list')} className={`p-2 rounded ${viewMode === 'list' ? 'bg-gray-100 text-rentia-blue' : 'text-gray-400'}`}><List className="w-5 h-5" /></button>
+                                <button onClick={() => setViewMode('kanban')} title="Vista Kanban" className={`p-2 rounded ${viewMode === 'kanban' ? 'bg-gray-100 text-rentia-blue' : 'text-gray-400'}`}><Kanban className="w-5 h-5" /></button>
+                                <button onClick={() => setViewMode('list')} title="Vista Lista" className={`p-2 rounded ${viewMode === 'list' ? 'bg-gray-100 text-rentia-blue' : 'text-gray-400'}`}><List className="w-5 h-5" /></button>
                             </div>
                             <button onClick={() => { if (!selectedBoardId && boards.length === 0) { alert("Crea primero un tablero en la barra lateral."); setShowBoardModal(true); } else { resetTaskForm(); setShowTaskModal(true); } }} className="bg-rentia-black text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-gray-800 shadow-md whitespace-nowrap"><Plus className="w-4 h-4" /> Nueva Tarea</button>
                         </div>
@@ -591,14 +593,107 @@ export const TaskManager: React.FC<TaskManagerProps> = ({ initialCategoryFilter,
                             <div className="relative"><input type="text" placeholder="Buscar tarea..." className="pl-8 pr-3 py-2 bg-white border border-gray-200 rounded-lg text-xs md:text-sm outline-none focus:ring-2 focus:ring-rentia-blue w-32 sm:w-48 transition-all" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /><Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" /></div>
                             <div className="h-6 w-px bg-gray-200 mx-1 hidden sm:block"></div>
                             <Filter className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                            <select className="bg-white border border-gray-200 text-xs md:text-sm rounded-lg p-2 focus:ring-2 focus:ring-rentia-blue outline-none" value={filterAssignee} onChange={(e) => setFilterAssignee(e.target.value as any)}><option value="All">Responsable: Todos</option>{STAFF_MEMBERS.map(m => <option key={m} value={m}>{m}</option>)}</select>
-                            <select className="bg-white border border-gray-200 text-xs md:text-sm rounded-lg p-2 focus:ring-2 focus:ring-rentia-blue outline-none" value={filterCategory} onChange={(e) => setFilterCategory(e.target.value as any)}><option value="All">Categoría: Todas</option>{CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</select>
-                            <select className="bg-white border border-gray-200 text-xs md:text-sm rounded-lg p-2 focus:ring-2 focus:ring-rentia-blue outline-none" value={filterPriority} onChange={(e) => setFilterPriority(e.target.value as any)}><option value="All">Prioridad: Todas</option>{PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}</select>
+                            <select title="Filtrar por responsable" className="bg-white border border-gray-200 text-xs md:text-sm rounded-lg p-2 focus:ring-2 focus:ring-rentia-blue outline-none" value={filterAssignee} onChange={(e) => setFilterAssignee(e.target.value as any)}><option value="All">Responsable: Todos</option>{STAFF_MEMBERS.map(m => <option key={m} value={m}>{m}</option>)}</select>
+                            <select title="Filtrar por categoría" className="bg-white border border-gray-200 text-xs md:text-sm rounded-lg p-2 focus:ring-2 focus:ring-rentia-blue outline-none" value={filterCategory} onChange={(e) => setFilterCategory(e.target.value as any)}><option value="All">Categoría: Todas</option>{CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</select>
+                            <select title="Filtrar por prioridad" className="bg-white border border-gray-200 text-xs md:text-sm rounded-lg p-2 focus:ring-2 focus:ring-rentia-blue outline-none" value={filterPriority} onChange={(e) => setFilterPriority(e.target.value as any)}><option value="All">Prioridad: Todas</option>{PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}</select>
                         </div>
                     </div>
                 </div>
 
                 <div className="flex-grow p-4 md:p-6 bg-gray-50 overflow-hidden flex flex-col">
+                    {/* ZONA DESTACADA: NUEVAS VIVIENDAS EN ADECUACIÓN (CRÍTICO) */}
+                    {(() => {
+                        const ONE_MONTH_MS = 30 * 24 * 60 * 60 * 1000;
+                        const now = Date.now();
+
+                        const newPropertyIds = (properties || []).filter(p => {
+                            if (!p.createdAt) return false;
+                            const createdDate = p.createdAt.seconds
+                                ? p.createdAt.seconds * 1000
+                                : new Date(p.createdAt).getTime();
+                            return (now - createdDate) < ONE_MONTH_MS;
+                        }).map(p => p.id);
+
+                        const urgentProjectTasks = tasks.filter(t => {
+                            if (t.status === 'Completada') return false;
+
+                            // Si la tarea está vinculada a un piso nuevo (menos de 1 mes)
+                            const isFromNewProperty = t.propertyId && newPropertyIds.includes(t.propertyId);
+
+                            // O si es una tarea de expansión/nuevos pisos detectada por tablero/título
+                            const board = boards.find(b => b.id === t.boardId);
+                            const boardTitle = board?.title.toUpperCase() || '';
+                            const isExpansionBoard = boardTitle.includes('EXPAN') || boardTitle.includes('NUEVO');
+                            const isHighPriority = t.priority === 'Alta';
+
+                            return isFromNewProperty || (isHighPriority && (isExpansionBoard || t.title.toUpperCase().includes('PISO')));
+                        });
+
+                        if (urgentProjectTasks.length === 0) return null;
+
+                        return (
+                            <div className="mb-6 bg-gradient-to-r from-blue-700 via-indigo-700 to-violet-800 rounded-2xl p-4 shadow-xl border-4 border-white animate-in slide-in-from-top-4 duration-500">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm animate-bounce">
+                                            <Building className="w-6 h-6 text-white" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-white font-black uppercase tracking-tighter text-lg leading-none">VIVIENDAS NUEVAS (EN ADECUACIÓN)</h3>
+                                            <p className="text-white/70 text-[10px] font-bold uppercase tracking-widest mt-1">Nuevas entradas del último mes • Urgencia Máxima</p>
+                                        </div>
+                                    </div>
+                                    <div className="bg-white/10 px-3 py-1 rounded-full border border-white/20 flex items-center gap-2">
+                                        <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                                        <span className="text-white font-black text-xs">{urgentProjectTasks.length} Pendientes</span>
+                                    </div>
+                                </div>
+                                <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar">
+                                    {urgentProjectTasks.map(task => {
+                                        const linkedProp = properties?.find(p => p.id === task.propertyId);
+                                        const isNewProp = linkedProp && newPropertyIds.includes(linkedProp.id);
+
+                                        return (
+                                            <div
+                                                key={task.id}
+                                                onClick={() => openEditTask(task)}
+                                                className="min-w-[320px] md:min-w-[380px] bg-white rounded-xl p-4 shadow-lg border-l-8 border-indigo-500 cursor-pointer hover:scale-[1.02] transition-transform group relative overflow-hidden"
+                                            >
+                                                {isNewProp && (
+                                                    <div className="absolute -right-10 top-2 bg-green-500 text-white text-[9px] font-black py-1 px-12 rotate-45 shadow-sm uppercase tracking-tighter">
+                                                        Reciente
+                                                    </div>
+                                                )}
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <div className="flex gap-1.5">
+                                                        <span className={`text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-wider ${task.priority === 'Alta' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+                                                            {task.priority || 'Normal'}
+                                                        </span>
+                                                        {isNewProp && <span className="text-[9px] font-black bg-green-100 text-green-700 px-2 py-0.5 rounded uppercase">Vivienda Nueva</span>}
+                                                    </div>
+                                                    <span className="text-[10px] font-bold text-gray-400 truncate max-w-[120px]">{linkedProp?.address || boards.find(b => b.id === task.boardId)?.title || 'Expansión'}</span>
+                                                </div>
+                                                <h4 className="font-black text-gray-900 text-sm mb-2 group-hover:text-indigo-600 transition-colors line-clamp-2 pr-6">{task.title}</h4>
+                                                <div className="flex justify-between items-center pt-2 border-t border-gray-50">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-[10px]">
+                                                            {task.assignee.charAt(0)}
+                                                        </div>
+                                                        <span className="text-xs font-bold text-gray-700">{task.assignee}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <Clock className={`w-3.5 h-3.5 ${(task.dueDate && new Date(task.dueDate) < new Date()) ? 'text-red-500 animate-pulse' : 'text-gray-400'}`} />
+                                                        <span className="text-[10px] font-black text-gray-500">{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'SIN FECHA'}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        );
+                    })()}
+
                     {/* Caso 1: No hay tableros en absoluto */}
                     {boards.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-full text-gray-400"><Layout className="w-16 h-16 mb-4 opacity-20" /><p className="mb-4">No tienes ningún tablero creado.</p><button onClick={() => setShowBoardModal(true)} className="bg-rentia-blue text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700">Crear Primer Tablero</button></div>
@@ -676,7 +771,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({ initialCategoryFilter,
             {showBoardModal && (
                 <div className="fixed inset-0 z-50 flex justify-center items-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in">
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95">
-                        <div className="px-6 py-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center"><h3 className="font-bold text-gray-800">Nuevo Tablero</h3><button onClick={() => setShowBoardModal(false)}><X className="w-5 h-5 text-gray-400" /></button></div>
+                        <div className="px-6 py-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center"><h3 className="font-bold text-gray-800">Nuevo Tablero</h3><button onClick={() => setShowBoardModal(false)} title="Cerrar ventana"><X className="w-5 h-5 text-gray-400" /></button></div>
                         <form onSubmit={handleSaveBoard} className="p-6 space-y-4"><div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nombre del Tablero</label><input required type="text" className="w-full p-2 border rounded-lg text-sm focus:ring-2 focus:ring-rentia-blue outline-none" value={boardFormData.title} onChange={e => setBoardFormData({ ...boardFormData, title: e.target.value })} placeholder="Ej: Instagram Ads" /></div><div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Grupo / Departamento</label><input required list="groups" type="text" className="w-full p-2 border rounded-lg text-sm focus:ring-2 focus:ring-rentia-blue outline-none" value={boardFormData.group} onChange={e => setBoardFormData({ ...boardFormData, group: e.target.value })} placeholder="Ej: Marketing" /><datalist id="groups"><option value="General" /><option value="Marketing" /><option value="Operaciones" /><option value="Ventas" /><option value="Reformas" /></datalist></div><div className="flex justify-end pt-2"><button type="submit" disabled={loading} className="bg-rentia-black text-white px-6 py-2 rounded font-bold text-sm hover:bg-gray-800 flex items-center gap-2">{loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />} Crear Tablero</button></div></form>
                     </div>
                 </div>
@@ -685,8 +780,8 @@ export const TaskManager: React.FC<TaskManagerProps> = ({ initialCategoryFilter,
             {showTaskModal && (
                 <div className="fixed inset-0 z-50 flex justify-center items-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
                     <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-lg flex flex-col max-h-[90vh] animate-in zoom-in-95 my-auto">
-                        <div className="px-6 py-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center shrink-0"><h3 className="font-bold text-gray-800">{isEditing ? 'Editar Tarea' : 'Nueva Tarea'}</h3><button onClick={() => setShowTaskModal(false)}><X className="w-5 h-5 text-gray-400 hover:text-gray-600" /></button></div>
-                        <form onSubmit={handleSaveTask} className="flex flex-col overflow-hidden"><div className="p-6 space-y-4 overflow-y-auto custom-scrollbar"><div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Título</label><input required type="text" className="w-full p-2 border rounded-lg text-sm focus:ring-2 focus:ring-rentia-blue outline-none" value={taskFormData.title} onChange={e => setTaskFormData({ ...taskFormData, title: e.target.value })} placeholder="Ej: Renovar contrato de Juan..." /></div><div className="grid grid-cols-2 gap-4"><div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Responsable</label><select className="w-full p-2 border rounded-lg text-sm bg-white" value={taskFormData.assignee} onChange={e => setTaskFormData({ ...taskFormData, assignee: e.target.value as any })}>{STAFF_MEMBERS.map(m => <option key={m} value={m}>{m}</option>)}</select></div><div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Categoría</label><select className="w-full p-2 border rounded-lg text-sm bg-white" value={taskFormData.category} onChange={e => setTaskFormData({ ...taskFormData, category: e.target.value as any })}>{CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</select></div></div><div className="grid grid-cols-2 gap-4"><div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Fecha Límite</label><input type="date" className="w-full p-2 border rounded-lg text-sm" value={taskFormData.dueDate} onChange={e => setTaskFormData({ ...taskFormData, dueDate: e.target.value })} /></div><div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Prioridad</label><select className="w-full p-2 border rounded-lg text-sm bg-white" value={taskFormData.priority} onChange={e => setTaskFormData({ ...taskFormData, priority: e.target.value as any })}>{PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}</select></div></div><div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Estado</label><div className="flex bg-gray-100 p-1 rounded-lg">{STATUSES.map(s => (<button key={s} type="button" onClick={() => setTaskFormData({ ...taskFormData, status: s })} className={`flex-1 py-1 text-[10px] font-bold uppercase rounded ${taskFormData.status === s ? 'bg-white shadow text-rentia-blue' : 'text-gray-500'}`}>{s}</button>))}</div></div>                            <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Descripción</label><textarea className="w-full p-2 border rounded-lg text-sm h-24 resize-none focus:ring-2 focus:ring-rentia-blue outline-none" value={taskFormData.description} onChange={e => setTaskFormData({ ...taskFormData, description: e.target.value })} placeholder="Detalles de la tarea..." /></div>
+                        <div className="px-6 py-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center shrink-0"><h3 className="font-bold text-gray-800">{isEditing ? 'Editar Tarea' : 'Nueva Tarea'}</h3><button onClick={() => setShowTaskModal(false)} title="Cerrar ventana"><X className="w-5 h-5 text-gray-400 hover:text-gray-600" /></button></div>
+                        <form onSubmit={handleSaveTask} className="flex flex-col overflow-hidden"><div className="p-6 space-y-4 overflow-y-auto custom-scrollbar"><div><label htmlFor="taskTitle" className="block text-xs font-bold text-gray-500 uppercase mb-1">Título</label><input required id="taskTitle" type="text" className="w-full p-2 border rounded-lg text-sm focus:ring-2 focus:ring-rentia-blue outline-none" value={taskFormData.title} onChange={e => setTaskFormData({ ...taskFormData, title: e.target.value })} placeholder="Ej: Renovar contrato de Juan..." /></div><div className="grid grid-cols-2 gap-4"><div><label htmlFor="taskAssignee" className="block text-xs font-bold text-gray-500 uppercase mb-1">Responsable</label><select id="taskAssignee" title="Seleccionar responsable" className="w-full p-2 border rounded-lg text-sm bg-white" value={taskFormData.assignee} onChange={e => setTaskFormData({ ...taskFormData, assignee: e.target.value as any })}>{STAFF_MEMBERS.map(m => <option key={m} value={m}>{m}</option>)}</select></div><div><label htmlFor="taskCategory" className="block text-xs font-bold text-gray-500 uppercase mb-1">Categoría</label><select id="taskCategory" title="Seleccionar categoría" className="w-full p-2 border rounded-lg text-sm bg-white" value={taskFormData.category} onChange={e => setTaskFormData({ ...taskFormData, category: e.target.value as any })}>{CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</select></div></div><div className="grid grid-cols-2 gap-4"><div><label htmlFor="taskDueDate" className="block text-xs font-bold text-gray-500 uppercase mb-1">Fecha Límite</label><input id="taskDueDate" type="date" className="w-full p-2 border rounded-lg text-sm" value={taskFormData.dueDate} onChange={e => setTaskFormData({ ...taskFormData, dueDate: e.target.value })} /></div><div><label htmlFor="taskPriority" className="block text-xs font-bold text-gray-500 uppercase mb-1">Prioridad</label><select id="taskPriority" title="Seleccionar prioridad" className="w-full p-2 border rounded-lg text-sm bg-white" value={taskFormData.priority} onChange={e => setTaskFormData({ ...taskFormData, priority: e.target.value as any })}>{PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}</select></div></div><div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Estado</label><div className="flex bg-gray-100 p-1 rounded-lg">{STATUSES.map(s => (<button key={s} type="button" onClick={() => setTaskFormData({ ...taskFormData, status: s })} className={`flex-1 py-1 text-[10px] font-bold uppercase rounded ${taskFormData.status === s ? 'bg-white shadow text-rentia-blue' : 'text-gray-500'}`}>{s}</button>))}</div></div>                            <div><label htmlFor="taskDescription" className="block text-xs font-bold text-gray-500 uppercase mb-1">Descripción</label><textarea id="taskDescription" className="w-full p-2 border rounded-lg text-sm h-24 resize-none focus:ring-2 focus:ring-rentia-blue outline-none" value={taskFormData.description} onChange={e => setTaskFormData({ ...taskFormData, description: e.target.value })} placeholder="Detalles de la tarea..." /></div>
 
                             {/* SECCIÓN DE COMENTARIOS / INCIDENCIAS */}
                             {isEditing && (

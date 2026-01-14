@@ -136,7 +136,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
         }
     };
 
-    const whatsappResetLink = `https://api.whatsapp.com/send?phone=34611948589&text=Hola,%20soy%20cliente%20y%20he%20olvidado%20mi%20contrase%C3%B1a%20de%20acceso%20al%20%C3%A1rea%20privada.`;
+    const whatsappResetLink = `https://api.whatsapp.com/send?phone=34672886369&text=Hola,%20soy%20cliente%20y%20he%20olvidado%20mi%20contrase%C3%B1a%20de%20acceso%20al%20%C3%A1rea%20privada.`;
 
     return (
         <div className="fixed inset-0 z-[10002] flex items-center justify-center p-4">
@@ -160,6 +160,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                         <button
                             onClick={onClose}
                             className="absolute top-4 right-4 text-white/60 hover:text-white bg-black/10 hover:bg-black/20 rounded-full p-2 transition-all backdrop-blur-sm z-20"
+                            title="Cerrar"
                         >
                             <X className="w-4 h-4" />
                         </button>

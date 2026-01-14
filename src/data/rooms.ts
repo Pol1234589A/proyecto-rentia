@@ -47,6 +47,19 @@ export interface OwnerRecommendation {
   type: 'price' | 'improvement' | 'info';
 }
 
+export type PaymentFlow = 'tenant_rentia_owner' | 'tenant_owner_rentia';
+
+export interface BillingRecord {
+  month: string; // YYYY-MM
+  invoiceNumber?: string; // Número de factura correlativo
+  invoiceSentDate?: string;
+  paymentDate?: string;
+  ownerAmount?: number;   // Total transferido al propietario (neto)
+  rentiaAmount?: number;  // Comisión ganada por Rentia
+  status: 'pending' | 'sent' | 'paid';
+  notes?: string;
+}
+
 export interface Property {
   id: string;
   ownerId?: string;
@@ -69,6 +82,7 @@ export interface Property {
   suppliesConfig?: {
     type: 'fixed' | 'shared';
     fixedAmount?: number;
+    roomOverrides?: Record<string, number>; // Mapping of room.id or room.name to specific fixed amount
   };
   cleaningConfig?: CleaningConfig;
   ownerRecommendations?: OwnerRecommendation[];
@@ -84,6 +98,7 @@ export interface Property {
 
   // Internal Notes (Admin only)
   internalNotes?: string;
+  createdAt?: any;
 
   // Advanced Filters
   features?: string[]; // lift, terrace, exterior, accessible, garden, pool, owner_lives, cleaning_included
@@ -102,6 +117,15 @@ export interface Property {
     general?: string;
   };
   tenantCleaningSchedule?: string; // Ej: "Tu turno: Limpieza de cocina (Lunes)"
+
+  // NEW: Billing Information
+  paymentFlow?: PaymentFlow;
+  billingHistory?: BillingRecord[];
+  bankAccount?: string;
+  bankAccountHolder?: string;
+  receiptDest?: 'private' | 'group';
+  receiptLink?: string;
+  totalRooms?: number;
 }
 
 // Función auxiliar para generar enlace de maps
@@ -216,6 +240,9 @@ export const properties: Property[] = [
     image: '',
     bathrooms: 1,
     googleMapsLink: getMapsLink('C. Salzillo 2, El Palmar, Murcia'),
+    transferDay: 8,
+    managementCommission: 15,
+    paymentFlow: 'tenant_rentia_owner',
     rooms: [
       { id: 'C_SALZILLO_2_PALMAR_H1', name: 'H1', price: 350, status: 'occupied', availableFrom: '01/08/2025', expenses: 'Gastos fijos aparte', targetProfile: 'both' },
       { id: 'C_SALZILLO_2_PALMAR_H2', name: 'H2', price: 330, status: 'occupied', availableFrom: '01/09/2025', expenses: 'Gastos fijos aparte', targetProfile: 'both' },

@@ -4,6 +4,7 @@ import { db, storage } from '../../firebase';
 import { collection, query, where, onSnapshot, updateDoc, doc, addDoc, serverTimestamp, orderBy, limit, deleteDoc, getDoc, setDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '../../contexts/AuthContext';
+import { useConfig } from '../../contexts/ConfigContext';
 import { Task, TaskStatus, Candidate, CandidateStatus, VisitOutcome, RoomVisit, InternalNews, WorkerInvoice, UserProfile } from '../../types';
 import { properties as staticProperties, Property, Room, CleaningConfig } from '../../data/rooms';
 import { ClipboardList, Home, CheckCircle, Clock, AlertCircle, MapPin, Search, Calendar, Wrench, Plus, X, AlertTriangle, ChevronLeft, Loader2, WifiOff, Monitor, Tv, Lock, Sun, Bed, Layout, Image as ImageIcon, UserPlus, Users, User, UserX, UserCheck, Send, ChevronRight, Eye, Megaphone, Bell, ChevronDown, Sparkles, Trophy, Euro, Save, Receipt, Trash2, Download, Upload, FileCheck, Siren, ArrowRight, Phone, MessageCircle, Shield, MousePointerClick, Briefcase, Footprints, BarChart3, Building, Grid, Globe, FileText } from 'lucide-react';
@@ -155,6 +156,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onStatusChange }) => (
 export const WorkerDashboard: React.FC = () => {
     // ... State setup ...
     const { currentUser } = useAuth();
+    const { adminContact, directorContact } = useConfig();
     const [activeTab, setActiveTab] = useState<'tasks' | 'candidates' | 'rooms' | 'cleaning' | 'invoices' | 'protocols'>('tasks');
     const [workerName, setWorkerName] = useState<string>('');
     const [userData, setUserData] = useState<UserProfile | null>(null);
@@ -518,7 +520,7 @@ export const WorkerDashboard: React.FC = () => {
                         <div className="relative mb-4"><Search className="w-5 h-5 absolute left-3 top-2.5 text-gray-400" /><input type="text" placeholder="Buscar propiedad..." className="w-full pl-10 pr-4 py-2 border rounded-xl shadow-sm focus:ring-2 focus:ring-rentia-blue outline-none" value={roomSearch} onChange={e => setRoomSearch(e.target.value)} /></div>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {filteredProperties.map((p: Property) => (
-                                <div key={p.id} onClick={() => setSelectedProperty(p)} className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 cursor-pointer hover:shadow-md transition-all group">
+                                <div key={p.id} onClick={() => setSelectedProperty(p)} className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 cursor-pointer hover:shadow-md transition-all group" title={`Ver detalles de ${p.address}`}>
                                     <div className="flex justify-between items-start mb-2"><h4 className="font-bold text-gray-800 line-clamp-1 group-hover:text-rentia-blue">{p.address}</h4><span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-500">{p.rooms?.length || 0} Habs</span></div>
                                     <p className="text-xs text-gray-500 mb-3 flex items-center gap-1"><MapPin className="w-3 h-3" /> {p.city}</p>
                                     <div className="flex gap-1 overflow-x-auto pb-1 no-scrollbar">
@@ -560,8 +562,8 @@ export const WorkerDashboard: React.FC = () => {
                                             <div className="bg-white p-3 rounded border border-blue-100 space-y-3">
                                                 <div className="flex items-center justify-between">
                                                     <span className="text-xs font-bold text-gray-600">Activo</span>
-                                                    <label className="relative inline-flex items-center cursor-pointer">
-                                                        <input type="checkbox" className="sr-only peer" checked={cleaningConfigForm.enabled} onChange={e => setCleaningConfigForm({ ...cleaningConfigForm, enabled: e.target.checked })} />
+                                                    <label className="relative inline-flex items-center cursor-pointer" title="Activar/Desactivar servicio">
+                                                        <input type="checkbox" className="sr-only peer" checked={cleaningConfigForm.enabled} onChange={e => setCleaningConfigForm({ ...cleaningConfigForm, enabled: e.target.checked })} aria-label="Activar servicio de limpieza" />
                                                         <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-600"></div>
                                                     </label>
                                                 </div>
@@ -580,7 +582,7 @@ export const WorkerDashboard: React.FC = () => {
                                                             <input type="number" placeholder="Coste/h" className="w-full p-1.5 border rounded text-xs" value={cleaningConfigForm.costPerHour} onChange={e => setCleaningConfigForm({ ...cleaningConfigForm, costPerHour: Number(e.target.value) })} />
                                                         </div>
                                                         <div className="grid grid-cols-2 gap-2">
-                                                            <input type="tel" placeholder="Teléfono Limpiadora" className="w-full p-1.5 border rounded text-xs" value={cleaningConfigForm.cleanerPhone} onChange={e => setCleaningConfigForm({ ...cleaningConfigForm, cleanerPhone: e.target.value })} />
+                                                            <input type="tel" placeholder="Teléfono Limpiadora" className="w-full p-1.5 border rounded text-xs" value={cleaningConfigForm.cleanerPhone} onChange={e => setCleaningConfigForm({ ...cleaningConfigForm, cleanerPhone: e.target.value })} title="Teléfono de la limpiadora" />
                                                         </div>
                                                     </>
                                                 )}
@@ -612,10 +614,10 @@ export const WorkerDashboard: React.FC = () => {
                         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                             <h3 className="font-bold text-gray-800 text-lg mb-4 flex items-center gap-2"><Receipt className="w-5 h-5 text-rentia-blue" /> Subir Factura</h3>
                             <form onSubmit={handleUploadInvoice} className="space-y-4">
-                                <div><label className="text-xs font-bold text-gray-500 uppercase block mb-1">Concepto *</label><input type="text" required className="w-full p-2 border rounded-lg text-sm" placeholder="Ej: Comisión Alquiler H3" value={newInvoice.concept} onChange={e => setNewInvoice({ ...newInvoice, concept: e.target.value })} /></div>
+                                <div><label className="text-xs font-bold text-gray-500 uppercase block mb-1">Concepto *</label><input type="text" required className="w-full p-2 border rounded-lg text-sm" placeholder="Ej: Comisión Alquiler H3" value={newInvoice.concept} onChange={e => setNewInvoice({ ...newInvoice, concept: e.target.value })} title="Concepto de la factura" /></div>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div><label className="text-xs font-bold text-gray-500 uppercase block mb-1">Importe (€) *</label><input type="number" step="0.01" required className="w-full p-2 border rounded-lg text-sm" value={newInvoice.amount} onChange={e => setNewInvoice({ ...newInvoice, amount: e.target.value })} /></div>
-                                    <div><label className="text-xs font-bold text-gray-500 uppercase block mb-1">Fecha *</label><input type="date" required className="w-full p-2 border rounded-lg text-sm" value={newInvoice.date} onChange={e => setNewInvoice({ ...newInvoice, date: e.target.value })} /></div>
+                                    <div><label className="text-xs font-bold text-gray-500 uppercase block mb-1">Importe (€) *</label><input type="number" step="0.01" required className="w-full p-2 border rounded-lg text-sm" value={newInvoice.amount} onChange={e => setNewInvoice({ ...newInvoice, amount: e.target.value })} title="Importe de la factura" placeholder="0.00" /></div>
+                                    <div><label className="text-xs font-bold text-gray-500 uppercase block mb-1">Fecha *</label><input type="date" required className="w-full p-2 border rounded-lg text-sm" value={newInvoice.date} onChange={e => setNewInvoice({ ...newInvoice, date: e.target.value })} title="Fecha de la factura" /></div>
                                 </div>
                                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:bg-gray-50 relative">
                                     <input type="file" required onChange={e => setInvoiceFile(e.target.files?.[0] || null)} className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*,application/pdf" />
@@ -623,7 +625,7 @@ export const WorkerDashboard: React.FC = () => {
                                         {invoiceFile ? <span className="text-rentia-blue font-bold text-xs">{invoiceFile.name}</span> : <><Upload className="w-5 h-5" /><span className="text-xs">Adjuntar Archivo</span></>}
                                     </div>
                                 </div>
-                                <div className="flex justify-end"><button type="submit" disabled={isUploadingInvoice} className="bg-rentia-black text-white px-6 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-gray-800">{isUploadingInvoice ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Subir Factura</button></div>
+                                <div className="flex justify-end"><button type="submit" disabled={isUploadingInvoice} className="bg-rentia-black text-white px-6 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-gray-800" title="Subir factura">{isUploadingInvoice ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Subir Factura</button></div>
                             </form>
                         </div>
 
@@ -642,8 +644,8 @@ export const WorkerDashboard: React.FC = () => {
                                         <div className="flex items-center gap-4">
                                             <span className="font-bold text-lg text-gray-800">{inv.amount}€</span>
                                             <div className="flex gap-2">
-                                                <a href={inv.fileUrl} target="_blank" rel="noreferrer" className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"><Download className="w-4 h-4" /></a>
-                                                {inv.status === 'pending' && <button onClick={() => handleDeleteInvoice(inv)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>}
+                                                <a href={inv.fileUrl} target="_blank" rel="noreferrer" className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg" title="Descargar factura"><Download className="w-4 h-4" /></a>
+                                                {inv.status === 'pending' && <button onClick={() => handleDeleteInvoice(inv)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg" title="Eliminar factura"><Trash2 className="w-4 h-4" /></button>}
                                                 {inv.status === 'paid' && inv.paymentProofUrl && (
                                                     <a href={inv.paymentProofUrl} target="_blank" rel="noreferrer" className="p-2 text-green-600 hover:bg-green-50 rounded-lg" title="Ver Justificante Pago"><FileCheck className="w-4 h-4" /></a>
                                                 )}
@@ -668,44 +670,44 @@ export const WorkerDashboard: React.FC = () => {
                             </h3>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
-                                {/* Administración */}
+                                {/* Admin Contact */}
                                 <div className="bg-gray-50 border border-gray-100 p-5 rounded-2xl flex items-center gap-4 transition-all hover:bg-white hover:shadow-md group">
                                     <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                                        <Briefcase className="w-6 h-6" />
+                                        <Shield className="w-6 h-6" />
                                     </div>
                                     <div className="flex-1">
                                         <div className="flex justify-between items-start">
-                                            <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">Gestión Operativa</p>
-                                            <span className="bg-green-100 text-green-700 text-[9px] font-black px-2 py-0.5 rounded-full">9:00 - 14:00</span>
+                                            <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">{adminContact.role}</p>
+                                            <span className="bg-green-100 text-green-700 text-[9px] font-black px-2 py-0.5 rounded-full">{adminContact.startHour}:00 - {adminContact.endHour}:00</span>
                                         </div>
-                                        <h4 className="font-bold text-gray-900">Administración</h4>
+                                        <h4 className="font-bold text-gray-900">{adminContact.name}</h4>
                                         <div className="flex gap-3 mt-2">
-                                            <a href="tel:+34611978589" className="text-xs font-bold text-gray-500 hover:text-blue-600 flex items-center gap-1 transition-colors">
-                                                <Phone className="w-3.5 h-3.5" /> +34 611 97 85 89
+                                            <a href={`tel:+${adminContact.phone}`} className="text-xs font-bold text-gray-500 hover:text-blue-600 flex items-center gap-1 transition-colors" title={`Llamar a ${adminContact.name}`}>
+                                                <Phone className="w-3.5 h-3.5" /> +{adminContact.phone.replace(/(\d{2})(\d{3})(\d{3})(\d{3})/, '$1 $2 $3 $4')}
                                             </a>
-                                            <a href="https://wa.me/34611978589" target="_blank" className="text-xs font-bold text-green-600 hover:opacity-80 flex items-center gap-1">
+                                            <a href={`https://wa.me/${adminContact.phone}`} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-green-600 hover:opacity-80 flex items-center gap-1" title={`WhatsApp a ${adminContact.name}`}>
                                                 <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
                                             </a>
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* Victor */}
+                                {/* Director Contact */}
                                 <div className="bg-gray-50 border border-gray-100 p-5 rounded-2xl flex items-center gap-4 transition-all hover:bg-white hover:shadow-md group">
                                     <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
                                         <User className="w-6 h-6" />
                                     </div>
                                     <div className="flex-1">
                                         <div className="flex justify-between items-start">
-                                            <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-1">Dirección / Soporte</p>
-                                            <span className="bg-green-100 text-green-700 text-[9px] font-black px-2 py-0.5 rounded-full">9:00 - 14:00</span>
+                                            <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-1">{directorContact.role}</p>
+                                            <span className="bg-green-100 text-green-700 text-[9px] font-black px-2 py-0.5 rounded-full">{directorContact.startHour}:00 - {directorContact.endHour}:00</span>
                                         </div>
-                                        <h4 className="font-bold text-gray-900">Dirección / Soporte</h4>
+                                        <h4 className="font-bold text-gray-900">{directorContact.name}</h4>
                                         <div className="flex gap-3 mt-2">
-                                            <a href="tel:+34611919812" className="text-xs font-bold text-gray-500 hover:text-indigo-600 flex items-center gap-1 transition-colors">
-                                                <Phone className="w-3.5 h-3.5" /> +34 611 91 98 12
+                                            <a href={`tel:+${directorContact.phone}`} className="text-xs font-bold text-gray-500 hover:text-indigo-600 flex items-center gap-1 transition-colors" title={`Llamar a ${directorContact.name}`}>
+                                                <Phone className="w-3.5 h-3.5" /> +{directorContact.phone.replace(/(\d{2})(\d{3})(\d{3})(\d{3})/, '$1 $2 $3 $4')}
                                             </a>
-                                            <a href="https://wa.me/34611919812" target="_blank" className="text-xs font-bold text-green-600 hover:opacity-80 flex items-center gap-1">
+                                            <a href={`https://wa.me/${directorContact.phone}`} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-green-600 hover:opacity-80 flex items-center gap-1" title={`WhatsApp a ${directorContact.name}`}>
                                                 <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
                                             </a>
                                         </div>
@@ -773,6 +775,7 @@ export const WorkerDashboard: React.FC = () => {
                         <button
                             onClick={() => setShowIncidentModal(true)}
                             className="w-16 h-16 bg-gradient-to-br from-red-500 to-rose-600 text-white rounded-[2rem] shadow-2xl shadow-rose-500/40 flex items-center justify-center active:scale-90 transition-all group scale-100 hover:scale-110"
+                            title="Reportar incidencia"
                         >
                             <AlertTriangle className="w-8 h-8 drop-shadow-md" />
                         </button>
@@ -781,6 +784,7 @@ export const WorkerDashboard: React.FC = () => {
                         <button
                             onClick={() => setShowCandidateModal(true)}
                             className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-[2rem] shadow-2xl shadow-emerald-500/40 flex items-center justify-center active:scale-90 transition-all group scale-100 hover:scale-110"
+                            title="Añadir candidato"
                         >
                             <UserPlus className="w-8 h-8 drop-shadow-md" />
                         </button>
@@ -818,11 +822,11 @@ export const WorkerDashboard: React.FC = () => {
             {selectedProperty && createPortal(
                 <div className="fixed inset-0 z-[10000] bg-white flex flex-col animate-in slide-in-from-bottom-10">
                     <div className="flex-shrink-0 bg-white shadow-sm p-4 flex justify-between items-center sticky top-0 border-b border-gray-100">
-                        <button onClick={() => setSelectedProperty(null)} className="flex items-center gap-1 text-rentia-blue text-sm font-bold p-2 -ml-2">
+                        <button onClick={() => setSelectedProperty(null)} className="flex items-center gap-1 text-rentia-blue text-sm font-bold p-2 -ml-2" title="Volver al listado">
                             <ChevronLeft className="w-5 h-5" /> Volver
                         </button>
                         <h2 className="font-bold text-sm truncate max-w-[50%]">{selectedProperty.address}</h2>
-                        <a href={selectedProperty.googleMapsLink} target="_blank" rel="noreferrer" className="p-2 text-gray-500">
+                        <a href={selectedProperty.googleMapsLink} target="_blank" rel="noreferrer" className="p-2 text-gray-500" title="Ver en Google Maps">
                             <MapPin className="w-5 h-5" />
                         </a>
                     </div>
@@ -862,30 +866,30 @@ export const WorkerDashboard: React.FC = () => {
                 document.body
             )}
 
-            {showVisitLogModal && createPortal(<div className="fixed inset-0 z-[10001] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setShowVisitLogModal(null)}><form onSubmit={handleSaveVisit} className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-xl shadow-2xl flex flex-col animate-in slide-in-from-bottom-10 overflow-hidden" onClick={e => e.stopPropagation()}><div className="p-4 bg-gray-50 border-b flex justify-between items-center"><h3 className="font-bold flex items-center gap-2"><Eye className="w-5 h-5 text-indigo-500" /> Registrar Visita a {showVisitLogModal.name}</h3><button type="button" onClick={() => setShowVisitLogModal(null)} className="p-2 -mr-2"><X className="w-5 h-5 text-gray-400" /></button></div><div className="p-4 space-y-4 overflow-y-auto"><div><label className="text-xs font-bold text-gray-500 block mb-1">Resultado de la Visita</label><select required className="w-full p-2 border rounded text-sm" value={newVisitData.outcome} onChange={e => setNewVisitData({ ...newVisitData, outcome: e.target.value as any })}><option value="successful">Exitosa</option><option value="unsuccessful">No exitosa</option><option value="pending">Pendiente de respuesta</option></select></div><div><label className="text-xs font-bold text-gray-500 block mb-1">Comentarios / Pegas</label><textarea placeholder="Ej: Le ha gustado pero le parece pequeña..." className="w-full p-2 border rounded text-sm h-24" value={newVisitData.comments} onChange={e => setNewVisitData({ ...newVisitData, comments: e.target.value })}></textarea></div><div><label className="text-xs font-bold text-gray-500 block mb-1">Comisión Propuesta al Inquilino (€)</label><input type="number" placeholder="Ej: 150" className="w-full p-2 border rounded text-sm" value={newVisitData.commission} onChange={e => setNewVisitData({ ...newVisitData, commission: Number(e.target.value) })} /></div></div><div className="p-4 bg-gray-50 border-t flex gap-2"><button type="button" onClick={() => setShowVisitLogModal(null)} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-bold hover:bg-gray-200">Cancelar</button><button type="submit" className="flex-1 bg-indigo-600 text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-indigo-700"><Send className="w-4 h-4" /> Guardar Visita</button></div></form></div>, document.body)}
-            {showIncidentModal && createPortal(<div className="fixed inset-0 z-[10001] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setShowIncidentModal(false)}><form onSubmit={handleSaveIncident} className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-xl shadow-2xl flex flex-col animate-in slide-in-from-bottom-10 overflow-hidden" onClick={e => e.stopPropagation()}><div className="p-4 bg-gray-50 border-b flex justify-between items-center"><h3 className="font-bold flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-red-500" /> Reportar Incidencia</h3><button type="button" onClick={() => setShowIncidentModal(false)} className="p-2 -mr-2"><X className="w-5 h-5 text-gray-400" /></button></div><div className="p-4 space-y-4 overflow-y-auto"><select required className="w-full p-2 border rounded text-sm" value={newIncident.propertyId} onChange={e => setNewIncident({ ...newIncident, propertyId: e.target.value })}><option value="">Seleccionar Propiedad*</option>{properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}</select><input required type="text" placeholder="Título Incidencia*" className="w-full p-2 border rounded text-sm" value={newIncident.title} onChange={e => setNewIncident({ ...newIncident, title: e.target.value })} /><textarea placeholder="Descripción detallada..." className="w-full p-2 border rounded text-sm h-24" value={newIncident.description} onChange={e => setNewIncident({ ...newIncident, description: e.target.value })}></textarea><select className="w-full p-2 border rounded text-sm" value={newIncident.priority} onChange={e => setNewIncident({ ...newIncident, priority: e.target.value as any })}><option value="Baja">Baja</option><option value="Media">Media</option><option value="Alta">Alta</option></select></div><div className="p-4 bg-gray-50 border-t flex gap-2"><button type="button" onClick={() => setShowIncidentModal(false)} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-bold hover:bg-gray-200">Cancelar</button><button type="submit" className="flex-1 bg-red-600 text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-red-700"><Send className="w-4 h-4" /> Enviar Reporte</button></div></form></div>, document.body)}
+            {showVisitLogModal && createPortal(<div className="fixed inset-0 z-[10001] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setShowVisitLogModal(null)}><form onSubmit={handleSaveVisit} className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-xl shadow-2xl flex flex-col animate-in slide-in-from-bottom-10 overflow-hidden" onClick={e => e.stopPropagation()}><div className="p-4 bg-gray-50 border-b flex justify-between items-center"><h3 className="font-bold flex items-center gap-2"><Eye className="w-5 h-5 text-indigo-500" /> Registrar Visita a {showVisitLogModal.name}</h3><button type="button" onClick={() => setShowVisitLogModal(null)} className="p-2 -mr-2" title="Cerrar"><X className="w-5 h-5 text-gray-400" /></button></div><div className="p-4 space-y-4 overflow-y-auto"><div><label className="text-xs font-bold text-gray-500 block mb-1">Resultado de la Visita</label><select required className="w-full p-2 border rounded text-sm" value={newVisitData.outcome} onChange={e => setNewVisitData({ ...newVisitData, outcome: e.target.value as any })} title="Resultado de la Visita"><option value="successful">Exitosa</option><option value="unsuccessful">No exitosa</option><option value="pending">Pendiente de respuesta</option></select></div><div><label className="text-xs font-bold text-gray-500 block mb-1">Comentarios / Pegas</label><textarea placeholder="Ej: Le ha gustado pero le parece pequeña..." className="w-full p-2 border rounded text-sm h-24" value={newVisitData.comments} onChange={e => setNewVisitData({ ...newVisitData, comments: e.target.value })} title="Comentarios de la visita"></textarea></div><div><label className="text-xs font-bold text-gray-500 block mb-1">Comisión Propuesta al Inquilino (€)</label><input type="number" placeholder="Ej: 150" className="w-full p-2 border rounded text-sm" value={newVisitData.commission} onChange={e => setNewVisitData({ ...newVisitData, commission: Number(e.target.value) })} title="Comisión propuesta" /></div></div><div className="p-4 bg-gray-50 border-t flex gap-2"><button type="button" onClick={() => setShowVisitLogModal(null)} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-bold hover:bg-gray-200" title="Cancelar">Cancelar</button><button type="submit" className="flex-1 bg-indigo-600 text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-indigo-700" title="Guardar Visita"><Send className="w-4 h-4" /> Guardar Visita</button></div></form></div>, document.body)}
+            {showIncidentModal && createPortal(<div className="fixed inset-0 z-[10001] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setShowIncidentModal(false)}><form onSubmit={handleSaveIncident} className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-xl shadow-2xl flex flex-col animate-in slide-in-from-bottom-10 overflow-hidden" onClick={e => e.stopPropagation()}><div className="p-4 bg-gray-50 border-b flex justify-between items-center"><h3 className="font-bold flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-red-500" /> Reportar Incidencia</h3><button type="button" onClick={() => setShowIncidentModal(false)} className="p-2 -mr-2" title="Cerrar"><X className="w-5 h-5 text-gray-400" /></button></div><div className="p-4 space-y-4 overflow-y-auto"><select required className="w-full p-2 border rounded text-sm" value={newIncident.propertyId} onChange={e => setNewIncident({ ...newIncident, propertyId: e.target.value })} title="Seleccionar Propiedad"><option value="">Seleccionar Propiedad*</option>{properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}</select><input required type="text" placeholder="Título Incidencia*" className="w-full p-2 border rounded text-sm" value={newIncident.title} onChange={e => setNewIncident({ ...newIncident, title: e.target.value })} title="Título de la incidencia" /><textarea placeholder="Descripción detallada..." className="w-full p-2 border rounded text-sm h-24" value={newIncident.description} onChange={e => setNewIncident({ ...newIncident, description: e.target.value })} title="Descripción de la incidencia"></textarea><select className="w-full p-2 border rounded text-sm" value={newIncident.priority} onChange={e => setNewIncident({ ...newIncident, priority: e.target.value as any })} title="Prioridad de la incidencia"><option value="Baja">Baja</option><option value="Media">Media</option><option value="Alta">Alta</option></select></div><div className="p-4 bg-gray-50 border-t flex gap-2"><button type="button" onClick={() => setShowIncidentModal(false)} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-bold hover:bg-gray-200" title="Cancelar">Cancelar</button><button type="submit" className="flex-1 bg-red-600 text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-red-700" title="Enviar Reporte"><Send className="w-4 h-4" /> Enviar Reporte</button></div></form></div>, document.body)}
             {showCandidateModal && createPortal(
                 <div className="fixed inset-0 z-[10001] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setShowCandidateModal(false)}>
                     <form onSubmit={handleSendCandidate} className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-xl shadow-2xl flex flex-col animate-in slide-in-from-bottom-10 overflow-hidden" onClick={e => e.stopPropagation()}>
                         <div className="p-4 bg-gray-50 border-b flex justify-between items-center">
                             <h3 className="font-bold flex items-center gap-2"><UserPlus className="w-5 h-5 text-green-600" /> Enviar Candidato</h3>
-                            <button type="button" onClick={() => setShowCandidateModal(false)} className="p-2 -mr-2"><X className="w-5 h-5 text-gray-400" /></button>
+                            <button type="button" onClick={() => setShowCandidateModal(false)} className="p-2 -mr-2" title="Cerrar"><X className="w-5 h-5 text-gray-400" /></button>
                         </div>
                         <div className="p-4 space-y-4 overflow-y-auto max-h-[70vh]">
-                            <div><label className="text-xs font-bold text-gray-500 block mb-1">Propiedad*</label><select required className="w-full p-2 border rounded text-sm" value={newCandidate.propertyId} onChange={e => setNewCandidate({ ...newCandidate, propertyId: e.target.value, roomId: '' })}><option value="">Seleccionar...</option>{properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}</select></div>
+                            <div><label className="text-xs font-bold text-gray-500 block mb-1">Propiedad*</label><select required className="w-full p-2 border rounded text-sm" value={newCandidate.propertyId} onChange={e => setNewCandidate({ ...newCandidate, propertyId: e.target.value, roomId: '' })} title="Seleccionar Propiedad"><option value="">Seleccionar...</option>{properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}</select></div>
                             <div>
                                 <label className="text-xs font-bold text-gray-500 block mb-1">Habitación (Opcional)</label>
-                                <select disabled={!newCandidate.propertyId} className="w-full p-2 border rounded text-sm" value={newCandidate.roomId} onChange={e => setNewCandidate({ ...newCandidate, roomId: e.target.value })}>
+                                <select disabled={!newCandidate.propertyId} className="w-full p-2 border rounded text-sm" value={newCandidate.roomId} onChange={e => setNewCandidate({ ...newCandidate, roomId: e.target.value })} title="Seleccionar Habitación">
                                     <option value="">Seleccionar...</option>
                                     {(properties.find(p => p.id === newCandidate.propertyId)?.rooms || []).map((r: Room) => (
                                         <option key={r.id} value={r.id}>{r.name} ({r.status})</option>
                                     ))}
                                 </select>
                             </div>
-                            <div><label className="text-xs font-bold text-gray-500 block mb-1">Nombre Candidato*</label><input required type="text" className="w-full p-2 border rounded text-sm" value={newCandidate.candidateName} onChange={e => setNewCandidate({ ...newCandidate, candidateName: e.target.value })} /></div>
+                            <div><label className="text-xs font-bold text-gray-500 block mb-1">Nombre Candidato*</label><input required type="text" className="w-full p-2 border rounded text-sm" value={newCandidate.candidateName} onChange={e => setNewCandidate({ ...newCandidate, candidateName: e.target.value })} title="Nombre del candidato" placeholder="Nombre completo" /></div>
                             <div className="grid grid-cols-2 gap-4">
-                                <div><label className="text-xs font-bold text-gray-500 block mb-1">Teléfono</label><input type="tel" className="w-full p-2 border rounded text-sm" value={newCandidate.candidatePhone} onChange={e => setNewCandidate({ ...newCandidate, candidatePhone: e.target.value })} /></div>
-                                <div><label className="text-xs font-bold text-gray-500 block mb-1">Email</label><input type="email" className="w-full p-2 border rounded text-sm" value={newCandidate.candidateEmail} onChange={e => setNewCandidate({ ...newCandidate, candidateEmail: e.target.value })} /></div>
+                                <div><label className="text-xs font-bold text-gray-500 block mb-1">Teléfono</label><input type="tel" className="w-full p-2 border rounded text-sm" value={newCandidate.candidatePhone} onChange={e => setNewCandidate({ ...newCandidate, candidatePhone: e.target.value })} title="Teléfono del candidato" placeholder="Ej: 600000000" /></div>
+                                <div><label className="text-xs font-bold text-gray-500 block mb-1">Email</label><input type="email" className="w-full p-2 border rounded text-sm" value={newCandidate.candidateEmail} onChange={e => setNewCandidate({ ...newCandidate, candidateEmail: e.target.value })} title="Email del candidato" placeholder="email@ejemplo.com" /></div>
                             </div>
                             {/* Selector de Prioridad NUEVO */}
                             <div>
@@ -894,6 +898,7 @@ export const WorkerDashboard: React.FC = () => {
                                     className="w-full p-2 border rounded text-sm bg-white"
                                     value={newCandidate.priority}
                                     onChange={e => setNewCandidate({ ...newCandidate, priority: e.target.value as any })}
+                                    title="Prioridad del candidato"
                                 >
                                     <option value="Alta">🔴 Alta - Muy Interesado / Urgente</option>
                                     <option value="Media">🟡 Media - Interesado normal</option>
@@ -903,9 +908,9 @@ export const WorkerDashboard: React.FC = () => {
 
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1 flex items-center gap-1"><Briefcase className="w-3 h-3" /> Plataforma de Origen</label>
-                                <input type="text" className="w-full p-2 border rounded text-sm" placeholder="Ej: Idealista, Facebook, Referido..." value={newCandidate.sourcePlatform} onChange={e => setNewCandidate({ ...newCandidate, sourcePlatform: e.target.value })} />
+                                <input type="text" className="w-full p-2 border rounded text-sm" placeholder="Ej: Idealista, Facebook, Referido..." value={newCandidate.sourcePlatform} onChange={e => setNewCandidate({ ...newCandidate, sourcePlatform: e.target.value })} title="Plataforma de origen" />
                             </div>
-                            <div><label className="text-xs font-bold text-gray-500 block mb-1">Info Adicional</label><textarea className="w-full p-2 border rounded text-sm h-20" value={newCandidate.additionalInfo} onChange={e => setNewCandidate({ ...newCandidate, additionalInfo: e.target.value })} /></div>
+                            <div><label className="text-xs font-bold text-gray-500 block mb-1">Info Adicional</label><textarea className="w-full p-2 border rounded text-sm h-20" value={newCandidate.additionalInfo} onChange={e => setNewCandidate({ ...newCandidate, additionalInfo: e.target.value })} title="Información adicional" placeholder="Notas sobre el candidato..." /></div>
                         </div>
                         <div className="p-4 bg-gray-50 border-t flex gap-2">
                             <button type="button" onClick={() => setShowCandidateModal(false)} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-bold hover:bg-gray-200">Cancelar</button>
@@ -923,7 +928,7 @@ export const WorkerDashboard: React.FC = () => {
                     <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
                         <div className="p-5 bg-red-600 text-white border-b border-red-700 flex justify-between items-center shrink-0">
                             <h2 className="text-lg md:text-xl font-bold flex items-center gap-2"><Shield className="w-5 h-5" /> Acuerdo de Confidencialidad</h2>
-                            <button onClick={() => setIsGdprOpen(false)}><X className="w-5 h-5" /></button>
+                            <button onClick={() => setIsGdprOpen(false)} title="Cerrar"><X className="w-5 h-5" /></button>
                         </div>
 
                         <div className="p-6 md:p-8 overflow-y-auto leading-relaxed text-gray-600 text-sm space-y-4 bg-gray-50 flex-grow custom-scrollbar">
@@ -958,6 +963,7 @@ export const WorkerDashboard: React.FC = () => {
                                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                     : 'bg-red-600 text-white hover:bg-red-700 hover:scale-105'
                                     }`}
+                                title="Aceptar y Firmar compromiso"
                             >
                                 {signing ? <Loader2 className="w-4 h-4 animate-spin" /> : <MousePointerClick className="w-4 h-4" />}
                                 Aceptar y Firmar

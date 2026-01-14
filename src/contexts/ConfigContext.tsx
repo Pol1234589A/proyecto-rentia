@@ -70,14 +70,14 @@ export interface SiteConfig {
 const defaultConfig: SiteConfig = {
     adminContact: {
         id: 'admin',
-        name: 'Administración',
-        role: 'Gestión Operativa',
-        phone: '34611948589',
+        name: 'Gestión Operativa',
+        role: 'Atención al Cliente',
+        phone: '34672886369', // Temporarily redirected to director if still needed, but we will mostly hide it
         email: 'info@rentiaroom.com',
         image: '',
         startHour: 9,
         endHour: 14,
-        whatsappMessage: 'Hola, tengo una consulta administrativa...'
+        whatsappMessage: 'Hola, tengo una consulta...'
     },
     directorContact: {
         id: 'director',
@@ -87,7 +87,7 @@ const defaultConfig: SiteConfig = {
         email: 'info@rentiaroom.com',
         image: '',
         startHour: 9,
-        endHour: 20,
+        endHour: 14,
         whatsappMessage: 'Hola, estoy interesado en oportunidades de inversión...'
     },
     general: {
@@ -135,9 +135,29 @@ export const ConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             if (docSnap.exists()) {
                 // ... logic ...
                 const data = docSnap.data();
+
+                // Process contact data to ensure generic names and 9-14 hours
+                const processedAdmin = {
+                    ...defaultConfig.adminContact,
+                    ...(data.adminContact || {}),
+                    name: 'Gestión Operativa',
+                    startHour: 9,
+                    endHour: 14
+                };
+
+                const processedDirector = {
+                    ...defaultConfig.directorContact,
+                    ...(data.directorContact || {}),
+                    name: 'Dirección General',
+                    startHour: 9,
+                    endHour: 14
+                };
+
                 setConfig({
                     ...defaultConfig,
                     ...data,
+                    adminContact: processedAdmin,
+                    directorContact: processedDirector,
                     general: { ...defaultConfig.general, ...(data.general || {}) },
                     seo: { ...defaultConfig.seo, ...(data.seo || {}) },
                     modules: { ...defaultConfig.modules, ...(data.modules || {}) },

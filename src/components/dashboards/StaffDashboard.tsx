@@ -34,7 +34,8 @@ import { SiteConfigManager } from '../admin/SiteConfigManager';
 import { BlogManager } from '../admin/BlogManager';
 import { VisualEditor } from '../admin/VisualEditor'; // Import new editor
 import { AgencyInvoicesPanel } from '../admin/AgencyInvoicesPanel';
-import { LayoutDashboard, Calculator, Briefcase, Wrench, Plus, Search, FileText, Save, X, DollarSign, Calendar as CalendarIcon, Filter, Pencil, PieChart, Landmark, Wallet, Clock, Zap, Settings, Receipt, Split, Info, MessageCircle, Share2, ClipboardList, UserCheck, Mail, Phone, ArrowRight, UserPlus, Inbox, Home, DoorOpen, Menu, Activity, ShieldAlert, UserCog, Siren, Footprints, BarChart3, Building, Grid, Globe, Send, Users, Key, Layout, Palette, Printer, Book, BookOpen } from 'lucide-react';
+import { PropertyBillingPanel } from '../admin/PropertyBillingPanel';
+import { LayoutDashboard, Calculator, Briefcase, Wrench, Plus, Search, FileText, Save, X, DollarSign, Calendar as CalendarIcon, Filter, Pencil, PieChart, Landmark, Wallet, Clock, Zap, Settings, Receipt, Split, Info, MessageCircle, Share2, ClipboardList, UserCheck, Mail, Phone, ArrowRight, UserPlus, Inbox, Home, DoorOpen, Menu, Activity, ShieldAlert, UserCog, Siren, Footprints, BarChart3, Building, Grid, Globe, Send, Users, Key, Layout, Palette, Printer, Book, BookOpen, CreditCard } from 'lucide-react';
 import { ProtocolsView } from './staff/ProtocolsView';
 import { TrainingView } from './staff/TrainingView';
 import { GlobalAiAssistant } from './staff/GlobalAiAssistant';
@@ -70,8 +71,8 @@ export const StaffDashboard: React.FC = () => {
     const isInternal = userRole === 'staff' || userRole === 'agency' || userRole === 'manager';
     const isWorker = userRole === 'worker';
 
-    const [activeTab, setActiveTab] = useState<'overview' | 'room_manager' | 'real_estate' | 'accounting' | 'tools' | 'contracts' | 'calendar' | 'supplies' | 'calculator' | 'social' | 'tasks' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'transfers' | 'advanced_calc' | 'management_leads' | 'site_config' | 'blog_manager' | 'visual_editor' | 'agency_invoices' | 'protocols' | 'candidates' | 'training'>('overview');
-    const [activeMobileTab, setActiveMobileTab] = useState<'overview' | 'tasks' | 'candidates' | 'properties' | 'menu' | 'accounting' | 'supplies' | 'calendar' | 'contracts' | 'social' | 'calculator' | 'tools' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'advanced_calc' | 'management_leads' | 'site_config' | 'blog_manager' | 'visual_editor' | 'agency_invoices' | 'protocols' | 'training'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'room_manager' | 'real_estate' | 'accounting' | 'tools' | 'contracts' | 'calendar' | 'supplies' | 'calculator' | 'social' | 'tasks' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'transfers' | 'advanced_calc' | 'management_leads' | 'site_config' | 'blog_manager' | 'visual_editor' | 'agency_invoices' | 'billing_info' | 'protocols' | 'candidates' | 'training'>('overview');
+    const [activeMobileTab, setActiveMobileTab] = useState<'overview' | 'tasks' | 'candidates' | 'properties' | 'menu' | 'accounting' | 'supplies' | 'calendar' | 'contracts' | 'social' | 'calculator' | 'tools' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'advanced_calc' | 'management_leads' | 'site_config' | 'blog_manager' | 'visual_editor' | 'agency_invoices' | 'billing_info' | 'protocols' | 'training'>('overview');
 
     const isManagerRole = userRole === 'manager';
     const isAdminUI = currentUser?.email === 'vanesa@rentiaroom.com' || currentUser?.email === 'info@rentiaroom.com';
@@ -136,9 +137,9 @@ export const StaffDashboard: React.FC = () => {
             });
 
             allProps.forEach((data: any) => {
+                totalRoomsCount += data.totalRooms || (data.rooms ? data.rooms.length : 0);
                 if (data.rooms && Array.isArray(data.rooms)) {
                     data.rooms.forEach((room: any) => {
-                        totalRoomsCount++;
                         if (room.status === 'occupied') {
                             occupiedCount++;
                             revenueCount += Number(room.price) || 0;
@@ -302,6 +303,7 @@ export const StaffDashboard: React.FC = () => {
         { id: 'worker_invoices', label: 'Facturas Trabajadores', icon: <Receipt className="w-4 h-4" /> },
         { id: 'calculator', label: 'Reparto Gastos', icon: <Split className="w-4 h-4" /> },
         { id: 'accounting', label: 'Contabilidad', icon: <Calculator className="w-4 h-4" /> },
+        { id: 'billing_info', label: 'Información Facturación', icon: <CreditCard className="w-4 h-4 text-emerald-500" /> },
         { id: 'agency_invoices', label: 'Facturas Rentia', icon: <Printer className="w-4 h-4" /> },
         { id: 'calendar', label: 'Calendario', icon: <CalendarIcon className="w-4 h-4" /> },
         { id: 'visits', label: 'Visitas', icon: <Footprints className="w-4 h-4" /> },
@@ -318,6 +320,7 @@ export const StaffDashboard: React.FC = () => {
         { id: 'contracts', label: 'Contratos (MANTENIMIENTO)', icon: <FileText className="w-4 h-4 text-pink-400" /> },
         { id: 'tasks', label: 'Mis Tareas', icon: <ClipboardList className="w-4 h-4" /> },
         { id: 'management_leads', label: 'Captación', icon: <Key className="w-4 h-4" />, count: pendingMgmtLeadsCount },
+        { id: 'billing_info', label: 'Información Facturación', icon: <CreditCard className="w-4 h-4 text-emerald-500" /> },
         { id: 'requests', label: 'Solicitudes', icon: <Inbox className="w-4 h-4" />, count: pendingRequestsCount },
         { id: 'agency_invoices', label: 'Facturas Rentia', icon: <Printer className="w-4 h-4" /> },
         { id: 'training', label: 'Formación', icon: <BookOpen className="w-4 h-4 text-purple-500" /> },
@@ -330,6 +333,7 @@ export const StaffDashboard: React.FC = () => {
         { id: 'tasks', label: 'Tareas', icon: <ClipboardList className="w-6 h-6" />, color: 'bg-orange-100 text-orange-600', count: 0 },
         { id: 'management_leads', label: 'Captación', icon: <Key className="w-6 h-6" />, color: 'bg-indigo-100 text-indigo-600', count: pendingMgmtLeadsCount },
         { id: 'requests', label: 'Solicitudes', icon: <Inbox className="w-6 h-6" />, color: 'bg-blue-100 text-blue-600', count: pendingRequestsCount },
+        { id: 'billing_info', label: 'Info Facturación', icon: <CreditCard className="w-6 h-6" />, color: 'bg-emerald-100 text-emerald-600' },
         { id: 'agency_invoices', label: 'Facturas', icon: <Printer className="w-6 h-6" />, color: 'bg-gray-100 text-gray-600' },
         { id: 'protocols', label: 'Protocolos', icon: <Book className="w-6 h-6" />, color: 'bg-sky-100 text-sky-600' },
         { id: 'training', label: 'Formación', icon: <BookOpen className="w-6 h-6" />, color: 'bg-purple-100 text-purple-600' },
@@ -401,6 +405,7 @@ export const StaffDashboard: React.FC = () => {
             case 'protocols': return <div className="h-full overflow-y-auto pb-24"><ProtocolsView /></div>;
             case 'training': return <div className="h-full overflow-y-auto pb-24"><TrainingView /></div>;
             case 'agency_invoices': return <div className="h-full overflow-y-auto pb-24"><AgencyInvoicesPanel /></div>;
+            case 'billing_info': return <div className="h-full overflow-y-auto pb-24"><PropertyBillingPanel properties={propertiesList} /></div>;
             case 'calculator': return <div className="h-full overflow-y-auto pb-24"><SupplyCalculator properties={propertiesList} preSelectedPropertyId={selectedPropId} /></div>;
             case 'social': return <div className="h-full overflow-y-auto pb-24"><SocialInbox /></div>;
             case 'tools': return <div className="h-full overflow-y-auto p-4 space-y-4 pb-24"><NewsManager /><ProfitCalculator /></div>;
@@ -535,7 +540,7 @@ export const StaffDashboard: React.FC = () => {
                     {activeTab === 'visual_editor' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><VisualEditor /></div>}
 
                     {activeTab === 'transfers' && <div className="animate-in slide-in-from-bottom-4 duration-300"><TransferRequestManager /></div>}
-                    {activeTab === 'tasks' && <div className="animate-in slide-in-from-bottom-4 duration-300"><TaskManager key={taskFilter.category} initialCategoryFilter={taskFilter.category} initialStatusFilter={taskFilter.status} /></div>}
+                    {activeTab === 'tasks' && <div className="animate-in slide-in-from-bottom-4 duration-300"><TaskManager key={taskFilter.category} initialCategoryFilter={taskFilter.category} initialStatusFilter={taskFilter.status} properties={propertiesList} /></div>}
                     {activeTab === 'room_manager' && <div className="h-full overflow-y-auto pb-24"><RoomManager /></div>}
                     {/* ... (Keep other tabs) ... */}
                     {activeTab === 'real_estate' && <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-300"><SalesCRM /></div>}
@@ -544,6 +549,7 @@ export const StaffDashboard: React.FC = () => {
                     {activeTab === 'calculator' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><SupplyCalculator properties={propertiesList} preSelectedPropertyId={selectedPropId} /></div>}
                     {activeTab === 'advanced_calc' && <div className="animate-in slide-in-from-bottom-4 duration-300"><AdvancedCalculator properties={propertiesList} /></div>}
                     {activeTab === 'agency_invoices' && <div className="animate-in slide-in-from-bottom-4 duration-300"><AgencyInvoicesPanel /></div>}
+                    {activeTab === 'billing_info' && <div className="animate-in slide-in-from-bottom-4 duration-300"><PropertyBillingPanel properties={propertiesList} /></div>}
                     {activeTab === 'social' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><SocialInbox /></div>}
                     {activeTab === 'visits' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><VisitsLog /></div>}
                     {activeTab === 'supplies' && <div className="animate-in slide-in-from-bottom-4 duration-300"><SuppliesPanel properties={propertiesList} /></div>}
@@ -600,23 +606,23 @@ export const StaffDashboard: React.FC = () => {
                         <form onSubmit={handleSendCandidate} className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-xl shadow-2xl flex flex-col animate-in slide-in-from-bottom-10 overflow-hidden" onClick={e => e.stopPropagation()}>
                             <div className="p-4 bg-gray-50 border-b flex justify-between items-center">
                                 <h3 className="font-bold flex items-center gap-2"><UserPlus className="w-5 h-5 text-green-600" /> Enviar Candidato</h3>
-                                <button type="button" onClick={() => setShowCandidateModal(false)} className="p-2 -mr-2"><X className="w-5 h-5 text-gray-400" /></button>
+                                <button type="button" onClick={() => setShowCandidateModal(false)} className="p-2 -mr-2" title="Cerrar"><X className="w-5 h-5 text-gray-400" /></button>
                             </div>
                             <div className="p-4 space-y-4 overflow-y-auto max-h-[70vh]">
-                                <div><label className="text-xs font-bold text-gray-500 block mb-1">Propiedad*</label><select required className="w-full p-2 border rounded text-sm" value={newCandidate.propertyId} onChange={e => setNewCandidate({ ...newCandidate, propertyId: e.target.value, roomId: '' })}><option value="">Seleccionar...</option>{propertiesList.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}</select></div>
+                                <div><label className="text-xs font-bold text-gray-500 block mb-1">Propiedad*</label><select required className="w-full p-2 border rounded text-sm" value={newCandidate.propertyId} onChange={e => setNewCandidate({ ...newCandidate, propertyId: e.target.value, roomId: '' })} title="Seleccionar Propiedad"><option value="">Seleccionar...</option>{propertiesList.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}</select></div>
                                 <div>
                                     <label className="text-xs font-bold text-gray-500 block mb-1">Habitación (Opcional)</label>
-                                    <select disabled={!newCandidate.propertyId} className="w-full p-2 border rounded text-sm" value={newCandidate.roomId} onChange={e => setNewCandidate({ ...newCandidate, roomId: e.target.value })}>
+                                    <select disabled={!newCandidate.propertyId} className="w-full p-2 border rounded text-sm" value={newCandidate.roomId} onChange={e => setNewCandidate({ ...newCandidate, roomId: e.target.value })} title="Seleccionar Habitación">
                                         <option value="">Seleccionar...</option>
                                         {(propertiesList.find(p => p.id === newCandidate.propertyId)?.rooms || []).map((r: Room) => (
                                             <option key={r.id} value={r.id}>{r.name} ({r.status})</option>
                                         ))}
                                     </select>
                                 </div>
-                                <div><label className="text-xs font-bold text-gray-500 block mb-1">Nombre Candidato*</label><input required type="text" className="w-full p-2 border rounded text-sm" value={newCandidate.candidateName} onChange={e => setNewCandidate({ ...newCandidate, candidateName: e.target.value })} /></div>
+                                <div><label className="text-xs font-bold text-gray-500 block mb-1">Nombre Candidato*</label><input required type="text" className="w-full p-2 border rounded text-sm" value={newCandidate.candidateName} onChange={e => setNewCandidate({ ...newCandidate, candidateName: e.target.value })} title="Nombre del Candidato" placeholder="Nombre completo" /></div>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div><label className="text-xs font-bold text-gray-500 block mb-1">Teléfono</label><input type="tel" className="w-full p-2 border rounded text-sm" value={newCandidate.candidatePhone} onChange={e => setNewCandidate({ ...newCandidate, candidatePhone: e.target.value })} /></div>
-                                    <div><label className="text-xs font-bold text-gray-500 block mb-1">Email</label><input type="email" className="w-full p-2 border rounded text-sm" value={newCandidate.candidateEmail} onChange={e => setNewCandidate({ ...newCandidate, candidateEmail: e.target.value })} /></div>
+                                    <div><label className="text-xs font-bold text-gray-500 block mb-1">Teléfono</label><input type="tel" className="w-full p-2 border rounded text-sm" value={newCandidate.candidatePhone} onChange={e => setNewCandidate({ ...newCandidate, candidatePhone: e.target.value })} title="Teléfono del Candidato" placeholder="Ej: 600000000" /></div>
+                                    <div><label className="text-xs font-bold text-gray-500 block mb-1">Email</label><input type="email" className="w-full p-2 border rounded text-sm" value={newCandidate.candidateEmail} onChange={e => setNewCandidate({ ...newCandidate, candidateEmail: e.target.value })} title="Email del Candidato" placeholder="email@ejemplo.com" /></div>
                                 </div>
                                 {/* Selector de Prioridad NUEVO */}
                                 <div>
@@ -625,6 +631,7 @@ export const StaffDashboard: React.FC = () => {
                                         className="w-full p-2 border rounded text-sm bg-white"
                                         value={newCandidate.priority}
                                         onChange={e => setNewCandidate({ ...newCandidate, priority: e.target.value as any })}
+                                        title="Seleccionar Prioridad"
                                     >
                                         <option value="Alta">🔴 Alta - Muy Interesado / Urgente</option>
                                         <option value="Media">🟡 Media - Interesado normal</option>
@@ -636,7 +643,7 @@ export const StaffDashboard: React.FC = () => {
                                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1 flex items-center gap-1"><Briefcase className="w-3 h-3" /> Plataforma de Origen</label>
                                     <input type="text" className="w-full p-2 border rounded text-sm" placeholder="Ej: Idealista, Facebook, Referido..." value={newCandidate.sourcePlatform} onChange={e => setNewCandidate({ ...newCandidate, sourcePlatform: e.target.value })} />
                                 </div>
-                                <div><label className="text-xs font-bold text-gray-500 block mb-1">Info Adicional</label><textarea className="w-full p-2 border rounded text-sm h-20" value={newCandidate.additionalInfo} onChange={e => setNewCandidate({ ...newCandidate, additionalInfo: e.target.value })} /></div>
+                                <div><label className="text-xs font-bold text-gray-500 block mb-1">Info Adicional</label><textarea className="w-full p-2 border rounded text-sm h-20" value={newCandidate.additionalInfo} onChange={e => setNewCandidate({ ...newCandidate, additionalInfo: e.target.value })} title="Información Adicional" placeholder="Notas sobre el candidato..." /></div>
                             </div>
                             <div className="p-4 bg-gray-50 border-t flex gap-2">
                                 <button type="button" onClick={() => setShowCandidateModal(false)} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-bold hover:bg-gray-200">Cancelar</button>
@@ -661,7 +668,7 @@ export const StaffDashboard: React.FC = () => {
                                         <p className="text-xs text-gray-500">Gestión centralizada de mantenimientos y averías</p>
                                     </div>
                                 </div>
-                                <button onClick={() => setShowIncidentModal(false)} className="bg-white border border-gray-200 p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors shadow-sm">
+                                <button onClick={() => setShowIncidentModal(false)} className="bg-white border border-gray-200 p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors shadow-sm" title="Cerrar Panel de Incidencias">
                                     <X className="w-5 h-5" />
                                 </button>
                             </div>
@@ -672,6 +679,7 @@ export const StaffDashboard: React.FC = () => {
                                         whitelistedBoardNames={['INCIDENCIAS', 'Mantenimiento', 'Incidencias', 'Averias']}
                                         hideSidebar={true}
                                         titleOverride="Panel de Incidencias"
+                                        properties={propertiesList}
                                     />
                                 </div>
                             </div>

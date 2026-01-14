@@ -499,56 +499,10 @@ export const HomeView: React.FC<HomeViewProps> = () => {
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-
-                        {/* Card 1: Administración */}
-                        <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
-                            <div className="bg-rentia-black p-6 text-white relative overflow-hidden">
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-gray-700 rounded-full mix-blend-overlay filter blur-2xl -translate-y-1/2 translate-x-1/2"></div>
-                                <div className="flex items-center gap-3 mb-2">
-                                    <div className="p-2 bg-white/10 rounded-lg backdrop-blur-sm">
-                                        <FileText className="w-6 h-6 text-rentia-gold" />
-                                    </div>
-                                    <h3 className="font-bold text-xl">{config.adminContact.role}</h3>
-                                </div>
-                                <p className="text-gray-400 text-sm">{t('home.contact_dual.admin_card.desc')}</p>
-                            </div>
-                            <div className="p-6 md:p-8">
-                                <div className="flex items-start gap-4 mb-6">
-                                    <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-rentia-black font-bold text-xl overflow-hidden">
-                                        {config.adminContact.image ? <img src={config.adminContact.image} alt={config.adminContact.name} className="w-full h-full object-cover" /> : config.adminContact.name.charAt(0)}
-                                    </div>
-                                    <div>
-                                        <p className="font-bold text-rentia-black text-lg">{config.adminContact.name}</p>
-                                        <p className="text-sm text-gray-500">{config.adminContact.role}</p>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-3 mb-8">
-                                    <div className="flex items-center gap-3 text-gray-600 text-sm">
-                                        <Clock className="w-4 h-4 text-rentia-blue" />
-                                        <span>Lunes a Viernes: <span className="font-bold text-rentia-black">{String(config.adminContact.startHour).padStart(2, '0')}:00 - {String(config.adminContact.endHour).padStart(2, '0')}:00</span></span>
-                                    </div>
-                                    <div className="flex items-center gap-3 text-gray-600 text-sm">
-                                        <Smartphone className="w-4 h-4 text-rentia-blue" />
-                                        <span>{t('home.contact_dual.admin_card.label_phone')}</span>
-                                    </div>
-                                </div>
-
-                                <a
-                                    href={`https://api.whatsapp.com/send?phone=${config.adminContact.phone}&text=${encodeURIComponent(config.adminContact.whatsappMessage)}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="w-full flex items-center justify-center gap-2 bg-gray-50 hover:bg-[#25D366] text-gray-800 hover:text-white font-bold py-4 px-6 rounded-xl transition-all border border-gray-200 hover:border-[#25D366]"
-                                >
-                                    <MessageCircle className="w-5 h-5" />
-                                    {t('home.contact_dual.admin_card.btn')}
-                                </a>
-                            </div>
-                        </div>
+                    <div className="flex justify-center">
 
                         {/* Card 2: Dirección */}
-                        <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
+                        <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group max-w-md w-full">
                             <div className="bg-rentia-blue p-6 text-white relative overflow-hidden">
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-blue-400 rounded-full mix-blend-overlay filter blur-2xl -translate-y-1/2 translate-x-1/2"></div>
                                 <div className="flex items-center gap-3 mb-2">

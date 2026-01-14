@@ -44,7 +44,7 @@ export const askAiAssistant = async (question: string, context: string, mode: 't
             2. Mantén la continuidad de la conversación si la trabajadora hace preguntas de seguimiento.
             3. Si la duda se resuelve con el material proporcionado, dale la respuesta directa y clara.
             4. Si la explicación es compleja, utiliza ESTRUCTURAS VISUALES (listas, diagramas de texto, tablas).
-            5. No inventes procesos. Si no hay información suficiente, dile amablemente que consulte con Pol o Sandra.
+            5. No inventes procesos. Si no hay información suficiente, dile amablemente que consulte con Dirección.
             6. Sé breve pero resolutivo.
             7. Usa negritas (**texto**) para resaltar partes importantes.
         `;

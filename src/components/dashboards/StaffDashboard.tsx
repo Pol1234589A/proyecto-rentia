@@ -160,7 +160,11 @@ export const StaffDashboard: React.FC = () => {
                 }
             });
 
-            allProps.sort((a, b) => a.address.localeCompare(b.address));
+            allProps.sort((a, b) => {
+                const addrA = a.address || '';
+                const addrB = b.address || '';
+                return addrA.localeCompare(addrB);
+            });
             setPropertiesList(allProps);
             if (!selectedPropId && allProps.length > 0) setSelectedPropId(allProps[0].id);
 

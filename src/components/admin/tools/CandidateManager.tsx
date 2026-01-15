@@ -54,7 +54,11 @@ export const CandidateManager: React.FC = () => {
             const snap = await getDocs(collection(db, "properties"));
             const props: Property[] = [];
             snap.forEach(doc => props.push({ ...doc.data(), id: doc.id } as Property));
-            props.sort((a, b) => a.address.localeCompare(b.address));
+            props.sort((a, b) => {
+                const addrA = a.address || '';
+                const addrB = b.address || '';
+                return addrA.localeCompare(addrB);
+            });
             setProperties(props);
 
             // Expandir todas por defecto al cargar si hay pocas

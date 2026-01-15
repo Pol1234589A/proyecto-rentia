@@ -36,7 +36,11 @@ export const UserCreator: React.FC = () => {
                     props.push({ ...doc.data(), id: doc.id } as Property);
                 });
                 // Ordenar alfabéticamente
-                props.sort((a, b) => a.address.localeCompare(b.address));
+                props.sort((a, b) => {
+                    const addrA = a.address || '';
+                    const addrB = b.address || '';
+                    return addrA.localeCompare(addrB);
+                });
                 setAvailableProperties(props);
             } catch (error) {
                 console.error("Error cargando propiedades:", error);
@@ -179,8 +183,8 @@ export const UserCreator: React.FC = () => {
                                     value={role || 'tenant'}
                                     onChange={(e) => setRole(e.target.value as UserRole)}
                                     className={`w-full p-2.5 border rounded-lg text-sm font-bold focus:ring-2 outline-none transition-all ${role === 'owner' ? 'border-purple-300 bg-purple-50 text-purple-900 focus:ring-purple-200' :
-                                            role === 'staff' ? 'border-blue-300 bg-blue-50 text-blue-900 focus:ring-blue-200' :
-                                                'border-gray-200 bg-white focus:ring-rentia-blue/30'
+                                        role === 'staff' ? 'border-blue-300 bg-blue-50 text-blue-900 focus:ring-blue-200' :
+                                            'border-gray-200 bg-white focus:ring-rentia-blue/30'
                                         }`}
                                 >
                                     <option value="owner">PROPIETARIO (Owner)</option>

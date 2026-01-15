@@ -261,7 +261,11 @@ export const WorkerDashboard: React.FC = () => {
             // 3. Add remaining purely Firestore properties (newly created)
             Object.values(firestorePropsMap).forEach(p => mergedProps.push(p));
 
-            mergedProps.sort((a, b) => a.address.localeCompare(b.address));
+            mergedProps.sort((a, b) => {
+                const addrA = a.address || '';
+                const addrB = b.address || '';
+                return addrA.localeCompare(addrB);
+            });
             setProperties(mergedProps);
         }, (error) => {
             console.error("Error cargando propiedades:", error);

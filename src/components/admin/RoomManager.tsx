@@ -99,7 +99,11 @@ export const RoomManager: React.FC = () => {
             // 2.2 Add remaining Firestore Props (newly created ones)
             Object.values(firestorePropsMap).forEach(p => mergedProperties.push(p));
 
-            mergedProperties.sort((a, b) => a.address.localeCompare(b.address));
+            mergedProperties.sort((a, b) => {
+                const addrA = a.address || '';
+                const addrB = b.address || '';
+                return addrA.localeCompare(addrB);
+            });
             setProperties(mergedProperties);
             setLoading(false);
         });

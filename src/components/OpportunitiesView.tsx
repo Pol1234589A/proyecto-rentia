@@ -30,7 +30,11 @@ export function OpportunitiesView() {
             // Placeholder: ordenación por defecto si no hay lógica de yield
             // No hacemos nada, devolvemos el array tal cual por ahora
         } else if (sortOption === 'city_asc') {
-            sorted.sort((a, b) => a.city.localeCompare(b.city));
+            sorted.sort((a, b) => {
+                const cityA = a.city || '';
+                const cityB = b.city || '';
+                return cityA.localeCompare(cityB);
+            });
         }
         return sorted;
     }, [opportunities, sortOption]);

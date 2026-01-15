@@ -184,25 +184,6 @@ export const properties: Property[] = [
     ]
   },
   {
-    id: 'VELAZQ12',
-    address: 'Calle Pintor Velázquez, 12',
-    city: 'Alcantarilla (Murcia)',
-    floor: '3º',
-    image: 'https://i.ibb.co/bgfbkz88/1729857046896.jpg',
-    bathrooms: 2,
-    driveLink: 'https://drive.google.com/drive/folders/185JuNMSgQ1Kcli98L3w-i1h-rA20PRs0',
-    googleMapsLink: getMapsLink('Calle Pintor Velázquez, 12, Alcantarilla, Murcia'),
-    rooms: [
-      { id: 'VELAZQ12_H1', name: 'H1', price: 290, status: 'occupied', availableFrom: '01/08/2025', expenses: 'Gastos fijos aparte', targetProfile: 'both', hasAirConditioning: false, hasFan: true, video: 'https://youtube.com/shorts/mQJRnWNjhWw', images: ['https://i.ibb.co/bgfbkz88/1729857046896.jpg'], bedType: 'double', features: ['lock', 'desk'], sqm: 12, commissionType: 'percentage', commissionValue: 10 },
-      { id: 'VELAZQ12_H2', name: 'H2', price: 250, status: 'occupied', availableFrom: '10/02/2025', expenses: 'Gastos fijos aparte', targetProfile: 'both', hasAirConditioning: false, hasFan: true, video: 'https://youtube.com/shorts/Sn3BdS5we2I?feature=share', images: ['https://i.ibb.co/DgpkkCP4/1729857046983.jpg'], commissionType: 'fixed', commissionValue: 50 },
-      { id: 'VELAZQ12_H3', name: 'H3', price: 270, status: 'occupied', availableFrom: '01/11/2025', expenses: 'Gastos fijos aparte', targetProfile: 'both', hasAirConditioning: true, video: 'https://youtube.com/shorts/9a0eTZcg4bY', images: ['https://i.ibb.co/fd16hxDg/1729857047031.jpg'], commissionType: 'percentage', commissionValue: 10 },
-      { id: 'VELAZQ12_H4', name: 'H4', price: 280, status: 'available', availableFrom: 'Inmediata', expenses: 'Gastos fijos aparte', targetProfile: 'both', hasAirConditioning: true, video: 'https://youtube.com/shorts/V8ku5NhXlUs', images: ['https://i.ibb.co/Vp22dL8z/1729857047344.jpg'], commissionType: 'percentage', commissionValue: 10 },
-      { id: 'VELAZQ12_H5', name: 'H5', price: 270, status: 'occupied', availableFrom: '07/09/2025', expenses: 'Gastos fijos aparte', targetProfile: 'both', hasAirConditioning: false, hasFan: true, video: 'https://youtube.com/shorts/WUot0rN0fTA', images: ['https://i.ibb.co/gMP6FMMW/1729857047393.jpg'], commissionType: 'percentage', commissionValue: 10 },
-      { id: 'VELAZQ12_H6', name: 'H6', price: 280, status: 'occupied', availableFrom: '15/07/2025', expenses: 'Gastos fijos aparte', targetProfile: 'both', hasAirConditioning: true, video: 'https://youtube.com/shorts/GFWIeP0r8Z8', images: ['https://i.ibb.co/qLQ8Jgvc/1729857047292.jpg'], commissionType: 'percentage', commissionValue: 10 },
-      { id: 'VELAZQ12_H7', name: 'H7', price: 320, status: 'occupied', availableFrom: '01/08/2025', expenses: 'Gastos fijos aparte', targetProfile: 'both', hasAirConditioning: true, video: 'https://youtube.com/shorts/lj-qYj0pY4M', images: ['https://i.ibb.co/3984GxTs/1729857047150.jpg'], commissionType: 'percentage', commissionValue: 10 },
-    ]
-  },
-  {
     id: 'ROSARIO71',
     address: 'Calle Rosario, 71',
     city: 'La Ñora (Murcia)',

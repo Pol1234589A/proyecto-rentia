@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { db } from '../../firebase';
 import { collection, getDocs, doc, setDoc, deleteDoc, query, where, onSnapshot, updateDoc, getDoc } from 'firebase/firestore';
 import { properties as staticProperties, Property, Room, CleaningConfig, OwnerRecommendation } from '../../data/rooms';
-import { Save, RefreshCw, Home, ChevronDown, ChevronRight, Building, Plus, Trash2, X, MapPin, ExternalLink, Wind, Image as ImageIcon, FileText, Settings, Hammer, DollarSign, Percent, Sun, Tv, Lock, Monitor, AlertCircle, User, CheckCircle, Sparkles, Clock, Euro, Calendar, ShieldCheck, ShieldAlert, FileCheck, Download, CreditCard, Phone, Mail, Megaphone, Zap, Info, Send, Wifi, DoorOpen } from 'lucide-react';
+import { Save, RefreshCw, Home, ChevronDown, ChevronRight, Building, Plus, Trash2, X, MapPin, ExternalLink, Wind, Image as ImageIcon, FileText, Settings, Hammer, DollarSign, Percent, Sun, Tv, Lock, Monitor, AlertCircle, User, CheckCircle, Sparkles, Clock, Euro, Calendar, ShieldCheck, ShieldAlert, FileCheck, Download, CreditCard, Phone, Mail, Megaphone, Zap, Info, Send, Wifi, DoorOpen, Eye, EyeOff, Globe, CloudUpload } from 'lucide-react';
 import { ImageUploader } from './ImageUploader';
 import { ContractManager } from './ContractManager';
 import { Contract, UserProfile, PropertyDocument, SupplyInvoice } from '../../types';
@@ -136,6 +136,25 @@ export const RoomManager: React.FC = () => {
         return () => { unsubProperties(); unsubOwners(); unsubDocs(); unsubInvoices(); };
     }, []);
 
+    const stats = React.useMemo(() => {
+        const totalProps = properties.length;
+        const publishedProps = properties.filter(p => p.isPublished !== false).length;
+
+        let totalRooms = 0;
+        let publishedRooms = 0;
+        let totalCapacity = 0;
+
+        properties.forEach(p => {
+            totalRooms += p.rooms.length;
+            totalCapacity += p.totalRooms || p.rooms.length;
+            if (p.isPublished !== false) {
+                publishedRooms += p.rooms.filter(r => r.isPublished !== false).length;
+            }
+        });
+
+        return { totalProps, publishedProps, totalRooms, publishedRooms, totalCapacity };
+    }, [properties]);
+
     const getActiveContract = (roomId: string) => {
         return contracts.find(c => c.roomId === roomId && (c.status === 'active' || c.status === 'reserved'));
     };
@@ -158,7 +177,17 @@ export const RoomManager: React.FC = () => {
 
     const handleDeleteProperty = async (propId: string) => {
         if (!confirm("¿Seguro que quieres eliminar esta propiedad y todas sus habitaciones?")) return;
-        try { await deleteDoc(doc(db, "properties", propId)); } catch (error) { console.error(error); }
+        setSaving(true);
+        try {
+            if (expandedProp === propId) setExpandedProp(null);
+            await deleteDoc(doc(db, "properties", propId));
+            alert("Propiedad eliminada correctamente.");
+        } catch (error) {
+            console.error(error);
+            alert("Error al eliminar la propiedad.");
+        } finally {
+            setSaving(false);
+        }
     };
 
     const handlePropertyFieldChange = (propId: string, field: keyof Property, value: any) => {
@@ -265,6 +294,25 @@ export const RoomManager: React.FC = () => {
             if (p.id !== propId) return p;
             return { ...p, rooms: p.rooms.map(r => r.id === roomId ? { ...r, [field]: value } : r) };
         }));
+    };
+
+    const togglePropertyPublication = async (propId: string) => {
+        const prop = properties.find(p => p.id === propId);
+        if (!prop) return;
+
+        const newStatus = prop.isPublished === false; // If currently false, set to true (or undefined), etc.
+        // Let's use boolean strictly.
+        const isPublished = newStatus;
+
+        // Optimistic update
+        setProperties(prev => prev.map(p => p.id === propId ? { ...p, isPublished } : p));
+
+        try {
+            await setDoc(doc(db, "properties", propId), { isPublished }, { merge: true });
+        } catch (e) {
+            console.error("Error toggling publication:", e);
+            alert("Error al cambiar el estado de publicación");
+        }
     };
 
     const handleRoomFeatureToggle = (propId: string, roomId: string, feature: string) => {
@@ -384,7 +432,15 @@ export const RoomManager: React.FC = () => {
                         <Building className="w-6 h-6 text-rentia-blue" />
                         Gestión de Habitaciones
                     </h2>
-                    <p className="text-sm text-gray-500 mt-1">{properties.length} Propiedades activas</p>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
+                        <p className="text-sm text-gray-500">
+                            Propiedades: <span className="font-bold text-gray-800">{stats.publishedProps}</span> / <span className="text-gray-400">{stats.totalProps}</span>
+                        </p>
+                        <p className="text-sm text-gray-500">
+                            Habitaciones: <span className="font-bold text-rentia-blue">{stats.publishedRooms}</span> / <span className="text-gray-400">{stats.totalRooms}</span>
+                            {stats.totalCapacity > stats.totalRooms && <span className="text-[10px] text-gray-400 ml-1">(Capacidad: {stats.totalCapacity})</span>}
+                        </p>
+                    </div>
                 </div>
                 <button
                     onClick={() => setIsCreating(!isCreating)}
@@ -430,6 +486,11 @@ export const RoomManager: React.FC = () => {
                                     <div>
                                         <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
                                             {p.address}
+                                            {p.isPublished === false ? (
+                                                <span className="bg-gray-100 text-gray-500 text-[10px] px-2 py-0.5 rounded border border-gray-200">BORRADOR / NO PUBLICADO</span>
+                                            ) : (
+                                                <span className="bg-blue-100 text-blue-700 text-[10px] px-2 py-0.5 rounded border border-blue-200">PUBLICADO</span>
+                                            )}
                                             {ownerData && <span className="bg-green-100 text-green-800 text-[10px] px-2 py-0.5 rounded border border-green-200">RGPD OK</span>}
                                             {p.ownerRecommendations && p.ownerRecommendations.length > 0 && <span className="bg-yellow-100 text-yellow-800 text-[10px] px-2 py-0.5 rounded flex items-center gap-1"><Megaphone className="w-3 h-3" /> Avisos</span>}
                                         </h3>
@@ -469,7 +530,15 @@ export const RoomManager: React.FC = () => {
                                         </div>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
+                                <div className="flex items-center gap-2 w-full md:w-auto justify-between md:justify-end">
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); togglePropertyPublication(p.id) }}
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${p.isPublished !== false ? 'bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100' : 'bg-gray-50 text-gray-400 border-gray-200 hover:bg-gray-100'}`}
+                                        title={p.isPublished !== false ? 'Desactivar de la web' : 'Activar en la web'}
+                                    >
+                                        {p.isPublished !== false ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                                        <span className="hidden sm:inline">{p.isPublished !== false ? 'Público' : 'Privado'}</span>
+                                    </button>
                                     <button onClick={(e) => { e.stopPropagation(); handleDeleteProperty(p.id) }} className="text-gray-400 hover:text-red-500 p-2" title="Eliminar propiedad"><Trash2 className="w-5 h-5" /></button>
                                     <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                                 </div>
@@ -565,13 +634,26 @@ export const RoomManager: React.FC = () => {
                                             </div>
                                             <div>
                                                 <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Planta (Texto)</label>
-                                                <input type="text" className="w-full p-2 border rounded-lg text-sm bg-gray-50" value={p.floor} onChange={e => handlePropertyFieldChange(p.id, 'floor', e.target.value)} title="Planta" placeholder="Ej: 3º B" />
+                                                <input type="text" className="w-full p-2 border rounded-lg text-sm bg-gray-50" value={p.floor || ''} onChange={e => handlePropertyFieldChange(p.id, 'floor', e.target.value)} title="Planta" placeholder="Ej: 3º B" />
                                             </div>
                                             <div className="md:col-span-2">
                                                 <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Google Maps Link</label>
-                                                <input type="text" className="w-full p-2 border rounded-lg text-sm bg-gray-50 font-mono text-xs" value={p.googleMapsLink} onChange={e => handlePropertyFieldChange(p.id, 'googleMapsLink', e.target.value)} title="Google Maps Link" placeholder="https://maps.app.goo.gl/..." />
+                                                <input type="text" className="w-full p-2 border rounded-lg text-sm bg-gray-50 font-mono text-xs" value={p.googleMapsLink || ''} onChange={e => handlePropertyFieldChange(p.id, 'googleMapsLink', e.target.value)} title="Google Maps Link" placeholder="https://maps.app.goo.gl/..." />
                                             </div>
                                             <div className="md:col-span-4">
+                                                <div className="flex items-center gap-4 mb-4 p-3 bg-blue-50/50 rounded-lg border border-blue-100/50">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-xs font-bold text-gray-600">Estado de Publicación:</span>
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); handlePropertyFieldChange(p.id, 'isPublished', p.isPublished === false) }}
+                                                            className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${p.isPublished !== false ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'}`}
+                                                            title={p.isPublished !== false ? 'Cambiar a Borrador' : 'Publicar Propiedad'}
+                                                        >
+                                                            {p.isPublished !== false ? 'Publicado' : 'No Publicado'}
+                                                        </button>
+                                                    </div>
+                                                    <p className="text-[10px] text-gray-500 italic">Si no está publicado, no aparecerá en la web principal.</p>
+                                                </div>
                                                 <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Descripción Pública (Idealista Style)</label>
                                                 <textarea
                                                     className="w-full p-2 border rounded-lg text-sm bg-gray-50 h-20 resize-none"
@@ -798,10 +880,18 @@ export const RoomManager: React.FC = () => {
                                         </div>
                                     </div>
 
-                                    <div className="flex justify-end mb-6">
-                                        <button onClick={() => handleSaveAll(p.id)} disabled={saving} className="bg-rentia-black text-white px-6 py-2 rounded-lg font-bold text-sm shadow-lg hover:bg-gray-800 transition-colors flex items-center gap-2">
+                                    <div className="flex justify-between items-center mb-6 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                        <div className="flex items-center gap-2 text-gray-500">
+                                            <Info className="w-4 h-4" />
+                                            <span className="text-xs italic">Los cambios solo se verán en la web tras pulsar Corfirmar/Guardar.</span>
+                                        </div>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); handleSaveAll(p.id); }}
+                                            disabled={saving}
+                                            className="bg-rentia-blue text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg hover:bg-blue-700 transition-all flex items-center gap-2 active:scale-95"
+                                        >
                                             {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                                            Guardar Todo
+                                            {saving ? 'Sincronizando...' : 'GUARDAR Y PUBLICAR'}
                                         </button>
                                     </div>
 
@@ -815,6 +905,13 @@ export const RoomManager: React.FC = () => {
                                                     <div className="flex justify-between items-center mb-4">
                                                         <div className="flex items-center gap-3">
                                                             <span className="font-bold text-lg">{room.name}</span>
+                                                            <button
+                                                                onClick={() => handleRoomChange(p.id, room.id, 'isPublished', room.isPublished === false)}
+                                                                className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded transition-colors ${room.isPublished !== false ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'bg-gray-100 text-gray-400 border border-gray-200'}`}
+                                                                title={room.isPublished !== false ? 'Marcar como no publicado' : 'Marcar como publicado'}
+                                                            >
+                                                                {room.isPublished !== false ? 'Publicado' : 'No Publicado'}
+                                                            </button>
                                                             <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${room.status === 'occupied' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{room.status}</span>
                                                         </div>
                                                         <div className="flex items-center gap-2">
@@ -822,7 +919,7 @@ export const RoomManager: React.FC = () => {
                                                             <input
                                                                 type="number"
                                                                 className="w-20 p-1 border rounded text-right font-bold text-rentia-blue"
-                                                                value={room.price}
+                                                                value={room.price ?? 0}
                                                                 onChange={e => handleRoomChange(p.id, room.id, 'price', Number(e.target.value))}
                                                                 title="Precio de la habitación"
                                                                 placeholder="0"
@@ -836,7 +933,7 @@ export const RoomManager: React.FC = () => {
                                                             <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Estado</label>
                                                             <select
                                                                 className="w-full p-2 border rounded text-sm bg-white"
-                                                                value={room.status}
+                                                                value={room.status || 'available'}
                                                                 onChange={e => handleRoomChange(p.id, room.id, 'status', e.target.value)}
                                                                 title="Estado de la habitación"
                                                             >
@@ -861,7 +958,7 @@ export const RoomManager: React.FC = () => {
                                                             <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Gastos</label>
                                                             <select
                                                                 className="w-full p-2 border rounded text-sm bg-white"
-                                                                value={room.expenses}
+                                                                value={room.expenses || 'Gastos fijos aparte'}
                                                                 onChange={e => handleRoomChange(p.id, room.id, 'expenses', e.target.value)}
                                                                 title="Política de gastos"
                                                             >
@@ -986,6 +1083,28 @@ export const RoomManager: React.FC = () => {
                                                 </div>
                                             )
                                         })}
+                                    </div>
+
+                                    {/* SAVE CHANGES FOOTER - PREMIMUM BUTTON */}
+                                    <div className="mt-8 p-6 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl border border-blue-400/30 overflow-hidden relative group">
+                                        <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+                                        <div className="flex items-center gap-5 relative z-10 text-center md:text-left">
+                                            <div className="bg-white/20 p-4 rounded-full backdrop-blur-md shadow-inner">
+                                                <Globe className="w-8 h-8 text-white animate-pulse" />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-xl font-black uppercase tracking-tight">Sincronizar con la Web</h4>
+                                                <p className="text-sm font-medium text-blue-100/90">Haz efectivos tus cambios en el catálogo público ahora mismo.</p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); handleSaveAll(p.id); }}
+                                            disabled={saving}
+                                            className="relative z-10 bg-white text-blue-700 hover:bg-blue-50 px-10 py-4 rounded-xl font-black flex items-center gap-3 shadow-2xl active:scale-95 transition-all w-full md:w-auto justify-center text-lg uppercase tracking-wider"
+                                        >
+                                            {saving ? <RefreshCw className="animate-spin w-6 h-6" /> : <CloudUpload className="w-6 h-6" />}
+                                            {saving ? 'Guardando...' : '¡PUBLICAR AHORA!'}
+                                        </button>
                                     </div>
                                 </div>
                             )}

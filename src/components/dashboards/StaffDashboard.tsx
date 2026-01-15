@@ -75,7 +75,7 @@ export const StaffDashboard: React.FC = () => {
     const [activeMobileTab, setActiveMobileTab] = useState<'overview' | 'tasks' | 'candidates' | 'properties' | 'menu' | 'accounting' | 'supplies' | 'calendar' | 'contracts' | 'social' | 'calculator' | 'tools' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'advanced_calc' | 'management_leads' | 'site_config' | 'blog_manager' | 'visual_editor' | 'agency_invoices' | 'billing_info' | 'protocols' | 'training'>('overview');
 
     const isManagerRole = userRole === 'manager';
-    const isAdminUI = currentUser?.email === 'vanesa@rentiaroom.com' || currentUser?.email === 'info@rentiaroom.com';
+    const isAdminUI = userRole === 'manager' || currentUser?.email === 'vanesa@rentiaroom.com' || currentUser?.email === 'info@rentiaroom.com' || currentUser?.email === 'rentiaroom@gmail.com' || currentUser?.email === 'matencioespinosapol@gmail.com';
 
     // ... (Keep existing state and effects unchanged) ...
     const [stats, setStats] = useState({

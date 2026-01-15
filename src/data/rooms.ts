@@ -28,6 +28,9 @@ export interface Room {
 
   // Advanced Room Filters
   gender?: 'male' | 'female' | 'both';
+
+  // Publication status
+  isPublished?: boolean;
 }
 
 export interface CleaningConfig {
@@ -126,6 +129,7 @@ export interface Property {
   receiptDest?: 'private' | 'group';
   receiptLink?: string;
   totalRooms?: number;
+  isPublished?: boolean;
 }
 
 // Función auxiliar para generar enlace de maps

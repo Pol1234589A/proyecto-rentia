@@ -69,7 +69,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             let assignedRole = userData.role as UserRole;
 
             // Lógica de acceso especial para el perfil de Administración/Operaciones
-            if (user.email?.toLowerCase().trim() === 'vanesa@rentiaroom.com') {
+            const adminEmails = [
+              'vanesa@rentiaroom.com',
+              'rentiaroom@gmail.com',
+              'matencioespinosapol@gmail.com'
+            ];
+
+            if (user.email && adminEmails.includes(user.email.toLowerCase().trim())) {
               assignedRole = 'manager';
             }
 

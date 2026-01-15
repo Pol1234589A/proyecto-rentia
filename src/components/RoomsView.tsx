@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Home, MapPin, CheckCircle, User, MessageCircle, Filter, AlertCircle, Receipt, Sparkles, Hammer, HelpCircle, Building, Gift, Users as UsersIcon, Wallet, PlayCircle, Camera, Timer, Bath, Wind, ExternalLink, GraduationCap, Briefcase, Users, ZoomIn, DoorClosed, DoorOpen, ChevronLeft, ChevronRight, ChevronDown, Info, Layout, X, Euro, BedDouble, Bed, Tv, Lock, Sun, Monitor, Loader2, Megaphone, AlertTriangle, Ban as DoNotDisturb, Edit, Save, Plus, Trash2, Film, Calendar, Maximize, ShieldCheck } from 'lucide-react';
+import { Home, MapPin, CheckCircle, User, MessageCircle, Filter, AlertCircle, Receipt, Sparkles, Hammer, HelpCircle, Building, Gift, Users as UsersIcon, Wallet, PlayCircle, Camera, Timer, Bath, Wind, ExternalLink, GraduationCap, Briefcase, Users, ZoomIn, DoorClosed, DoorOpen, ChevronLeft, ChevronRight, ChevronDown, Info, Layout, X, Euro, BedDouble, Bed, Tv, Lock, Sun, Monitor, Loader2, Megaphone, AlertTriangle, Ban as DoNotDisturb, Edit, Save, Plus, Trash2, Film, Calendar, Maximize, ShieldCheck, EyeOff } from 'lucide-react';
 import { db } from '../firebase';
-import { collection, onSnapshot, doc, setDoc } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
 import { properties as staticProperties, Property, Room } from '../data/rooms';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -131,6 +131,35 @@ export const RoomsView: React.FC = () => {
         }
     };
 
+    const handleDeleteProperty = async (property: Property) => {
+        if (!confirm("¿Seguro que quieres eliminar esta propiedad? Esta acción no se puede deshacer.")) return;
+        try {
+            // Verificar si es una propiedad que existe en los datos estáticos
+            const isStatic = staticProperties.some(sp =>
+                sp.id === property.id ||
+                (sp.address && property.address && sp.address.toLowerCase().trim() === property.address.toLowerCase().trim())
+            );
+
+            if (isStatic) {
+                // Si es estática, la marcamos como no publicada en Firestore para que "gane" al dato estático y se oculte
+                const updatedProp = { ...property, isPublished: false };
+                await setDoc(doc(db, "properties", property.id), updatedProp, { merge: true });
+
+                // Actualización optimista inmediata para que desaparezca de la vista
+                setProperties(prev => prev.map(p => p.id === property.id ? updatedProp : p));
+            } else {
+                // Si es puramente de Firestore, la borramos
+                await deleteDoc(doc(db, "properties", property.id));
+                // Aquí el onSnapshot hará que desaparezca del estado automáticamente
+            }
+
+            alert("Propiedad eliminada correctamente.");
+        } catch (error) {
+            console.error("Error deleting property:", error);
+            alert("Error al eliminar la propiedad.");
+        }
+    };
+
     const [showOnlyAvailable, setShowOnlyAvailable] = useState(false);
     const [selectedZone, setSelectedZone] = useState('');
     const [selectedProfile, setSelectedProfile] = useState('');
@@ -146,6 +175,7 @@ export const RoomsView: React.FC = () => {
     const [selectedBedType, setSelectedBedType] = useState('all');
     const [filterFeatures, setFilterFeatures] = useState<string[]>([]);
     const [sortBy, setSortBy] = useState('relevance');
+    const [showDrafts, setShowDrafts] = useState(false);
 
     const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
     const [expandedProperties, setExpandedProperties] = useState<Record<string, boolean>>({});
@@ -174,17 +204,36 @@ export const RoomsView: React.FC = () => {
         const unsubscribe = onSnapshot(collection(db, "properties"), (snapshot) => {
             const firestoreProps: Property[] = [];
             snapshot.forEach((doc) => {
-                firestoreProps.push({ ...doc.data(), id: doc.id } as Property);
+                const data = doc.data();
+                firestoreProps.push({
+                    ...data,
+                    id: doc.id,
+                    rooms: Array.isArray(data.rooms) ? data.rooms : []
+                } as Property);
             });
 
-            // Fusión: Usar datos de Firestore + datos estáticos que NO estén ya en Firestore (por ID)
+            // Fusión: Usar datos de Firestore + datos estáticos que NO estén ya en Firestore (por ID o Dirección)
             const dbIds = new Set(firestoreProps.map(p => p.id));
-            const missingStatics = staticProperties.filter(p => !dbIds.has(p.id));
+            const dbAddresses = new Set(
+                firestoreProps
+                    .filter(p => p.address)
+                    .map(p => p.address.toLowerCase().trim())
+            );
+
+            const missingStatics = staticProperties.filter(p =>
+                !dbIds.has(p.id) &&
+                p.address &&
+                !dbAddresses.has(p.address.toLowerCase().trim())
+            );
 
             const combinedProps = [...firestoreProps, ...missingStatics];
 
-            // Ordenar alfabéticamente
-            combinedProps.sort((a, b) => a.address.localeCompare(b.address));
+            // Ordenar alfabéticamente protegiendo contra nulos
+            combinedProps.sort((a, b) => {
+                const addrA = a.address || '';
+                const addrB = b.address || '';
+                return addrA.localeCompare(addrB);
+            });
 
             setProperties(combinedProps);
             setLoadingProperties(false);
@@ -219,90 +268,102 @@ export const RoomsView: React.FC = () => {
     };
 
     const totalRoomsManaged = useMemo(() => {
-        return properties.reduce((acc, property) => acc + property.rooms.length, 0);
+        return properties.reduce((acc, property) => {
+            if (property.isPublished === false) return acc;
+            const rooms = property.rooms || [];
+            return acc + rooms.filter(r => r.isPublished !== false).length;
+        }, 0);
     }, [properties]);
 
     const uniqueZones = useMemo(() => {
-        const zones = new Set(properties.map(p => p.city));
+        const zones = new Set(properties.map(p => p.city).filter(c => typeof c === 'string' && c.trim() !== ''));
         return Array.from(zones).sort();
     }, [properties]);
 
     const filteredProperties = useMemo(() => {
-        const result = properties.map(p => {
-            const matchingRooms = p.rooms.filter(r => {
-                // 1. Availability
-                if (showOnlyAvailable && r.status !== 'available') return false;
+        const result = properties
+            .filter(p => (isAdmin && showDrafts) || p.isPublished !== false)
+            .map(p => {
+                const rooms = p.rooms || [];
+                const matchingRooms = rooms.filter(r => {
+                    // 0. Publication status
+                    if (!isAdmin || !showDrafts) {
+                        if (r.isPublished === false) return false;
+                    }
 
-                // 2. Profile
-                if (selectedProfile) {
-                    const profile = r.targetProfile || 'both';
-                    const matches = selectedProfile === 'students' ? (profile === 'students' || profile === 'both') : (profile === 'workers' || profile === 'both');
-                    if (!matches) return false;
-                }
+                    // 1. Availability
+                    if (showOnlyAvailable && r.status !== 'available') return false;
 
-                // 3. Price
-                if (minPrice !== '' || maxPrice !== '') {
-                    const isAvailable = r.status === 'available';
-                    const isComingSoon = r.availableFrom && r.availableFrom !== 'Consultar' && r.availableFrom !== 'Inmediata';
-                    if (!isAvailable && !isComingSoon) return false;
-                    if (minPrice !== '' && r.price < minPrice) return false;
-                    if (maxPrice !== '' && r.price > maxPrice) return false;
-                }
+                    // 2. Profile
+                    if (selectedProfile) {
+                        const profile = r.targetProfile || 'both';
+                        const matches = selectedProfile === 'students' ? (profile === 'students' || profile === 'both') : (profile === 'workers' || profile === 'both');
+                        if (!matches) return false;
+                    }
 
-                // 4. Coming Soon (Manual Filter)
-                if (filterComingSoon) {
-                    if (r.specialStatus === 'renovation') return false;
-                    if (!r.availableFrom || r.availableFrom === 'Consultar' || r.availableFrom === 'Inmediata') return false;
-                    try {
-                        const [day, month, year] = r.availableFrom.split('/').map(Number);
-                        const exitDate = new Date(year, month - 1, day);
-                        const today = new Date();
-                        exitDate.setHours(23, 59, 59);
-                        today.setHours(0, 0, 0);
-                        const diffTime = exitDate.getTime() - today.getTime();
-                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                        if (diffDays <= 0) return false;
-                    } catch (e) { return false; }
-                }
+                    // 3. Price
+                    if (minPrice !== '' || maxPrice !== '') {
+                        const isAvailable = r.status === 'available';
+                        const isComingSoon = r.availableFrom && r.availableFrom !== 'Consultar' && r.availableFrom !== 'Inmediata';
+                        if (!isAvailable && !isComingSoon) return false;
+                        if (minPrice !== '' && r.price < minPrice) return false;
+                        if (maxPrice !== '' && r.price > maxPrice) return false;
+                    }
 
-                // 5. Gender
-                if (selectedGender !== 'all') {
-                    const g = r.gender || 'both';
-                    if (g !== 'both' && g !== selectedGender) return false;
-                }
+                    // 4. Coming Soon (Manual Filter)
+                    if (filterComingSoon) {
+                        if (r.specialStatus === 'renovation') return false;
+                        if (!r.availableFrom || r.availableFrom === 'Consultar' || r.availableFrom === 'Inmediata') return false;
+                        try {
+                            const [day, month, year] = r.availableFrom.split('/').map(Number);
+                            const exitDate = new Date(year, month - 1, day);
+                            const today = new Date();
+                            exitDate.setHours(23, 59, 59);
+                            today.setHours(0, 0, 0);
+                            const diffTime = exitDate.getTime() - today.getTime();
+                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                            if (diffDays <= 0) return false;
+                        } catch (e) { return false; }
+                    }
 
-                // 6. Bed Type
-                if (selectedBedType !== 'all' && r.bedType !== selectedBedType) return false;
+                    // 5. Gender
+                    if (selectedGender !== 'all') {
+                        const g = r.gender || 'both';
+                        if (g !== 'both' && g !== selectedGender) return false;
+                    }
 
-                // 7. Air Conditioning
-                if (filterAirCon === 'yes' && !r.hasAirConditioning) return false;
-                if (filterAirCon === 'no' && r.hasAirConditioning) return false;
+                    // 6. Bed Type
+                    if (selectedBedType !== 'all' && r.bedType !== selectedBedType) return false;
 
-                // 8. Expenses
-                if (filterExpenses !== 'all') {
-                    const exp = r.expenses.toLowerCase();
-                    if (filterExpenses === 'fixed' && !exp.includes('fijos')) return false;
-                    if (filterExpenses === 'shared' && !exp.includes('reparten')) return false;
-                }
+                    // 7. Air Conditioning
+                    if (filterAirCon === 'yes' && !r.hasAirConditioning) return false;
+                    if (filterAirCon === 'no' && r.hasAirConditioning) return false;
 
-                // 9. Room Features
-                if (filterFeatures.length > 0) {
-                    const roomPropFeatures = [...(p.features || []), ...(r.features || [])];
-                    if (!filterFeatures.every(f => roomPropFeatures.includes(f))) return false;
-                }
+                    // 8. Expenses
+                    if (filterExpenses !== 'all') {
+                        const exp = r.expenses.toLowerCase();
+                        if (filterExpenses === 'fixed' && !exp.includes('fijos')) return false;
+                        if (filterExpenses === 'shared' && !exp.includes('reparten')) return false;
+                    }
 
-                return true;
+                    // 9. Room Features
+                    if (filterFeatures.length > 0) {
+                        const roomPropFeatures = [...(p.features || []), ...(r.features || [])];
+                        if (!filterFeatures.every(f => roomPropFeatures.includes(f))) return false;
+                    }
+
+                    return true;
+                });
+
+                return { property: p, matchingRooms };
+            }).filter(item => {
+                // Property level filters
+                if (selectedZone && item.property.city !== selectedZone) return false;
+                if (selectedFloorType !== 'all' && item.property.floorType !== selectedFloorType) return false;
+
+                // Must have at least one matching room
+                return item.matchingRooms.length > 0;
             });
-
-            return { property: p, matchingRooms };
-        }).filter(item => {
-            // Property level filters
-            if (selectedZone && item.property.city !== selectedZone) return false;
-            if (selectedFloorType !== 'all' && item.property.floorType !== selectedFloorType) return false;
-
-            // Must have at least one matching room
-            return item.matchingRooms.length > 0;
-        });
 
         // --- SORTING LOGIC ---
         if (sortBy === 'price-asc' || sortBy === 'price-desc') {
@@ -317,7 +378,7 @@ export const RoomsView: React.FC = () => {
             });
         }
         return result;
-    }, [properties, showOnlyAvailable, selectedZone, selectedProfile, filterAirCon, filterExpenses, filterComingSoon, minPrice, maxPrice, selectedGender, selectedFloorType, selectedBedType, filterFeatures, sortBy]);
+    }, [properties, showOnlyAvailable, selectedZone, selectedProfile, filterAirCon, filterExpenses, filterComingSoon, minPrice, maxPrice, selectedGender, selectedFloorType, selectedBedType, filterFeatures, sortBy, showDrafts, isAdmin]);
 
     const activeFiltersCount = useMemo(() => {
         let count = 0;
@@ -416,6 +477,7 @@ export const RoomsView: React.FC = () => {
     }
 
     const getPropertyProfile = (rooms: Room[]) => {
+        if (!Array.isArray(rooms)) return undefined;
         const profiles = new Set(rooms.map(r => r.targetProfile).filter(Boolean));
         if (profiles.has('both') || (profiles.has('students') && profiles.has('workers'))) return 'both';
         if (profiles.has('students')) return 'students';
@@ -592,6 +654,20 @@ export const RoomsView: React.FC = () => {
                                     </button>
                                 )}
                             </div>
+
+                            {isAdmin && (
+                                <div className="mb-6 p-3 bg-blue-50/50 rounded-lg border border-blue-100 flex items-center justify-between group cursor-pointer" onClick={() => setShowDrafts(!showDrafts)}>
+                                    <div className="flex flex-col">
+                                        <label className="text-[10px] font-bold text-blue-700 flex items-center gap-1.5 uppercase tracking-wider">
+                                            <EyeOff className="w-3 h-3" /> Modo Admin
+                                        </label>
+                                        <span className="text-[9px] text-blue-600/60 font-medium">Ver borradores</span>
+                                    </div>
+                                    <div className={`w-8 h-4 rounded-full transition-all relative ${showDrafts ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                                        <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all shadow-sm ${showDrafts ? 'left-4.5' : 'left-0.5'}`}></div>
+                                    </div>
+                                </div>
+                            )}
 
                             <div className="space-y-6 max-h-[calc(100vh-220px)] overflow-y-auto pr-2 custom-scrollbar pb-10">
 
@@ -968,12 +1044,13 @@ export const RoomsView: React.FC = () => {
                                     </div>
                                 ) : (
                                     filteredProperties.map(({ property, matchingRooms }) => {
-                                        const availableCount = property.rooms.filter((r: Room) => r.status === 'available').length;
-                                        const totalRooms = property.rooms.length;
+                                        const rooms = property.rooms || [];
+                                        const availableCount = rooms.filter((r: Room) => r.status === 'available').length;
+                                        const totalRooms = rooms.length;
                                         const isExpanded = expandedProperties[property.id] || false;
-                                        const hasNew = property.rooms.some((r: Room) => r.specialStatus === 'new');
-                                        const hasRenovation = property.rooms.some((r: Room) => r.specialStatus === 'renovation');
-                                        const propertyProfile = getPropertyProfile(property.rooms);
+                                        const hasNew = rooms.some((r: Room) => r.specialStatus === 'new');
+                                        const hasRenovation = rooms.some((r: Room) => r.specialStatus === 'renovation');
+                                        const propertyProfile = getPropertyProfile(rooms);
                                         const profileBadge = getProfileBadge(propertyProfile);
 
                                         // Calculate min price based on MATCHING rooms
@@ -986,7 +1063,7 @@ export const RoomsView: React.FC = () => {
                                         const allImages = [
                                             ...(property.image ? [property.image] : []),
                                             ...(property.commonZonesImages || []),
-                                            ...property.rooms.flatMap(r => r.images || [])
+                                            ...rooms.flatMap(r => r.images || [])
                                         ].filter((img, index, self) => self.indexOf(img) === index);
 
                                         const currentImageIndex = propImageIndices[property.id] || 0;
@@ -1016,18 +1093,30 @@ export const RoomsView: React.FC = () => {
                                                     className="flex flex-col md:flex-row cursor-pointer transition-colors relative"
                                                     onClick={() => toggleProperty(property.id)}
                                                 >
-                                                    {/* ADMIN EDIT BUTTON */}
+                                                    {/* ADMIN ACTION BUTTONS */}
                                                     {isAdmin && (
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setEditingProperty(property);
-                                                            }}
-                                                            className="absolute top-2 right-2 z-30 bg-white/90 hover:bg-white text-gray-800 p-2 rounded-full shadow-lg border border-gray-200 transition-all hover:scale-110 group-hover:opacity-100"
-                                                            title="Editar Propiedad (Admin)"
-                                                        >
-                                                            <Edit className="w-5 h-5 text-rentia-blue" />
-                                                        </button>
+                                                        <div className="absolute top-2 right-2 z-30 flex gap-2">
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setEditingProperty(property);
+                                                                }}
+                                                                className="bg-white/90 hover:bg-white text-gray-800 p-2 rounded-full shadow-lg border border-gray-200 transition-all hover:scale-110"
+                                                                title="Editar Propiedad (Admin)"
+                                                            >
+                                                                <Edit className="w-5 h-5 text-rentia-blue" />
+                                                            </button>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleDeleteProperty(property);
+                                                                }}
+                                                                className="bg-white/90 hover:bg-red-50 text-red-600 p-2 rounded-full shadow-lg border border-red-100 transition-all hover:scale-110"
+                                                                title="Eliminar Propiedad (Admin)"
+                                                            >
+                                                                <Trash2 className="w-5 h-5" />
+                                                            </button>
+                                                        </div>
                                                     )}
                                                     {/* Cover Image Area */}
                                                     <div
@@ -1459,16 +1548,23 @@ export const RoomsView: React.FC = () => {
                                                                                 {/* Desktop Status & Price Block */}
                                                                                 <div className="hidden md:flex flex-col items-end gap-1 text-right">
                                                                                     {isAdmin && (
-                                                                                        <button
-                                                                                            onClick={(e) => {
-                                                                                                e.stopPropagation();
-                                                                                                setEditingRoomId(room.id);
-                                                                                                setEditingProperty(property);
-                                                                                            }}
-                                                                                            className="mb-2 p-1.5 bg-gray-50 text-gray-400 hover:text-rentia-blue hover:bg-blue-50 rounded-lg border border-gray-100 transition-all flex items-center gap-1 text-[10px] font-bold uppercase"
-                                                                                        >
-                                                                                            <Edit className="w-3 h-3" /> Editar Hab
-                                                                                        </button>
+                                                                                        <div className="flex flex-col gap-1 items-end mb-2">
+                                                                                            {room.isPublished === false && (
+                                                                                                <span className="text-[9px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 uppercase mb-1 flex items-center gap-1">
+                                                                                                    <EyeOff className="w-2.5 h-2.5" /> Borrador
+                                                                                                </span>
+                                                                                            )}
+                                                                                            <button
+                                                                                                onClick={(e) => {
+                                                                                                    e.stopPropagation();
+                                                                                                    setEditingRoomId(room.id);
+                                                                                                    setEditingProperty(property);
+                                                                                                }}
+                                                                                                className="p-1.5 bg-gray-50 text-gray-400 hover:text-rentia-blue hover:bg-blue-50 rounded-lg border border-gray-100 transition-all flex items-center gap-1 text-[10px] font-bold uppercase"
+                                                                                            >
+                                                                                                <Edit className="w-3 h-3" /> Editar Hab
+                                                                                            </button>
+                                                                                        </div>
                                                                                     )}
                                                                                     <div className={`flex items-center gap-1.5 text-xs font-black uppercase tracking-wide px-3 py-1 rounded-full border shadow-sm ${isAvailable
                                                                                         ? 'bg-emerald-50 text-emerald-700 border-emerald-100'

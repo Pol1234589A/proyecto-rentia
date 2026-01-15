@@ -126,7 +126,12 @@ export const StaffDashboard: React.FC = () => {
 
             const firestoreProps: Property[] = [];
             snapshot.forEach((doc) => {
-                firestoreProps.push({ ...doc.data(), id: doc.id } as Property);
+                const data = doc.data();
+                firestoreProps.push({
+                    ...data,
+                    id: doc.id,
+                    rooms: Array.isArray(data.rooms) ? data.rooms : []
+                } as Property);
             });
 
             const dbIds = new Set(firestoreProps.map(p => p.id));
@@ -136,28 +141,39 @@ export const StaffDashboard: React.FC = () => {
                 return data;
             });
 
-            allProps.forEach((data: any) => {
-                totalRoomsCount += data.totalRooms || (data.rooms ? data.rooms.length : 0);
-                if (data.rooms && Array.isArray(data.rooms)) {
-                    data.rooms.forEach((room: any) => {
-                        if (room.status === 'occupied') {
-                            occupiedCount++;
-                            revenueCount += Number(room.price) || 0;
+            (allProps || []).forEach((data: any) => {
+                if (!data) return;
+                const isPropertyPublished = data.isPublished !== false;
+                const rooms = Array.isArray(data.rooms) ? data.rooms : [];
 
-                            if (room.commissionValue) {
-                                if (room.commissionType === 'fixed') {
-                                    totalCommission += Number(room.commissionValue);
-                                } else {
-                                    const baseCommission = (Number(room.price) * Number(room.commissionValue) / 100);
-                                    totalCommission += baseCommission * 1.21;
-                                }
-                            }
-                        }
-                        if (room.specialStatus === 'renovation') {
-                            renovationCount++;
+                // totalRoomsCount will now represent ONLY published rooms to match website front
+                if (isPropertyPublished) {
+                    rooms.forEach((room: any) => {
+                        if (room && room.isPublished !== false) {
+                            totalRoomsCount++;
                         }
                     });
                 }
+
+                rooms.forEach((room: any) => {
+                    if (!room) return;
+                    if (room.status === 'occupied') {
+                        occupiedCount++;
+                        revenueCount += Number(room.price) || 0;
+
+                        if (room.commissionValue) {
+                            if (room.commissionType === 'fixed') {
+                                totalCommission += Number(room.commissionValue);
+                            } else {
+                                const baseCommission = (Number(room.price) * Number(room.commissionValue) / 100);
+                                totalCommission += baseCommission * 1.21;
+                            }
+                        }
+                    }
+                    if (room.specialStatus === 'renovation') {
+                        renovationCount++;
+                    }
+                });
             });
 
             allProps.sort((a, b) => {

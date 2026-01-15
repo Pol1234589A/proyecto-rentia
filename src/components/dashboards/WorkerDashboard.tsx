@@ -241,7 +241,12 @@ export const WorkerDashboard: React.FC = () => {
         const unsubProps = onSnapshot(collection(db, "properties"), snapshot => {
             const firestorePropsMap: Record<string, Property> = {};
             snapshot.docs.forEach(doc => {
-                firestorePropsMap[doc.id] = { ...doc.data(), id: doc.id } as Property;
+                const data = doc.data();
+                firestorePropsMap[doc.id] = {
+                    ...data,
+                    id: doc.id,
+                    rooms: Array.isArray(data.rooms) ? data.rooms : []
+                } as Property;
             });
 
             // 1. Start with static base

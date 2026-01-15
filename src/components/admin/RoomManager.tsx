@@ -80,7 +80,12 @@ export const RoomManager: React.FC = () => {
             const firestorePropsMap: Record<string, Property> = {};
 
             snapshot.forEach((doc) => {
-                firestorePropsMap[doc.id] = { ...doc.data(), id: doc.id } as Property;
+                const data = doc.data();
+                firestorePropsMap[doc.id] = {
+                    ...data,
+                    id: doc.id,
+                    rooms: Array.isArray(data.rooms) ? data.rooms : []
+                } as Property;
             });
 
             // Merge Logic: Static props serve as base, Firestore props overwrite them.
@@ -148,11 +153,15 @@ export const RoomManager: React.FC = () => {
         let publishedRooms = 0;
         let totalCapacity = 0;
 
-        properties.forEach(p => {
-            totalRooms += p.rooms.length;
-            totalCapacity += p.totalRooms || p.rooms.length;
+        (properties || []).forEach(p => {
+            if (!p) return;
+            const rooms = p.rooms || [];
+            totalRooms += rooms.length;
+            totalCapacity += p.totalRooms || rooms.length;
+
+            // Only count as published if both property AND room are published
             if (p.isPublished !== false) {
-                publishedRooms += p.rooms.filter(r => r.isPublished !== false).length;
+                publishedRooms += rooms.filter(r => r && r.isPublished !== false).length;
             }
         });
 
@@ -296,7 +305,7 @@ export const RoomManager: React.FC = () => {
     const handleRoomChange = (propId: string, roomId: string, field: keyof Room, value: any) => {
         setProperties(prev => prev.map(p => {
             if (p.id !== propId) return p;
-            return { ...p, rooms: p.rooms.map(r => r.id === roomId ? { ...r, [field]: value } : r) };
+            return { ...p, rooms: (p.rooms || []).map(r => r.id === roomId ? { ...r, [field]: value } : r) };
         }));
     };
 
@@ -322,7 +331,7 @@ export const RoomManager: React.FC = () => {
     const handleRoomFeatureToggle = (propId: string, roomId: string, feature: string) => {
         setProperties(prev => prev.map(p => {
             if (p.id !== propId) return p;
-            return { ...p, rooms: p.rooms.map(r => r.id === roomId ? { ...r, features: (r.features || []).includes(feature) ? r.features?.filter(f => f !== feature) : [...(r.features || []), feature] } : r) };
+            return { ...p, rooms: (p.rooms || []).map(r => r.id === roomId ? { ...r, features: (r.features || []).includes(feature) ? r.features?.filter(f => f !== feature) : [...(r.features || []), feature] } : r) };
         }));
     };
 
@@ -498,11 +507,11 @@ export const RoomManager: React.FC = () => {
                                             {ownerData && <span className="bg-green-100 text-green-800 text-[10px] px-2 py-0.5 rounded border border-green-200">RGPD OK</span>}
                                             {p.ownerRecommendations && p.ownerRecommendations.length > 0 && <span className="bg-yellow-100 text-yellow-800 text-[10px] px-2 py-0.5 rounded flex items-center gap-1"><Megaphone className="w-3 h-3" /> Avisos</span>}
                                         </h3>
-                                        <p className="text-sm text-gray-500">{p.city} • {p.totalRooms || p.rooms.length} Habs</p>
+                                        <p className="text-sm text-gray-500">{p.city} • {p.totalRooms || (p.rooms ? p.rooms.length : 0)} Habs</p>
 
                                         {/* QUICK AVAILABILITY PREVIEW (ADMIN REQUEST) */}
                                         <div className="flex flex-wrap gap-2 mt-2">
-                                            {p.rooms.map(r => {
+                                            {(p.rooms || []).map(r => {
                                                 const isAvailable = r.status === 'available';
                                                 const isReserved = r.status === 'reserved';
                                                 const isFreeSoon = !isAvailable && !isReserved && r.availableFrom && r.availableFrom !== 'Consultar' &&
@@ -759,7 +768,7 @@ export const RoomManager: React.FC = () => {
                                                         title="Número total de habitaciones"
                                                         min="1"
                                                         className="w-full p-2 border border-rentia-blue/30 rounded-lg text-sm bg-blue-50 font-bold text-rentia-blue focus:ring-rentia-blue focus:border-rentia-blue"
-                                                        value={p.totalRooms || p.rooms.length}
+                                                        value={p.totalRooms || (p.rooms ? p.rooms.length : 0)}
                                                         onChange={(e) => handlePropertyFieldChange(p.id, 'totalRooms', Number(e.target.value))}
                                                         placeholder="Ej: 5"
                                                     />
@@ -901,7 +910,7 @@ export const RoomManager: React.FC = () => {
 
                                     {/* ROOMS LIST */}
                                     <div className="space-y-4">
-                                        {p.rooms.map(room => {
+                                        {(p.rooms || []).map(room => {
                                             const activeContract = getActiveContract(room.id);
 
                                             return (

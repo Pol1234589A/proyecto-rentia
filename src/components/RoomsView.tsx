@@ -341,7 +341,7 @@ export const RoomsView: React.FC = () => {
 
                     // 8. Expenses
                     if (filterExpenses !== 'all') {
-                        const exp = r.expenses.toLowerCase();
+                        const exp = (r.expenses || '').toLowerCase();
                         if (filterExpenses === 'fixed' && !exp.includes('fijos')) return false;
                         if (filterExpenses === 'shared' && !exp.includes('reparten')) return false;
                     }
@@ -1274,8 +1274,8 @@ export const RoomsView: React.FC = () => {
                                                                             <span className="font-black text-xl md:text-3xl text-rentia-blue tracking-tight">{minPrice}€</span>
                                                                             <span className="text-[10px] md:text-sm text-gray-400 font-medium">/mes</span>
                                                                         </div>
-                                                                        {(matchingRooms.some(r => r.expenses.toLowerCase().includes('reparten')) ||
-                                                                            matchingRooms.some(r => r.expenses.toLowerCase().includes('fijos'))) && (
+                                                                        {(matchingRooms.some(r => (r.expenses || '').toLowerCase().includes('reparten')) ||
+                                                                            matchingRooms.some(r => (r.expenses || '').toLowerCase().includes('fijos'))) && (
                                                                                 <span className="text-[10px] font-black text-rentia-blue uppercase tracking-tighter mt-1">+ Gastos aparte</span>
                                                                             )}
                                                                     </div>

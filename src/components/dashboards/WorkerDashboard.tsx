@@ -358,7 +358,12 @@ export const WorkerDashboard: React.FC = () => {
     );
 
     const tasksByStatus = useMemo(() => { return myTasks.reduce((acc, task) => { const status = task.status || 'Pendiente'; if (!acc[status]) acc[status] = []; acc[status].push(task); return acc; }, {} as Record<string, Task[]>); }, [myTasks]);
-    const filteredProperties = useMemo(() => { return properties.filter(p => p.address.toLowerCase().includes(roomSearch.toLowerCase()) || p.city.toLowerCase().includes(roomSearch.toLowerCase())); }, [properties, roomSearch]);
+    const filteredProperties = useMemo(() => {
+        return properties.filter(p =>
+            (p.address || '').toLowerCase().includes(roomSearch.toLowerCase()) ||
+            (p.city || '').toLowerCase().includes(roomSearch.toLowerCase())
+        );
+    }, [properties, roomSearch]);
     const openImages = (images: string[], index = 0) => { setLightboxImages(images); setLightboxIndex(index); setIsLightboxOpen(true); };
     const getFeatureIcon = (id: string) => { switch (id) { case 'balcony': return <Sun className="w-3 h-3" />; case 'smart_tv': return <Tv className="w-3 h-3" />; case 'lock': return <Lock className="w-3 h-3" />; case 'desk': return <Monitor className="w-3 h-3" />; default: return <CheckCircle className="w-3 h-3" />; } };
     const handleStatusChange = async (taskId: string, newStatus: TaskStatus) => { await updateDoc(doc(db, "tasks", taskId), { status: newStatus }); if (newStatus === 'Completada') { const randomMsg = CELEBRATION_MESSAGES[Math.floor(Math.random() * CELEBRATION_MESSAGES.length)]; setCelebrationMessage(randomMsg); setTimeout(() => setCelebrationMessage(null), 3500); } };

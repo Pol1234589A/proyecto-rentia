@@ -4,12 +4,14 @@ import { db } from '../../../firebase';
 import { collection, onSnapshot, updateDoc, doc, query, orderBy, getDocs, serverTimestamp, deleteDoc, deleteField } from 'firebase/firestore';
 import { Candidate, CandidateStatus, StaffMember } from '../../../types';
 import { Property } from '../../../data/rooms';
-import { UserCheck, Search, Phone, X, CheckCircle, AlertCircle, Loader2, Mail, Calendar, Filter, Archive, Key, Eye, HelpCircle, FileText, UserPlus, Building, ChevronDown, ChevronRight, RotateCcw, Trash2 } from 'lucide-react';
+import { UserCheck, Search, Phone, X, CheckCircle, AlertCircle, Loader2, Mail, Calendar, Filter, Archive, Key, Eye, HelpCircle, FileText, UserPlus, Building, ChevronDown, ChevronRight, RotateCcw, Trash2, UserCog, Clock } from 'lucide-react';
 import { SensitiveDataDisplay } from '../../common/SecurityComponents';
+import { useAuth } from '../../../contexts/AuthContext';
 
 const STAFF_MEMBERS: StaffMember[] = ['Víctor', 'Administración', 'Ayoub', 'Hugo', 'Colaboradores'];
 
 export const CandidateManager: React.FC = () => {
+    const { currentUser } = useAuth();
     const [candidates, setCandidates] = useState<Candidate[]>([]);
     const [properties, setProperties] = useState<Property[]>([]);
     const [loading, setLoading] = useState(true);
@@ -103,7 +105,9 @@ export const CandidateManager: React.FC = () => {
         try {
             await updateDoc(doc(db, "candidate_pipeline", selectedCandidate.id), {
                 status: 'approved',
-                assignedTo: assignee
+                assignedTo: assignee,
+                assignedDate: serverTimestamp(),
+                contacted: false
             });
             showNotification('success', `Aprobado y asignado a ${assignee}.`);
             setModalMode(null);
@@ -111,6 +115,21 @@ export const CandidateManager: React.FC = () => {
         } catch (error) {
             console.error(error);
             showNotification('error', "Error al aprobar.");
+        } finally {
+            setProcessingId(null);
+        }
+    };
+
+    // MARCAR COMO CONTACTADO
+    const handleMarkContacted = async (id: string) => {
+        setProcessingId(id);
+        try {
+            await updateDoc(doc(db, "candidate_pipeline", id), {
+                contacted: true
+            });
+            showNotification('success', "Candidato marcado como contactado.");
+        } catch (error) {
+            showNotification('error', "Error al marcar como contactado.");
         } finally {
             setProcessingId(null);
         }
@@ -301,106 +320,134 @@ export const CandidateManager: React.FC = () => {
     }), [candidates]);
 
     // COMPONENTE DE TARJETA DE CANDIDATO (Reutilizable)
-    const CandidateCard: React.FC<{ c: Candidate }> = ({ c }) => (
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col md:flex-row justify-between items-start gap-4 hover:shadow-md transition-shadow relative overflow-hidden">
+    const CandidateCard: React.FC<{ c: Candidate }> = ({ c }) => {
+        // Lógica de parpadeo para Ayoub (72h sin contacto)
+        const assignedTime = c.assignedDate?.toDate?.() || (c.assignedDate ? new Date(c.assignedDate) : null);
+        const hoursPassed = assignedTime ? (Date.now() - assignedTime.getTime()) / (1000 * 60 * 60) : 0;
+        const isUrgentPending = c.status === 'approved' && !c.contacted && hoursPassed >= 72;
 
-            {/* Visual Indicator of Priority */}
-            {c.priority && (
-                <div className={`absolute left-0 top-0 bottom-0 w-1 ${c.priority === 'Alta' ? 'bg-red-500' : c.priority === 'Media' ? 'bg-yellow-500' : 'bg-green-500'
-                    }`}></div>
-            )}
+        return (
+            <div className={`bg-white p-4 rounded-xl border shadow-sm flex flex-col md:flex-row justify-between items-start gap-4 hover:shadow-md transition-shadow relative overflow-hidden ${isUrgentPending ? 'animate-pulse-urgent border-red-500 ring-2 ring-red-100' : 'border-gray-200'}`}>
 
-            <div className="flex-1 w-full min-w-0 pl-2">
-                <div className="flex items-center justify-between mb-2">
-                    <span className="font-bold text-base md:text-lg text-gray-900 truncate flex items-center gap-2">
-                        {c.candidateName}
-                        {c.priority === 'Alta' && <span className="bg-red-100 text-red-700 text-[10px] px-2 py-0.5 rounded border border-red-200 uppercase font-bold animate-pulse">Urgente</span>}
-                        {c.status === 'rented' && <span className="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded border border-green-200 uppercase">Alquilado</span>}
-                        {c.status === 'archived' && <span className="bg-gray-100 text-gray-600 text-[10px] px-2 py-0.5 rounded border border-gray-200 uppercase">Archivado</span>}
-                    </span>
-                </div>
+                {/* Visual Indicator of Priority */}
+                {c.priority && (
+                    <div className={`absolute left-0 top-0 bottom-0 w-1 ${c.priority === 'Alta' ? 'bg-red-500' : c.priority === 'Media' ? 'bg-yellow-500' : 'bg-green-500'
+                        }`}></div>
+                )}
 
-                <div className="flex flex-wrap gap-2 mb-3">
-                    {c.candidatePhone && (
-                        <div className="text-xs font-bold text-gray-700 bg-gray-100 px-2 py-1 rounded flex items-center gap-1">
-                            <Phone className="w-3 h-3" />
-                            <SensitiveDataDisplay value={c.candidatePhone} type="phone" />
+                <div className="flex-1 w-full min-w-0 pl-2">
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="font-bold text-base md:text-lg text-gray-900 truncate flex flex-wrap items-center gap-2">
+                            {c.candidateName}
+                            {c.priority === 'Alta' && <span className="bg-red-100 text-red-700 text-[10px] px-2 py-0.5 rounded border border-red-200 uppercase font-bold animate-pulse">Urgente</span>}
+                            {isUrgentPending && <span className="bg-red-600 text-white text-[10px] px-2 py-0.5 rounded border border-red-700 uppercase font-bold flex items-center gap-1"><AlertCircle className="w-3 h-3" /> +72H SIN CONTACTO</span>}
+                            {c.status === 'rented' && <span className="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded border border-green-200 uppercase">Alquilado</span>}
+                            {c.status === 'archived' && <span className="bg-gray-100 text-gray-600 text-[10px] px-2 py-0.5 rounded border border-gray-200 uppercase">Archivado</span>}
+                        </span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 mb-3">
+                        {c.candidatePhone && (
+                            <div className="text-xs font-bold text-gray-700 bg-gray-100 px-2 py-1 rounded flex items-center gap-1">
+                                <Phone className="w-3 h-3" />
+                                <SensitiveDataDisplay value={c.candidatePhone} type="phone" />
+                            </div>
+                        )}
+                        <button onClick={() => { setSelectedCandidate(c); setModalMode('details'); }} className="text-xs font-bold text-rentia-blue bg-blue-50 px-2 py-1 rounded hover:bg-blue-100 flex items-center gap-1">
+                            <Eye className="w-3 h-3" /> Ver Historial
+                        </button>
+                    </div>
+
+                    {c.additionalInfo && (
+                        <div className="bg-yellow-50 text-gray-700 text-xs px-3 py-2 rounded-lg border border-yellow-200 mb-3 italic flex items-start gap-2">
+                            <FileText className="w-4 h-4 text-yellow-500 shrink-0 mt-0.5" />
+                            <span>{c.additionalInfo}</span>
                         </div>
                     )}
-                    <button onClick={() => { setSelectedCandidate(c); setModalMode('details'); }} className="text-xs font-bold text-rentia-blue bg-blue-50 px-2 py-1 rounded hover:bg-blue-100 flex items-center gap-1">
-                        <Eye className="w-3 h-3" /> Ver Historial
-                    </button>
+
+                    {/* Solo mostrar propiedad si estamos en modo lista plana, en modo propiedad es redundante */}
+                    {viewMode === 'list' && (
+                        <div className="flex items-center gap-2 text-xs font-medium text-gray-600 mb-3 bg-gray-50 w-full md:w-fit px-3 py-2 rounded-lg border border-gray-100">
+                            <span className="font-bold text-gray-800">{c.propertyName}</span>
+                            <span className="text-gray-300">|</span>
+                            <span>{c.roomName}</span>
+                        </div>
+                    )}
+
+                    {viewMode === 'property' && (
+                        <div className="text-xs font-medium text-gray-500 mb-2">
+                            Interés: {c.roomName}
+                        </div>
+                    )}
+
+                    {c.status === 'approved' && c.assignedTo && (
+                        <div className="flex flex-wrap items-center gap-2 mb-3">
+                            <div className="text-xs text-blue-700 bg-blue-50 px-2 py-1 rounded border border-blue-100 flex items-center gap-1">
+                                <strong>Visita asignada a:</strong> {c.assignedTo}
+                            </div>
+                            {c.contacted ? (
+                                <span className="text-[10px] bg-green-100 text-green-800 px-2 py-1 rounded font-bold border border-green-300 flex items-center gap-1 shadow-sm">
+                                    <CheckCircle className="w-3 h-3" /> CONTACTO EFECTUADO POR EL VISITANTE ({c.assignedTo})
+                                </span>
+                            ) : (
+                                <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-1 rounded font-bold border border-amber-200 flex items-center gap-1">
+                                    <Clock className="w-3 h-3" /> PENDIENTE DE CONTACTO (SLA 72H)
+                                </span>
+                            )}
+                        </div>
+                    )}
+
+                    {(c.status === 'archived' || c.status === 'rejected') && c.closureReason && (
+                        <div className="text-xs bg-red-50 text-red-700 p-2 rounded border border-red-100 mb-3">
+                            <strong>Motivo:</strong> {c.closureReason}
+                        </div>
+                    )}
                 </div>
 
-                {c.additionalInfo && (
-                    <div className="bg-yellow-50 text-gray-700 text-xs px-3 py-2 rounded-lg border border-yellow-200 mb-3 italic flex items-start gap-2">
-                        <FileText className="w-4 h-4 text-yellow-500 shrink-0 mt-0.5" />
-                        <span>{c.additionalInfo}</span>
-                    </div>
-                )}
-
-                {/* Solo mostrar propiedad si estamos en modo lista plana, en modo propiedad es redundante */}
-                {viewMode === 'list' && (
-                    <div className="flex items-center gap-2 text-xs font-medium text-gray-600 mb-3 bg-gray-50 w-full md:w-fit px-3 py-2 rounded-lg border border-gray-100">
-                        <span className="font-bold text-gray-800">{c.propertyName}</span>
-                        <span className="text-gray-300">|</span>
-                        <span>{c.roomName}</span>
-                    </div>
-                )}
-
-                {viewMode === 'property' && (
-                    <div className="text-xs font-medium text-gray-500 mb-2">
-                        Interés: {c.roomName}
-                    </div>
-                )}
-
-                {c.status === 'approved' && c.assignedTo && (
-                    <div className="text-xs text-blue-700 bg-blue-50 px-2 py-1 rounded w-fit mb-3 border border-blue-100">
-                        <strong>Visita asignada a:</strong> {c.assignedTo}
-                    </div>
-                )}
-
-                {(c.status === 'archived' || c.status === 'rejected') && c.closureReason && (
-                    <div className="text-xs bg-red-50 text-red-700 p-2 rounded border border-red-100 mb-3">
-                        <strong>Motivo:</strong> {c.closureReason}
-                    </div>
-                )}
+                <div className="flex flex-row md:flex-col gap-2 w-full md:w-auto shrink-0 border-t md:border-t-0 border-gray-100 pt-3 md:pt-0">
+                    {c.status === 'pending_review' && (
+                        <>
+                            <button onClick={() => { setSelectedCandidate(c); setModalMode('assign'); }} disabled={!!processingId} className="flex-1 md:flex-none bg-green-600 hover:bg-green-700 text-white px-4 py-2 text-xs font-bold rounded-lg shadow-sm flex justify-center items-center gap-2">
+                                <CheckCircle className="w-4 h-4" /> Aprobar
+                            </button>
+                            <button onClick={() => handleReject(c.id)} disabled={!!processingId} className="flex-1 md:flex-none bg-white hover:bg-red-50 text-red-600 border border-red-200 px-4 py-2 text-xs font-bold rounded-lg flex justify-center items-center gap-2">
+                                <X className="w-4 h-4" /> Rechazar
+                            </button>
+                        </>
+                    )}
+                    {c.status === 'approved' && (
+                        <>
+                            {!c.contacted && (
+                                <button
+                                    onClick={() => handleMarkContacted(c.id)}
+                                    disabled={!!processingId}
+                                    className="flex-1 md:flex-none bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 text-xs font-bold rounded-lg shadow-sm flex justify-center items-center gap-2 animate-bounce-slow"
+                                >
+                                    <UserCheck className="w-4 h-4" /> Marcar Contactado
+                                </button>
+                            )}
+                            <button onClick={() => { setSelectedCandidate(c); setModalMode('rent'); setRentSelection({ propertyId: c.propertyId || '', roomId: c.roomId || '' }); }} className="flex-1 md:flex-none bg-rentia-blue hover:bg-blue-700 text-white px-4 py-2 text-xs font-bold rounded-lg shadow-sm flex justify-center items-center gap-2">
+                                <Key className="w-4 h-4" /> Alquilar
+                            </button>
+                            <button onClick={() => { setSelectedCandidate(c); setModalMode('archive'); }} className="flex-1 md:flex-none bg-white hover:bg-gray-50 text-gray-600 border border-gray-200 px-4 py-2 text-xs font-bold rounded-lg flex justify-center items-center gap-2">
+                                <Archive className="w-4 h-4" /> Archivar
+                            </button>
+                        </>
+                    )}
+                    {c.status === 'rented' && (
+                        <>
+                            <button onClick={() => handleUnrent(c)} disabled={!!processingId} className="flex-1 md:flex-none bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 px-4 py-2 text-xs font-bold rounded-lg flex justify-center items-center gap-2">
+                                <RotateCcw className="w-4 h-4" /> Deshacer
+                            </button>
+                            <button onClick={() => handleDelete(c)} disabled={!!processingId} className="flex-1 md:flex-none bg-white hover:bg-red-50 text-red-600 border border-red-200 px-4 py-2 text-xs font-bold rounded-lg flex justify-center items-center gap-2">
+                                <Trash2 className="w-4 h-4" /> Borrar
+                            </button>
+                        </>
+                    )}
+                </div>
             </div>
-
-            <div className="flex flex-row md:flex-col gap-2 w-full md:w-auto shrink-0 border-t md:border-t-0 border-gray-100 pt-3 md:pt-0">
-                {c.status === 'pending_review' && (
-                    <>
-                        <button onClick={() => { setSelectedCandidate(c); setModalMode('assign'); }} disabled={!!processingId} className="flex-1 md:flex-none bg-green-600 hover:bg-green-700 text-white px-4 py-2 text-xs font-bold rounded-lg shadow-sm flex justify-center items-center gap-2">
-                            <CheckCircle className="w-4 h-4" /> Aprobar
-                        </button>
-                        <button onClick={() => handleReject(c.id)} disabled={!!processingId} className="flex-1 md:flex-none bg-white hover:bg-red-50 text-red-600 border border-red-200 px-4 py-2 text-xs font-bold rounded-lg flex justify-center items-center gap-2">
-                            <X className="w-4 h-4" /> Rechazar
-                        </button>
-                    </>
-                )}
-                {c.status === 'approved' && (
-                    <>
-                        <button onClick={() => { setSelectedCandidate(c); setModalMode('rent'); setRentSelection({ propertyId: c.propertyId || '', roomId: c.roomId || '' }); }} className="flex-1 md:flex-none bg-rentia-blue hover:bg-blue-700 text-white px-4 py-2 text-xs font-bold rounded-lg shadow-sm flex justify-center items-center gap-2">
-                            <Key className="w-4 h-4" /> Alquilar
-                        </button>
-                        <button onClick={() => { setSelectedCandidate(c); setModalMode('archive'); }} className="flex-1 md:flex-none bg-white hover:bg-gray-50 text-gray-600 border border-gray-200 px-4 py-2 text-xs font-bold rounded-lg flex justify-center items-center gap-2">
-                            <Archive className="w-4 h-4" /> Archivar
-                        </button>
-                    </>
-                )}
-                {c.status === 'rented' && (
-                    <>
-                        <button onClick={() => handleUnrent(c)} disabled={!!processingId} className="flex-1 md:flex-none bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 px-4 py-2 text-xs font-bold rounded-lg flex justify-center items-center gap-2">
-                            <RotateCcw className="w-4 h-4" /> Deshacer
-                        </button>
-                        <button onClick={() => handleDelete(c)} disabled={!!processingId} className="flex-1 md:flex-none bg-white hover:bg-red-50 text-red-600 border border-red-200 px-4 py-2 text-xs font-bold rounded-lg flex justify-center items-center gap-2">
-                            <Trash2 className="w-4 h-4" /> Borrar
-                        </button>
-                    </>
-                )}
-            </div>
-        </div>
-    );
+        );
+    };
 
     // RENDERIZADO DE LA LISTA
     const renderList = () => {

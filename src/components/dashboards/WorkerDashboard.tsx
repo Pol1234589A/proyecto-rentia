@@ -319,43 +319,102 @@ export const WorkerDashboard: React.FC = () => {
     }, [allCandidates, workerName]);
 
     const groupedAssignedVisits = useMemo(() => {
-        const groups: Record<string, Candidate[]> = {};
+        const groups: Record<string, { cands: Candidate[], hasNew: boolean, hasOverdue: boolean }> = {};
         assignedList.forEach(c => {
             const prop = c.propertyName || 'Otras';
-            if (!groups[prop]) groups[prop] = [];
-            groups[prop].push(c);
+            if (!groups[prop]) groups[prop] = { cands: [], hasNew: false, hasOverdue: false };
+
+            const assignedTime = c.assignedDate?.toDate?.() || (c.assignedDate ? new Date(c.assignedDate) : null) || c.submittedAt?.toDate?.() || (c.submittedAt ? new Date(c.submittedAt) : null);
+            const hoursPassed = assignedTime ? (Date.now() - assignedTime.getTime()) / (1000 * 60 * 60) : 0;
+
+            const isApproved = c.status === 'approved' && !c.contacted;
+            // NUEVO: Ahora consideramos "Nuevo" todo lo de las últimas 48 horas
+            const isNew = isApproved && (hoursPassed < 48 || !assignedTime);
+            const isOverdue = isApproved && assignedTime && hoursPassed >= 72;
+
+            groups[prop].cands.push(c);
+            if (isNew) groups[prop].hasNew = true;
+            if (isOverdue) groups[prop].hasOverdue = true;
         });
         return groups;
     }, [assignedList]);
 
     const toggleVisitProp = (prop: string) => { setExpandedVisitProps(prev => ({ ...prev, [prop]: !prev[prop] })); };
 
-    const CandidateCardWorker: React.FC<{ c: Candidate }> = ({ c }) => (
-        <div className="bg-white border border-gray-200 p-4 rounded-xl shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
-            {c.priority && (<div className={`absolute top-0 right-0 px-3 py-1 text-[10px] font-bold uppercase rounded-bl-lg border-b border-l ${c.priority === 'Alta' ? 'bg-red-100 text-red-700 border-red-200' : c.priority === 'Media' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' : 'bg-green-100 text-green-700 border-green-200'}`}> Prioridad {c.priority} </div>)}
-            <div className="pr-12">
-                <h4 className="font-bold text-gray-900 text-base">{c.candidateName}</h4>
-                {candidateSubTab === 'submitted' && (<p className="text-gray-500 text-xs flex items-center gap-1 mt-1"> <Home className="w-3.5 h-3.5" /> {c.propertyName} </p>)}
-                <div className="flex items-center gap-2 mt-1">
-                    <p className="text-gray-400 text-[10px] italic flex items-center gap-1"> <Bed className="w-3 h-3" /> Interés: {c.roomName} </p>
-                    {candidateSubTab === 'submitted' && (<span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase border ${c.status === 'approved' ? 'bg-green-100 text-green-700 border-green-200' : c.status === 'rejected' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-yellow-50 text-yellow-700 border-yellow-200'}`}> {c.status === 'pending_review' ? 'Pendiente' : c.status === 'approved' ? 'Aprobado' : 'Rechazado'} </span>)}
+    const CandidateCardWorker: React.FC<{ c: Candidate }> = ({ c }) => {
+        const assignedTime = c.assignedDate?.toDate?.() || (c.assignedDate ? new Date(c.assignedDate) : null) || c.submittedAt?.toDate?.() || (c.submittedAt ? new Date(c.submittedAt) : null);
+        const hoursPassed = assignedTime ? (Date.now() - assignedTime.getTime()) / (1000 * 60 * 60) : 0;
+
+        const isApproved = c.status === 'approved' && !c.contacted;
+        // Josleika saldrá como nueva asignación porque 48h cubre el día de ayer
+        const isNew = isApproved && (hoursPassed < 48 || !assignedTime);
+        const isOverdue = isApproved && assignedTime && hoursPassed >= 72;
+
+        // Cálculo de barra de tiempo (72h total)
+        const timeRemainingPercent = Math.max(0, Math.min(100, (1 - (hoursPassed / 72)) * 100));
+        const barColor = timeRemainingPercent > 66 ? 'bg-emerald-500' : timeRemainingPercent > 33 ? 'bg-amber-500' : 'bg-red-500';
+
+        return (
+            <div className={`border p-4 rounded-xl shadow-sm relative overflow-hidden group hover:shadow-md transition-all ${isNew ? 'animate-pulse-urgent border-emerald-400 bg-emerald-50/30' : isOverdue ? 'border-red-400 bg-red-50/50' : 'bg-white border-gray-200'}`}>
+
+                {/* Time Progress Bar */}
+                {isApproved && !isOverdue && (
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gray-100">
+                        <div
+                            className={`h-full transition-all duration-1000 ${barColor}`}
+                            style={{ width: `${timeRemainingPercent}%` }}
+                        ></div>
+                    </div>
+                )}
+                {c.priority && (<div className={`absolute top-0 right-0 px-3 py-1 text-[10px] font-bold uppercase rounded-bl-lg border-b border-l ${c.priority === 'Alta' ? 'bg-red-100 text-red-700 border-red-200' : c.priority === 'Media' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' : 'bg-green-100 text-green-700 border-green-200'}`}> Prioridad {c.priority} </div>)}
+                <div className="pr-12">
+                    <h4 className="font-bold text-gray-900 text-sm md:text-base flex flex-wrap items-center gap-1 md:gap-2">
+                        {c.candidateName}
+                        <div className="flex flex-wrap gap-1">
+                            {isNew && <span className="bg-emerald-600 text-white text-[8px] md:text-[9px] px-2 py-0.5 rounded font-black flex items-center gap-1 animate-pulse"><Sparkles className="w-2.5 h-2.5 md:w-3 h-3" /> ¡NUEVO!</span>}
+                            {isOverdue && <span className="bg-red-600 text-white text-[8px] md:text-[9px] px-2 py-0.5 rounded font-black flex items-center gap-1"><AlertCircle className="w-2.5 h-2.5 md:w-3 h-3" /> +72H SIN CONTACTO</span>}
+                        </div>
+                    </h4>
+                    {candidateSubTab === 'submitted' && (<p className="text-gray-500 text-[10px] md:text-xs flex items-center gap-1 mt-1 truncate"> <Home className="w-3.5 h-3.5" /> {c.propertyName} </p>)}
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
+                        <p className="text-gray-400 text-[9px] md:text-[10px] italic flex items-center gap-1"> <Bed className="w-3 h-3" /> {c.roomName} </p>
+                        {assignedTime && (
+                            <p className="text-rentia-blue text-[9px] md:text-[10px] font-bold flex items-center gap-1">
+                                <Calendar className="w-3 h-3" />
+                                {assignedTime.toLocaleDateString()} {assignedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                        {candidateSubTab === 'submitted' && (<span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase border ${c.status === 'approved' ? 'bg-green-100 text-green-700 border-green-200' : c.status === 'rejected' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-yellow-50 text-yellow-700 border-yellow-200'}`}> {c.status === 'pending_review' ? 'Pendiente' : c.status === 'approved' ? 'Aprobado' : 'Rechazado'} </span>)}
+                        {c.contacted && <span className="text-[9px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold border border-green-200 uppercase">Contactado</span>}
+                    </div>
+                </div>
+                <div className="mt-3 pt-3 border-t border-gray-50 flex flex-col gap-3">
+                    {userData?.gdpr?.signed ? (
+                        <div className="flex flex-wrap gap-2">
+                            {c.candidatePhone && (<a href={`tel:${c.candidatePhone}`} className="bg-green-50 text-green-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-green-100 flex items-center gap-1 hover:bg-green-100"> <Phone className="w-3 h-3" /> Llamar </a>)}
+                            <a href={`https://api.whatsapp.com/send?phone=${c.candidatePhone}`} target="_blank" className="bg-green-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm hover:bg-green-600"> <MessageCircle className="w-3 h-3" /> WhatsApp </a>
+
+                            {c.status === 'approved' && !c.contacted && (
+                                <button
+                                    onClick={() => handleMarkContacted(c.id)}
+                                    className="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm hover:bg-indigo-700 animate-bounce-slow ml-auto"
+                                >
+                                    <UserCheck className="w-3 h-3" /> Ya he contactado
+                                </button>
+                            )}
+                        </div>
+                    ) : (
+                        <button onClick={() => setIsGdprOpen(true)} className="w-full bg-red-50 text-red-700 border border-red-200 px-3 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 hover:bg-red-100 transition-colors"> <Lock className="w-3 h-3" /> Firmar Acuerdo para ver contacto </button>
+                    )}
+                    {candidateSubTab === 'assigned' && (
+                        <div className="flex justify-end"> <button onClick={() => { const prop = properties.find(p => p.address === c.propertyName); if (prop) { const room = prop.rooms?.find(r => r.name === c.roomName) || prop.rooms?.[0]; setSelectedProperty(prop); setShowVisitLogModal(room || null); } else { alert("Propiedad no encontrada para registrar visita."); } }} className="text-indigo-600 text-xs font-bold flex items-center gap-1 hover:underline"> Registrar Resultado Visita <ArrowRight className="w-3 h-3" /> </button> </div>
+                    )}
                 </div>
             </div>
-            <div className="mt-3 pt-3 border-t border-gray-50 flex flex-col gap-3">
-                {userData?.gdpr?.signed ? (
-                    <div className="flex gap-2">
-                        {c.candidatePhone && (<a href={`tel:${c.candidatePhone}`} className="bg-green-50 text-green-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-green-100 flex items-center gap-1 hover:bg-green-100"> <Phone className="w-3 h-3" /> Llamar </a>)}
-                        <a href={`https://api.whatsapp.com/send?phone=${c.candidatePhone}`} target="_blank" className="bg-green-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm hover:bg-green-600"> <MessageCircle className="w-3 h-3" /> WhatsApp </a>
-                    </div>
-                ) : (
-                    <button onClick={() => setIsGdprOpen(true)} className="w-full bg-red-50 text-red-700 border border-red-200 px-3 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 hover:bg-red-100 transition-colors"> <Lock className="w-3 h-3" /> Firmar Acuerdo para ver contacto </button>
-                )}
-                {candidateSubTab === 'assigned' && (
-                    <div className="flex justify-end"> <button onClick={() => { const prop = properties.find(p => p.address === c.propertyName); if (prop) { const room = prop.rooms?.find(r => r.name === c.roomName) || prop.rooms?.[0]; setSelectedProperty(prop); setShowVisitLogModal(room || null); } else { alert("Propiedad no encontrada para registrar visita."); } }} className="text-indigo-600 text-xs font-bold flex items-center gap-1 hover:underline"> Registrar Resultado Visita <ArrowRight className="w-3 h-3" /> </button> </div>
-                )}
-            </div>
-        </div>
-    );
+        );
+    };
 
     const tasksByStatus = useMemo(() => { return myTasks.reduce((acc, task) => { const status = task.status || 'Pendiente'; if (!acc[status]) acc[status] = []; acc[status].push(task); return acc; }, {} as Record<string, Task[]>); }, [myTasks]);
     const filteredProperties = useMemo(() => {
@@ -394,6 +453,14 @@ export const WorkerDashboard: React.FC = () => {
     };
     const handleSendCandidate = async (e: React.FormEvent) => { e.preventDefault(); if (!newCandidate.propertyId || !newCandidate.candidateName) { return alert("Completa los campos obligatorios: propiedad y nombre."); } const prop = properties.find(p => p.id === newCandidate.propertyId); const room = prop?.rooms?.find(r => r.id === newCandidate.roomId); try { await addDoc(collection(db, "candidate_pipeline"), { ...newCandidate, propertyName: prop?.address || 'N/A', ownerId: prop?.ownerId || null, roomName: room?.name || 'General / A definir', submittedBy: workerName, submittedAt: serverTimestamp(), status: 'pending_review' }); setShowCandidateModal(false); setNewCandidate({ propertyId: '', roomId: '', candidateName: '', additionalInfo: '', candidatePhone: '', candidateEmail: '', priority: 'Media', sourcePlatform: '' }); alert('Candidato enviado a filtrado correctamente.'); } catch (error) { console.error(error); alert('Error al enviar candidato.'); } };
     const handleSaveVisit = async (e: React.FormEvent) => { e.preventDefault(); if (!showVisitLogModal || !selectedProperty) return; try { await addDoc(collection(db, "room_visits"), { propertyId: selectedProperty.id, propertyName: selectedProperty.address, roomId: showVisitLogModal.id, roomName: showVisitLogModal.name, workerName: workerName, visitDate: serverTimestamp(), outcome: newVisitData.outcome, comments: newVisitData.comments, commission: Number(newVisitData.commission) || 0 }); setShowVisitLogModal(null); setNewVisitData({ outcome: 'pending', comments: '', commission: 0 }); alert('Visita registrada correctamente.'); } catch (err) { console.error(err); alert('Error al registrar la visita.'); } };
+
+    const handleMarkContacted = async (id: string) => {
+        try {
+            await updateDoc(doc(db, "candidate_pipeline", id), { contacted: true });
+        } catch (error) {
+            console.error("Error al marcar como contactado:", error);
+        }
+    };
 
     const startEditingCleaning = (prop: Property) => { setEditingCleaningPropId(prop.id); setCleaningConfigForm(prop.cleaningConfig || { enabled: false, days: [], hours: '', costPerHour: 10, included: false, cleanerName: '', cleanerPhone: '' }); };
 
@@ -504,15 +571,29 @@ export const WorkerDashboard: React.FC = () => {
 
                         {candidateSubTab === 'assigned' ? (
                             <div className="space-y-4">
-                                {Object.entries(groupedAssignedVisits).map(([propName, cands]: [string, Candidate[]]) => (
-                                    <div key={propName} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                                        <div className="p-4 bg-gray-50 flex justify-between items-center cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => toggleVisitProp(propName)}>
-                                            <h3 className="font-bold text-gray-800 flex items-center gap-2"><MapPin className="w-4 h-4 text-rentia-blue" /> {propName}</h3>
-                                            <div className="flex items-center gap-3"><span className="text-xs font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{cands.length}</span>{expandedVisitProps[propName] ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}</div>
+                                {Object.entries(groupedAssignedVisits).map(([propName, data]) => (
+                                    <div key={propName} className={`bg-white rounded-xl shadow-sm border overflow-hidden transition-all ${data.hasNew ? 'animate-pulse-urgent border-emerald-400' : data.hasOverdue ? 'border-red-400' : 'border-gray-200'}`}>
+                                        <div className={`p-4 flex justify-between items-center cursor-pointer hover:bg-gray-100 transition-colors gap-3 ${data.hasNew ? 'bg-emerald-50/50' : data.hasOverdue ? 'bg-red-50/30' : 'bg-gray-50'}`} onClick={() => toggleVisitProp(propName)}>
+                                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                                                <MapPin className={`w-4 h-4 shrink-0 ${data.hasNew ? 'text-emerald-500' : data.hasOverdue ? 'text-red-500' : 'text-rentia-blue'}`} />
+                                                <h3 className="font-bold text-gray-800 text-sm md:text-base truncate">
+                                                    {propName}
+                                                </h3>
+                                                <div className="flex shrink-0 gap-1">
+                                                    {data.hasNew && <span className="text-[8px] md:text-[10px] bg-emerald-600 text-white px-1.5 py-0.5 rounded-full animate-pulse">NUEVA ASIGNACIÓN</span>}
+                                                    {data.hasOverdue && !data.hasNew && <span className="text-[8px] md:text-[10px] bg-red-600 text-white px-1.5 py-0.5 rounded-full">AVISO: +72 H</span>}
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${data.hasNew ? 'bg-emerald-200 text-emerald-800' : data.hasOverdue ? 'bg-red-200 text-red-800' : 'bg-blue-100 text-blue-700'}`}>
+                                                    {data.cands.length}
+                                                </span>
+                                                {expandedVisitProps[propName] ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
+                                            </div>
                                         </div>
                                         {expandedVisitProps[propName] && (
                                             <div className="p-4 grid gap-3 border-t border-gray-100 animate-in slide-in-from-top-2">
-                                                {cands.map(c => <CandidateCardWorker key={c.id} c={c} />)}
+                                                {data.cands.map(c => <CandidateCardWorker key={c.id} c={c} />)}
                                             </div>
                                         )}
                                     </div>

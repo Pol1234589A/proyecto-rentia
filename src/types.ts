@@ -201,6 +201,7 @@ export interface Candidate {
     assignedDate?: any;
     assignedRoomId?: string;
     sourcePlatform?: string;
+    contacted?: boolean;
 }
 
 export interface SupplyInvoice {

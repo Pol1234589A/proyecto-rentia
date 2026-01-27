@@ -1,4 +1,34 @@
 
+
+export interface TenantInfo {
+  name: string;
+  email: string;
+  phone: string;
+  idNumber: string;
+  startDate: string;
+  endDate: string;
+  deposit: number;
+  secondTenant?: {
+    name: string;
+    email: string;
+    phone: string;
+    idNumber: string;
+  }
+}
+
+export interface HistoricalTenant extends TenantInfo {
+  exitDate: string;
+  exitReason?: string;
+  incidents?: string;
+}
+
+export interface RoomTimelineEvent {
+  id: string;
+  date: string;
+  text: string;
+  type: 'info' | 'incident' | 'payment' | 'contract' | 'maintenance' | 'departure' | 'visit' | 'audit';
+}
+
 export interface Room {
   id: string;
   name: string;
@@ -8,12 +38,14 @@ export interface Room {
   targetProfile?: 'students' | 'workers' | 'both';
   expenses: string;
   hasAirConditioning?: boolean;
+  hasHeating?: boolean;
   hasFan?: boolean;
   specialStatus?: 'new' | 'renovation';
   images?: string[];
   video?: string;
   notes?: string;
   driveUrl?: string;
+  photosDriveUrl?: string;
 
   sqm?: number;
   bedType?: 'single' | 'double' | 'king' | 'sofa';
@@ -31,6 +63,13 @@ export interface Room {
 
   // Publication status
   isPublished?: boolean;
+
+  // Contract/Tenant info
+  tenant?: TenantInfo;
+  tenantHistory?: HistoricalTenant[];
+  timeline?: RoomTimelineEvent[];
+  internalScreenshotUrls?: string[];
+  isNonPayment?: boolean;
 }
 
 export interface CleaningConfig {
@@ -41,6 +80,10 @@ export interface CleaningConfig {
   included: boolean;
   cleanerName?: string;
   cleanerPhone?: string;
+  paymentMethod?: 'bizum' | 'transfer' | 'cash';
+  paymentDay?: string;
+  notes?: string;
+  timeline?: RoomTimelineEvent[];
 }
 
 export interface OwnerRecommendation {
@@ -59,7 +102,7 @@ export interface BillingRecord {
   paymentDate?: string;
   ownerAmount?: number;   // Total transferido al propietario (neto)
   rentiaAmount?: number;  // Comisión ganada por Rentia
-  status: 'pending' | 'sent' | 'paid';
+  status: 'pending' | 'sent' | 'paid' | 'incident';
   notes?: string;
 }
 
@@ -130,6 +173,13 @@ export interface Property {
   receiptLink?: string;
   totalRooms?: number;
   isPublished?: boolean;
+  commissionIncludesIVA?: boolean;
+  propertyHistory?: HistoricalTenant[];
+  internalScreenshotUrls?: string[];
+  screenshotFolderUrl?: string;
+  timeline?: RoomTimelineEvent[];
+  maintenanceTimeline?: RoomTimelineEvent[];
+  cleaningTimeline?: RoomTimelineEvent[];
 }
 
 // Función auxiliar para generar enlace de maps
@@ -145,13 +195,122 @@ export const properties: Property[] = [
     image: '', // Pendiente subir fotos desde panel
     bathrooms: 2,
     googleMapsLink: getMapsLink('Calle Miguel Ballesta 8, Alcantarilla, Murcia'),
-    internalNotes: 'Ref Catastral: 7040903XH5074A0004XH. Seguro: Cajamar 911697470. Cert. Eficiencia: Sí. Cédula: No.',
+    internalNotes: 'Ref Catastral: 7040903XH5074A0004XH. Seguro: Cajamar 911697470. Cert. Eficiencia: Sí. Cédula: No. Limpieza: 2h/sem (11€+IVA/h). Factura directa a prop. a fin de mes.',
+    cleaningConfig: {
+      enabled: true,
+      days: ['Martes'], // Ejemplo, se puede ajustar
+      hours: '2 horas/semana',
+      costPerHour: 11,
+      included: true,
+      cleanerPhone: '+34 606 76 55 10'
+    },
+    managementCommission: 14,
+    commissionIncludesIVA: false,
     rooms: [
-      { id: 'MIGUELBALLESTA8_H1', name: 'H1', price: 280, status: 'occupied', availableFrom: 'Consultar', expenses: 'Se reparten los gastos' },
-      { id: 'MIGUELBALLESTA8_H2', name: 'H2', price: 280, status: 'occupied', availableFrom: 'Consultar', expenses: 'Se reparten los gastos' },
-      { id: 'MIGUELBALLESTA8_H3', name: 'H3', price: 280, status: 'occupied', availableFrom: 'Consultar', expenses: 'Se reparten los gastos' },
-      { id: 'MIGUELBALLESTA8_H4', name: 'H4', price: 280, status: 'occupied', availableFrom: 'Consultar', expenses: 'Se reparten los gastos' },
-      { id: 'MIGUELBALLESTA8_H5', name: 'H5', price: 280, status: 'occupied', availableFrom: 'Consultar', expenses: 'Se reparten los gastos' },
+      {
+        id: 'MIGUELBALLESTA8_H1',
+        name: 'H1',
+        price: 365,
+        status: 'occupied',
+        availableFrom: '26/11/2026',
+        expenses: '40€ fijos',
+        tenant: {
+          name: 'Frederic Kere',
+          idNumber: 'NIE 29234438',
+          email: 'frederickere56@gmail.com',
+          phone: '623 42 13 74',
+          startDate: '26/11/2025',
+          endDate: '26/11/2026',
+          deposit: 405,
+          secondTenant: {
+            name: 'Blaise Kere',
+            idNumber: 'NIE E29304761',
+            email: 'kblaise292@gmail.com',
+            phone: '678860600'
+          }
+        }
+      },
+      {
+        id: 'MIGUELBALLESTA8_H2',
+        name: 'H2',
+        price: 280,
+        status: 'occupied',
+        availableFrom: '04/12/2026',
+        expenses: '40€ fijos',
+        tenant: {
+          name: 'Sema Magassa',
+          idNumber: 'Permiso Z2693224',
+          email: 'semamagassa4@gmail.com',
+          phone: '631 29 26 84',
+          startDate: '04/12/2025',
+          endDate: '04/12/2026',
+          deposit: 320
+        }
+      },
+      {
+        id: 'MIGUELBALLESTA8_H3',
+        name: 'H3',
+        price: 260,
+        status: 'occupied',
+        availableFrom: '01/02/2026',
+        expenses: '40€ fijos',
+        notes: '⚠️ IMPAGO: Se va pronto a su país (Febrero posiblemente). Seguimiento urgente.',
+        tenant: {
+          name: 'Gonzalo Antonio Bedoya Patiño',
+          idNumber: 'Pasaporte BE291872',
+          email: 'gonzalobedoyap27@gmail.com',
+          phone: '+573234700214',
+          startDate: '20/11/2025',
+          endDate: '20/11/2026',
+          deposit: 300
+        }
+      },
+      {
+        id: 'MIGUELBALLESTA8_H4',
+        name: 'H4',
+        price: 365,
+        status: 'occupied',
+        availableFrom: '01/12/2026',
+        expenses: '40€ fijos',
+        tenant: {
+          name: 'Lassana Sianka',
+          idNumber: 'NIE Z2589488S',
+          email: 'diankalassana465@gmail.com',
+          phone: '623 49 69 07',
+          startDate: '01/12/2025',
+          endDate: '01/12/2026',
+          deposit: 405,
+          secondTenant: {
+            name: 'Kabine Tounkara',
+            idNumber: 'NIE Z2648474Y',
+            email: 'ktounkara46@gmail.com',
+            phone: '662632965'
+          }
+        }
+      },
+      {
+        id: 'MIGUELBALLESTA8_H5',
+        name: 'H5',
+        price: 355,
+        status: 'occupied',
+        availableFrom: '26/11/2026',
+        expenses: '40€ fijos',
+        tenant: {
+          name: 'Brehima Tandjigora',
+          idNumber: 'NIE E29281877',
+          email: 'tandjigoraibrahim978@gmail.com',
+          phone: '613 87 88 36',
+          startDate: '26/11/2025',
+          endDate: '26/11/2026',
+          deposit: 395,
+          secondTenant: {
+            name: 'Adama Traore',
+            idNumber: 'NIE E29054727',
+            email: '664319594a@gmail.com',
+            phone: '664319594'
+          }
+        }
+      },
     ]
   },
   {

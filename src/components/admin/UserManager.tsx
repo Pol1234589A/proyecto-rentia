@@ -82,6 +82,7 @@ export const UserManager: React.FC = () => {
         switch (role?.toLowerCase()) {
             case 'admin':
             case 'staff':
+            case 'manager':
                 return <span className="inline-flex items-center gap-1 bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full text-[10px] font-bold border border-purple-200 uppercase"><Shield className="w-3 h-3" /> Admin/Staff</span>;
             case 'owner':
                 return <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-[10px] font-bold border border-blue-200 uppercase"><Briefcase className="w-3 h-3" /> Propietario</span>;

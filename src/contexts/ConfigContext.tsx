@@ -53,9 +53,10 @@ export interface SiteConfig {
     };
     modules: {
         showBlog: boolean;
-        maintenanceBlog: boolean; // NEW
+        maintenanceBlog: boolean;
         showDiscounts: boolean;
-        maintenanceDiscounts: boolean; // NEW
+        maintenanceDiscounts: boolean;
+        maintenanceRooms: boolean; // NEW
         maintenanceMode: boolean; // Global site maintenance
     };
     billing: {
@@ -107,6 +108,7 @@ const defaultConfig: SiteConfig = {
         maintenanceBlog: false,
         showDiscounts: true,
         maintenanceDiscounts: false,
+        maintenanceRooms: true, // Habilitado por defecto como solicitado
         maintenanceMode: false
     },
     billing: {

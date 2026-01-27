@@ -97,10 +97,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                     */
 
                     // ASEGURAMOS ROL DE GESTORA PARA ADMINISTRACIÓN (Legacy logic)
-                    if (email === 'vanesa@rentiaroom.com') {
+                    const managerEmails = ['vanesa@rentiaroom.com', 'administracion@rentiaroom.com'];
+                    if (managerEmails.includes(email.toLowerCase().trim())) {
                         await setDoc(doc(db, 'users', userCredential.user.uid), {
                             role: 'manager',
-                            email: 'vanesa@rentiaroom.com',
+                            email: email.toLowerCase().trim(),
                             name: 'Administración',
                             active: true
                         }, { merge: true }).catch(console.error);

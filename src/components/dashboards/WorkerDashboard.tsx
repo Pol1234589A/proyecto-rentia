@@ -361,8 +361,8 @@ export const WorkerDashboard: React.FC = () => {
                 {isApproved && !isOverdue && (
                     <div className="absolute top-0 left-0 w-full h-1 bg-gray-100">
                         <div
-                            className={`h-full transition-all duration-1000 ${barColor}`}
-                            style={{ width: `${timeRemainingPercent}%` }}
+                            className={`h-full transition-all duration-1000 ${barColor} w-[var(--progress-width)]`}
+                            style={{ '--progress-width': `${timeRemainingPercent}%` } as React.CSSProperties}
                         ></div>
                     </div>
                 )}

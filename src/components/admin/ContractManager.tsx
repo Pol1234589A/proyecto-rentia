@@ -1,361 +1,373 @@
-
-import React, { useState, useEffect } from 'react';
-import { db, storage } from '../../firebase';
-import { collection, getDocs, doc, addDoc, serverTimestamp } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { Contract } from '../../types';
+import React, { useState } from 'react';
 import { Property } from '../../data/rooms';
-import { RentgerService } from '../../services/rentgerService';
-import { Check, User, Calendar, DollarSign, FileText, Save, Loader2, AlertCircle, Upload, Plus, X, Link, ExternalLink, Paperclip, RefreshCw, Send } from 'lucide-react';
+import { db } from '../../firebase';
+import { doc, updateDoc, getDoc } from 'firebase/firestore';
+import { Check, User, FileText, X, Eye, Image as ImageIcon, ExternalLink, Paperclip, Search, Filter, Save, Link, Camera, RefreshCw, ChevronDown, ListFilter, SortAsc } from 'lucide-react';
 
-export const ContractManager: React.FC<any> = ({ initialMode = 'list', preSelectedRoom, onClose }) => {
-    const [viewMode, setViewMode] = useState<'list' | 'create' | 'rentger'>(initialMode);
-    const [contracts, setContracts] = useState<Contract[]>([]);
-    const [properties, setProperties] = useState<Property[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [uploading, setUploading] = useState(false);
-    const [syncing, setSyncing] = useState(false);
+interface ContractManagerProps {
+    properties: Property[];
+    onClose?: () => void;
+}
 
-    // Form State
-    const [formData, setFormData] = useState({
-        propertyId: preSelectedRoom?.propertyId || '',
-        roomId: preSelectedRoom?.roomId || '',
-        tenantName: '',
-        rentAmount: preSelectedRoom?.price || 0,
-        depositAmount: preSelectedRoom?.price || 0,
-        startDate: new Date().toISOString().split('T')[0],
-        endDate: '',
-        status: 'active'
+export const ContractManager: React.FC<ContractManagerProps> = ({ properties, onClose }) => {
+    const [editLinks, setEditLinks] = useState<Record<string, { driveUrl: string, photosDriveUrl: string }>>({});
+    const [savingId, setSavingId] = useState<string | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [docPreview, setDocPreview] = useState<{ isOpen: boolean; url: string; title: string }>({
+        isOpen: false,
+        url: '',
+        title: ''
     });
-    const [contractFile, setContractFile] = useState<File | null>(null);
 
-    const reloadContracts = async () => {
-        setLoading(true);
+    // Filtros y Ordenación
+    const [selectedProperty, setSelectedProperty] = useState<string>('all');
+    const [sortBy, setSortBy] = useState<'property' | 'tenant' | 'rent' | 'date'>('property');
+    const [showFilters, setShowFilters] = useState(false);
+
+    const handleLocalChange = (id: string, field: 'driveUrl' | 'photosDriveUrl', value: string, currentContract: any) => {
+        setEditLinks(prev => ({
+            ...prev,
+            [id]: {
+                driveUrl: prev[id]?.driveUrl ?? (currentContract.driveUrl || ''),
+                photosDriveUrl: prev[id]?.photosDriveUrl ?? (currentContract.photosDriveUrl || ''),
+                [field]: value
+            }
+        }));
+    };
+
+    const handleSave = async (propertyId: string, roomId: string, contractId: string) => {
+        setSavingId(contractId);
         try {
-            const cSnap = await getDocs(collection(db, "contracts"));
-            const cList: Contract[] = [];
-            cSnap.forEach(d => cList.push({ ...d.data(), id: d.id } as Contract));
-            setContracts(cList);
+            const propRef = doc(db, "properties", propertyId);
+            const propSnap = await getDoc(propRef);
+            if (propSnap.exists()) {
+                const data = propSnap.data();
+                const rooms = (data.rooms || []) as any[];
+                const updatedRooms = rooms.map(r => {
+                    if (r.id === roomId) {
+                        return {
+                            ...r,
+                            driveUrl: editLinks[contractId]?.driveUrl ?? r.driveUrl,
+                            photosDriveUrl: editLinks[contractId]?.photosDriveUrl ?? r.photosDriveUrl
+                        };
+                    }
+                    return r;
+                });
+                await updateDoc(propRef, { rooms: updatedRooms });
+                // feedback visual o alerta suave
+            }
         } catch (e) {
             console.error(e);
+            alert("Error al sincronizar con Drive.");
         } finally {
-            setLoading(false);
+            setSavingId(null);
         }
     };
 
-    useEffect(() => {
-        const fetchData = async () => {
-            await reloadContracts(); // Use reusable function
-            const pSnap = await getDocs(collection(db, "properties"));
-            const pList: Property[] = [];
-            pSnap.forEach(d => pList.push({ ...d.data(), id: d.id } as Property));
-            setProperties(pList);
-        };
-        fetchData();
-    }, []);
+    // Obtener lista de propiedades únicas para el filtro
+    const uniqueProperties = Array.from(new Set(properties.map(p => p.address))).sort();
 
-    const handleSyncRentger = async () => {
-        setSyncing(true);
-        try {
-            const result = await RentgerService.syncContractEndDates();
-            if (result.success) {
-                alert(`Sincronización completada. ${result.updated} contratos actualizados desde Rentger.`);
-                await reloadContracts(); // Recargar para ver cambios
-            }
-        } catch (error: any) {
-            console.error("Sync Error:", error);
-            alert(`Error de sincronización: ${error.message || "Fallo desconocido"}`);
-        } finally {
-            setSyncing(false);
-        }
-    };
+    // Derivar contratos vigentes desde las habitaciones ocupadas
+    let activeContracts = properties.flatMap(prop =>
+        (prop.rooms || [])
+            .filter(room => room.status === 'occupied' || room.tenant)
+            .map(room => ({
+                id: `${prop.id}-${room.id}`,
+                propertyId: prop.id,
+                propertyName: prop.address,
+                roomId: room.id,
+                roomName: room.name,
+                tenantName: room.tenant?.name || 'Inquilino sin nombre',
+                rentAmount: room.price || 0,
+                depositAmount: room.tenant?.deposit || room.price || 0,
+                startDate: room.tenant?.startDate || 'No definida',
+                endDate: room.tenant?.endDate || 'Indefinido',
+                driveUrl: room.driveUrl,
+                photosDriveUrl: room.photosDriveUrl,
+                status: 'active'
+            }))
+    );
 
-    // ... (rest of handleSubmit logic remains similar, handled by existing code above/below or implicit merge if I don't touch it. Wait, I need to keep handleRegisterContract available)
+    // Aplicar Filtro de Búsqueda
+    activeContracts = activeContracts.filter(c =>
+        c.tenantName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.propertyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.roomName.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
-    const handleRegisterContract = async (e: React.FormEvent) => {
-        e.preventDefault();
-        // ... (Logic from original file to maintain functionality)
-        if (!formData.propertyId || !formData.roomId || !formData.tenantName || !contractFile) {
-            return alert("Por favor completa los datos obligatorios y sube el PDF.");
-        }
+    // Aplicar Filtro de Propiedad
+    if (selectedProperty !== 'all') {
+        activeContracts = activeContracts.filter(c => c.propertyName === selectedProperty);
+    }
 
-        setUploading(true);
-        try {
-            const storageRef = ref(storage, `contracts/${formData.propertyId}/${formData.roomId}_${Date.now()}.pdf`);
-            await uploadBytes(storageRef, contractFile);
-            const downloadUrl = await getDownloadURL(storageRef);
-
-            const prop = properties.find(p => p.id === formData.propertyId);
-            const room = prop?.rooms.find(r => r.id === formData.roomId);
-
-            await addDoc(collection(db, "contracts"), {
-                ...formData,
-                propertyName: prop?.address || 'Desconocido',
-                ownerId: prop?.ownerId || null,
-                roomName: room?.name || 'Habitación',
-                fileUrl: downloadUrl,
-                fileName: contractFile.name,
-                createdAt: serverTimestamp(),
-                rentgerSynced: false // New flag
-            });
-
-            alert("Contrato registrado LOCALMENTE correcto. Para firma legal, usa Rentger.");
-            setViewMode('list');
-            setFormData({ propertyId: '', roomId: '', tenantName: '', rentAmount: 0, depositAmount: 0, startDate: '', endDate: '', status: 'active' });
-            setContractFile(null);
-            await reloadContracts();
-
-        } catch (error) {
-            console.error("Error saving contract:", error);
-            alert("Error al guardar el contrato.");
-        } finally {
-            setUploading(false);
-        }
-    };
+    // Aplicar Ordenación
+    activeContracts.sort((a, b) => {
+        if (sortBy === 'property') return a.propertyName.localeCompare(b.propertyName);
+        if (sortBy === 'tenant') return a.tenantName.localeCompare(b.tenantName);
+        if (sortBy === 'rent') return b.rentAmount - a.rentAmount;
+        if (sortBy === 'date') return (b.startDate || '').localeCompare(a.startDate || '');
+        return 0;
+    });
 
     return (
-        <div className="flex flex-col h-full bg-gray-50 animate-in fade-in">
-            {/* Header Wizard */}
-            <div className="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center shrink-0">
+        <div className="flex flex-col h-full bg-gray-50/50 animate-in fade-in relative">
+            {/* Modal de Previsualización */}
+            {docPreview.isOpen && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-white rounded-3xl w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden shadow-2xl">
+                        <div className="p-4 border-b flex justify-between items-center bg-slate-50">
+                            <h3 className="font-black text-slate-800 uppercase tracking-tighter flex items-center gap-2">
+                                <Eye className="w-5 h-5 text-indigo-600" />
+                                {docPreview.title}
+                            </h3>
+                            <button onClick={() => setDocPreview({ ...docPreview, isOpen: false })} className="p-2 hover:bg-slate-200 rounded-full transition-colors">
+                                <X className="w-5 h-5 text-slate-500" />
+                            </button>
+                        </div>
+                        <div className="flex-1 bg-slate-100">
+                            <iframe src={docPreview.url} className="w-full h-full border-none" title={`Vista previa de documento: ${docPreview.title}`} />
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Header */}
+            <div className="bg-white border-b border-gray-200 px-8 py-6 flex flex-col md:flex-row justify-between items-center shrink-0 gap-4">
                 <div>
-                    <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                        <FileText className="w-6 h-6 text-rentia-blue" />
+                    <h2 className="text-2xl font-black text-slate-900 flex items-center gap-3">
+                        <div className="bg-indigo-600 p-2 rounded-xl shadow-lg shadow-indigo-200">
+                            <FileText className="w-6 h-6 text-white" />
+                        </div>
                         Archivo de Contratos
                     </h2>
-                    <p className="text-xs text-gray-500">Repositorio digital sincronizado con Rentger.</p>
+                    <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Gestión Centralizada de Documentación Drive</p>
                 </div>
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={handleSyncRentger}
-                        disabled={syncing}
-                        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 border ${syncing ? 'bg-gray-100 text-gray-400' : 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'}`}
-                    >
-                        <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
-                        {syncing ? 'Sincronizando...' : 'Sync Rentger'}
-                    </button>
 
-                    <div className="h-6 w-px bg-gray-300 mx-2"></div>
-
-                    <div className="flex bg-gray-100 p-1 rounded-lg">
-                        <button onClick={() => setViewMode('list')} className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${viewMode === 'list' ? 'bg-white shadow text-rentia-blue' : 'text-gray-500'}`}>Listado</button>
-                        <button onClick={() => setViewMode('create')} className={`px-4 py-2 rounded-md text-sm font-bold transition-all flex items-center gap-2 ${viewMode === 'create' ? 'bg-indigo-600 text-white shadow' : 'text-gray-500'}`}>
-                            <Upload className="w-3 h-3" /> Subir PDF
-                        </button>
-                        {onClose && <button onClick={onClose} className="ml-2 px-3 py-2 text-gray-400 hover:text-red-500"><X className="w-5 h-5" /></button>}
+                <div className="flex items-center gap-4 w-full md:w-auto">
+                    <div className="relative flex-1 md:w-64">
+                        <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder="Buscar inquilino o propiedad..."
+                            className="w-full pl-10 pr-4 py-2 bg-slate-100 border-none rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                        />
                     </div>
+                    {onClose && (
+                        <button onClick={onClose} className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-xl transition-all" title="Cerrar Gestor de Contratos">
+                            <X className="w-5 h-5" />
+                        </button>
+                    )}
                 </div>
             </div>
 
             {/* Content Area */}
-            <div className="flex-grow overflow-hidden relative">
-
-                {/* LISTA DE CONTRATOS */}
-                {viewMode === 'list' && (
-                    <div className="p-6 h-full overflow-y-auto">
-                        <div className="flex justify-between mb-6">
-                            <h3 className="font-bold text-lg text-gray-700">Contratos Vigentes</h3>
-                            <a
-                                href="https://rentger.com"
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-xs flex items-center gap-1 text-gray-500 hover:text-rentia-blue bg-white border border-gray-200 px-3 py-1.5 rounded-lg"
-                            >
-                                <ExternalLink className="w-3 h-3" /> Ir a Rentger (Redacción)
-                            </a>
+            <div className="flex-grow overflow-y-auto p-8">
+                <div className="max-w-7xl mx-auto">
+                    <div className="flex items-center justify-between mb-8">
+                        <div className="flex items-center gap-3">
+                            <h3 className="font-black text-slate-800 uppercase tracking-tighter text-lg">Contratos Vigentes</h3>
+                            <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-[10px] font-black uppercase">{activeContracts.length} ACTIVOS</span>
                         </div>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => setShowFilters(!showFilters)}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all shadow-sm border ${showFilters ? 'bg-indigo-600 text-white border-indigo-700' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}
+                                title="Mostrar filtros avanzados"
+                            >
+                                <Filter className="w-3.5 h-3.5" /> {showFilters ? 'Cerrar Filtros' : 'Filtrar'}
+                            </button>
+                        </div>
+                    </div>
 
-                        {loading ? <div className="text-center py-10"><Loader2 className="w-8 h-8 animate-spin mx-auto text-rentia-blue" /></div> : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {contracts.map(contract => (
-                                    <div key={contract.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all group">
-                                        <div className="flex justify-between items-start mb-3">
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs">
-                                                    {contract.tenantName.charAt(0)}
-                                                </div>
-                                                <div className="min-w-0">
-                                                    <h4 className="font-bold text-sm text-gray-900 truncate">{contract.tenantName}</h4>
-                                                    <p className="text-[10px] text-gray-500 truncate">{(contract as any).roomName || 'Habitación'}</p>
-                                                </div>
-                                            </div>
-                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${contract.status === 'active' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
-                                                {contract.status === 'active' ? 'ACTIVO' : 'FINALIZADO'}
-                                            </span>
+                    {showFilters && (
+                        <div className="mb-8 p-6 bg-white rounded-3xl border-2 border-indigo-100 shadow-xl shadow-indigo-100/20 animate-in slide-in-from-top-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase flex items-center gap-2">
+                                        <ListFilter className="w-3.5 h-3.5" /> Filtrar por Vivienda
+                                    </label>
+                                    <select
+                                        className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                                        value={selectedProperty}
+                                        onChange={e => setSelectedProperty(e.target.value)}
+                                        title="Seleccionar vivienda para filtrar"
+                                    >
+                                        <option value="all">Todas las Viviendas</option>
+                                        {uniqueProperties.map(p => (
+                                            <option key={p} value={p}>{p}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase flex items-center gap-2">
+                                        <SortAsc className="w-3.5 h-3.5" /> Organizar por
+                                    </label>
+                                    <select
+                                        className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                                        value={sortBy}
+                                        onChange={e => setSortBy(e.target.value as any)}
+                                        title="Seleccionar criterio de ordenación"
+                                    >
+                                        <option value="property">Propiedad (A-Z)</option>
+                                        <option value="tenant">Inquilino (A-Z)</option>
+                                        <option value="rent">Precio (Mayor a Menor)</option>
+                                        <option value="date">Fecha (Más reciente)</option>
+                                    </select>
+                                </div>
+
+                                <div className="lg:col-span-2 flex items-end justify-end">
+                                    <button
+                                        onClick={() => {
+                                            setSelectedProperty('all');
+                                            setSortBy('property');
+                                            setSearchTerm('');
+                                        }}
+                                        className="text-[10px] font-black text-indigo-600 uppercase hover:text-indigo-800 transition-colors flex items-center gap-2"
+                                    >
+                                        Limpiar todos los filtros
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {activeContracts.map(contract => (
+                            <div key={contract.id} className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
+                                <div className="flex justify-between items-start mb-5">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-600 text-white flex items-center justify-center font-black text-lg shadow-lg shadow-indigo-100">
+                                            {contract.tenantName.charAt(0)}
                                         </div>
-
-                                        <div className="space-y-1 text-xs text-gray-600 bg-gray-50 p-2 rounded mb-3">
-                                            <div className="flex justify-between"><span>Renta:</span> <strong>{contract.rentAmount}€</strong></div>
-                                            <div className="flex justify-between"><span>Fianza:</span> <strong>{contract.depositAmount}€</strong></div>
-                                            <div className="flex justify-between"><span>Inicio:</span> <span>{contract.startDate}</span></div>
-                                            <div className="flex justify-between"><span>Fin:</span> <span>{contract.endDate || 'Indefinido'}</span></div>
+                                        <div>
+                                            <h4 className="font-black text-slate-900 text-base leading-tight truncate max-w-[150px]">{contract.tenantName}</h4>
+                                            <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest">{contract.roomName}</p>
                                         </div>
+                                    </div>
+                                    <div className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[9px] font-black uppercase border border-emerald-100">
+                                        ACTIVO
+                                    </div>
+                                </div>
 
-                                        {(contract as any).fileUrl ? (
-                                            <a
-                                                href={(contract as any).fileUrl}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="block w-full text-center bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold py-2 rounded-lg transition-colors border border-indigo-100"
-                                            >
-                                                Ver PDF Firmado
-                                            </a>
-                                        ) : (
-                                            <div className="text-center text-xs text-gray-400 italic py-2">Sin documento adjunto</div>
-                                        )}
+                                <div className="space-y-3 mb-6 bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
+                                    <div className="flex justify-between items-center text-xs">
+                                        <span className="text-slate-400 font-bold uppercase text-[9px] tracking-widest">Propiedad</span>
+                                        <span className="font-black text-slate-700 truncate max-w-[160px]">{contract.propertyName}</span>
                                     </div>
-                                ))}
-                                {contracts.length === 0 && (
-                                    <div className="col-span-full text-center py-12 text-gray-400 border-2 border-dashed rounded-xl">
-                                        No hay contratos registrados.
+                                    <div className="flex justify-between items-center text-xs">
+                                        <span className="text-slate-400 font-bold uppercase text-[9px] tracking-widest">Alquiler</span>
+                                        <span className="font-black text-indigo-600">{contract.rentAmount}€/mes</span>
                                     </div>
+                                    <div className="flex justify-between items-center text-xs">
+                                        <span className="text-slate-400 font-bold uppercase text-[9px] tracking-widest">Vigencia</span>
+                                        <span className="font-bold text-slate-600">{contract.startDate} / {contract.endDate}</span>
+                                    </div>
+                                </div>
+
+                                {contract.driveUrl && (
+                                    <button
+                                        className="w-full flex items-center justify-center gap-2 py-3 bg-slate-900 hover:bg-black text-white text-[10px] font-black uppercase rounded-2xl transition-all shadow-lg shadow-slate-200 mb-4"
+                                        onClick={() => window.open(contract.driveUrl, '_blank')}
+                                    >
+                                        <ExternalLink className="w-3.5 h-3.5" /> Abrir Carpeta Drive
+                                    </button>
                                 )}
+
+                                {/* Editor de Links Sincronizado */}
+                                <div className="space-y-4 pt-4 border-t border-slate-100">
+                                    <div className="space-y-1.5">
+                                        <label className="text-[9px] font-black text-slate-400 uppercase flex items-center gap-1.5 ml-1">
+                                            <Link className="w-3 h-3 text-blue-500" /> Enlace Contrato
+                                        </label>
+                                        <div className="relative group">
+                                            <input
+                                                type="text"
+                                                className="w-full pl-3 pr-8 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white outline-none transition-all placeholder:text-slate-300"
+                                                placeholder="https://drive.google.com/..."
+                                                value={editLinks[contract.id]?.driveUrl ?? (contract.driveUrl || '')}
+                                                onChange={e => handleLocalChange(contract.id, 'driveUrl', e.target.value, contract)}
+                                            />
+                                            <button
+                                                onClick={() => {
+                                                    let embedUrl = editLinks[contract.id]?.driveUrl ?? contract.driveUrl;
+                                                    if (!embedUrl) return;
+                                                    let urlToPreview = embedUrl;
+                                                    if (urlToPreview.includes('drive.google.com')) {
+                                                        urlToPreview = urlToPreview.replace(/\/view.*$/, '/preview').replace(/\/edit.*$/, '/preview').replace(/\/share.*$/, '/preview');
+                                                    }
+                                                    setDocPreview({ isOpen: true, url: urlToPreview, title: `Contrato: ${contract.tenantName}` });
+                                                }}
+                                                className={`absolute right-2 top-2 p-1 transition-colors ${(editLinks[contract.id]?.driveUrl || contract.driveUrl) ? 'text-slate-300 hover:text-indigo-600' : 'text-slate-100 cursor-not-allowed'}`}
+                                                disabled={!(editLinks[contract.id]?.driveUrl || contract.driveUrl)}
+                                                title="Previsualizar contrato"
+                                            >
+                                                <Eye className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-1.5">
+                                        <label className="text-[9px] font-black text-slate-400 uppercase flex items-center gap-1.5 ml-1">
+                                            <Camera className="w-3 h-3 text-purple-500" /> Enlace Fotos
+                                        </label>
+                                        <div className="relative group">
+                                            <input
+                                                type="text"
+                                                className="w-full pl-3 pr-8 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white outline-none transition-all placeholder:text-slate-300"
+                                                placeholder="https://drive.google.com/..."
+                                                value={editLinks[contract.id]?.photosDriveUrl ?? (contract.photosDriveUrl || '')}
+                                                onChange={e => handleLocalChange(contract.id, 'photosDriveUrl', e.target.value, contract)}
+                                            />
+                                            <button
+                                                onClick={() => {
+                                                    let embedUrl = editLinks[contract.id]?.photosDriveUrl ?? contract.photosDriveUrl;
+                                                    if (!embedUrl) return;
+                                                    let urlToPreview = embedUrl;
+                                                    if (urlToPreview.includes('drive.google.com')) {
+                                                        urlToPreview = urlToPreview.replace(/\/view.*$/, '/preview').replace(/\/edit.*$/, '/preview').replace(/\/share.*$/, '/preview');
+                                                    }
+                                                    setDocPreview({ isOpen: true, url: urlToPreview, title: `Fotos: ${contract.tenantName}` });
+                                                }}
+                                                className={`absolute right-2 top-2 p-1 transition-colors ${(editLinks[contract.id]?.photosDriveUrl || contract.photosDriveUrl) ? 'text-slate-300 hover:text-purple-600' : 'text-slate-100 cursor-not-allowed'}`}
+                                                disabled={!(editLinks[contract.id]?.photosDriveUrl || contract.photosDriveUrl)}
+                                                title="Previsualizar fotos"
+                                            >
+                                                <Eye className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {(editLinks[contract.id] && (
+                                        editLinks[contract.id].driveUrl !== (contract.driveUrl || '') ||
+                                        editLinks[contract.id].photosDriveUrl !== (contract.photosDriveUrl || '')
+                                    )) && (
+                                            <button
+                                                onClick={() => handleSave(contract.propertyId, contract.roomId, contract.id)}
+                                                disabled={savingId === contract.id}
+                                                className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-black uppercase rounded-2xl shadow-xl shadow-indigo-100 flex items-center justify-center gap-2 animate-in slide-in-from-top-2"
+                                            >
+                                                {savingId === contract.id ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                                {savingId === contract.id ? 'Sincronizando...' : 'Sincronizar con Drive'}
+                                            </button>
+                                        )}
+                                </div>
+                            </div>
+                        ))}
+
+                        {activeContracts.length === 0 && (
+                            <div className="col-span-full flex flex-col items-center justify-center py-20 bg-white rounded-3xl border-2 border-dashed border-slate-200">
+                                <div className="bg-slate-50 p-6 rounded-full mb-4">
+                                    <FileText className="w-12 h-12 text-slate-200" />
+                                </div>
+                                <h4 className="text-slate-400 font-bold uppercase tracking-widest text-sm">No se han encontrado contratos vigentes</h4>
+                                <p className="text-slate-300 text-xs mt-2">Asegúrate de que las habitaciones tengan inquilinos asignados.</p>
                             </div>
                         )}
                     </div>
-                )}
-
-                {/* FORMULARIO DE SUBIDA (REGISTRO) */}
-                {viewMode === 'create' && (
-                    <div className="p-4 md:p-8 h-full overflow-y-auto">
-                        <div className="max-w-2xl mx-auto bg-white p-6 md:p-8 rounded-xl shadow-lg border border-gray-100">
-
-                            <div className="mb-6 bg-blue-50 border border-blue-100 rounded-lg p-4 flex flex-col md:flex-row gap-3 items-start md:items-center justify-between">
-                                <div className="flex gap-3">
-                                    <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                                    <div className="text-sm text-blue-800">
-                                        <strong>Redacción Externa:</strong> Recuerda que la redacción y firma legal se realiza en <strong>Rentger</strong>.
-                                        Utiliza este formulario únicamente para subir el PDF final firmado y vincularlo a la habitación.
-                                    </div>
-                                </div>
-                                <a
-                                    href="https://rentger.com/contracts/create"
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-lg flex items-center gap-2 whitespace-nowrap shadow-sm transition-colors"
-                                >
-                                    <ExternalLink className="w-3 h-3" />
-                                    Redactar Nuevo
-                                </a>
-                            </div>
-
-                            <form onSubmit={handleRegisterContract} className="space-y-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="md:col-span-2">
-                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Inquilino *</label>
-                                        <div className="relative">
-                                            <User className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
-                                            <input
-                                                type="text"
-                                                required
-                                                className="w-full pl-9 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-rentia-blue outline-none"
-                                                placeholder="Nombre Completo"
-                                                value={formData.tenantName}
-                                                onChange={e => setFormData({ ...formData, tenantName: e.target.value })}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Propiedad *</label>
-                                        <select
-                                            required
-                                            className="w-full p-2 border rounded-lg text-sm bg-white"
-                                            value={formData.propertyId}
-                                            onChange={e => setFormData({ ...formData, propertyId: e.target.value, roomId: '' })}
-                                        >
-                                            <option value="">Seleccionar Propiedad...</option>
-                                            {properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}
-                                        </select>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Habitación *</label>
-                                        <select
-                                            required
-                                            className="w-full p-2 border rounded-lg text-sm bg-white disabled:bg-gray-100"
-                                            value={formData.roomId}
-                                            onChange={e => {
-                                                const room = properties.find(p => p.id === formData.propertyId)?.rooms.find(r => r.id === e.target.value);
-                                                setFormData({
-                                                    ...formData,
-                                                    roomId: e.target.value,
-                                                    rentAmount: room?.price || 0,
-                                                    depositAmount: room?.price || 0 // Default deposit = 1 month
-                                                });
-                                            }}
-                                            disabled={!formData.propertyId}
-                                        >
-                                            <option value="">Seleccionar Habitación...</option>
-                                            {properties.find(p => p.id === formData.propertyId)?.rooms.map(r => (
-                                                <option key={r.id} value={r.id}>{r.name} ({r.status})</option>
-                                            ))}
-                                        </select>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Renta Mensual (€)</label>
-                                        <div className="relative">
-                                            <DollarSign className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
-                                            <input type="number" required className="w-full pl-9 pr-4 py-2 border rounded-lg text-sm" value={formData.rentAmount} onChange={e => setFormData({ ...formData, rentAmount: Number(e.target.value) })} />
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Fianza (€)</label>
-                                        <div className="relative">
-                                            <DollarSign className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
-                                            <input type="number" required className="w-full pl-9 pr-4 py-2 border rounded-lg text-sm" value={formData.depositAmount} onChange={e => setFormData({ ...formData, depositAmount: Number(e.target.value) })} />
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Fecha Inicio</label>
-                                        <input type="date" required className="w-full p-2 border rounded-lg text-sm" value={formData.startDate} onChange={e => setFormData({ ...formData, startDate: e.target.value })} />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Fecha Fin (Opcional)</label>
-                                        <input type="date" className="w-full p-2 border rounded-lg text-sm" value={formData.endDate} onChange={e => setFormData({ ...formData, endDate: e.target.value })} />
-                                    </div>
-                                </div>
-
-                                {/* File Upload */}
-                                <div className="border-2 border-dashed border-indigo-200 bg-indigo-50/30 rounded-xl p-6 text-center">
-                                    <input
-                                        type="file"
-                                        id="contract-pdf"
-                                        accept="application/pdf"
-                                        className="hidden"
-                                        onChange={(e) => setContractFile(e.target.files?.[0] || null)}
-                                    />
-                                    <label htmlFor="contract-pdf" className="cursor-pointer flex flex-col items-center gap-2">
-                                        <div className="p-3 bg-indigo-100 text-indigo-600 rounded-full">
-                                            {contractFile ? <Check className="w-6 h-6" /> : <Paperclip className="w-6 h-6" />}
-                                        </div>
-                                        <span className="text-sm font-bold text-indigo-900">
-                                            {contractFile ? contractFile.name : "Adjuntar PDF Firmado"}
-                                        </span>
-                                        <span className="text-xs text-indigo-500">
-                                            {contractFile ? "Click para cambiar archivo" : "Haz click para seleccionar"}
-                                        </span>
-                                    </label>
-                                </div>
-
-                                <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
-                                    <button type="button" onClick={() => setViewMode('list')} className="px-6 py-2.5 text-gray-500 hover:text-gray-700 font-bold text-sm">Cancelar</button>
-                                    <button
-                                        type="submit"
-                                        disabled={uploading}
-                                        className="bg-rentia-black text-white px-8 py-2.5 rounded-lg font-bold text-sm hover:bg-gray-800 transition-colors flex items-center gap-2 shadow-lg disabled:opacity-70"
-                                    >
-                                        {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                                        {uploading ? 'Subiendo...' : 'Guardar Registro'}
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                )}
+                </div>
             </div>
         </div>
     );

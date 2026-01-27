@@ -1146,6 +1146,6 @@ export const OwnerDashboard: React.FC = () => {
                     </div>
                 )}
             </div>
-        </div >
+        </div>
     );
 };

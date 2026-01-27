@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { generatePropertySummaryPDF } from '../../utils/pdfGenerator';
 import { createPortal } from 'react-dom';
 import { db } from '../../firebase';
 import { collection, onSnapshot, addDoc, query, where, orderBy, serverTimestamp } from 'firebase/firestore';
@@ -38,7 +39,7 @@ import { PropertyBillingPanel } from '../admin/PropertyBillingPanel';
 import { LayoutDashboard, Calculator, Briefcase, Wrench, Plus, Search, FileText, Save, X, DollarSign, Calendar as CalendarIcon, Filter, Pencil, PieChart, Landmark, Wallet, Clock, Zap, Settings, Receipt, Split, Info, MessageCircle, Share2, ClipboardList, UserCheck, Mail, Phone, ArrowRight, UserPlus, Inbox, Home, DoorOpen, Menu, Activity, ShieldAlert, UserCog, Siren, Footprints, BarChart3, Building, Grid, Globe, Send, Users, Key, Layout, Palette, Printer, Book, BookOpen, CreditCard } from 'lucide-react';
 import { ProtocolsView } from './staff/ProtocolsView';
 import { TrainingView } from './staff/TrainingView';
-import { GlobalAiAssistant } from './staff/GlobalAiAssistant';
+import { CommissionTrackerBar } from '../admin/CommissionTrackerBar';
 
 
 const MOTIVATIONAL_QUOTES = [
@@ -72,10 +73,10 @@ export const StaffDashboard: React.FC = () => {
     const isWorker = userRole === 'worker';
 
     const [activeTab, setActiveTab] = useState<'overview' | 'room_manager' | 'real_estate' | 'accounting' | 'tools' | 'contracts' | 'calendar' | 'supplies' | 'calculator' | 'social' | 'tasks' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'transfers' | 'advanced_calc' | 'management_leads' | 'site_config' | 'blog_manager' | 'visual_editor' | 'agency_invoices' | 'billing_info' | 'protocols' | 'candidates' | 'training'>('overview');
-    const [activeMobileTab, setActiveMobileTab] = useState<'overview' | 'tasks' | 'candidates' | 'properties' | 'menu' | 'accounting' | 'supplies' | 'calendar' | 'contracts' | 'social' | 'calculator' | 'tools' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'advanced_calc' | 'management_leads' | 'site_config' | 'blog_manager' | 'visual_editor' | 'agency_invoices' | 'billing_info' | 'protocols' | 'training'>('overview');
+    const [activeMobileTab, setActiveMobileTab] = useState<'overview' | 'tasks' | 'candidates' | 'properties' | 'menu' | 'accounting' | 'supplies' | 'calendar' | 'contracts' | 'social' | 'calculator' | 'tools' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'advanced_calc' | 'management_leads' | 'site_config' | 'blog_manager' | 'visual_editor' | 'agency_invoices' | 'billing_info' | 'protocols' | 'training' | 'room_manager'>('overview');
 
     const isManagerRole = userRole === 'manager';
-    const isAdminUI = userRole === 'manager' || currentUser?.email === 'vanesa@rentiaroom.com' || currentUser?.email === 'info@rentiaroom.com' || currentUser?.email === 'rentiaroom@gmail.com' || currentUser?.email === 'matencioespinosapol@gmail.com';
+    const isAdminUI = userRole === 'manager' || currentUser?.email === 'vanesa@rentiaroom.com' || currentUser?.email === 'administracion@rentiaroom.com' || currentUser?.email === 'info@rentiaroom.com' || currentUser?.email === 'rentiaroom@gmail.com' || currentUser?.email === 'matencioespinosapol@gmail.com';
 
     // ... (Keep existing state and effects unchanged) ...
     const [stats, setStats] = useState({
@@ -114,6 +115,10 @@ export const StaffDashboard: React.FC = () => {
     // Filtros para TaskManager cuando se navega desde widgets
     const [taskFilter, setTaskFilter] = useState<{ category?: any, status?: any }>({});
     const [showIncidentModal, setShowIncidentModal] = useState(false);
+
+    const handleDownloadPDF = async () => {
+        await generatePropertySummaryPDF(propertiesList);
+    };
 
     useEffect(() => {
         // ... (Keep existing effect logic) ...
@@ -408,7 +413,7 @@ export const StaffDashboard: React.FC = () => {
                 </div>
             );
             case 'visual_editor': return <div className="h-full overflow-y-auto pb-24"><VisualEditor /></div>; // NEW
-            case 'contracts': return <div className="h-full overflow-y-auto pb-24"><ContractManager onClose={() => setActiveMobileTab('menu')} /></div>;
+            case 'contracts': return <div className="h-full overflow-y-auto pb-24"><ContractManager properties={propertiesList} onClose={() => setActiveMobileTab('menu')} /></div>;
             case 'calendar': return <div className="h-full overflow-y-auto pb-24"><CalendarManager /></div>;
             case 'supplies': return <div className="h-full overflow-y-auto pb-24"><SuppliesPanel properties={propertiesList} /></div>;
             case 'accounting': return <div className="h-full overflow-y-auto pb-24"><AccountingPanel /></div>;
@@ -424,6 +429,7 @@ export const StaffDashboard: React.FC = () => {
             case 'blog_manager': return <div className="h-full overflow-y-auto pb-24"><BlogManager /></div>;
             case 'protocols': return <div className="h-full overflow-y-auto pb-24"><ProtocolsView /></div>;
             case 'training': return <div className="h-full overflow-y-auto pb-24"><TrainingView /></div>;
+            case 'room_manager': return <div className="h-full overflow-y-auto pb-24"><RoomManager /></div>;
             case 'agency_invoices': return <div className="h-full overflow-y-auto pb-24"><AgencyInvoicesPanel /></div>;
             case 'billing_info': return <div className="h-full overflow-y-auto pb-24"><PropertyBillingPanel properties={propertiesList} /></div>;
             case 'calculator': return <div className="h-full overflow-y-auto pb-24"><SupplyCalculator properties={propertiesList} preSelectedPropertyId={selectedPropId} /></div>;
@@ -466,8 +472,12 @@ export const StaffDashboard: React.FC = () => {
                 </div>
 
                 <div className="hidden md:block">
-                    {/* GLOBAL AI ASSISTANT (Persistent help) */}
-                    <GlobalAiAssistant />
+                    {/* COMMISSION TRACKER BAR (Real-time tracking) */}
+                    <CommissionTrackerBar
+                        properties={propertiesList}
+                        onDownloadPDF={handleDownloadPDF}
+                    />
+
 
                     {/* DESKTOP CONTENT RENDER */}
                     {activeTab === 'overview' && (
@@ -564,7 +574,7 @@ export const StaffDashboard: React.FC = () => {
                     {activeTab === 'room_manager' && <div className="h-full overflow-y-auto pb-24"><RoomManager /></div>}
                     {/* ... (Keep other tabs) ... */}
                     {activeTab === 'real_estate' && <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-300"><SalesCRM /></div>}
-                    {activeTab === 'contracts' && <div className="animate-in slide-in-from-bottom-4 duration-300"><ContractManager onClose={() => setActiveTab('real_estate')} /></div>}
+                    {activeTab === 'contracts' && <div className="animate-in slide-in-from-bottom-4 duration-300"><ContractManager properties={propertiesList} onClose={() => setActiveTab('real_estate')} /></div>}
                     {activeTab === 'calendar' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><CalendarManager /></div>}
                     {activeTab === 'calculator' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><SupplyCalculator properties={propertiesList} preSelectedPropertyId={selectedPropId} /></div>}
                     {activeTab === 'advanced_calc' && <div className="animate-in slide-in-from-bottom-4 duration-300"><AdvancedCalculator properties={propertiesList} /></div>}

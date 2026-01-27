@@ -515,7 +515,7 @@ export const ProtocolsView: React.FC<{ onOpenCandidateModal?: () => void }> = ({
                     </div>
                 )
             }
-        </div >
+        </div>
     );
 };
 

@@ -887,8 +887,8 @@ export const PropertyEditModal: React.FC<PropertyEditModalProps> = ({ property, 
                         </button>
                     </div>
                 </div>
-            </div >
-        </div >
+            </div>
+        </div>
     );
 
     return createPortal(modalLayout, document.body);

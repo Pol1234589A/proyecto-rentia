@@ -50,6 +50,7 @@ export interface Contract {
     roomId: string;
     tenantName: string;
     tenantId?: string;
+    tenantDni?: string;
     rentAmount: number;
     depositAmount: number;
     startDate: string;

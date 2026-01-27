@@ -71,6 +71,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             // Lógica de acceso especial para el perfil de Administración/Operaciones
             const adminEmails = [
               'vanesa@rentiaroom.com',
+              'administracion@rentiaroom.com',
               'rentiaroom@gmail.com',
               'matencioespinosapol@gmail.com'
             ];

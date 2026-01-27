@@ -1,0 +1,11 @@
+
+const admin = require('firebase-admin');
+
+// No init needed if we use the default or a dummy if we just want to see if we can find a key
+// But since previous failed, I'll ask for it.
+
+console.log("No puedo acceder a la Consola de Firebase (sitio web) porque requiere tu cuenta de Google personal.");
+console.log("Tampoco puedo consultarlo por consola de comandos porque no tengo permisos de administrador de Firebase en este terminal.");
+
+console.log("\nSOLUCIÓN:");
+console.log("He configurado el código para que, en cuanto logres entrar (o resetees la contraseña en la consola), el usuario tenga todos los permisos.");

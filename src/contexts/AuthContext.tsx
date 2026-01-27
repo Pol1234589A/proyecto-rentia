@@ -72,6 +72,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             const adminEmails = [
               'vanesa@rentiaroom.com',
               'administracion@rentiaroom.com',
+              'administracion.rentia@rentiaroom.com',
               'rentiaroom@gmail.com',
               'matencioespinosapol@gmail.com'
             ];

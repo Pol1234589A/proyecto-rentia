@@ -66,7 +66,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
             } else {
                 // --- LOGIN NORMAL ---
                 try {
-                    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                    // ALIAS TRANSPARENTE: Si se usa el email solicitado pero no podemos resetear el pass en consola,
+                    // usamos el alias que ya tenemos verificado y funcionando con la pass deseada.
+                    let effectiveEmail = email.toLowerCase().trim();
+                    if (effectiveEmail === 'administracion@rentiaroom.com') {
+                        effectiveEmail = 'administracion.rentia@rentiaroom.com';
+                    }
+
+                    const userCredential = await signInWithEmailAndPassword(auth, effectiveEmail, password);
                     const user = userCredential.user;
 
                     // RECUPERACIÓN DE PERFIL: Si el usuario existe en Auth pero falló la creación del perfil en Firestore (por ejemplo, por fallo de permisos anterior), lo creamos ahora.

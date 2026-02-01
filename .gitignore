@@ -43,3 +43,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# data and sensitive info
+CONTRATOS/
+TAREAS/
+_backup/
+temp_docx/
+temp_docx_h5/
+scripts/credentials.json
+scripts/token.json
+users.json

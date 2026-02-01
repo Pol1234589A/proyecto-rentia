@@ -114,6 +114,7 @@ export interface Property {
   floor?: string;
   door?: string;
   image: string;
+  video?: string;
   bathrooms?: number;
   googleMapsLink: string;
   driveLink?: string;
@@ -174,12 +175,15 @@ export interface Property {
   totalRooms?: number;
   isPublished?: boolean;
   commissionIncludesIVA?: boolean;
+  commissionBaseDeduction?: number; // Cantidad a descontar de la base antes de aplicar % (ej: limpieza incluida)
   propertyHistory?: HistoricalTenant[];
   internalScreenshotUrls?: string[];
   screenshotFolderUrl?: string;
   timeline?: RoomTimelineEvent[];
   maintenanceTimeline?: RoomTimelineEvent[];
   cleaningTimeline?: RoomTimelineEvent[];
+  forSale?: boolean; // NEW: Propiedad en venta
+  photosDriveUrl?: string; // NEW: Enlace a carpeta de fotos/vídeos
 }
 
 // Función auxiliar para generar enlace de maps
@@ -206,6 +210,7 @@ export const properties: Property[] = [
     },
     managementCommission: 14,
     commissionIncludesIVA: false,
+    paymentFlow: 'tenant_rentia_owner',
     rooms: [
       {
         id: 'MIGUELBALLESTA8_H1',
@@ -319,26 +324,148 @@ export const properties: Property[] = [
     city: 'El Palmar (Murcia)',
     floor: '1º Dcha',
     image: '', // Pendiente subir fotos desde panel
+    video: 'https://drive.google.com/file/d/1RXgU7cICJ-XI8XMDCq_CLHxVQ4fXZ69m/view',
     bathrooms: 2,
     googleMapsLink: getMapsLink('Av. Primero de Mayo 54, El Palmar, Murcia'),
-    internalNotes: 'Ref Catastral: 2007204XH6020N0020RZ. Seguro: Mutua Madrileña 915555555. 200m2. Cert. Eficiencia: Sí. Cédula: No.',
+    driveLink: 'https://drive.google.com/drive/folders/1IUWatoqopzC-ZuyEAPfVNKSc2GO7CvID',
+    photosDriveUrl: 'https://drive.google.com/drive/folders/1v1Xh7iD-kcu9277ls1-rZVibv1Lco87u',
+    internalNotes: 'Ref Catastral: 2007204XH6020N0020RZ. Seguro: Mutua Madrileña 915555555. 200m2. Cert. Eficiencia: Sí. Cédula: No. LIQUIDACIÓN ESPECIAL: H2 y H4 Cuota Fija Mínima 35€/mes (si el consumo prorrateado es mayor, pagan exceso). H1, H3 y H5 cobran prorrateo puro por días. H1 tiene provisión de 25€.',
+    bankAccount: 'ES68 0081 5199 4600 0193 5799',
+    bankAccountHolder: 'REAL STATE CAPITAL STRATEGY S.L.',
+    timeline: [
+      { id: 'PM54_H3_CONTRACT', date: '01/01/2025', text: 'Inicio contrato H3: María José Fariña Rodríguez', type: 'contract' },
+      { id: 'PM54_H5_CONTRACT', date: '01/01/2025', text: 'Inicio contrato H5: Diego Mauricio Terán Campelo', type: 'contract' },
+      { id: 'PM54_H4_CONTRACT', date: '20/09/2025', text: 'Inicio contrato H4: Aarón Joshua Hoskin', type: 'contract' },
+      { id: 'PM54_H5_MARIA_CHANGE', date: '29/01/2026', text: 'María José se muda de H3 a H5', type: 'maintenance' },
+      { id: 'PM54_H5_MARIA_START', date: '01/02/2026', text: 'Inicio contrato H5: María José Fariña Rodríguez (Baño Privado)', type: 'contract' },
+    ],
+    totalRooms: 5,
+    paymentFlow: 'tenant_rentia_owner',
+    managementCommission: 15,
     rooms: [
-      { id: 'PRIMEROMAYO54_H1', name: 'H1', price: 300, status: 'occupied', availableFrom: 'Consultar', expenses: 'Se reparten los gastos' },
-      { id: 'PRIMEROMAYO54_H2', name: 'H2', price: 300, status: 'occupied', availableFrom: 'Consultar', expenses: 'Se reparten los gastos' },
-      { id: 'PRIMEROMAYO54_H3', name: 'H3', price: 300, status: 'occupied', availableFrom: 'Consultar', expenses: 'Se reparten los gastos' },
-      { id: 'PRIMEROMAYO54_H4', name: 'H4', price: 300, status: 'occupied', availableFrom: 'Consultar', expenses: 'Se reparten los gastos' },
+      {
+        id: 'PRIMEROMAYO54_H1',
+        name: 'H1',
+        price: 270,
+        status: 'occupied',
+        availableFrom: '30/11/2025',
+        expenses: 'Prorrateo proporcional por días (Provisión de 25€)',
+        driveUrl: 'https://drive.google.com/drive/folders/1C3F-EZr6vlA2uDmsaYFiV0qUrHsAH6jV',
+        tenant: {
+          name: 'Oscar Mauricio Gómez Arango',
+          email: 'sonerolatino1978@gmail.com',
+          phone: '+57 3244545220',
+          idNumber: 'PASAPORTE BE972115',
+          startDate: '01/12/2024',
+          endDate: '30/11/2025',
+          deposit: 270
+        }
+      },
+      {
+        id: 'PRIMEROMAYO54_H2',
+        name: 'H2',
+        price: 415,
+        status: 'occupied',
+        availableFrom: '31/12/2025',
+        expenses: 'Mínimo 35€/mes (o prorrateo si es superior)',
+        driveUrl: 'https://drive.google.com/drive/folders/1U-TM16Qoj1JUe5xV_U0mL2xB9MSBj8qG',
+        tenant: {
+          name: 'Edmundo Fulgencio',
+          email: '',
+          phone: '',
+          idNumber: '',
+          startDate: '01/01/2025',
+          endDate: '31/12/2025',
+          deposit: 415
+        }
+      },
+      {
+        id: 'PRIMEROMAYO54_H3',
+        name: 'H3',
+        price: 415,
+        status: 'available',
+        availableFrom: 'Inmediata',
+        expenses: 'Prorrateo proporcional por días',
+        driveUrl: 'https://drive.google.com/drive/folders/1zW3jpW_1duc5feq5OrXKef9hj_-aDMpi',
+        timeline: [
+          { id: 'H3_MARIA_EXIT', date: '29/01/2026', text: 'María José se muda a la H5 (Baño privado). Habitación disponible.', type: 'info' }
+        ],
+        tenantHistory: [
+          {
+            name: 'María José Fariña Rodríguez',
+            idNumber: '04336722J',
+            startDate: '01/01/2025',
+            endDate: '31/01/2026',
+            exitDate: '29/01/2026',
+            exitReason: 'Cambio a habitación H5 (Baño privado)',
+            deposit: 415,
+            email: '',
+            phone: ''
+          }
+        ]
+      },
+      {
+        id: 'PRIMEROMAYO54_H4',
+        name: 'H4',
+        price: 295,
+        status: 'occupied',
+        availableFrom: '20/09/2026',
+        expenses: 'Mínimo 35€/mes (o prorrateo si es superior)',
+        driveUrl: 'https://drive.google.com/drive/folders/1TQpiJa6mzID-r-CYrH3ksUvfxV40VWNT',
+        tenant: {
+          name: 'Aarón Joshua Hoskin',
+          email: '',
+          phone: '',
+          idNumber: 'PAS A22245915',
+          startDate: '20/09/2025',
+          endDate: '20/09/2026',
+          deposit: 590,
+          secondTenant: {
+            name: 'Milka Estefani Mora Rodríguez',
+            email: '',
+            phone: '',
+            idNumber: ''
+          }
+        }
+      },
       {
         id: 'PRIMEROMAYO54_H5',
         name: 'H5 (Baño Privado)',
-        price: 405,
-        status: 'available',
-        availableFrom: 'Inmediata',
-        expenses: 'Se reparten los gastos',
+        price: 375,
+        status: 'occupied',
+        availableFrom: '31/12/2025',
+        expenses: 'Prorrateo proporcional por días',
         targetProfile: 'both',
         hasFan: true,
         features: ['private_bath', 'tv', 'lock', 'fan'],
         description: 'Habitación con baño privado, TV y ventilador de techo. Vivienda de 200m2 con terraza. Ideal profesionales sanitarios (Cerca Arrixaca).',
-        notes: 'Fianza 1 mes. Gastos aparte.'
+        driveUrl: 'https://drive.google.com/drive/folders/1fVvbp4Y9ZvQLeS6HULKEmzFV_R4MNXWQ',
+        photosDriveUrl: 'https://drive.google.com/drive/folders/1veoUrZErN4_ApCBO37LVA2YnMhQJw9sk',
+        timeline: [
+          { id: 'H5_DIEGO_EXIT', date: '29/01/2026', text: 'Diego Mauricio finaliza estancia. Habitación ocupada por María José.', type: 'info' },
+          { id: 'H5_MARIA_ENTER', date: '01/02/2026', text: 'María José inicia nuevo contrato (Cambio de habitación H3 -> H5).', type: 'contract' }
+        ],
+        tenant: {
+          name: 'María José Fariña Rodríguez',
+          email: '',
+          phone: '',
+          idNumber: '04336722J',
+          startDate: '01/02/2026',
+          endDate: '31/07/2026',
+          deposit: 450,
+        },
+        tenantHistory: [
+          {
+            name: 'Diego Mauricio Terán Campelo',
+            email: 'Mauricio_tdi@hotmail.com',
+            phone: '+34 611 177 807',
+            idNumber: 'DNI 34326734Q',
+            startDate: '01/01/2025',
+            endDate: '31/12/2025',
+            exitDate: '29/01/2026',
+            deposit: 395
+          }
+        ]
       },
     ]
   },
@@ -348,6 +475,15 @@ export const properties: Property[] = [
     city: 'La Ñora (Murcia)',
     floor: 'Bajo',
     image: '',
+    paymentFlow: 'tenant_owner_rentia', // EXCEPTION: Tenants pay owner directly
+    commissionBaseDeduction: 10, // DEDUCTION: 10€ from each room's price before commission calculation (Cleaning)
+    cleaningConfig: {
+      enabled: true,
+      included: true,
+      hours: 'Incluida en precio (10€/hab)',
+      days: ['Semanal'],
+      costPerHour: 0
+    },
     googleMapsLink: getMapsLink('Calle Rosario, 71, La Ñora, Murcia'),
     rooms: [
       { id: 'ROSARIO71_H1', name: 'H1', price: 330, status: 'occupied', availableFrom: '30/08/2025', expenses: 'Se reparten los gastos', targetProfile: 'students' },
@@ -387,6 +523,8 @@ export const properties: Property[] = [
     transferDay: 8,
     managementCommission: 15,
     paymentFlow: 'tenant_rentia_owner',
+    forSale: true,
+    internalNotes: '⚠️ EN VENTA: Propiedad en proceso de venta. Gestión pasará a otra gestora. Mantener aviso.',
     rooms: [
       { id: 'C_SALZILLO_2_PALMAR_H1', name: 'H1', price: 350, status: 'occupied', availableFrom: '01/08/2025', expenses: 'Gastos fijos aparte', targetProfile: 'both' },
       { id: 'C_SALZILLO_2_PALMAR_H2', name: 'H2', price: 330, status: 'occupied', availableFrom: '01/09/2025', expenses: 'Gastos fijos aparte', targetProfile: 'both' },
@@ -415,17 +553,61 @@ export const properties: Property[] = [
     image: '',
     googleMapsLink: getMapsLink('C. Antonio Flores Guillamón, 27, Espinardo, Murcia'),
     rooms: [
-      { id: 'GUILLAMON27_H1', name: 'H1', price: 340, status: 'occupied', availableFrom: '01/09/2025', expenses: 'Se reparten los gastos' },
+      {
+        id: 'GUILLAMON27_H1',
+        name: 'H1',
+        price: 340,
+        status: 'occupied',
+        availableFrom: '01/02/2026',
+        expenses: 'Se reparten los gastos',
+        notes: '⚠️ PROVISIONAL: Alberto se muda a H4 el 01/02/2026',
+        tenant: {
+          name: 'Alberto (Provisional)',
+          email: 'pendiente@registro.com',
+          phone: '',
+          idNumber: 'PENDIENTE',
+          startDate: '25/01/2026',
+          endDate: '01/02/2026',
+          deposit: 0
+        }
+      },
       { id: 'GUILLAMON27_H2', name: 'H2', price: 270, status: 'occupied', availableFrom: '01/09/2025', expenses: 'Se reparten los gastos' },
       { id: 'GUILLAMON27_H3', name: 'H3', price: 270, status: 'occupied', availableFrom: '01/09/2025', expenses: 'Se reparten los gastos' },
-      { id: 'GUILLAMON27_H4', name: 'H4', price: 250, status: 'occupied', availableFrom: '01/09/2025', expenses: 'Se reparten los gastos' },
+      {
+        id: 'GUILLAMON27_H4',
+        name: 'H4',
+        price: 250,
+        status: 'reserved',
+        availableFrom: '01/02/2026',
+        expenses: 'Se reparten los gastos',
+        notes: 'RESERVADA para Alberto (viene de H1). Entrada 1 Feb.',
+        tenant: {
+          name: 'Alberto',
+          email: 'pendiente@registro.com',
+          phone: '',
+          idNumber: 'PENDIENTE',
+          startDate: '01/02/2026',
+          endDate: '31/01/2027', // Default 1 year? User didn't specify, leaving typical.
+          deposit: 0
+        }
+      },
     ]
   },
   {
     id: 'SANMARCOS21',
     address: 'Calle San Marcos 21',
     city: 'Barrio del Carmen (Murcia)',
+    floor: '5º D',
     image: '',
+    internalNotes: '27/1/2025: Llaves entregadas al técnico Carlos (+34 680 94 84 36) para presupuestar puesta a punto. Protocolo: Notificar cambios en grupo WhatsApp (Propietaria, Carlos, Rentia).',
+    timeline: [
+      {
+        id: 'evt_sm21_keys_carlos',
+        date: '27/01/2025',
+        type: 'maintenance',
+        text: 'Entrega de llaves al técnico Carlos (+34 680 94 84 36) para presupuestar reformas. Comunicación vía grupo WhatsApp.'
+      }
+    ],
     googleMapsLink: getMapsLink('Calle San Marcos 21, Barrio del Carmen, Murcia'),
     rooms: [
       { id: 'SANMARCOS_21_H1', name: 'H1', price: 260, status: 'occupied', availableFrom: '01/09/2025', expenses: 'Gastos fijos aparte', targetProfile: 'both' },
@@ -433,6 +615,20 @@ export const properties: Property[] = [
       { id: 'SANMARCOS21_H3', name: 'H3', price: 280, status: 'occupied', availableFrom: '03/09/2025', expenses: 'Gastos fijos aparte', targetProfile: 'both' },
       { id: 'SANMARCOS21_H4', name: 'H4', price: 250, status: 'occupied', availableFrom: '29/09/2025', expenses: 'Gastos fijos aparte', targetProfile: 'both' },
       { id: 'SANMARCOS21_H5', name: 'H5', price: 340, status: 'occupied', availableFrom: '03/09/2025', expenses: 'Gastos fijos aparte', targetProfile: 'both' },
+    ]
+  },
+  {
+    id: 'SANMARCOS21_7D',
+    address: 'Calle San Marcos 21',
+    city: 'Barrio del Carmen (Murcia)',
+    floor: '7º D',
+    image: '',
+    googleMapsLink: getMapsLink('Calle San Marcos 21, Barrio del Carmen, Murcia'),
+    rooms: [
+      { id: 'SANMARCOS21_7D_H1', name: 'H1', price: 280, status: 'available', availableFrom: 'Inmediata', expenses: 'Gastos fijos aparte', targetProfile: 'both' },
+      { id: 'SANMARCOS21_7D_H2', name: 'H2', price: 280, status: 'available', availableFrom: 'Inmediata', expenses: 'Gastos fijos aparte', targetProfile: 'both' },
+      { id: 'SANMARCOS21_7D_H3', name: 'H3', price: 280, status: 'available', availableFrom: 'Inmediata', expenses: 'Gastos fijos aparte', targetProfile: 'both' },
+      { id: 'SANMARCOS21_7D_H4', name: 'H4', price: 280, status: 'available', availableFrom: 'Inmediata', expenses: 'Gastos fijos aparte', targetProfile: 'both' },
     ]
   },
   {

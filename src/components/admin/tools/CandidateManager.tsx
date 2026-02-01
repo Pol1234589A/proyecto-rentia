@@ -8,7 +8,7 @@ import { UserCheck, Search, Phone, X, CheckCircle, AlertCircle, Loader2, Mail, C
 import { SensitiveDataDisplay } from '../../common/SecurityComponents';
 import { useAuth } from '../../../contexts/AuthContext';
 
-const STAFF_MEMBERS: StaffMember[] = ['Víctor', 'Administración', 'Ayoub', 'Hugo', 'Colaboradores'];
+const STAFF_MEMBERS: StaffMember[] = ['Ayoub'];
 
 export const CandidateManager: React.FC = () => {
     const { currentUser } = useAuth();
@@ -339,6 +339,18 @@ export const CandidateManager: React.FC = () => {
                     <div className="flex items-center justify-between mb-2">
                         <span className="font-bold text-base md:text-lg text-gray-900 truncate flex flex-wrap items-center gap-2">
                             {c.candidateName}
+                            {c.status === 'approved' && (
+                                <span className="bg-green-50 text-green-700 text-[10px] px-2 py-0.5 rounded border border-green-200 uppercase font-bold flex items-center gap-1" title="Fecha Aprobación">
+                                    <Clock className="w-3 h-3" />
+                                    {(c.assignedDate?.toDate?.() || c.submittedAt?.toDate?.() || new Date()).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                            )}
+                            {c.status === 'pending_review' && (
+                                <span className="bg-yellow-50 text-yellow-700 text-[10px] px-2 py-0.5 rounded border border-yellow-200 uppercase font-bold flex items-center gap-1" title="Fecha Recepción">
+                                    <Clock className="w-3 h-3" />
+                                    {(c.submittedAt?.toDate?.() || new Date()).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                            )}
                             {c.priority === 'Alta' && <span className="bg-red-100 text-red-700 text-[10px] px-2 py-0.5 rounded border border-red-200 uppercase font-bold animate-pulse">Urgente</span>}
                             {isUrgentPending && <span className="bg-red-600 text-white text-[10px] px-2 py-0.5 rounded border border-red-700 uppercase font-bold flex items-center gap-1"><AlertCircle className="w-3 h-3" /> +72H SIN CONTACTO</span>}
                             {c.status === 'rented' && <span className="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded border border-green-200 uppercase">Alquilado</span>}

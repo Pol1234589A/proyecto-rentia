@@ -49,10 +49,14 @@ export const CommissionTrackerBar: React.FC<CommissionTrackerBarProps> = ({ prop
     });
     const [isSaving, setIsSaving] = useState(false);
 
+    const [hasPermission, setHasPermission] = useState(true);
+
     // Cargar gastos desde Firebase cuando cambia el mes/año
     useEffect(() => {
         const loadExpenses = async () => {
             if (typeof selectedYear !== 'number') return;
+            // Reset permission state on year change to retry? Or keep it false if once failed?
+            // Let's keep it responsive.
 
             const monthKey = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
             try {
@@ -61,7 +65,6 @@ export const CommissionTrackerBar: React.FC<CommissionTrackerBarProps> = ({ prop
 
                 if (docSnap.exists()) {
                     const data = docSnap.data();
-                    // Solo actualizamos si el estado es diferente para evitar ciclos
                     setAgencyExpenses({
                         salaries: data.salaries || 0,
                         marketing: data.marketing || 0,
@@ -70,8 +73,16 @@ export const CommissionTrackerBar: React.FC<CommissionTrackerBarProps> = ({ prop
                 } else {
                     setAgencyExpenses({ salaries: 0, marketing: 0, office: 0 });
                 }
-            } catch (error) {
-                console.error("Error loading expenses:", error);
+                setHasPermission(true);
+            } catch (error: any) {
+                if (error.code === 'permission-denied' || error.message.includes('permission')) {
+                    console.warn("No permission to read agency_finances. Using local defaults.");
+                    setHasPermission(false);
+                    // Set defaults so UI works locally at least
+                    setAgencyExpenses({ salaries: 0, marketing: 0, office: 0 });
+                } else {
+                    console.error("Error loading expenses:", error);
+                }
             }
         };
 
@@ -80,8 +91,9 @@ export const CommissionTrackerBar: React.FC<CommissionTrackerBarProps> = ({ prop
 
     // Función de autoguardado debounced
     useEffect(() => {
-        if (typeof selectedYear !== 'number') return;
+        if (typeof selectedYear !== 'number' || !hasPermission) return;
 
+        // Skip initial mount or empty
         const timer = setTimeout(async () => {
             const monthKey = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
             setIsSaving(true);
@@ -91,14 +103,17 @@ export const CommissionTrackerBar: React.FC<CommissionTrackerBarProps> = ({ prop
                     updatedAt: serverTimestamp()
                 }, { merge: true });
                 setTimeout(() => setIsSaving(false), 1000);
-            } catch (error) {
+            } catch (error: any) {
                 console.error("Error saving expenses:", error);
+                if (error.code === 'permission-denied') {
+                    setHasPermission(false);
+                }
                 setIsSaving(false);
             }
         }, 1000);
 
         return () => clearTimeout(timer);
-    }, [agencyExpenses, selectedYear, selectedMonth]);
+    }, [agencyExpenses, selectedYear, selectedMonth, hasPermission]);
 
     const totalExpenses = (agencyExpenses.salaries || 0) + (agencyExpenses.marketing || 0) + (agencyExpenses.office || 0);
 
@@ -136,9 +151,14 @@ export const CommissionTrackerBar: React.FC<CommissionTrackerBarProps> = ({ prop
                     // Si no está ocupada o hay reporte de IMPAGO, Rentia no gana comisión este mes
                     if (r.status !== 'occupied' || r.isNonPayment) return acc;
 
+                    // Apply commission base deduction if any (e.g. cleaning included in price)
+                    const basePrice = Math.max(0, (r.price || 0) - (prop.commissionBaseDeduction || 0));
+
                     const baseComm = r.commissionValue ?? prop.managementCommission ?? 10;
                     const isPercentage = r.commissionType !== 'fixed';
-                    let amount = isPercentage ? ((r.price || 0) * (baseComm / 100)) : baseComm;
+
+                    // Specific calculation
+                    let amount = isPercentage ? (basePrice * (baseComm / 100)) : baseComm;
 
                     if (!prop.commissionIncludesIVA) amount *= 1.21;
 

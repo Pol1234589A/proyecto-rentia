@@ -36,6 +36,7 @@ import { BlogManager } from '../admin/BlogManager';
 import { VisualEditor } from '../admin/VisualEditor'; // Import new editor
 import { AgencyInvoicesPanel } from '../admin/AgencyInvoicesPanel';
 import { PropertyBillingPanel } from '../admin/PropertyBillingPanel';
+import { DossierGenerator } from '../admin/tools/DossierGenerator';
 import { LayoutDashboard, Calculator, Briefcase, Wrench, Plus, Search, FileText, Save, X, DollarSign, Calendar as CalendarIcon, Filter, Pencil, PieChart, Landmark, Wallet, Clock, Zap, Settings, Receipt, Split, Info, MessageCircle, Share2, ClipboardList, UserCheck, Mail, Phone, ArrowRight, UserPlus, Inbox, Home, DoorOpen, Menu, Activity, ShieldAlert, UserCog, Siren, Footprints, BarChart3, Building, Grid, Globe, Send, Users, Key, Layout, Palette, Printer, Book, BookOpen, CreditCard } from 'lucide-react';
 import { ProtocolsView } from './staff/ProtocolsView';
 import { TrainingView } from './staff/TrainingView';
@@ -72,8 +73,8 @@ export const StaffDashboard: React.FC = () => {
     const isInternal = userRole === 'staff' || userRole === 'agency' || userRole === 'manager';
     const isWorker = userRole === 'worker';
 
-    const [activeTab, setActiveTab] = useState<'overview' | 'room_manager' | 'real_estate' | 'accounting' | 'tools' | 'contracts' | 'calendar' | 'supplies' | 'calculator' | 'social' | 'tasks' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'transfers' | 'advanced_calc' | 'management_leads' | 'site_config' | 'blog_manager' | 'visual_editor' | 'agency_invoices' | 'billing_info' | 'protocols' | 'candidates' | 'training'>('overview');
-    const [activeMobileTab, setActiveMobileTab] = useState<'overview' | 'tasks' | 'candidates' | 'properties' | 'menu' | 'accounting' | 'supplies' | 'calendar' | 'contracts' | 'social' | 'calculator' | 'tools' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'advanced_calc' | 'management_leads' | 'site_config' | 'blog_manager' | 'visual_editor' | 'agency_invoices' | 'billing_info' | 'protocols' | 'training' | 'room_manager'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'room_manager' | 'real_estate' | 'accounting' | 'tools' | 'contracts' | 'calendar' | 'supplies' | 'calculator' | 'social' | 'tasks' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'transfers' | 'advanced_calc' | 'management_leads' | 'site_config' | 'blog_manager' | 'visual_editor' | 'agency_invoices' | 'billing_info' | 'protocols' | 'candidates' | 'training' | 'incidents' | 'dossier_generator'>('overview');
+    const [activeMobileTab, setActiveMobileTab] = useState<'overview' | 'tasks' | 'candidates' | 'properties' | 'menu' | 'accounting' | 'supplies' | 'calendar' | 'contracts' | 'social' | 'calculator' | 'tools' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'advanced_calc' | 'management_leads' | 'site_config' | 'blog_manager' | 'visual_editor' | 'agency_invoices' | 'billing_info' | 'protocols' | 'training' | 'room_manager' | 'incidents' | 'dossier_generator'>('overview');
 
     const isManagerRole = userRole === 'manager';
     const isAdminUI = userRole === 'manager' || currentUser?.email === 'vanesa@rentiaroom.com' || currentUser?.email === 'administracion@rentiaroom.com' || currentUser?.email === 'administracion.rentia@rentiaroom.com' || currentUser?.email === 'info@rentiaroom.com' || currentUser?.email === 'rentiaroom@gmail.com' || currentUser?.email === 'matencioespinosapol@gmail.com';
@@ -344,11 +345,14 @@ export const StaffDashboard: React.FC = () => {
         { id: 'room_manager', label: 'Gestión Habitaciones', icon: <DoorOpen className="w-4 h-4 text-green-400" /> },
         { id: 'contracts', label: 'Contratos (MANTENIMIENTO)', icon: <FileText className="w-4 h-4 text-pink-400" /> },
         { id: 'tasks', label: 'Mis Tareas', icon: <ClipboardList className="w-4 h-4" /> },
+        { id: 'incidents', label: 'Incidencias', icon: <Siren className="w-4 h-4 text-red-500" /> },
+        { id: 'calculator', label: 'Calc. Suministros', icon: <Calculator className="w-4 h-4 text-amber-500" /> },
         { id: 'management_leads', label: 'Captación', icon: <Key className="w-4 h-4" />, count: pendingMgmtLeadsCount },
         { id: 'billing_info', label: 'Información Facturación', icon: <CreditCard className="w-4 h-4 text-emerald-500" /> },
         { id: 'requests', label: 'Solicitudes', icon: <Inbox className="w-4 h-4" />, count: pendingRequestsCount },
         { id: 'agency_invoices', label: 'Facturas Rentia', icon: <Printer className="w-4 h-4" /> },
         { id: 'training', label: 'Formación', icon: <BookOpen className="w-4 h-4 text-purple-500" /> },
+        { id: 'dossier_generator', label: 'Generador Dossier', icon: <FileText className="w-4 h-4 text-orange-500" /> },
     ];
 
 
@@ -362,6 +366,8 @@ export const StaffDashboard: React.FC = () => {
         { id: 'agency_invoices', label: 'Facturas', icon: <Printer className="w-6 h-6" />, color: 'bg-gray-100 text-gray-600' },
         { id: 'protocols', label: 'Protocolos', icon: <Book className="w-6 h-6" />, color: 'bg-sky-100 text-sky-600' },
         { id: 'training', label: 'Formación', icon: <BookOpen className="w-6 h-6" />, color: 'bg-purple-100 text-purple-600' },
+        { id: 'incidents', label: 'Incidencias', icon: <Siren className="w-6 h-6" />, color: 'bg-red-100 text-red-600' },
+        { id: 'calculator', label: 'Suministros', icon: <Calculator className="w-6 h-6" />, color: 'bg-amber-100 text-amber-600' },
 
         // Admin Extra Tools (Hidden for Vanesa in view logic if desired, but simplifying mobile menu for all)
         { id: 'site_config', label: 'Config Web', icon: <Settings className="w-6 h-6" />, color: 'bg-indigo-50 text-indigo-400' },
@@ -433,6 +439,8 @@ export const StaffDashboard: React.FC = () => {
             case 'agency_invoices': return <div className="h-full overflow-y-auto pb-24"><AgencyInvoicesPanel /></div>;
             case 'billing_info': return <div className="h-full overflow-y-auto pb-24"><PropertyBillingPanel properties={propertiesList} /></div>;
             case 'calculator': return <div className="h-full overflow-y-auto pb-24"><SupplyCalculator properties={propertiesList} preSelectedPropertyId={selectedPropId} /></div>;
+            case 'incidents': return <div className="h-full overflow-y-auto pb-24"><TaskManager initialCategoryFilter="Mantenimiento" properties={propertiesList} titleOverride="Gestión de Incidencias" /></div>;
+            case 'dossier_generator': return <div className="h-full overflow-y-auto pb-24"><DossierGenerator /></div>;
             case 'social': return <div className="h-full overflow-y-auto pb-24"><SocialInbox /></div>;
             case 'tools': return <div className="h-full overflow-y-auto p-4 space-y-4 pb-24"><NewsManager /><ProfitCalculator /></div>;
             default: return null;
@@ -577,6 +585,8 @@ export const StaffDashboard: React.FC = () => {
                     {activeTab === 'contracts' && <div className="animate-in slide-in-from-bottom-4 duration-300"><ContractManager properties={propertiesList} onClose={() => setActiveTab('real_estate')} /></div>}
                     {activeTab === 'calendar' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><CalendarManager /></div>}
                     {activeTab === 'calculator' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><SupplyCalculator properties={propertiesList} preSelectedPropertyId={selectedPropId} /></div>}
+                    {activeTab === 'incidents' && <div className="animate-in slide-in-from-bottom-4 duration-300"><TaskManager initialCategoryFilter="Mantenimiento" properties={propertiesList} titleOverride="Gestión de Incidencias" /></div>}
+                    {activeTab === 'dossier_generator' && <div className="animate-in slide-in-from-bottom-4 duration-300"><DossierGenerator /></div>}
                     {activeTab === 'advanced_calc' && <div className="animate-in slide-in-from-bottom-4 duration-300"><AdvancedCalculator properties={propertiesList} /></div>}
                     {activeTab === 'agency_invoices' && <div className="animate-in slide-in-from-bottom-4 duration-300"><AgencyInvoicesPanel /></div>}
                     {activeTab === 'billing_info' && <div className="animate-in slide-in-from-bottom-4 duration-300"><PropertyBillingPanel properties={propertiesList} /></div>}

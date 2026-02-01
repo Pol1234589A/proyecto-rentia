@@ -218,6 +218,11 @@ service cloud.firestore {
         allow write: if isInternal();
     }
 
+    // 24. FINANZAS DE AGENCIA (GASTOS)
+    match /agency_finances/{monthKey} {
+        allow read, write: if isStaff();
+    }
+
     // Default: Bloquear accesos no definidos
     match /{document=**} {
       allow read, write: if false;

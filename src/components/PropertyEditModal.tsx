@@ -306,6 +306,17 @@ export const PropertyEditModal: React.FC<PropertyEditModalProps> = ({ property, 
                                             className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-bold"
                                         />
                                     </div>
+                                    <div className="md:col-span-1">
+                                        <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Flujo de Pagos</label>
+                                        <select
+                                            value={editedProperty.paymentFlow || 'tenant_rentia_owner'}
+                                            onChange={e => setEditedProperty({ ...editedProperty, paymentFlow: e.target.value as any })}
+                                            className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold cursor-pointer"
+                                        >
+                                            <option value="tenant_rentia_owner">Inquilino → Rentia → Propietario</option>
+                                            <option value="tenant_owner_rentia">Inquilino → Propietario → Rentia</option>
+                                        </select>
+                                    </div>
                                     <div>
                                         <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1 flex items-center gap-1"><Calendar className="w-3 h-3" /> Día Entrega</label>
                                         <input

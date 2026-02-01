@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { db } from '../../firebase';
 import { collection, getDocs, doc, setDoc, deleteDoc, query, where, onSnapshot, updateDoc, getDoc } from 'firebase/firestore';
 import { properties as staticProperties, Property, Room, CleaningConfig, OwnerRecommendation, RoomTimelineEvent, HistoricalTenant, BillingRecord } from '../../data/rooms';
 import { generatePropertySummaryPDF } from '../../utils/pdfGenerator';
-import { Save, RefreshCw, Home, ChevronDown, ChevronRight, Building, Plus, Trash2, X, MapPin, ExternalLink, Wind, Image as ImageIcon, FileText, Settings, Hammer, DollarSign, Percent, Sun, Tv, Lock, Monitor, AlertCircle, User, CheckCircle, Sparkles, Clock, Euro, Calendar, ShieldCheck, ShieldAlert, FileCheck, Download, CreditCard, Phone, Mail, Megaphone, Zap, Info, Send, Wifi, DoorOpen, TrendingUp, Wrench, Eye, EyeOff, Globe, CloudUpload, Receipt, Bed, Bath, Thermometer, Waves, Camera } from 'lucide-react';
+import { generateExcelReport, copyToClipboardForSheets, downloadCSVForSheets, generateIncidentsReport } from '../../utils/excelGenerator';
+import { Save, RefreshCw, Home, ChevronDown, ChevronRight, Building, Plus, Trash2, X, MapPin, ExternalLink, Wind, Image as ImageIcon, FileText, Settings, Hammer, DollarSign, Percent, Sun, Tv, Lock, Monitor, AlertCircle, User, CheckCircle, Sparkles, Clock, Euro, Calendar, ShieldCheck, ShieldAlert, FileCheck, Download, CreditCard, Phone, Mail, Megaphone, Zap, Info, Send, Wifi, DoorOpen, TrendingUp, Wrench, Eye, EyeOff, Globe, CloudUpload, Receipt, Bed, Bath, Thermometer, Waves, Camera, FileSpreadsheet, Copy, Siren } from 'lucide-react';
 import { ImageUploader } from './ImageUploader';
 import { UserProfile, PropertyDocument, SupplyInvoice } from '../../types';
 import { SensitiveDataDisplay } from '../common/SecurityComponents';
@@ -110,6 +111,16 @@ export const RoomManager: React.FC = () => {
     const [roomRecInputs, setRoomRecInputs] = useState<Record<string, string>>({});
     const [docPreview, setDocPreview] = useState<{ isOpen: boolean; url: string; title: string }>({ isOpen: false, url: '', title: '' });
     const [showPdfMenu, setShowPdfMenu] = useState(false);
+    const [activeSection, setActiveSection] = useState<'rooms' | 'incidents'>('rooms'); // NEW: View Switcher
+    const [showExcelConfig, setShowExcelConfig] = useState(false);
+    const [excelConfig, setExcelConfig] = useState({
+        includeTenantInfo: true,
+        includeFinancials: true,
+        includeOwnerInfo: false,
+        includeCleaningInfo: false,
+        includeTimelines: false,
+        groupBy: 'none' as 'none' | 'city' | 'status' | 'topic'
+    });
 
     useEffect(() => {
         const unsubProps = onSnapshot(collection(db, "properties"), (snapshot) => {
@@ -117,7 +128,28 @@ export const RoomManager: React.FC = () => {
             snapshot.forEach(doc => {
                 fireMap[doc.id] = { ...doc.data(), id: doc.id } as Property;
             });
-            const merged = staticProperties.map(p => fireMap[p.id] || p);
+            const merged = staticProperties.map(p => {
+                const remote = fireMap[p.id];
+                if (remote) {
+                    // Priorizamos datos estáticos para campos estructurales y de contrato inicial
+                    return {
+                        ...remote,
+                        address: p.address,
+                        floor: p.floor,
+                        rooms: p.rooms,
+                        internalNotes: p.internalNotes || remote.internalNotes,
+                        bankAccount: p.bankAccount || remote.bankAccount,
+                        bankAccountHolder: p.bankAccountHolder || remote.bankAccountHolder,
+                        driveLink: p.driveLink || remote.driveLink,
+                        photosDriveUrl: p.photosDriveUrl || remote.photosDriveUrl,
+                        timeline: p.timeline || remote.timeline,
+                        paymentFlow: p.paymentFlow || remote.paymentFlow,
+                        totalRooms: p.totalRooms || remote.totalRooms,
+                        managementCommission: p.managementCommission || remote.managementCommission
+                    };
+                }
+                return p;
+            });
             Object.keys(fireMap).forEach(id => {
                 if (!staticProperties.find(sp => sp.id === id)) merged.push(fireMap[id]);
             });
@@ -137,6 +169,21 @@ export const RoomManager: React.FC = () => {
 
         return () => { unsubProps(); unsubUsers(); unsubDocs(); unsubInv(); };
     }, []);
+
+    // --- NEW: Helper for Incidents Dashboard ---
+    const allIncidents = useMemo(() => {
+        const incidents: { pId: string; rId: string; pName: string; rName: string; evt: RoomTimelineEvent }[] = [];
+        properties.forEach(p => {
+            (p.rooms || []).forEach(r => {
+                (r.timeline || []).forEach(t => {
+                    if (t.type === 'incident' || t.type === 'maintenance') {
+                        incidents.push({ pId: p.id, rId: r.id, pName: p.address, rName: r.name, evt: t });
+                    }
+                });
+            });
+        });
+        return incidents.sort((a, b) => new Date(b.evt.date).getTime() - new Date(a.evt.date).getTime()); // Newest first
+    }, [properties]);
 
     const handleSaveAll = async (propId: string) => {
         setSaving(true);
@@ -288,6 +335,22 @@ export const RoomManager: React.FC = () => {
                                         <p className="text-[9px] text-slate-400 font-bold uppercase">Libres + Dir. Pública</p>
                                     </div>
                                 </button>
+
+                                <div className="my-2 border-t border-slate-50"></div>
+                                <p className="px-4 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Formatos Editables</p>
+
+                                <button
+                                    onClick={() => { setShowPdfMenu(false); setShowExcelConfig(true); }}
+                                    className="w-full text-left px-5 py-3 hover:bg-slate-50 flex items-center gap-3 transition-colors group"
+                                >
+                                    <div className="p-2 bg-green-50 text-green-700 rounded-lg group-hover:bg-green-600 group-hover:text-white transition-colors">
+                                        <FileSpreadsheet className="w-4 h-4" />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-black text-slate-800">Excel / Google Sheets (.xlsx)</p>
+                                        <p className="text-[9px] text-slate-400 font-bold uppercase">Incluye colores y formato</p>
+                                    </div>
+                                </button>
                             </div>
                         )}
                     </div>
@@ -319,7 +382,98 @@ export const RoomManager: React.FC = () => {
                 </div>
             )}
 
-            <div className="space-y-6">
+            {activeSection === 'incidents' && (
+                <section className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 mb-8">
+                    <div className="bg-gradient-to-r from-red-500 to-rose-600 rounded-3xl p-8 shadow-2xl shadow-red-500/20 text-white flex justify-between items-center">
+                        <div>
+                            <h2 className="text-3xl font-black uppercase tracking-tight flex items-center gap-4">
+                                <Siren className="w-10 h-10" /> Centro de Incidencias
+                            </h2>
+                            <p className="text-red-100 font-medium mt-2 max-w-2xl text-sm">
+                                Gestión centralizada de problemas, reparaciones y tickets de Ayup.
+                            </p>
+                        </div>
+                        <div className="text-right">
+                            <span className="text-6xl font-black">{allIncidents.length}</span>
+                            <p className="text-xs font-bold uppercase text-red-100 tracking-widest mt-2">{allIncidents.filter(i => !i.evt.text.toLowerCase().includes('resuelto')).length} ABIERTAS</p>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {allIncidents.length === 0 && (
+                            <div className="col-span-full py-20 text-center">
+                                <CheckCircle className="w-16 h-16 text-slate-200 mx-auto mb-4" />
+                                <p className="text-slate-400 font-bold uppercase tracking-widest">Sin incidencias registradas</p>
+                            </div>
+                        )}
+                        {allIncidents.map((item, idx) => {
+                            const isResolved = item.evt.text.toLowerCase().includes('resuelto') || item.evt.text.toLowerCase().includes('solucionado');
+                            const isMaintenance = item.evt.type === 'maintenance';
+                            return (
+                                <div key={idx} className={`group bg-white rounded-3xl p-6 border-2 transition-all hover:scale-[1.01] hover:shadow-xl ${isResolved ? 'border-emerald-100 opacity-75' : isMaintenance ? 'border-orange-100' : 'border-red-100'}`}>
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-inner text-lg font-black ${isResolved ? 'bg-emerald-100 text-emerald-600' : isMaintenance ? 'bg-orange-100 text-orange-600' : 'bg-red-100 text-red-600'}`}>
+                                                {!isResolved ? (isMaintenance ? <Wrench className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />) : <CheckCircle className="w-5 h-5" />}
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">{item.evt.date}</p>
+                                                <h4 className="text-sm font-black text-slate-800 leading-tight">{item.rName}</h4>
+                                            </div>
+                                        </div>
+                                        <span className="text-[9px] font-black bg-slate-100 px-2 py-1 rounded-lg uppercase tracking-tight text-slate-500 max-w-[100px] truncate">{item.pName}</span>
+                                    </div>
+
+                                    <p className="text-xs font-medium text-slate-600 mb-6 line-clamp-4 min-h-[4rem] bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                        {item.evt.text}
+                                    </p>
+
+                                    <div className="flex gap-2">
+                                        {!isResolved && (
+                                            <button
+                                                onClick={() => {
+                                                    if (confirm('¿Marcar como resuelto?')) {
+                                                        const prop = properties.find(p => p.id === item.pId);
+                                                        if (prop) {
+                                                            const room = (prop.rooms || []).find(r => r.id === item.rId);
+                                                            if (room) {
+                                                                const updatedTimeline = room.timeline?.map(t => t.id === item.evt.id ? { ...t, text: `[RESUELTO] ${t.text}` } : t);
+                                                                handleRoomFieldChange(item.pId, item.rId, 'timeline', updatedTimeline);
+                                                            }
+                                                        }
+                                                    }
+                                                }}
+                                                className="flex-1 py-3 rounded-xl bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all flex items-center justify-center gap-2"
+                                            >
+                                                <CheckCircle className="w-3 h-3" /> Resolver
+                                            </button>
+                                        )}
+                                        <button
+                                            onClick={() => {
+                                                if (confirm('¿Eliminar incidencia permanentemente?')) {
+                                                    const prop = properties.find(p => p.id === item.pId);
+                                                    if (prop) {
+                                                        const room = (prop.rooms || []).find(r => r.id === item.rId);
+                                                        if (room) {
+                                                            const updatedTimeline = room.timeline?.filter(t => t.id !== item.evt.id);
+                                                            handleRoomFieldChange(item.pId, item.rId, 'timeline', updatedTimeline);
+                                                        }
+                                                    }
+                                                }
+                                            }}
+                                            className="p-3 rounded-xl bg-slate-50 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </section>
+            )}
+
+            <div className={`space-y-6 ${activeSection !== 'rooms' ? 'hidden' : ''}`}>
                 {properties.map(p => {
                     const isExpanded = expandedProp === p.id;
                     const owner = p.ownerId ? ownersMap[p.ownerId] : null;
@@ -349,6 +503,24 @@ export const RoomManager: React.FC = () => {
                                             <span className={`text-[10px] px-3 py-1 rounded-full font-black uppercase tracking-widest ${p.isPublished !== false ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-500'}`}>
                                                 {p.isPublished !== false ? 'PUBLICADO' : 'BORRADOR'}
                                             </span>
+
+                                            {/* Payment Flow Badge */}
+                                            {p.paymentFlow === 'tenant_owner_rentia' ? (
+                                                <span className="text-[10px] bg-amber-100 text-amber-700 px-3 py-1 rounded-full font-black uppercase tracking-widest border border-amber-200 flex items-center gap-1">
+                                                    <DollarSign className="w-3 h-3" /> PAGO DIRECTO PROP
+                                                </span>
+                                            ) : (
+                                                <span className="text-[10px] bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full font-black uppercase tracking-widest border border-indigo-200 flex items-center gap-1">
+                                                    <ShieldCheck className="w-3 h-3" /> GESTIÓN INTEGRAL
+                                                </span>
+                                            )}
+
+                                            {p.forSale && (
+                                                <span className="text-[10px] bg-rose-600 text-white px-3 py-1 rounded-full font-black uppercase tracking-widest flex items-center gap-2 animate-pulse shadow-lg shadow-rose-500/30">
+                                                    <Megaphone className="w-3.5 h-3.5" /> EN VENTA (GESTIÓN EXTERNA)
+                                                </span>
+                                            )}
+
                                             {(p.rooms || []).some(r => r.status === 'occupied' && !r.driveUrl) && (
                                                 <span className="text-[10px] bg-red-600 text-white px-3 py-1 rounded-full font-black uppercase tracking-widest flex items-center gap-2 animate-pulse shadow-lg shadow-red-500/30">
                                                     <ShieldAlert className="w-3.5 h-3.5" /> CONTRATOS PENDIENTES DRIVE
@@ -624,12 +796,43 @@ export const RoomManager: React.FC = () => {
                                                                 )}
 
                                                                 <div className="mb-6 space-y-2">
-                                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Clock className="w-3 h-3" /> Historial de Auditoría</p>
+                                                                    <div className="flex items-center justify-between">
+                                                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Clock className="w-3 h-3" /> Historial / Bitácora Habitación</p>
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                const text = prompt("Nuevo evento/nota para esta habitación:");
+                                                                                if (text) {
+                                                                                    const newEvt = { id: `evt_${Date.now()}`, date: new Date().toLocaleDateString('es-ES'), text, type: 'info' as const };
+                                                                                    // Logic to update: we need to clone properties, find prop, find room, update timeline. 
+                                                                                    // Since we are inside the render loop, we should probably rely on a handler passed from parent or Context, 
+                                                                                    // but here we are likely in the big RoomManager component.
+                                                                                    // I will implement a quick 'addRoomTimelineEvent' call pattern assuming I can add the helper function or utilize existing update logic through `handleRoomFieldChange` but that takes a single value.
+                                                                                    // Let's rely on `handleRoomFieldChange` passing the whole new timeline array.
+                                                                                    const newTimeline = [...(room.timeline || []), newEvt];
+                                                                                    handleRoomFieldChange(p.id, room.id, 'timeline', newTimeline);
+                                                                                }
+                                                                            }}
+                                                                            className="text-[9px] font-black text-blue-500 hover:text-blue-600 uppercase flex items-center gap-1 bg-blue-50 px-2 py-1 rounded-lg"
+                                                                        >
+                                                                            <Plus className="w-3 h-3" /> Añadir
+                                                                        </button>
+                                                                    </div>
                                                                     <div className="bg-slate-50 p-4 rounded-2xl space-y-3 max-h-32 overflow-y-auto custom-scrollbar border border-slate-100">
-                                                                        {(room.timeline || []).map(evt => (
-                                                                            <div key={evt.id} className="flex gap-3 text-[10px] border-l-2 border-slate-200 pl-3">
+                                                                        {(room.timeline || []).map((evt, idx) => (
+                                                                            <div key={evt.id || idx} className="flex gap-3 text-[10px] border-l-2 border-slate-200 pl-3 group relative">
                                                                                 <span className="text-slate-400 font-mono tracking-tighter shrink-0">{evt.date}</span>
-                                                                                <p className="text-slate-600"><span className={`font-black uppercase mr-1 ${evt.type === 'incident' ? 'text-red-500' : 'text-blue-500'}`}>{evt.type}:</span> {evt.text}</p>
+                                                                                <p className="text-slate-600 flex-1"><span className={`font-black uppercase mr-1 ${evt.type === 'incident' ? 'text-red-500' : 'text-blue-500'}`}>{evt.type}:</span> {evt.text}</p>
+                                                                                <button
+                                                                                    onClick={() => {
+                                                                                        if (confirm('¿Borrar evento?')) {
+                                                                                            const newTimeline = room.timeline?.filter(t => t.id !== evt.id);
+                                                                                            handleRoomFieldChange(p.id, room.id, 'timeline', newTimeline);
+                                                                                        }
+                                                                                    }}
+                                                                                    className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-500 transition-opacity absolute right-0 top-0 bg-slate-50 pl-2"
+                                                                                >
+                                                                                    <Trash2 className="w-3 h-3" />
+                                                                                </button>
                                                                             </div>
                                                                         ))}
                                                                         {(!room.timeline || room.timeline.length === 0) && <p className="text-[10px] italic text-slate-300 text-center py-2">Sin actividad reciente.</p>}
@@ -663,6 +866,70 @@ export const RoomManager: React.FC = () => {
                                                     ) : (
                                                         <p className="text-center py-6 text-slate-400 italic bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">Sin propietario vinculado.</p>
                                                     )}
+
+                                                    {/* NEW: Payment Flow Configuration */}
+                                                    <div className="mt-8 pt-8 border-t border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-8">
+                                                        <div>
+                                                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                                                <DollarSign className="w-4 h-4 text-emerald-500" /> Configuración de Cobros
+                                                            </h4>
+                                                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-4">
+                                                                <div>
+                                                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-2">Modalidad de Gestión</label>
+                                                                    <div className="flex gap-2">
+                                                                        <button
+                                                                            onClick={() => handlePropertyFieldChange(p.id, 'paymentFlow', 'tenant_rentia_owner')}
+                                                                            className={`flex-1 p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${p.paymentFlow !== 'tenant_owner_rentia' ? 'bg-white border-blue-500 shadow-lg shadow-blue-500/10' : 'bg-slate-100 border-transparent opacity-60 hover:opacity-100'}`}
+                                                                        >
+                                                                            <ShieldCheck className={`w-5 h-5 ${p.paymentFlow !== 'tenant_owner_rentia' ? 'text-blue-600' : 'text-slate-400'}`} />
+                                                                            <span className={`text-[9px] font-black uppercase ${p.paymentFlow !== 'tenant_owner_rentia' ? 'text-blue-700' : 'text-slate-500'}`}>Integral (Rentia Cobra)</span>
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => handlePropertyFieldChange(p.id, 'paymentFlow', 'tenant_owner_rentia')}
+                                                                            className={`flex-1 p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${p.paymentFlow === 'tenant_owner_rentia' ? 'bg-white border-amber-500 shadow-lg shadow-amber-500/10' : 'bg-slate-100 border-transparent opacity-60 hover:opacity-100'}`}
+                                                                        >
+                                                                            <User className={`w-5 h-5 ${p.paymentFlow === 'tenant_owner_rentia' ? 'text-amber-600' : 'text-slate-400'}`} />
+                                                                            <span className={`text-[9px] font-black uppercase ${p.paymentFlow === 'tenant_owner_rentia' ? 'text-amber-700' : 'text-slate-500'}`}>Directo al Propietario</span>
+                                                                        </button>
+                                                                    </div>
+                                                                    <p className="text-[9px] text-slate-400 mt-2 font-medium italic text-center">
+                                                                        {p.paymentFlow === 'tenant_owner_rentia'
+                                                                            ? "⚠️ El inquilino paga al propietario. Rentia factura comisión al propietario."
+                                                                            : "✅ El inquilino paga a Rentia. Rentia transfiere al prop. descontando comisión."}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div>
+                                                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                                                <Percent className="w-4 h-4 text-rentia-blue" /> Comisión de Gestión
+                                                            </h4>
+                                                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                                                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-2">Porcentaje Aplicado</label>
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className="relative flex-1">
+                                                                        <input
+                                                                            type="number"
+                                                                            value={p.managementCommission || 0}
+                                                                            onChange={e => handlePropertyFieldChange(p.id, 'managementCommission', Number(e.target.value))}
+                                                                            className="w-full p-3 pl-4 bg-white border border-slate-200 rounded-xl font-black text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                                                        />
+                                                                        <span className="absolute right-4 top-3 text-slate-400 font-black">%</span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <button
+                                                                            onClick={() => handlePropertyFieldChange(p.id, 'commissionIncludesIVA', !p.commissionIncludesIVA)}
+                                                                            className={`p-3 rounded-xl border-2 transition-all ${p.commissionIncludesIVA ? 'bg-green-100 border-green-200 text-green-700' : 'bg-white border-slate-200 text-slate-400'}`}
+                                                                            title="¿IVA Incluido?"
+                                                                        >
+                                                                            <span className="text-[10px] font-black uppercase">+IVA</span>
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                     <div className="mt-8 bg-white p-8 rounded-3xl border-2 border-slate-100 shadow-xl shadow-slate-200/20">
                                                         <div className="flex justify-between items-center mb-6">
                                                             <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><ImageIcon className="w-4 h-4 text-purple-600" /> Galería Zonas Comunes (Vivienda Completa)</h4>
@@ -752,6 +1019,7 @@ export const RoomManager: React.FC = () => {
                                             {saving ? <RefreshCw className="animate-spin" /> : <Save />}
                                             {saving ? 'GUARDANDO...' : 'GUARDAR CAMBIOS'}
                                         </button>
+
                                     </div>
                                 </div>
                             )}
@@ -760,6 +1028,104 @@ export const RoomManager: React.FC = () => {
                 })}
             </div>
 
+
+            {showExcelConfig && (
+                <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in" onClick={() => setShowExcelConfig(false)}>
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
+                        <div className="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                            <div>
+                                <h3 className="text-xl font-black text-slate-800 flex items-center gap-2">
+                                    <FileSpreadsheet className="w-6 h-6 text-green-600" />
+                                    Exportar Excel
+                                </h3>
+                                <p className="text-[10px] font-black uppercase text-slate-400">Personaliza el contenido del informe</p>
+                            </div>
+                            <button onClick={() => setShowExcelConfig(false)} className="p-2 hover:bg-slate-200 rounded-full transition-colors" title="Cerrar"><X className="w-5 h-5 text-slate-400" /></button>
+                        </div>
+
+                        <div className="p-8 space-y-8">
+                            {/* Seccion: Contenido */}
+                            <div>
+                                <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><Settings className="w-4 h-4" /> Datos a Incluir</h4>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <label className="flex items-center gap-3 p-3 rounded-xl border-2 border-slate-100 cursor-pointer hover:border-blue-200 transition-colors">
+                                        <input type="checkbox" className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500" checked={excelConfig.includeTenantInfo} onChange={e => setExcelConfig({ ...excelConfig, includeTenantInfo: e.target.checked })} />
+                                        <span className="text-sm font-bold text-slate-700">Datos Inquilino</span>
+                                    </label>
+                                    <label className="flex items-center gap-3 p-3 rounded-xl border-2 border-slate-100 cursor-pointer hover:border-blue-200 transition-colors">
+                                        <input type="checkbox" className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500" checked={excelConfig.includeFinancials} onChange={e => setExcelConfig({ ...excelConfig, includeFinancials: e.target.checked })} />
+                                        <span className="text-sm font-bold text-slate-700">Datos Económicos</span>
+                                    </label>
+                                    <label className="flex items-center gap-3 p-3 rounded-xl border-2 border-slate-100 cursor-pointer hover:border-blue-200 transition-colors">
+                                        <input type="checkbox" className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500" checked={excelConfig.includeOwnerInfo} onChange={e => setExcelConfig({ ...excelConfig, includeOwnerInfo: e.target.checked })} />
+                                        <span className="text-sm font-bold text-slate-700">Datos Propietario</span>
+                                    </label>
+                                    <label className="flex items-center gap-3 p-3 rounded-xl border-2 border-slate-100 cursor-pointer hover:border-blue-200 transition-colors">
+                                        <input type="checkbox" className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500" checked={excelConfig.includeCleaningInfo} onChange={e => setExcelConfig({ ...excelConfig, includeCleaningInfo: e.target.checked })} />
+                                        <span className="text-sm font-bold text-slate-700">Datos Limpieza</span>
+                                    </label>
+                                    <label className="flex items-center gap-3 p-3 rounded-xl border-2 border-slate-100 cursor-pointer hover:border-blue-200 transition-colors">
+                                        <input type="checkbox" className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500" checked={excelConfig.includeTimelines} onChange={e => setExcelConfig({ ...excelConfig, includeTimelines: e.target.checked })} />
+                                        <span className="text-sm font-bold text-slate-700">Historial Completo</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            {/* Seccion: Agrupación */}
+                            <div>
+                                <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><MapPin className="w-4 h-4" /> Organización de Pestañas</h4>
+                                <div className="space-y-3">
+                                    <label className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all cursor-pointer ${excelConfig.groupBy === 'none' ? 'border-blue-500 bg-blue-50/50 shadow-lg shadow-blue-500/10' : 'border-slate-100 hover:border-slate-200'}`}>
+                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${excelConfig.groupBy === 'none' ? 'border-blue-600' : 'border-slate-300'}`}>
+                                            {excelConfig.groupBy === 'none' && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
+                                        </div>
+                                        <input type="radio" name="groupBy" value="none" className="hidden" checked={excelConfig.groupBy === 'none'} onChange={() => setExcelConfig({ ...excelConfig, groupBy: 'none' })} />
+                                        <div>
+                                            <p className="font-bold text-slate-800 text-sm">Hoja Única</p>
+                                            <p className="text-[10px] uppercase font-black text-slate-400">Todo el listado en una sola pestaña</p>
+                                        </div>
+                                    </label>
+
+                                    <label className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all cursor-pointer ${excelConfig.groupBy === 'city' ? 'border-blue-500 bg-blue-50/50 shadow-lg shadow-blue-500/10' : 'border-slate-100 hover:border-slate-200'}`}>
+                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${excelConfig.groupBy === 'city' ? 'border-blue-600' : 'border-slate-300'}`}>
+                                            {excelConfig.groupBy === 'city' && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
+                                        </div>
+                                        <input type="radio" name="groupBy" value="city" className="hidden" checked={excelConfig.groupBy === 'city'} onChange={() => setExcelConfig({ ...excelConfig, groupBy: 'city' })} />
+                                        <div>
+                                            <p className="font-bold text-slate-800 text-sm">Pestañas por Ciudad</p>
+                                            <p className="text-[10px] uppercase font-black text-slate-400">Una hoja separada para cada ciudad</p>
+                                        </div>
+                                    </label>
+
+                                    <label className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all cursor-pointer ${excelConfig.groupBy === 'topic' ? 'border-blue-500 bg-blue-50/50 shadow-lg shadow-blue-500/10' : 'border-slate-100 hover:border-slate-200'}`}>
+                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${excelConfig.groupBy === 'topic' ? 'border-blue-600' : 'border-slate-300'}`}>
+                                            {excelConfig.groupBy === 'topic' && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
+                                        </div>
+                                        <input type="radio" name="groupBy" value="topic" className="hidden" checked={excelConfig.groupBy === 'topic'} onChange={() => setExcelConfig({ ...excelConfig, groupBy: 'topic' })} />
+                                        <div>
+                                            <p className="font-bold text-slate-800 text-sm">Pestañas Temáticas</p>
+                                            <p className="text-[10px] uppercase font-black text-slate-400">Estado, Financiero, Contactos...</p>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+                            <button onClick={() => setShowExcelConfig(false)} className="px-6 py-3 rounded-xl font-bold text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors text-xs uppercase tracking-wider">Cancelar</button>
+                            <button
+                                onClick={async () => {
+                                    await generateExcelReport(properties, excelConfig, ownersMap);
+                                    setShowExcelConfig(false);
+                                }}
+                                className="px-8 py-3 rounded-xl font-black bg-green-600 text-white hover:bg-green-700 shadow-xl shadow-green-600/20 active:scale-95 transition-all text-xs uppercase tracking-wider flex items-center gap-2"
+                            >
+                                <FileSpreadsheet className="w-4 h-4" /> Generar Excel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {docPreview.isOpen && (
                 <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-in fade-in" onClick={() => setDocPreview({ ...docPreview, isOpen: false })}>

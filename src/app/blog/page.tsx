@@ -1,6 +1,11 @@
-"use client";
 import React, { Suspense } from 'react';
 import { BlogView } from "@/components/BlogView";
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+    title: 'Blog y Noticias | Alquiler de Habitaciones y Coliving | RentiaRoom',
+    description: 'Noticias, consejos y guía sobre el mercado del coliving y alquiler por habitaciones en Murcia. Mantente informado con RentiaRoom.',
+};
 
 export default function BlogPage() {
     return (

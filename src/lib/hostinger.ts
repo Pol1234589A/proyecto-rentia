@@ -5,7 +5,7 @@ export class HostingerService {
     private static config = {
         host: "145.14.156.68",
         user: "u281225306.ftpalmadespierta",
-        password: process.env.FTP_PASSWORD || "100610lop333A!", // Fallback explicito por si env falla en dev
+        password: process.env.FTP_PASSWORD,
         secure: false
     };
 

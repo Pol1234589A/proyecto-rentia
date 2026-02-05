@@ -8,11 +8,7 @@ CONOCIMIENTO INTEGRAL RENTIAROOM
 1. PROTOCOLOS Y OPERACIONES:
 - Objetivo: Cualificar inquilinos. Pedir siempre Nombre, Apellidos y Ocupación.
 - Credenciales: 
-  * Idealista: info@rentiaroom.com | rentiaroom25A!
-  * Wallapop (Gmail): rentiaroom@gmail.com | adminrentiaA!
-  * Milanuncios: rtrygestion@gmail.com | adminrentia25A!
-  * TikTok: rtrygestion@gmail.com | adminrentia25A! (Operamos en MURCIA).
-  * Rentger: administracion@rentiaroom.com | administracion1A!murcia
+  * Consulta las credenciales actualizadas de portales (Idealista, Wallapop, Milanuncios, TikTok, Rentger) en el manual corporativo o solicita acceso al administrador.
 
 2. COORDINACIÓN:
 - Ayoub (Visitas): +34 638 289 883. Avisar siempre que un candidato sea aceptado.

@@ -99,7 +99,7 @@ export const translations = {
       online: 'En línea',
       available_now: 'Disponible ahora',
       closed_now: 'Cerrado ahora',
-      closed_weekend: 'Cerrado (Fin de semana)',
+      closed_weekend: 'Cerrado (Finde)',
       month: 'mes',
       year: 'año'
     },
@@ -126,7 +126,8 @@ export const translations = {
       director_role: 'Dirección de Inversión',
       schedule_admin: 'Lunes a Viernes: 09:00h - 14:00h',
       schedule_dir: 'Lunes a Viernes: 09:00h - 14:00h',
-      rights: '© 2025 Todos los derechos reservados',
+      rights: '© 2025 RentiaRoom. Todos los derechos reservados.',
+      management_access: 'Acceso Gestión de Activos',
       brokers_link: 'Colaboradores & Agencias'
     },
     home: {
@@ -194,7 +195,7 @@ export const translations = {
       },
       cta: {
         title: '¿Necesitas ayuda con tu propiedad?',
-        subtitle: 'RentiaRoom offers professional and close management. Leave the worries in our hands.',
+        subtitle: 'RentiaRoom te ofrece una gestión profesional y cercana. Deja las preocupaciones en nuestras manos.',
         whatsapp: 'Contactar por WhatsApp',
         call: 'Llamar ahora'
       },
@@ -202,7 +203,49 @@ export const translations = {
         title: 'Experiencias Reales',
         subtitle: 'La satisfacción de nuestros propietarios y clientes es nuestra mejor carta de presentación.',
         quality: 'Calidad Garantizada',
-        verified: 'Verificado'
+        verified: 'Verificado',
+        items: [
+          {
+            name: "Charo Cabello",
+            role: "Propietaria",
+            title: "Profesionalidad y cercanía",
+            text: "Acabo de empezar con RentiaRoom para gestionar el alquiler por habitaciones de mi primer piso y la experiencia no podría estar siendo mejor. Me despreocupo totalmente porque ellos se encargan de todo: encontrar a los inquilinos, firmar los contratos, gestionar el día a día y mantener el piso en buen estado.",
+            initial: "C",
+            color: "bg-[#1c1c1c]"
+          },
+          {
+            name: "Antonio Gil",
+            role: "Cliente",
+            title: "Gran trabajo",
+            text: "Gestión de 10/10 y siempre dispuestos a ayudar y resolver cualquiera incidencia. Muy atentos en todo. Lo recomiendo 100%.",
+            initial: "A",
+            color: "bg-[#0072CE]"
+          },
+          {
+            name: "Paulo Gazzaniga",
+            role: "Propietario",
+            title: "El equipo es muy profesional",
+            text: "Son grandes profesionales y buena gente. Están constantemente ayudando y ofreciendo siempre lo mejor, buscando soluciones y ver qué te conviene en cada momento. Estoy muy contento con ellos.",
+            initial: "P",
+            color: "bg-[#edcd20]"
+          },
+          {
+            name: "Ángeles Patricia Gómez",
+            role: "Cliente",
+            title: "Recomendable 100%",
+            text: "El equipo es un encanto, siempre dispuesto a resolver cualquier situación. Transmite mucha paz y confianza, de 10.",
+            initial: "Á",
+            color: "bg-[#1c1c1c]"
+          },
+          {
+            name: "Eugenio López",
+            role: "Propietario",
+            title: "Gran profesionalidad",
+            text: "He trabajado con ellos desde el inicio de su andadura profesional y todo más que bien, gente muy profesional! Muy recomendables!",
+            initial: "E",
+            color: "bg-[#0072CE]"
+          }
+        ]
       },
       faq: {
         title: 'Preguntas frecuentes',
@@ -394,8 +437,25 @@ export const translations = {
     opportunities: {
       hero: {
         badge: 'Cartera Exclusiva',
-        title: 'Oportunidades de Inversión',
-        subtitle: 'Propiedades seleccionadas y analizadas para ofrecer la máxima rentabilidad a través de nuestro modelo de gestión integral.'
+        title: 'Cartera de Activos High Yield Murcia',
+        subtitle: 'Selección curada de oportunidades inmobiliarias con rentabilidades proyectadas superiores al 8%. Gestión integral 360º incluida.',
+        access: 'Acceso Exclusivo Inversores'
+      },
+      stats: {
+        yield: 'Rentabilidad Media',
+        management: 'Gestión Integral',
+        location: 'Ubicación Prime'
+      },
+      filters: {
+        title: 'Filtros',
+        clear: 'Limpiar todo',
+        subtitle: 'Filtrar Inversiones',
+        min_yield: 'Rentabilidad Bruta Mínima',
+        max_price: 'Precio Máximo Compra',
+        any_price: 'Cualquier precio',
+        until: 'Hasta',
+        results: 'Activos',
+        updated: 'Actualizado en tiempo real'
       },
       empty: {
         title: 'Próximamente más activos',
@@ -428,6 +488,16 @@ export const translations = {
         financial_study: 'Estudio de Rentabilidad',
         includes_fees: 'Incluye Honorarios (3% o 3k)',
         investment_breakdown: 'Desglose de Inversión',
+        no_results: 'No se encontraron activos',
+        try_adjust: 'Prueba a ajustar los filtros para ver más resultados.',
+        see_all: 'Ver todas las oportunidades',
+        footer_desc: 'Especialistas en inversión inmobiliaria de alta rentabilidad y gestión de activos residenciales en Murcia.',
+        contact_title: 'Contacto Directo',
+        guarantees: 'Garantías',
+        g1: 'Análisis de mercado verificado',
+        g2: 'Gestión integral opcional',
+        g3: 'Rentabilidad neta real',
+        confidential_long: 'Documento confidencial para uso exclusivo del destinatario.',
         reform_furniture: 'Reforma + Mobiliario',
         notary_taxes: 'Notaría e Impuestos',
         agency_fees: 'Honorarios Agencia (+IVA)',
@@ -456,7 +526,7 @@ export const translations = {
         video_available: 'Disponible (Ver en web)',
         multimedia: 'Multimedia',
         photos: 'Fotos',
-        see_all: 'Ver todas las fotos',
+        see_all_photos: 'Ver todas las fotos',
         appendix: 'Anexo: Galería Fotográfica',
         confidential: 'Rentia Investments S.L. • Documento confidencial. La información contenida puede estar sujeta a cambios.'
       }
@@ -662,7 +732,7 @@ export const translations = {
       video_tour: 'Video Tour',
       photos: 'Photos',
       see_all_photos: 'See all photos',
-      contact: 'Contact',
+      contact: 'Interested',
       consult: 'Consult',
       available: 'Available',
       occupied: 'Rented',
@@ -671,7 +741,7 @@ export const translations = {
       new: 'New',
       renovation: 'Renovating',
       loading: 'Loading...',
-      close: 'Close',
+      close: 'Close View',
       understood: 'Understood',
       send_message: 'Send message',
       call_now: 'Call now',
@@ -705,11 +775,13 @@ export const translations = {
       legal: 'Legal Notice',
       privacy: 'Privacy Policy',
       cookies: 'Configure Cookies',
+      contact_title: 'Contact Us',
       admin_role: 'Operations Management',
       director_role: 'Investment Direction',
       schedule_admin: 'Monday to Friday: 09:00h - 14:00h',
       schedule_dir: 'Monday to Friday: 09:00h - 14:00h',
-      rights: '© 2025 All rights reserved',
+      rights: '© 2025 RentiaRoom. All rights reserved.',
+      management_access: 'Asset Management Access',
       brokers_link: 'Partners & Agencies'
     },
     home: {
@@ -787,7 +859,49 @@ export const translations = {
         title: 'Real Experiences',
         subtitle: 'The satisfaction of our owners and clients is our best letter of introduction.',
         quality: 'Quality Guaranteed',
-        verified: 'Verified'
+        verified: 'Verified',
+        items: [
+          {
+            name: "Charo Cabello",
+            role: "Owner",
+            title: "Professionalism and proximity",
+            text: "I just started with RentiaRoom to manage my first apartment room rental and the experience couldn't be better. I don't worry at all because they take care of everything: finding tenants, signing contracts, and managing day-to-day operations.",
+            initial: "C",
+            color: "bg-[#1c1c1c]"
+          },
+          {
+            name: "Antonio Gil",
+            role: "Client",
+            title: "Great work",
+            text: "10/10 management and always willing to help and solve any incident. Very attentive in everything. I recommend them 100%.",
+            initial: "A",
+            color: "bg-[#0072CE]"
+          },
+          {
+            name: "Paulo Gazzaniga",
+            role: "Owner",
+            title: "The team is very professional",
+            text: "They are great professionals and good people. They are constantly helping and always offering the best, looking for solutions. I am very happy with them.",
+            initial: "P",
+            color: "bg-[#edcd20]"
+          },
+          {
+            name: "Ángeles Patricia Gómez",
+            role: "Client",
+            title: "100% Recommended",
+            text: "The team is a delight, always willing to resolve any situation. Transmits a lot of peace and confidence, a 10.",
+            initial: "Á",
+            color: "bg-[#1c1c1c]"
+          },
+          {
+            name: "Eugenio López",
+            role: "Owner",
+            title: "Great professionalism",
+            text: "I have worked with them since the beginning of their professional journey and everything more than fine, very professional people! Highly recommended!",
+            initial: "E",
+            color: "bg-[#0072CE]"
+          }
+        ]
       },
       faq: {
         title: 'Frequently Asked Questions',
@@ -978,8 +1092,25 @@ export const translations = {
     opportunities: {
       hero: {
         badge: 'Exclusive Portfolio',
-        title: 'Investment Opportunities',
-        subtitle: 'Properties selected and analyzed to offer maximum profitability through our comprehensive management model.'
+        title: 'High Yield Asset Portfolio Murcia',
+        subtitle: 'Curated selection of real estate opportunities with projected returns above 8%. 360º integral management included.',
+        access: 'Exclusive Investor Access'
+      },
+      stats: {
+        yield: 'Average Yield',
+        management: 'Full Management',
+        location: 'Prime Location'
+      },
+      filters: {
+        title: 'Filters',
+        clear: 'Clear all',
+        subtitle: 'Filter Investments',
+        min_yield: 'Minimum Gross Yield',
+        max_price: 'Maximum Purchase Price',
+        any_price: 'Any price',
+        until: 'Up to',
+        results: 'Assets',
+        updated: 'Updated in real time'
       },
       empty: {
         title: 'More coming soon',
@@ -1012,6 +1143,16 @@ export const translations = {
         financial_study: 'Profitability Study',
         includes_fees: 'Includes Fees (3% or 3k)',
         investment_breakdown: 'Investment Breakdown',
+        no_results: 'No assets found',
+        try_adjust: 'Try adjusting the filters to see more results.',
+        see_all: 'See all opportunities',
+        footer_desc: 'Specialists in high-yield real estate investment and residential asset management in Murcia.',
+        contact_title: 'Direct Contact',
+        guarantees: 'Guarantees',
+        g1: 'Verified market analysis',
+        g2: 'Optional integral management',
+        g3: 'Real net profitability',
+        confidential_long: 'Confidential document for the exclusive use of the recipient.',
         reform_furniture: 'Renovation + Furniture',
         notary_taxes: 'Notary & Taxes',
         agency_fees: 'Agency Fees (+VAT)',
@@ -1040,7 +1181,7 @@ export const translations = {
         video_available: 'Available (See on web)',
         multimedia: 'Multimedia',
         photos: 'Photos',
-        see_all: 'See all photos',
+        see_all_photos: 'See all photos',
         appendix: 'Anexo: Galería Fotográfica',
         confidential: 'Rentia Investments S.L. • Confidential document. Information contained may be subject to change.'
       }

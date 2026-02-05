@@ -73,7 +73,7 @@ const defaultConfig: SiteConfig = {
         id: 'admin',
         name: 'Gestión Operativa',
         role: 'Atención al Cliente',
-        phone: '34672886369', // Temporarily redirected to director if still needed, but we will mostly hide it
+        phone: '34611978589', // Temporarily redirected to director if still needed, but we will mostly hide it
         email: 'info@rentiaroom.com',
         image: '',
         startHour: 9,
@@ -84,7 +84,7 @@ const defaultConfig: SiteConfig = {
         id: 'director',
         name: 'Dirección General',
         role: 'Director General',
-        phone: '34672886369',
+        phone: '34611978589',
         email: 'info@rentiaroom.com',
         image: '',
         startHour: 9,

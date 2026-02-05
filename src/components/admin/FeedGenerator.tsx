@@ -6,6 +6,8 @@ import { ref, uploadString, getDownloadURL } from 'firebase/storage';
 import { Rss, Download, Copy, Check, Loader2, Globe, RefreshCw, Layers, ExternalLink, Mail, Facebook, CloudUpload, Link as LinkIcon, Server, Settings, Key, Database, Zap, AlertCircle, Trash2, CheckCircle, XCircle, ChevronDown, ChevronRight, Home, Building2, HelpCircle } from 'lucide-react';
 import { Property } from '../../data/rooms';
 import { Opportunity } from '../../types';
+import { useConfig } from '../../contexts/ConfigContext';
+
 
 type PortalId = 'idealista' | 'facebook' | 'trovit' | 'mitula' | 'nestoria' | 'nuroa';
 
@@ -76,7 +78,9 @@ const PORTALS: PortalConfig[] = [
 type FbAction = 'UPDATE' | 'DELETE' | null;
 
 export const FeedGenerator: React.FC = () => {
+    const config = useConfig();
     const [activePortal, setActivePortal] = useState<PortalConfig>(PORTALS[0]);
+
     const [loading, setLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [xmlContent, setXmlContent] = useState('');
@@ -209,7 +213,8 @@ export const FeedGenerator: React.FC = () => {
                         xml += `    </adImages>
     <adContact>
         <contactName>RentiaRoom</contactName>
-        <contactPhone>+34672886369</contactPhone>
+        <contactPhone>+\${config.directorContact.phone}</contactPhone>
+
         <contactEmail>info@rentiaroom.com</contactEmail>
     </adContact>
   </ad>\n`;

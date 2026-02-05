@@ -105,53 +105,7 @@ export const HomeView: React.FC<HomeViewProps> = () => {
         };
     }, [t]);
 
-    const testimonials = [
-        {
-            name: "Charo Cabello",
-            role: "Propietaria",
-            date: "Hace 1 mes",
-            title: "Profesionalidad y cercanía",
-            text: "Acabo de empezar con RentiaRoom para gestionar el alquiler por habitaciones de mi primer piso y la experiencia no podría estar siendo mejor. Desde el primer momento han sido claros, eficientes y profesionales. Me despreocupo totalmente porque ellos se encargan de todo: encontrar a los inquilinos, firmar los contratos, gestionar el día a día y mantener el piso en buen estado. Aunque llevo poco tiempo, ya noto la diferencia en tranquilidad y organización. La comunicación con el equipo es rápida y resolutiva, y se nota que saben lo que hacen. Si estás empezando en el alquiler por habitaciones y quieres hacerlo bien desde el principio, los recomiendo sin dudar.",
-            initial: "C",
-            color: "bg-[#1c1c1c]"
-        },
-        {
-            name: "Antonio Gil",
-            role: "Cliente",
-            date: "Hace 2 meses",
-            title: "Gran trabajo",
-            text: "Gestión de 10/10 y siempre dispuestos a ayudar y resolver cualquiera incidencia. Muy atentos en todo. Lo recomiendo 100%.",
-            initial: "A",
-            color: "bg-[#0072CE]"
-        },
-        {
-            name: "Paulo Gazzaniga",
-            role: "Propietario",
-            date: "Hace 3 meses",
-            title: "El equipo es muy profesional",
-            text: "Son grandes profesionales y buena gente. Están constantemente ayudando y ofreciendo siempre lo mejor, buscando soluciones y ver qué te conviene en cada momento. Estoy muy contento con ellos porque mantienen las habitaciones siempre alquiladas y eligen siempre los mejores inquilinos. Los recomiendo 100% unos cracks.",
-            initial: "P",
-            color: "bg-[#edcd20]"
-        },
-        {
-            name: "Ángeles Patricia Gómez",
-            role: "Cliente",
-            date: "Hace 4 meses",
-            title: "Recomendable 100%",
-            text: "El equipo es un encanto, siempre dispuesto a resolver cualquier situación. Transmite mucha paz y confianza, de 10.",
-            initial: "Á",
-            color: "bg-[#1c1c1c]"
-        },
-        {
-            name: "Eugenio López",
-            role: "Propietario",
-            date: "Hace 5 meses",
-            title: "Gran profesionalidad",
-            text: "He trabajado con ellos desde el inicio de su andadura profesional y todo más que bien, gente muy profesional! La actividad de la gestión de alquileres no es precisamente fácil y ellos lo hacen muy bien! Muy recomendables!",
-            initial: "E",
-            color: "bg-[#0072CE]"
-        }
-    ];
+    const testimonials = t('home.testimonials.items') as any[] || [];
 
     const processSteps: ProcessStep[] = [
         {
@@ -233,28 +187,32 @@ export const HomeView: React.FC<HomeViewProps> = () => {
                                 <span className="animate-in fade-in duration-1000">{activeEvent.heroTitle}</span>
                             ) : (
                                 <>
-                                    {content.hero.titlePrefix} <span className="text-transparent bg-clip-text bg-gradient-to-r from-rentia-gold to-yellow-200">{content.hero.titleHighlight}</span>
+                                    {t('home.hero.title_prefix')} <span className="text-transparent bg-clip-text bg-gradient-to-r from-rentia-gold to-yellow-200">{t('home.hero.title_highlight')}</span>
                                 </>
                             )}
                         </h1>
 
                         <p className="text-base sm:text-lg md:text-xl mb-10 text-gray-100 leading-relaxed max-w-2xl drop-shadow-md">
-                            {activeEvent ? activeEvent.heroSubtitle : content.hero.subtitle}
+                            {activeEvent ? activeEvent.heroSubtitle : t('home.hero.subtitle')}
                         </p>
 
                         <div className="flex flex-col sm:flex-row gap-4 relative z-30">
-                            <Link
-                                href="/contact"
+                            <a
+                                href={`https://wa.me/${config.directorContact.phone}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
                                 className="inline-flex items-center justify-center bg-rentia-blue hover:bg-blue-600 text-white font-bold py-4 px-8 rounded-lg transition-all duration-300 shadow-lg hover:shadow-blue-500/30 transform hover:-translate-y-1 w-full sm:w-auto">
-                                {content.hero.ctaPrimary}
+                                {t('home.hero.cta_primary')}
                                 <ArrowRight className="ml-2 w-5 h-5" />
-                            </Link>
+                            </a>
+                            {/* 
                             <Link
                                 href="/oportunidades"
                                 className="inline-flex items-center justify-center bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/30 font-bold py-4 px-8 rounded-lg transition-all duration-300 pointer-events-auto w-full sm:w-auto"
                             >
-                                {content.hero.ctaSecondary}
+                                {t('home.hero.cta_secondary')}
                             </Link>
+                            */}
                         </div>
                     </div>
                 </div>
@@ -357,8 +315,8 @@ export const HomeView: React.FC<HomeViewProps> = () => {
             <section className="py-20 md:py-24 bg-white relative">
                 <div className="container mx-auto px-4 relative z-10">
                     <div className="text-center max-w-3xl mx-auto mb-12 md:mb-16">
-                        <h2 className="text-2xl md:text-4xl font-bold mb-4 text-rentia-black font-display">{content.solutions.title}</h2>
-                        <p className="text-gray-600">{content.solutions.subtitle}</p>
+                        <h2 className="text-2xl md:text-4xl font-bold mb-4 text-rentia-black font-display">{t('home.solutions.title')}</h2>
+                        <p className="text-gray-600">{t('home.solutions.subtitle')}</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
@@ -366,16 +324,16 @@ export const HomeView: React.FC<HomeViewProps> = () => {
                             <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-blue-50 text-rentia-blue flex items-center justify-center mb-6 group-hover:bg-rentia-blue group-hover:text-white transition-colors duration-300">
                                 <KeyRound className="w-8 h-8 md:w-10 md:h-10" />
                             </div>
-                            <h3 className="text-xl md:text-2xl font-bold mb-3 text-rentia-black group-hover:text-rentia-blue transition-colors">{content.solutions.card1Title}</h3>
-                            <p className="text-gray-600 leading-relaxed text-sm md:text-base">{content.solutions.card1Desc}</p>
+                            <h3 className="text-xl md:text-2xl font-bold mb-3 text-rentia-black group-hover:text-rentia-blue transition-colors">{t('home.solutions.card1_title')}</h3>
+                            <p className="text-gray-600 leading-relaxed text-sm md:text-base">{t('home.solutions.card1_desc')}</p>
                         </div>
 
                         <div className="bg-white p-8 md:p-10 rounded-2xl shadow-idealista hover:shadow-idealista-hover transition-all duration-300 group border border-gray-100 flex flex-col items-center text-center hover:-translate-y-1">
                             <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-yellow-50 text-rentia-gold flex items-center justify-center mb-6 group-hover:bg-rentia-gold group-hover:text-rentia-black transition-colors duration-300">
                                 <Megaphone className="w-8 h-8 md:w-10 md:h-10" />
                             </div>
-                            <h3 className="text-xl md:text-2xl font-bold mb-3 text-rentia-black group-hover:text-rentia-blue transition-colors">{content.solutions.card2Title}</h3>
-                            <p className="text-gray-600 leading-relaxed text-sm md:text-base">{content.solutions.card2Desc}</p>
+                            <h3 className="text-xl md:text-2xl font-bold mb-3 text-rentia-black group-hover:text-rentia-blue transition-colors">{t('home.solutions.card2_title')}</h3>
+                            <p className="text-gray-600 leading-relaxed text-sm md:text-base">{t('home.solutions.card2_desc')}</p>
                         </div>
                     </div>
                 </div>
@@ -389,15 +347,15 @@ export const HomeView: React.FC<HomeViewProps> = () => {
                     <div className="bg-white rounded-2xl shadow-idealista overflow-hidden flex flex-col md:flex-row max-w-6xl mx-auto">
                         <div className="p-8 md:p-16 flex-1 flex flex-col justify-center">
                             <h2 className="text-2xl md:text-4xl font-bold mb-6 text-rentia-black font-display leading-tight">
-                                {content.cta.title}
+                                {t('home.cta.title')}
                             </h2>
                             <p className="text-lg text-gray-600 mb-8">
-                                {content.cta.subtitle}
+                                {t('home.cta.subtitle')}
                             </p>
                             <div className="flex flex-col sm:flex-row gap-4">
                                 <a href={`https://api.whatsapp.com/send?phone=${config.directorContact.phone}&text=Hola, quiero más información sobre vuestros servicios`} target="_blank" rel="noopener noreferrer" className="inline-flex justify-center items-center bg-rentia-blue hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg transition-all duration-300 shadow-md">
                                     <MessageCircle className="w-5 h-5 mr-2" />
-                                    {content.cta.buttonText}
+                                    {t('home.cta.whatsapp')}
                                 </a>
                             </div>
                         </div>
@@ -527,7 +485,7 @@ export const HomeView: React.FC<HomeViewProps> = () => {
                                 <div className="space-y-3 mb-8">
                                     <div className="flex items-center gap-3 text-gray-600 text-sm">
                                         <Clock className="w-4 h-4 text-rentia-gold" />
-                                        <span>Lunes a Viernes: <span className="font-bold text-rentia-black">{String(config.directorContact.startHour).padStart(2, '0')}:00 - {String(config.directorContact.endHour).padStart(2, '0')}:00</span></span>
+                                        <span>{t('common.monday_friday')}: <span className="font-bold text-rentia-black">{String(config.directorContact.startHour).padStart(2, '0')}:00 - {String(config.directorContact.endHour).padStart(2, '0')}:00</span></span>
                                     </div>
                                     <div className="flex items-center gap-3 text-gray-600 text-sm">
                                         <Smartphone className="w-4 h-4 text-rentia-gold" />

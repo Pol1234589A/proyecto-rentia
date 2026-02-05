@@ -97,12 +97,14 @@ export const Header: React.FC<HeaderProps> = () => {
                   </Link>
                 )
               ))}
+              {/* 
               <Link
                 href="/oportunidades"
                 className="text-white hover:text-[#edcd20] font-bold border-b-2 border-[#edcd20] px-1 py-1 text-[15px] transition-colors cursor-pointer"
               >
                 {t('header.opportunities')}
               </Link>
+              */}
 
               {/* Language Switcher Desktop */}
               <button
@@ -183,6 +185,7 @@ export const Header: React.FC<HeaderProps> = () => {
                   </Link>
                 )
               ))}
+              {/* 
               <Link
                 href="/oportunidades"
                 onClick={() => setIsMenuOpen(false)}
@@ -190,6 +193,7 @@ export const Header: React.FC<HeaderProps> = () => {
               >
                 {t('header.opportunities_mobile')}
               </Link>
+              */}
 
               {/* Mobile Login Button */}
               <button

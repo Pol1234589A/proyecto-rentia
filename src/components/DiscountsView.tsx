@@ -212,7 +212,7 @@ export const DiscountsView: React.FC = () => {
 
                     <div className="w-full md:w-auto flex flex-col gap-3 min-w-[250px]">
                       <a
-                        href={`https://api.whatsapp.com/send?phone=34672886369&text=Hola,%20he%20calculado%20mi%20tarifa%20web%20y%20me%20sale%20un%20${result.final}%25.%20Tengo%20${numProperties}%20propiedades.`}
+                        href={`https://api.whatsapp.com/send?phone=${config.directorContact.phone}&text=Hola,%20he%20calculado%20mi%20tarifa%20web%20y%20me%20sale%20un%20${result.final}%25.%20Tengo%20${numProperties}%20propiedades.`}
                         target="_blank"
                         rel="noreferrer"
                         className="bg-rentia-gold hover:bg-yellow-400 text-rentia-black font-bold py-4 px-6 rounded-xl transition-all text-center shadow-lg flex items-center justify-center gap-2"

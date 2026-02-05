@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { Check, UserPlus, FileText, Clock, AlertTriangle, ShieldCheck, Hammer, Search, MessageCircle, X, ArrowRight, Eye, BarChart3, ClipboardCheck, Megaphone, Activity, Loader2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { CollaborationBanner } from './CollaborationBanner';
+import { useConfig } from '../contexts/ConfigContext';
+
 
 interface PainPoint {
     icon: React.ReactNode;
@@ -35,6 +37,8 @@ const ImageWithLoader = ({ src, alt, className, onClick }: { src: string, alt: s
 export const ServicesView: React.FC = () => {
     const [selectedFeature, setSelectedFeature] = useState<PainPoint | null>(null);
     const { t } = useLanguage();
+    const config = useConfig();
+
 
     // --- SEO INJECTION: Service Schema ---
     useEffect(() => {
@@ -191,12 +195,12 @@ export const ServicesView: React.FC = () => {
                 </div>
             </section>
 
-            {/* --- BÚSQUEDA DE OPORTUNIDADES (Rediseñado para armonía visual) --- */}
+            {/* --- BÚSQUEDA DE OPORTUNIDADES (Oculto temporalmente) --- */}
+            {/* 
             <section className="py-16 bg-gray-50">
                 <div className="container mx-auto px-4">
                     <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 relative flex flex-col md:flex-row items-center max-w-6xl mx-auto">
 
-                        {/* Elegant Gold Accent */}
                         <div className="absolute top-0 left-0 w-full h-2 bg-rentia-gold md:w-2 md:h-full"></div>
 
                         <div className="p-8 md:p-12 flex-1">
@@ -227,6 +231,7 @@ export const ServicesView: React.FC = () => {
                     </div>
                 </div>
             </section>
+            */}
 
             {/* Intro Text */}
             <section className="py-16 bg-white">
@@ -422,7 +427,8 @@ export const ServicesView: React.FC = () => {
                         {t('services.cta.subtitle')}
                     </p>
                     <a
-                        href="https://api.whatsapp.com/send?phone=34672886369&text=Hola,%20tengo%20dudas%20sobre%20los%20servicios%20de%20RentiaRoom"
+                        href={`https://api.whatsapp.com/send?phone=${config.directorContact.phone}&text=Hola,%20tengo%20dudas%20sobre%20los%20servicios%20de%20RentiaRoom`}
+
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center bg-[#25D366] hover:bg-[#20ba5c] text-white font-bold py-4 px-8 rounded-full transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1"

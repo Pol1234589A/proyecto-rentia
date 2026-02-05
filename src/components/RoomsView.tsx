@@ -203,17 +203,44 @@ export const RoomsView: React.FC = () => {
         setLoadingProperties(false);
 
         const unsubscribe = onSnapshot(collection(db, "properties"), (snapshot) => {
+            const hasData = (t: any) => t && Object.values(t).some(v => v !== '' && v !== null && v !== undefined);
+
+            const normalizeAddress = (s: string) => {
+                if (!s) return '';
+                const firstPart = s.split(',')[0];
+                return firstPart.toLowerCase()
+                    .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Remove accents
+                    .trim()
+                    .replace(/\bcalle\b/g, 'c')
+                    .replace(/\bc\/\b/g, 'c')
+                    .replace(/\bc\.\b/g, 'c')
+                    .replace(/[^a-z0-9]/g, '');
+            };
+
+            const normalizeFloor = (f: string) => {
+                if (!f) return '';
+                return f.toLowerCase()
+                    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                    .replace(/[^a-z0-9]/g, '')
+                    .replace(/izquierda/g, 'izq')
+                    .replace(/derecha/g, 'der')
+                    .replace(/centro/g, 'ctro');
+            };
+
+            const normalizeRoomName = (n: string) => {
+                if (!n) return '';
+                return n.toLowerCase()
+                    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                    .replace(/habitacion/g, 'h')
+                    .replace(/room/g, 'h')
+                    .replace(/[^a-z0-9]/g, '');
+            };
+
+
+
             const firestoreProps: Property[] = [];
             snapshot.forEach((doc) => {
                 const data = doc.data();
-                const addr = (data.address || '').toLowerCase().trim();
-
-                // Evitar duplicados: Si ya existe una propiedad estática con esta dirección 
-                // pero este documento tiene un ID distinto, lo ignoramos.
-                const isStaticMatch = staticProperties.find(sp => sp.address.toLowerCase().trim() === addr);
-                if (isStaticMatch && doc.id !== isStaticMatch.id) {
-                    return;
-                }
 
                 firestoreProps.push({
                     ...data,
@@ -222,31 +249,117 @@ export const RoomsView: React.FC = () => {
                 } as Property);
             });
 
-            // Fusión: Usar datos de Firestore + datos estáticos que NO estén ya en Firestore (por ID o Dirección)
-            const dbIds = new Set(firestoreProps.map(p => p.id));
-            const dbAddresses = new Set(
-                firestoreProps
-                    .filter(p => p.address)
-                    .map(p => p.address.toLowerCase().trim())
-            );
+            const isDatePast = (dateStr?: string) => {
+                if (!dateStr || dateStr === 'Consultar' || dateStr === 'Inmediata') return false;
+                try {
+                    const parts = dateStr.split('/');
+                    if (parts.length !== 3) return false;
+                    const [day, month, year] = parts.map(Number);
+                    const target = new Date(year, month - 1, day, 23, 59, 59);
+                    return target < new Date();
+                } catch (e) { return false; }
+            };
 
-            const missingStatics = staticProperties.filter(p =>
-                !dbIds.has(p.id) &&
-                p.address &&
-                !dbAddresses.has(p.address.toLowerCase().trim())
-            );
+            // Fusión Inteligente: Usar datos de Firestore + datos estáticos con preferencia por los más actuales
+            const combinedProps = staticProperties.map(sp => {
+                const spAddr = normalizeAddress(sp.address);
+                const spFloor = normalizeFloor(sp.floor || '');
 
-            const combinedProps = [...firestoreProps, ...missingStatics];
+                const remote = firestoreProps.find(p => {
+                    if (p.id === sp.id) return true;
+                    if (normalizeAddress(p.address || '') !== spAddr) return false;
+                    const pFloor = normalizeFloor(p.floor || '');
+                    if (pFloor === spFloor) return true;
+                    const pNum = pFloor.match(/^\d+/)?.[0];
+                    const spNum = spFloor.match(/^\d+/)?.[0];
+                    if (pNum && spNum && pNum === spNum) {
+                        if (pFloor === pNum || spFloor === spNum) return true;
+                    }
+                    return false;
+                });
+
+                if (remote) {
+                    return {
+                        ...sp,
+                        ...remote,
+                        id: sp.id, // Preserve static ID
+                        rooms: sp.rooms.map(sr => {
+                            const srNorm = normalizeRoomName(sr.name);
+                            const rr = remote.rooms?.find(r =>
+                                r.id === sr.id ||
+                                (normalizeRoomName(r.name || '') === srNorm)
+                            );
+                            if (rr) {
+                                const isRemoteTenantExpired = hasData(rr.tenant) && isDatePast(rr.tenant?.endDate);
+                                const isStaticTenantExpired = hasData(sr.tenant) && isDatePast(sr.tenant?.endDate);
+                                const useStaticTenant = (isRemoteTenantExpired && !isStaticTenantExpired) || (!hasData(rr.tenant) && hasData(sr.tenant));
+
+                                return {
+                                    ...sr,
+                                    ...rr,
+                                    tenant: useStaticTenant ? sr.tenant : (hasData(rr.tenant) ? rr.tenant : sr.tenant),
+                                    availableFrom: (isDatePast(rr.availableFrom) && !isDatePast(sr.availableFrom)) ? sr.availableFrom : (rr.availableFrom || sr.availableFrom),
+                                    status: ((useStaticTenant || hasData(rr.tenant) || hasData(sr.tenant))
+                                        ? (rr.status === 'reserved' ? 'reserved' : 'occupied')
+                                        : (rr.status === 'available' ? 'available' : (rr.status || sr.status || 'available'))) as Room['status']
+                                };
+                            }
+                            return sr;
+                        })
+                    };
+                }
+                return sp;
+            });
+
+            // Añadir las que solo están en Firestore
+            firestoreProps.forEach(fp => {
+                const fpAddr = normalizeAddress(fp.address || '');
+                const fpFloor = normalizeFloor(fp.floor || '');
+                const exists = combinedProps.some(cp => {
+                    if (cp.id === fp.id) return true;
+                    if (normalizeAddress(cp.address || '') !== fpAddr) return false;
+                    const cpFloor = normalizeFloor(cp.floor || '');
+                    if (cpFloor === fpFloor) return true;
+                    const cpNum = cpFloor.match(/^\d+/)?.[0];
+                    const fpNum = fpFloor.match(/^\d+/)?.[0];
+                    if (cpNum && fpNum && cpNum === fpNum) {
+                        if (cpFloor === cpNum || fpFloor === fpNum) return true;
+                    }
+                    return false;
+                });
+                if (!exists) combinedProps.push(fp);
+            });
+
+            // Final check to prevent duplicate IDs or Addresses in the final list
+            const uniqueMap = new Map();
+            const addressMap = new Map();
+
+            combinedProps.forEach(p => {
+                const key = `${normalizeAddress(p.address)}|${normalizeFloor(p.floor || '')}`;
+                const idMatch = uniqueMap.has(p.id);
+                const addrMatch = addressMap.has(key);
+
+                if (!idMatch && !addrMatch) {
+                    uniqueMap.set(p.id, p);
+                    addressMap.set(key, p.id);
+                }
+            });
+            const finalProps = Array.from(uniqueMap.values());
+
+
+
 
             // Ordenar alfabéticamente protegiendo contra nulos
-            combinedProps.sort((a, b) => {
+            finalProps.sort((a, b) => {
+
                 const addrA = a.address || '';
                 const addrB = b.address || '';
                 return addrA.localeCompare(addrB);
             });
 
-            setProperties(combinedProps);
+            setProperties(finalProps);
             setLoadingProperties(false);
+
         }, (error) => {
             console.warn("Error obteniendo propiedades de Firestore, usando datos estáticos:", error);
             // Fallback to static is already handled by initial state, but explicit set here ensures it.

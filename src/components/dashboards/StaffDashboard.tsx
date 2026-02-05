@@ -37,7 +37,8 @@ import { VisualEditor } from '../admin/VisualEditor'; // Import new editor
 import { AgencyInvoicesPanel } from '../admin/AgencyInvoicesPanel';
 import { PropertyBillingPanel } from '../admin/PropertyBillingPanel';
 import { DossierGenerator } from '../admin/tools/DossierGenerator';
-import { LayoutDashboard, Calculator, Briefcase, Wrench, Plus, Search, FileText, Save, X, DollarSign, Calendar as CalendarIcon, Filter, Pencil, PieChart, Landmark, Wallet, Clock, Zap, Settings, Receipt, Split, Info, MessageCircle, Share2, ClipboardList, UserCheck, Mail, Phone, ArrowRight, UserPlus, Inbox, Home, DoorOpen, Menu, Activity, ShieldAlert, UserCog, Siren, Footprints, BarChart3, Building, Grid, Globe, Send, Users, Key, Layout, Palette, Printer, Book, BookOpen, CreditCard } from 'lucide-react';
+import { DataExportTool } from '../admin/tools/DataExportTool';
+import { LayoutDashboard, Calculator, Briefcase, Wrench, Plus, Search, FileText, Save, X, DollarSign, Calendar as CalendarIcon, Filter, Pencil, PieChart, Landmark, Wallet, Clock, Zap, Settings, Receipt, Split, Info, MessageCircle, Share2, ClipboardList, UserCheck, Mail, Phone, ArrowRight, UserPlus, Inbox, Home, DoorOpen, Menu, Activity, ShieldAlert, UserCog, Siren, Footprints, BarChart3, Building, Grid, Globe, Send, Users, Key, Layout, Palette, Printer, Book, BookOpen, CreditCard, Download } from 'lucide-react';
 import { ProtocolsView } from './staff/ProtocolsView';
 import { TrainingView } from './staff/TrainingView';
 import { CommissionTrackerBar } from '../admin/CommissionTrackerBar';
@@ -73,7 +74,7 @@ export const StaffDashboard: React.FC = () => {
     const isInternal = userRole === 'staff' || userRole === 'agency' || userRole === 'manager';
     const isWorker = userRole === 'worker';
 
-    const [activeTab, setActiveTab] = useState<'overview' | 'room_manager' | 'real_estate' | 'accounting' | 'tools' | 'contracts' | 'calendar' | 'supplies' | 'calculator' | 'social' | 'tasks' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'transfers' | 'advanced_calc' | 'management_leads' | 'site_config' | 'blog_manager' | 'visual_editor' | 'agency_invoices' | 'billing_info' | 'protocols' | 'candidates' | 'training' | 'incidents' | 'dossier_generator'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'room_manager' | 'real_estate' | 'accounting' | 'tools' | 'contracts' | 'calendar' | 'supplies' | 'calculator' | 'social' | 'tasks' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'transfers' | 'advanced_calc' | 'management_leads' | 'site_config' | 'blog_manager' | 'visual_editor' | 'agency_invoices' | 'billing_info' | 'protocols' | 'candidates' | 'training' | 'incidents' | 'dossier_generator' | 'reports'>('overview');
     const [activeMobileTab, setActiveMobileTab] = useState<'overview' | 'tasks' | 'candidates' | 'properties' | 'menu' | 'accounting' | 'supplies' | 'calendar' | 'contracts' | 'social' | 'calculator' | 'tools' | 'visits' | 'sales_tracker' | 'blacklist' | 'requests' | 'worker_invoices' | 'user_manager' | 'advanced_calc' | 'management_leads' | 'site_config' | 'blog_manager' | 'visual_editor' | 'agency_invoices' | 'billing_info' | 'protocols' | 'training' | 'room_manager' | 'incidents' | 'dossier_generator'>('overview');
 
     const isManagerRole = userRole === 'manager';
@@ -140,14 +141,143 @@ export const StaffDashboard: React.FC = () => {
                 } as Property);
             });
 
-            const dbIds = new Set(firestoreProps.map(p => p.id));
-            const missingStatics = staticProperties.filter(p => !dbIds.has(p.id));
+            const isDatePast = (dateStr?: string) => {
+                if (!dateStr || dateStr === 'Consultar' || dateStr === 'Inmediata') return false;
+                try {
+                    const parts = dateStr.split('/');
+                    if (parts.length !== 3) return false;
+                    const [day, month, year] = parts.map(Number);
+                    const target = new Date(year, month - 1, day, 23, 59, 59);
+                    return target < new Date();
+                } catch (e) { return false; }
+            };
 
-            const allProps = [...firestoreProps, ...missingStatics].map(data => {
-                return data;
+            const hasData = (t: any) => t && Object.values(t).some(v => v !== '' && v !== null && v !== undefined);
+
+            const normalizeAddress = (s: string) => {
+                if (!s) return '';
+                const firstPart = s.split(',')[0];
+                return firstPart.toLowerCase()
+                    .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Remove accents
+                    .trim()
+                    .replace(/\bcalle\b/g, 'c')
+                    .replace(/\bc\/\b/g, 'c')
+                    .replace(/\bc\.\b/g, 'c')
+                    .replace(/[^a-z0-9]/g, '');
+            };
+
+            const normalizeFloor = (f: string) => {
+                if (!f) return '';
+                return f.toLowerCase()
+                    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                    .replace(/[^a-z0-9]/g, '')
+                    .replace(/izquierda/g, 'izq')
+                    .replace(/derecha/g, 'der')
+                    .replace(/centro/g, 'ctro');
+            };
+
+            const normalizeRoomName = (n: string) => {
+                if (!n) return '';
+                return n.toLowerCase()
+                    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                    .replace(/habitacion/g, 'h')
+                    .replace(/room/g, 'h')
+                    .replace(/[^a-z0-9]/g, '');
+            };
+
+
+            const allProps = staticProperties.map(sp => {
+                const spAddr = normalizeAddress(sp.address);
+                const spFloor = normalizeFloor(sp.floor || '');
+
+                const remote = firestoreProps.find(p => {
+                    if (p.id === sp.id) return true;
+                    if (normalizeAddress(p.address) !== spAddr) return false;
+
+                    const pFloor = normalizeFloor(p.floor || '');
+                    if (pFloor === spFloor) return true;
+                    // Flexible floor match: shorthand number matches full description
+                    const pNum = pFloor.match(/^\d+/)?.[0];
+                    const spNum = spFloor.match(/^\d+/)?.[0];
+                    if (pNum && spNum && pNum === spNum) {
+                        if (pFloor === pNum || spFloor === spNum) return true;
+                    }
+                    return false;
+                });
+
+                if (remote) {
+                    return {
+                        ...sp,
+                        ...remote,
+                        id: sp.id, // Preserve static ID for consistency
+                        rooms: sp.rooms.map(sr => {
+                            const srNorm = normalizeRoomName(sr.name);
+                            const rr = remote.rooms?.find(r =>
+                                r.id === sr.id ||
+                                (normalizeRoomName(r.name || '') === srNorm)
+                            );
+                            if (rr) {
+                                // Smart merge for tenant and dates
+                                const isRemoteTenantExpired = hasData(rr.tenant) && isDatePast(rr.tenant?.endDate);
+                                const isStaticTenantExpired = hasData(sr.tenant) && isDatePast(sr.tenant?.endDate);
+                                const useStaticTenant = (isRemoteTenantExpired && !isStaticTenantExpired) || (!hasData(rr.tenant) && hasData(sr.tenant));
+
+                                return {
+                                    ...sr,
+                                    ...rr,
+                                    tenant: useStaticTenant ? sr.tenant : (hasData(rr.tenant) ? rr.tenant : sr.tenant),
+                                    availableFrom: (isDatePast(rr.availableFrom) && !isDatePast(sr.availableFrom)) ? sr.availableFrom : (rr.availableFrom || sr.availableFrom),
+                                    status: ((useStaticTenant || hasData(rr.tenant) || hasData(sr.tenant))
+                                        ? (rr.status === 'reserved' ? 'reserved' : 'occupied')
+                                        : (rr.status === 'available' ? 'available' : (rr.status || sr.status || 'available'))) as Room['status']
+                                };
+                            }
+                            return sr;
+                        })
+                    };
+                }
+                return sp;
             });
 
-            (allProps || []).forEach((data: any) => {
+            // Add props that are ONLY in Firestore
+            firestoreProps.forEach(fp => {
+                const fpAddr = normalizeAddress(fp.address);
+                const fpFloor = normalizeFloor(fp.floor || '');
+                const exists = allProps.some(ap => {
+                    if (ap.id === fp.id) return true;
+                    if (normalizeAddress(ap.address) !== fpAddr) return false;
+                    const apFloor = normalizeFloor(ap.floor || '');
+                    if (apFloor === fpFloor) return true;
+                    const apNum = apFloor.match(/^\d+/)?.[0];
+                    const fpNum = fpFloor.match(/^\d+/)?.[0];
+                    if (apNum && fpNum && apNum === fpNum) {
+                        if (apFloor === apNum || fpFloor === fpNum) return true;
+                    }
+                    return false;
+                });
+                if (!exists) allProps.push(fp);
+            });
+
+
+            // Final safeguard: uniqueness by ID AND Address+Floor to prevent visual duplicates
+            const uniqueMap = new Map();
+            const addressMap = new Map();
+
+            allProps.forEach(p => {
+                const key = `${normalizeAddress(p.address)}|${normalizeFloor(p.floor || '')}`;
+                const idMatch = uniqueMap.has(p.id);
+                const addrMatch = addressMap.has(key);
+
+                if (!idMatch && !addrMatch) {
+                    uniqueMap.set(p.id, p);
+                    addressMap.set(key, p.id);
+                }
+            });
+            const finalProps = Array.from(uniqueMap.values());
+
+
+
+            (finalProps || []).forEach((data: any) => {
                 if (!data) return;
                 const isPropertyPublished = data.isPublished !== false;
                 const rooms = Array.isArray(data.rooms) ? data.rooms : [];
@@ -182,13 +312,14 @@ export const StaffDashboard: React.FC = () => {
                 });
             });
 
-            allProps.sort((a, b) => {
+            finalProps.sort((a, b) => {
                 const addrA = a.address || '';
                 const addrB = b.address || '';
                 return addrA.localeCompare(addrB);
             });
-            setPropertiesList(allProps);
-            if (!selectedPropId && allProps.length > 0) setSelectedPropId(allProps[0].id);
+            setPropertiesList(finalProps);
+            if (!selectedPropId && finalProps.length > 0) setSelectedPropId(finalProps[0].id);
+
 
             setStats(prev => ({
                 ...prev,
@@ -353,6 +484,7 @@ export const StaffDashboard: React.FC = () => {
         { id: 'agency_invoices', label: 'Facturas Rentia', icon: <Printer className="w-4 h-4" /> },
         { id: 'training', label: 'Formación', icon: <BookOpen className="w-4 h-4 text-purple-500" /> },
         { id: 'dossier_generator', label: 'Generador Dossier', icon: <FileText className="w-4 h-4 text-orange-500" /> },
+        { id: 'reports', label: 'Descargas CSV', icon: <Download className="w-4 h-4 text-blue-600" /> },
     ];
 
 
@@ -587,6 +719,7 @@ export const StaffDashboard: React.FC = () => {
                     {activeTab === 'calculator' && <div className="animate-in slide-in-from-bottom-4 duration-300 h-[800px]"><SupplyCalculator properties={propertiesList} preSelectedPropertyId={selectedPropId} /></div>}
                     {activeTab === 'incidents' && <div className="animate-in slide-in-from-bottom-4 duration-300"><TaskManager initialCategoryFilter="Mantenimiento" properties={propertiesList} titleOverride="Gestión de Incidencias" /></div>}
                     {activeTab === 'dossier_generator' && <div className="animate-in slide-in-from-bottom-4 duration-300"><DossierGenerator /></div>}
+                    {activeTab === 'reports' && <div className="animate-in slide-in-from-bottom-4 duration-300"><DataExportTool properties={propertiesList} /></div>}
                     {activeTab === 'advanced_calc' && <div className="animate-in slide-in-from-bottom-4 duration-300"><AdvancedCalculator properties={propertiesList} /></div>}
                     {activeTab === 'agency_invoices' && <div className="animate-in slide-in-from-bottom-4 duration-300"><AgencyInvoicesPanel /></div>}
                     {activeTab === 'billing_info' && <div className="animate-in slide-in-from-bottom-4 duration-300"><PropertyBillingPanel properties={propertiesList} /></div>}

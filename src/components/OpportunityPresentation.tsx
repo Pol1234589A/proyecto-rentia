@@ -4,6 +4,9 @@ import React, { useState, useEffect } from 'react';
 import { Opportunity } from '../types';
 import { MapPin, TrendingUp, Maximize, Building, ArrowRight, Phone, Download, ExternalLink, Bed, PlayCircle, Home, CheckCircle, Scale, AlertTriangle, ChevronDown, FileText, Info, Lock } from 'lucide-react';
 import { ImageLightbox } from './ImageLightbox';
+import { useConfig } from '../contexts/ConfigContext';
+import { useLanguage } from '../contexts/LanguageContext';
+
 
 interface Props {
     opportunity: Opportunity;
@@ -11,7 +14,10 @@ interface Props {
 }
 
 export const OpportunityPresentation: React.FC<Props> = ({ opportunity, onClose }) => {
+    const { t } = useLanguage();
+    const config = useConfig();
     const [activeImageIndex, setActiveImageIndex] = useState(0);
+
     const [isLightboxOpen, setIsLightboxOpen] = useState(false);
     const [showLegal, setShowLegal] = useState(false);
 
@@ -37,7 +43,8 @@ export const OpportunityPresentation: React.FC<Props> = ({ opportunity, onClose 
     const grossYield = ((monthlyIncome * 12) / totalInvestment) * 100;
     const netYield = (((monthlyIncome * 12) - opportunity.financials.yearlyExpenses) / totalInvestment) * 100;
 
-    const whatsappLink = `https://api.whatsapp.com/send?phone=34672886369&text=Hola,%20estoy%20interesado%20en%20la%20oportunidad%20${opportunity.id}%20(${encodeURIComponent(opportunity.title)})`;
+    const whatsappLink = `https://api.whatsapp.com/send?phone=${config.directorContact.phone}&text=Hola,%20estoy%20interesado%20en%20la%20oportunidad%20${opportunity.id}%20(${encodeURIComponent(opportunity.title)})`;
+
 
     // --- PUBLIC ADDRESS LOGIC (HIDE NUMBER) ---
     const publicAddress = opportunity.address.replace(/\d+/g, '').replace(/,/, '').trim();
@@ -145,16 +152,16 @@ export const OpportunityPresentation: React.FC<Props> = ({ opportunity, onClose 
                 <div className="max-w-6xl mx-auto px-6 h-16 flex justify-between items-center">
                     <div className="flex items-center gap-3">
                         <img src="https://i.ibb.co/QvzK6db3/Logo-Negativo.png" alt="Rentia" className="h-6 filter invert opacity-90" />
-                        <span className="text-xs font-bold uppercase tracking-widest text-slate-400 hidden sm:inline-block border-l border-gray-300 pl-3 ml-3">Investment Opportunity</span>
+                        <span className="text-xs font-bold uppercase tracking-widest text-slate-400 hidden sm:inline-block border-l border-gray-300 pl-3 ml-3">{t('opportunities.hero.badge')}</span>
                     </div>
                     <div className="flex gap-3">
                         {onClose && (
                             <button onClick={onClose} className="text-xs font-bold text-gray-500 hover:text-gray-900 px-3 py-2">
-                                Cerrar Vista
+                                {t('common.close')}
                             </button>
                         )}
                         <a href={whatsappLink} target="_blank" className="bg-rentia-black text-white px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider hover:bg-gray-800 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5 flex items-center gap-2">
-                            <Phone className="w-3 h-3" /> Me Interesa
+                            <Phone className="w-3 h-3" /> {t('common.contact')}
                         </a>
                     </div>
                 </div>
@@ -171,7 +178,7 @@ export const OpportunityPresentation: React.FC<Props> = ({ opportunity, onClose 
                         <div className="flex flex-col md:flex-row items-end justify-between gap-6">
                             <div className="max-w-2xl">
                                 <div className="inline-flex items-center gap-2 bg-rentia-gold text-rentia-black px-3 py-1 rounded-full text-[10px] font-bold uppercase mb-4 shadow-lg tracking-wider">
-                                    <TrendingUp className="w-3 h-3" /> Rentabilidad {grossYield.toFixed(1)}%
+                                    <TrendingUp className="w-3 h-3" /> {t('opportunities.card.profitability')} {grossYield.toFixed(1)}%
                                 </div>
                                 <h1 className="text-3xl md:text-5xl lg:text-6xl font-display font-bold mb-2 leading-tight drop-shadow-xl text-white">
                                     {sanitizeTextContent(opportunity.title)}
@@ -181,7 +188,7 @@ export const OpportunityPresentation: React.FC<Props> = ({ opportunity, onClose 
                                 </p>
                             </div>
                             <div className="flex flex-col items-end">
-                                <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">Precio de Venta</p>
+                                <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">{t('opportunities.card.purchase_price')}</p>
                                 <p className="text-4xl md:text-5xl font-display font-bold text-white">{purchasePrice.toLocaleString()}€</p>
                             </div>
                         </div>
@@ -194,19 +201,19 @@ export const OpportunityPresentation: React.FC<Props> = ({ opportunity, onClose 
                 <div className="container mx-auto px-6 py-8 max-w-5xl">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                         <div className="text-center">
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Inversión Total</p>
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">{t('opportunities.card.total_investment')}</p>
                             <p className="text-2xl font-bold text-rentia-blue">{totalInvestment.toLocaleString('es-ES', { maximumFractionDigits: 0 })} €</p>
                         </div>
                         <div className="text-center border-l border-gray-200">
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Cashflow Neto</p>
-                            <p className="text-2xl font-bold text-green-600">+{Math.round((monthlyIncome * 12) - opportunity.financials.yearlyExpenses)} €/año</p>
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">{t('opportunities.detail.net_monthly')}</p>
+                            <p className="text-2xl font-bold text-green-600">+{Math.round((monthlyIncome * 12) - opportunity.financials.yearlyExpenses)} €/{t('common.year')}</p>
                         </div>
                         <div className="text-center border-l border-gray-200">
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Rentabilidad Neta</p>
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">{t('opportunities.detail.net_yield')}</p>
                             <p className="text-2xl font-bold text-slate-800">{netYield.toFixed(2)}%</p>
                         </div>
                         <div className="text-center border-l border-gray-200">
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Valor m²</p>
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">{t('opportunities.detail.market_value' as any) || 'Valor m²'}</p>
                             <p className="text-2xl font-bold text-slate-800">{Math.round(purchasePrice / opportunity.specs.sqm)} €/m²</p>
                         </div>
                     </div>
@@ -223,7 +230,7 @@ export const OpportunityPresentation: React.FC<Props> = ({ opportunity, onClose 
                         {/* Description Card */}
                         <div className="prose-container">
                             <h3 className="text-xl font-bold font-display text-slate-900 mb-6 flex items-center gap-3 border-b border-gray-100 pb-4">
-                                Análisis del Activo
+                                {t('opportunities.detail.financial_study')}
                             </h3>
                             <div className="space-y-1">
                                 {renderDescriptionSection(opportunity.description)}
@@ -232,7 +239,7 @@ export const OpportunityPresentation: React.FC<Props> = ({ opportunity, onClose 
 
                         {/* Features Grid */}
                         <div className="bg-gray-50 p-8 rounded-2xl border border-gray-100">
-                            <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest mb-6">Puntos Clave</h3>
+                            <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest mb-6">{t('opportunities.detail.key_points')}</h3>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {opportunity.features.map((feat, idx) => (
                                     <div key={idx} className="flex items-start gap-3">
@@ -249,18 +256,18 @@ export const OpportunityPresentation: React.FC<Props> = ({ opportunity, onClose 
 
                         {/* Technical Specs */}
                         <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm sticky top-24">
-                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-6">Ficha Técnica</h3>
+                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-6">{t('opportunities.detail.property_summary')}</h3>
                             <div className="space-y-4">
                                 <div className="flex justify-between items-center py-3 border-b border-gray-50">
-                                    <span className="text-gray-600 text-sm flex items-center gap-2"><Maximize className="w-4 h-4" /> Superficie</span>
+                                    <span className="text-gray-600 text-sm flex items-center gap-2"><Maximize className="w-4 h-4" /> {t('opportunities.detail.sqm' as any) || 'Superficie'}</span>
                                     <span className="font-bold text-slate-900">{opportunity.specs.sqm} m²</span>
                                 </div>
                                 <div className="flex justify-between items-center py-3 border-b border-gray-50">
-                                    <span className="text-gray-600 text-sm flex items-center gap-2"><Bed className="w-4 h-4" /> Habitaciones</span>
+                                    <span className="text-gray-600 text-sm flex items-center gap-2"><Bed className="w-4 h-4" /> {t('opportunities.detail.rooms' as any) || 'Habitaciones'}</span>
                                     <span className="font-bold text-slate-900">{opportunity.specs.rooms}</span>
                                 </div>
                                 <div className="flex justify-between items-center py-3 border-b border-gray-50">
-                                    <span className="text-gray-600 text-sm flex items-center gap-2"><Building className="w-4 h-4" /> Planta</span>
+                                    <span className="text-gray-600 text-sm flex items-center gap-2"><Building className="w-4 h-4" /> {t('opportunities.card.floor')}</span>
                                     <span className="font-bold text-slate-900">{opportunity.specs.floor}</span>
                                 </div>
                             </div>
@@ -270,7 +277,7 @@ export const OpportunityPresentation: React.FC<Props> = ({ opportunity, onClose 
                                 target="_blank"
                                 className="w-full mt-8 bg-rentia-black text-white py-4 rounded-xl font-bold text-sm hover:bg-slate-800 transition-all flex items-center justify-center gap-2 shadow-lg group"
                             >
-                                Contactar Interés <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                                {t('common.contact')} <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                             </a>
                             <p className="text-center text-[10px] text-gray-400 mt-4">
                                 Ref: {opportunity.id} • Rentia Investments S.L.
@@ -283,7 +290,7 @@ export const OpportunityPresentation: React.FC<Props> = ({ opportunity, onClose 
             {/* Gallery Section */}
             <section className="bg-gray-50 py-16 border-t border-gray-200">
                 <div className="container mx-auto px-6 max-w-6xl">
-                    <h3 className="text-xl font-bold font-display text-slate-900 mb-8 text-center">Galería Fotográfica</h3>
+                    <h3 className="text-xl font-bold font-display text-slate-900 mb-8 text-center">{t('opportunities.detail.appendix')}</h3>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         {opportunity.images.map((img, idx) => (
                             <div
@@ -307,7 +314,7 @@ export const OpportunityPresentation: React.FC<Props> = ({ opportunity, onClose 
                     </p>
                     <div className="flex justify-center gap-4 mt-4">
                         <Lock className="w-3 h-3 text-gray-300" />
-                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Documento Confidencial</p>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{t('opportunities.detail.confidential_long')}</p>
                     </div>
                 </div>
             </footer>

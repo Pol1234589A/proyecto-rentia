@@ -138,7 +138,7 @@ export const AboutView: React.FC = () => {
                                     <Home className="w-10 h-10" />
                                 </div>
                                 <div className="absolute bottom-0 left-0 w-full bg-white p-4 border-t border-gray-100 z-10 text-center">
-                                    <h3 className="text-rentia-black font-bold text-xl font-display">Dirección</h3>
+                                    <h3 className="text-rentia-black font-bold text-xl font-display">{t('contact.director.name')}</h3>
                                     <p className="text-rentia-gold text-xs font-bold uppercase tracking-wide mt-1">{t('about.team.director.role')}</p>
                                 </div>
                             </div>

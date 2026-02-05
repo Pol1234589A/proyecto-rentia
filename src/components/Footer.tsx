@@ -45,6 +45,7 @@ export const Footer: React.FC<FooterProps> = ({ openLegalModal }) => {
             <div>
               <h6 className="text-xl font-bold mb-6 text-white">{t('footer.links_title')}</h6>
               <ul className="space-y-3 text-[15px] text-white">
+                {/* 
                 <li>
                   <Link
                     href="/oportunidades"
@@ -53,6 +54,7 @@ export const Footer: React.FC<FooterProps> = ({ openLegalModal }) => {
                     {t('header.opportunities_mobile')}
                   </Link>
                 </li>
+                */}
                 <li>
                   <Link
                     href="/servicios"
@@ -144,7 +146,7 @@ export const Footer: React.FC<FooterProps> = ({ openLegalModal }) => {
             {t('footer.rights')}
             <span className="mx-2 text-white/20">|</span>
             <button onClick={() => setIsTransferModalOpen(true)} className="hover:text-white transition-colors text-white/30">
-              Acceso Gestión de Activos
+              {t('footer.management_access')}
             </button>
           </p>
         </div>

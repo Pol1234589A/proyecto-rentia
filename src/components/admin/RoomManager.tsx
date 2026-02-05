@@ -3,8 +3,10 @@ import { db } from '../../firebase';
 import { collection, getDocs, doc, setDoc, deleteDoc, query, where, onSnapshot, updateDoc, getDoc } from 'firebase/firestore';
 import { properties as staticProperties, Property, Room, CleaningConfig, OwnerRecommendation, RoomTimelineEvent, HistoricalTenant, BillingRecord } from '../../data/rooms';
 import { generatePropertySummaryPDF } from '../../utils/pdfGenerator';
-import { generateExcelReport, copyToClipboardForSheets, downloadCSVForSheets, generateIncidentsReport } from '../../utils/excelGenerator';
-import { Save, RefreshCw, Home, ChevronDown, ChevronRight, Building, Plus, Trash2, X, MapPin, ExternalLink, Wind, Image as ImageIcon, FileText, Settings, Hammer, DollarSign, Percent, Sun, Tv, Lock, Monitor, AlertCircle, User, CheckCircle, Sparkles, Clock, Euro, Calendar, ShieldCheck, ShieldAlert, FileCheck, Download, CreditCard, Phone, Mail, Megaphone, Zap, Info, Send, Wifi, DoorOpen, TrendingUp, Wrench, Eye, EyeOff, Globe, CloudUpload, Receipt, Bed, Bath, Thermometer, Waves, Camera, FileSpreadsheet, Copy, Siren } from 'lucide-react';
+import { generateExcelReport, copyToClipboardForSheets, downloadCSVForSheets, ExcelOptions } from '../../utils/excelGenerator';
+import { ExcelExportModal } from './tools/ExcelExportModal';
+import { generateContactsCSV, generateCleaningCSV } from '../../utils/csvGenerators';
+import { Save, RefreshCw, Home, ChevronDown, ChevronRight, Building, Plus, Trash2, X, MapPin, ExternalLink, Wind, Image as ImageIcon, FileText, Settings, Hammer, DollarSign, Percent, Sun, Tv, Lock, Monitor, AlertCircle, User, Users, CheckCircle, Sparkles, Clock, Euro, Calendar, ShieldCheck, ShieldAlert, FileCheck, Download, CreditCard, Phone, Mail, Megaphone, Zap, Info, Send, Wifi, DoorOpen, TrendingUp, Wrench, Eye, EyeOff, Globe, CloudUpload, Receipt, Bed, Bath, Thermometer, Waves, Camera, FileSpreadsheet, Copy, Siren } from 'lucide-react';
 import { ImageUploader } from './ImageUploader';
 import { UserProfile, PropertyDocument, SupplyInvoice } from '../../types';
 import { SensitiveDataDisplay } from '../common/SecurityComponents';
@@ -27,6 +29,17 @@ const inputToDate = (isoDate: string) => {
     if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[2] ? parts[0] : parts[0]}`;
     const d = new Date(isoDate);
     return isNaN(d.getTime()) ? 'Consultar' : d.toLocaleDateString('es-ES');
+};
+
+const isDatePast = (dateStr?: string) => {
+    if (!dateStr || dateStr === 'Consultar' || dateStr === 'Inmediata') return false;
+    try {
+        const parts = dateStr.split('/');
+        if (parts.length !== 3) return false;
+        const [day, month, year] = parts.map(Number);
+        const target = new Date(year, month - 1, day, 23, 59, 59);
+        return target < new Date();
+    } catch (e) { return false; }
 };
 
 const RoomCountdown = ({ targetDateStr }: { targetDateStr: string }) => {
@@ -113,13 +126,15 @@ export const RoomManager: React.FC = () => {
     const [showPdfMenu, setShowPdfMenu] = useState(false);
     const [activeSection, setActiveSection] = useState<'rooms' | 'incidents'>('rooms'); // NEW: View Switcher
     const [showExcelConfig, setShowExcelConfig] = useState(false);
-    const [excelConfig, setExcelConfig] = useState({
+    const [excelConfig, setExcelConfig] = useState<ExcelOptions>({
         includeTenantInfo: true,
         includeFinancials: true,
         includeOwnerInfo: false,
         includeCleaningInfo: false,
         includeTimelines: false,
-        groupBy: 'none' as 'none' | 'city' | 'status' | 'topic'
+        includeIncidents: false,
+        includeCommercial: false,
+        groupBy: 'none'
     });
 
     useEffect(() => {
@@ -128,33 +143,145 @@ export const RoomManager: React.FC = () => {
             snapshot.forEach(doc => {
                 fireMap[doc.id] = { ...doc.data(), id: doc.id } as Property;
             });
+            const normalizeAddress = (s: string) => {
+                if (!s) return '';
+                const firstPart = s.split(',')[0];
+                return firstPart.toLowerCase()
+                    .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Remove accents
+                    .trim()
+                    .replace(/\bcalle\b/g, 'c')
+                    .replace(/\bc\/\b/g, 'c')
+                    .replace(/\bc\.\b/g, 'c')
+                    .replace(/[^a-z0-9]/g, '');
+            };
+
+            const normalizeFloor = (f: string) => {
+                if (!f) return '';
+                return f.toLowerCase()
+                    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                    .replace(/[^a-z0-9]/g, '')
+                    .replace(/izquierda/g, 'izq')
+                    .replace(/derecha/g, 'der')
+                    .replace(/centro/g, 'ctro');
+            };
+
+            const normalizeRoomName = (n: string) => {
+                if (!n) return '';
+                return n.toLowerCase()
+                    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                    .replace(/habitacion/g, 'h')
+                    .replace(/room/g, 'h')
+                    .replace(/[^a-z0-9]/g, '');
+            };
+
+
             const merged = staticProperties.map(p => {
-                const remote = fireMap[p.id];
+                const pAddr = normalizeAddress(p.address);
+                const pFloor = normalizeFloor(p.floor || '');
+
+                const remote = fireMap[p.id] || Object.values(fireMap).find(r => {
+                    if (r.id === p.id) return true;
+                    if (normalizeAddress(r.address) !== pAddr) return false;
+                    const rFloor = normalizeFloor(r.floor || '');
+                    if (rFloor === pFloor) return true;
+                    // Flexible floor match: shorthand number matches full description
+                    const rNum = rFloor.match(/^\d+/)?.[0];
+                    const pNum = pFloor.match(/^\d+/)?.[0];
+                    if (rNum && pNum && rNum === pNum) {
+                        if (rFloor === rNum || pFloor === pNum) return true;
+                    }
+                    return false;
+                });
+
                 if (remote) {
-                    // Priorizamos datos estáticos para campos estructurales y de contrato inicial
                     return {
+                        ...p,
                         ...remote,
-                        address: p.address,
-                        floor: p.floor,
-                        rooms: p.rooms,
-                        internalNotes: p.internalNotes || remote.internalNotes,
-                        bankAccount: p.bankAccount || remote.bankAccount,
-                        bankAccountHolder: p.bankAccountHolder || remote.bankAccountHolder,
-                        driveLink: p.driveLink || remote.driveLink,
-                        photosDriveUrl: p.photosDriveUrl || remote.photosDriveUrl,
-                        timeline: p.timeline || remote.timeline,
-                        paymentFlow: p.paymentFlow || remote.paymentFlow,
-                        totalRooms: p.totalRooms || remote.totalRooms,
-                        managementCommission: p.managementCommission || remote.managementCommission
+                        id: p.id,
+                        // Ensure critical management fields preserve static info if remote is empty
+                        ownerName: remote.ownerName || p.ownerName,
+                        ownerPhone: remote.ownerPhone || p.ownerPhone,
+                        internalNotes: remote.internalNotes || p.internalNotes,
+                        managementCommission: remote.managementCommission || p.managementCommission,
+                        cleaningConfig: (remote.cleaningConfig && remote.cleaningConfig.enabled) ? remote.cleaningConfig : p.cleaningConfig,
+
+                        rooms: p.rooms.map(pr => {
+                            const prNorm = normalizeRoomName(pr.name);
+                            const remoteRoom = remote.rooms?.find(rr =>
+                                rr.id === pr.id ||
+                                (normalizeRoomName(rr.name || '') === prNorm)
+                            );
+                            if (remoteRoom) {
+                                // Helper to check if a tenant object has actual data
+                                const hasData = (t: any) => t && Object.values(t).some(v => v !== '' && v !== null && v !== undefined);
+
+                                // Smart Tenant Merge: If DB has data but it is expired, and code has data that is NOT expired, prefer code.
+                                const isRemoteTenantExpired = hasData(remoteRoom.tenant) && isDatePast(remoteRoom.tenant?.endDate);
+                                const isStaticTenantExpired = hasData(pr.tenant) && isDatePast(pr.tenant?.endDate);
+
+                                const useStaticTenant = (isRemoteTenantExpired && !isStaticTenantExpired) || (!hasData(remoteRoom.tenant) && hasData(pr.tenant));
+
+                                return {
+                                    ...pr,
+                                    ...remoteRoom,
+                                    // Intelligent merge: pick the one that actually has data and is valid
+                                    tenant: useStaticTenant ? pr.tenant : (hasData(remoteRoom.tenant) ? remoteRoom.tenant : pr.tenant),
+                                    driveUrl: remoteRoom.driveUrl || pr.driveUrl,
+                                    photosDriveUrl: remoteRoom.photosDriveUrl || pr.photosDriveUrl,
+                                    price: remoteRoom.price || pr.price,
+                                    status: ((useStaticTenant || hasData(remoteRoom.tenant) || hasData(pr.tenant))
+                                        ? (remoteRoom.status === 'reserved' ? 'reserved' : 'occupied')
+                                        : (remoteRoom.status === 'available' ? 'available' : (remoteRoom.status || pr.status || 'available'))) as Room['status'],
+                                    // Priority for availability: if DB date is in the past and code has a future/valid date, use code
+                                    availableFrom: (isDatePast(remoteRoom.availableFrom) && !isDatePast(pr.availableFrom)) ? pr.availableFrom : (remoteRoom.availableFrom || pr.availableFrom),
+                                    timeline: (remoteRoom.timeline && remoteRoom.timeline.length > 0) ? remoteRoom.timeline : pr.timeline
+                                };
+                            }
+                            return pr;
+                        })
                     };
                 }
                 return p;
             });
+
             Object.keys(fireMap).forEach(id => {
-                if (!staticProperties.find(sp => sp.id === id)) merged.push(fireMap[id]);
+                const remote = fireMap[id];
+                const rAddr = normalizeAddress(remote.address);
+                const rFloor = normalizeFloor(remote.floor || '');
+                const exists = staticProperties.some(sp => {
+                    if (sp.id === id) return true;
+                    if (normalizeAddress(sp.address) !== rAddr) return false;
+                    const spFloor = normalizeFloor(sp.floor || '');
+                    if (spFloor === rFloor) return true;
+                    const spNum = spFloor.match(/^\d+/)?.[0];
+                    const rNum = rFloor.match(/^\d+/)?.[0];
+                    if (spNum && rNum && spNum === rNum) {
+                        if (spFloor === spNum || rFloor === rNum) return true;
+                    }
+                    return false;
+                });
+                if (!exists) merged.push(remote);
             });
-            setProperties(merged.sort((a, b) => (a.address || '').localeCompare(b.address || '')));
+
+            // Safeguard: Ensure final IDs and addresses are unique before setting state
+            const uniqueMap = new Map();
+            const addressMap = new Map();
+
+            merged.forEach(p => {
+                const key = `${normalizeAddress(p.address)}|${normalizeFloor(p.floor || '')}`;
+                const idMatch = uniqueMap.has(p.id);
+                const addrMatch = addressMap.has(key);
+
+                if (!idMatch && !addrMatch) {
+                    uniqueMap.set(p.id, p);
+                    addressMap.set(key, p.id);
+                }
+            });
+            const finalProperties = Array.from(uniqueMap.values());
+
+            setProperties(finalProperties.sort((a, b) => (a.address || '').localeCompare(b.address || '')));
             setLoading(false);
+
         });
 
         const unsubUsers = onSnapshot(query(collection(db, "users"), where("role", "==", "owner")), (snap) => {
@@ -337,18 +464,20 @@ export const RoomManager: React.FC = () => {
                                 </button>
 
                                 <div className="my-2 border-t border-slate-50"></div>
-                                <p className="px-4 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Formatos Editables</p>
+                                <div className="my-2 border-t border-slate-50"></div>
+                                <p className="px-4 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Administración (Excel)</p>
 
                                 <button
                                     onClick={() => { setShowPdfMenu(false); setShowExcelConfig(true); }}
-                                    className="w-full text-left px-5 py-3 hover:bg-slate-50 flex items-center gap-3 transition-colors group"
+                                    className="w-full text-left px-5 py-4 bg-emerald-50/30 hover:bg-emerald-50 flex items-center gap-3 transition-colors group rounded-b-2xl border-t border-emerald-50"
+                                    title="Exportar Reporte Maestro"
                                 >
-                                    <div className="p-2 bg-green-50 text-green-700 rounded-lg group-hover:bg-green-600 group-hover:text-white transition-colors">
-                                        <FileSpreadsheet className="w-4 h-4" />
+                                    <div className="p-2.5 bg-emerald-600 text-white rounded-xl shadow-lg shadow-emerald-200 group-hover:scale-110 transition-transform">
+                                        <FileSpreadsheet className="w-5 h-5" />
                                     </div>
                                     <div>
-                                        <p className="text-xs font-black text-slate-800">Excel / Google Sheets (.xlsx)</p>
-                                        <p className="text-[9px] text-slate-400 font-bold uppercase">Incluye colores y formato</p>
+                                        <p className="text-sm font-black text-slate-800">Exportar Excel (.xlsx)</p>
+                                        <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-tight">Reporte Unificado Empresas</p>
                                     </div>
                                 </button>
                             </div>
@@ -361,117 +490,121 @@ export const RoomManager: React.FC = () => {
                 </div>
             </div>
 
-            {isCreating && (
-                <div className="bg-white p-8 rounded-2xl shadow-2xl border-2 border-rentia-blue/20 animate-in slide-in-from-top-4 duration-300">
-                    <h3 className="font-black text-slate-800 mb-6 uppercase tracking-tight">Alta de Nueva Propiedad</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-                        <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase">Dirección</label><input type="text" className="w-full p-3 bg-slate-50 border rounded-xl" value={newPropData.address || ''} onChange={e => setNewPropData({ ...newPropData, address: e.target.value })} title="Dirección de la propiedad" placeholder="Calle Ejemplo, 1" /></div>
-                        <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase">Ciudad</label><input type="text" className="w-full p-3 bg-slate-50 border rounded-xl" value={newPropData.city || ''} onChange={e => setNewPropData({ ...newPropData, city: e.target.value })} title="Ciudad" placeholder="Murcia" /></div>
-                        <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase">Planta</label><input type="text" className="w-full p-3 bg-slate-50 border rounded-xl" value={newPropData.floor || ''} onChange={e => setNewPropData({ ...newPropData, floor: e.target.value })} title="Planta" placeholder="3º Izda" /></div>
-                        <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase">Habs Iniciales</label><input type="number" className="w-full p-3 bg-slate-50 border rounded-xl" value={newPropData.initialRooms || 3} onChange={e => setNewPropData({ ...newPropData, initialRooms: Number(e.target.value) })} title="Número de habitaciones iniciales" /></div>
-                    </div>
-                    <button onClick={async () => {
-                        setSaving(true);
-                        const id = newPropData.address.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().substring(0, 10) + Date.now().toString().slice(-4);
-                        const rooms: Room[] = [];
-                        for (let i = 1; i <= newPropData.initialRooms; i++) rooms.push({ id: `${id}_H${i}`, name: `H${i}`, price: 300, status: 'available', availableFrom: 'Inmediata', expenses: 'Gastos fijos aparte', targetProfile: 'both', features: ['lock', 'desk'], commissionType: 'percentage', commissionValue: 10 });
-                        await setDoc(doc(db, "properties", id), { ...newPropData, id, rooms, isPublished: false, bathrooms: Number(newPropData.bathrooms) });
-                        setIsCreating(false);
-                        setSaving(false);
-                    }} className="w-full md:w-auto bg-rentia-blue text-white px-10 py-4 rounded-xl font-black shadow-lg shadow-blue-500/30">CREAR PROYECTO</button>
-                </div>
-            )}
-
-            {activeSection === 'incidents' && (
-                <section className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 mb-8">
-                    <div className="bg-gradient-to-r from-red-500 to-rose-600 rounded-3xl p-8 shadow-2xl shadow-red-500/20 text-white flex justify-between items-center">
-                        <div>
-                            <h2 className="text-3xl font-black uppercase tracking-tight flex items-center gap-4">
-                                <Siren className="w-10 h-10" /> Centro de Incidencias
-                            </h2>
-                            <p className="text-red-100 font-medium mt-2 max-w-2xl text-sm">
-                                Gestión centralizada de problemas, reparaciones y tickets de Ayup.
-                            </p>
+            {
+                isCreating && (
+                    <div className="bg-white p-8 rounded-2xl shadow-2xl border-2 border-rentia-blue/20 animate-in slide-in-from-top-4 duration-300">
+                        <h3 className="font-black text-slate-800 mb-6 uppercase tracking-tight">Alta de Nueva Propiedad</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                            <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase">Dirección</label><input type="text" className="w-full p-3 bg-slate-50 border rounded-xl" value={newPropData.address || ''} onChange={e => setNewPropData({ ...newPropData, address: e.target.value })} title="Dirección de la propiedad" placeholder="Calle Ejemplo, 1" /></div>
+                            <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase">Ciudad</label><input type="text" className="w-full p-3 bg-slate-50 border rounded-xl" value={newPropData.city || ''} onChange={e => setNewPropData({ ...newPropData, city: e.target.value })} title="Ciudad" placeholder="Murcia" /></div>
+                            <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase">Planta</label><input type="text" className="w-full p-3 bg-slate-50 border rounded-xl" value={newPropData.floor || ''} onChange={e => setNewPropData({ ...newPropData, floor: e.target.value })} title="Planta" placeholder="3º Izda" /></div>
+                            <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase">Habs Iniciales</label><input type="number" className="w-full p-3 bg-slate-50 border rounded-xl" value={newPropData.initialRooms || 3} onChange={e => setNewPropData({ ...newPropData, initialRooms: Number(e.target.value) })} title="Número de habitaciones iniciales" /></div>
                         </div>
-                        <div className="text-right">
-                            <span className="text-6xl font-black">{allIncidents.length}</span>
-                            <p className="text-xs font-bold uppercase text-red-100 tracking-widest mt-2">{allIncidents.filter(i => !i.evt.text.toLowerCase().includes('resuelto')).length} ABIERTAS</p>
-                        </div>
+                        <button onClick={async () => {
+                            setSaving(true);
+                            const id = newPropData.address.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().substring(0, 10) + Date.now().toString().slice(-4);
+                            const rooms: Room[] = [];
+                            for (let i = 1; i <= newPropData.initialRooms; i++) rooms.push({ id: `${id}_H${i}`, name: `H${i}`, price: 300, status: 'available', availableFrom: 'Inmediata', expenses: 'Gastos fijos aparte', targetProfile: 'both', features: ['lock', 'desk'], commissionType: 'percentage', commissionValue: 10 });
+                            await setDoc(doc(db, "properties", id), { ...newPropData, id, rooms, isPublished: false, bathrooms: Number(newPropData.bathrooms) });
+                            setIsCreating(false);
+                            setSaving(false);
+                        }} className="w-full md:w-auto bg-rentia-blue text-white px-10 py-4 rounded-xl font-black shadow-lg shadow-blue-500/30">CREAR PROYECTO</button>
                     </div>
+                )
+            }
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {allIncidents.length === 0 && (
-                            <div className="col-span-full py-20 text-center">
-                                <CheckCircle className="w-16 h-16 text-slate-200 mx-auto mb-4" />
-                                <p className="text-slate-400 font-bold uppercase tracking-widest">Sin incidencias registradas</p>
+            {
+                activeSection === 'incidents' && (
+                    <section className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 mb-8">
+                        <div className="bg-gradient-to-r from-red-500 to-rose-600 rounded-3xl p-8 shadow-2xl shadow-red-500/20 text-white flex justify-between items-center">
+                            <div>
+                                <h2 className="text-3xl font-black uppercase tracking-tight flex items-center gap-4">
+                                    <Siren className="w-10 h-10" /> Centro de Incidencias
+                                </h2>
+                                <p className="text-red-100 font-medium mt-2 max-w-2xl text-sm">
+                                    Gestión centralizada de problemas, reparaciones y tickets de Ayup.
+                                </p>
                             </div>
-                        )}
-                        {allIncidents.map((item, idx) => {
-                            const isResolved = item.evt.text.toLowerCase().includes('resuelto') || item.evt.text.toLowerCase().includes('solucionado');
-                            const isMaintenance = item.evt.type === 'maintenance';
-                            return (
-                                <div key={idx} className={`group bg-white rounded-3xl p-6 border-2 transition-all hover:scale-[1.01] hover:shadow-xl ${isResolved ? 'border-emerald-100 opacity-75' : isMaintenance ? 'border-orange-100' : 'border-red-100'}`}>
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-inner text-lg font-black ${isResolved ? 'bg-emerald-100 text-emerald-600' : isMaintenance ? 'bg-orange-100 text-orange-600' : 'bg-red-100 text-red-600'}`}>
-                                                {!isResolved ? (isMaintenance ? <Wrench className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />) : <CheckCircle className="w-5 h-5" />}
+                            <div className="text-right">
+                                <span className="text-6xl font-black">{allIncidents.length}</span>
+                                <p className="text-xs font-bold uppercase text-red-100 tracking-widest mt-2">{allIncidents.filter(i => !i.evt.text.toLowerCase().includes('resuelto')).length} ABIERTAS</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {allIncidents.length === 0 && (
+                                <div className="col-span-full py-20 text-center">
+                                    <CheckCircle className="w-16 h-16 text-slate-200 mx-auto mb-4" />
+                                    <p className="text-slate-400 font-bold uppercase tracking-widest">Sin incidencias registradas</p>
+                                </div>
+                            )}
+                            {allIncidents.map((item, idx) => {
+                                const isResolved = item.evt.text.toLowerCase().includes('resuelto') || item.evt.text.toLowerCase().includes('solucionado');
+                                const isMaintenance = item.evt.type === 'maintenance';
+                                return (
+                                    <div key={idx} className={`group bg-white rounded-3xl p-6 border-2 transition-all hover:scale-[1.01] hover:shadow-xl ${isResolved ? 'border-emerald-100 opacity-75' : isMaintenance ? 'border-orange-100' : 'border-red-100'}`}>
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-inner text-lg font-black ${isResolved ? 'bg-emerald-100 text-emerald-600' : isMaintenance ? 'bg-orange-100 text-orange-600' : 'bg-red-100 text-red-600'}`}>
+                                                    {!isResolved ? (isMaintenance ? <Wrench className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />) : <CheckCircle className="w-5 h-5" />}
+                                                </div>
+                                                <div>
+                                                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">{item.evt.date}</p>
+                                                    <h4 className="text-sm font-black text-slate-800 leading-tight">{item.rName}</h4>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">{item.evt.date}</p>
-                                                <h4 className="text-sm font-black text-slate-800 leading-tight">{item.rName}</h4>
-                                            </div>
+                                            <span className="text-[9px] font-black bg-slate-100 px-2 py-1 rounded-lg uppercase tracking-tight text-slate-500 max-w-[100px] truncate">{item.pName}</span>
                                         </div>
-                                        <span className="text-[9px] font-black bg-slate-100 px-2 py-1 rounded-lg uppercase tracking-tight text-slate-500 max-w-[100px] truncate">{item.pName}</span>
-                                    </div>
 
-                                    <p className="text-xs font-medium text-slate-600 mb-6 line-clamp-4 min-h-[4rem] bg-slate-50 p-3 rounded-xl border border-slate-100">
-                                        {item.evt.text}
-                                    </p>
+                                        <p className="text-xs font-medium text-slate-600 mb-6 line-clamp-4 min-h-[4rem] bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                            {item.evt.text}
+                                        </p>
 
-                                    <div className="flex gap-2">
-                                        {!isResolved && (
+                                        <div className="flex gap-2">
+                                            {!isResolved && (
+                                                <button
+                                                    onClick={() => {
+                                                        if (confirm('¿Marcar como resuelto?')) {
+                                                            const prop = properties.find(p => p.id === item.pId);
+                                                            if (prop) {
+                                                                const room = (prop.rooms || []).find(r => r.id === item.rId);
+                                                                if (room) {
+                                                                    const updatedTimeline = room.timeline?.map(t => t.id === item.evt.id ? { ...t, text: `[RESUELTO] ${t.text}` } : t);
+                                                                    handleRoomFieldChange(item.pId, item.rId, 'timeline', updatedTimeline);
+                                                                }
+                                                            }
+                                                        }
+                                                    }}
+                                                    className="flex-1 py-3 rounded-xl bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all flex items-center justify-center gap-2"
+                                                >
+                                                    <CheckCircle className="w-3 h-3" /> Resolver
+                                                </button>
+                                            )}
                                             <button
                                                 onClick={() => {
-                                                    if (confirm('¿Marcar como resuelto?')) {
+                                                    if (confirm('¿Eliminar incidencia permanentemente?')) {
                                                         const prop = properties.find(p => p.id === item.pId);
                                                         if (prop) {
                                                             const room = (prop.rooms || []).find(r => r.id === item.rId);
                                                             if (room) {
-                                                                const updatedTimeline = room.timeline?.map(t => t.id === item.evt.id ? { ...t, text: `[RESUELTO] ${t.text}` } : t);
+                                                                const updatedTimeline = room.timeline?.filter(t => t.id !== item.evt.id);
                                                                 handleRoomFieldChange(item.pId, item.rId, 'timeline', updatedTimeline);
                                                             }
                                                         }
                                                     }
                                                 }}
-                                                className="flex-1 py-3 rounded-xl bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all flex items-center justify-center gap-2"
+                                                className="p-3 rounded-xl bg-slate-50 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all"
                                             >
-                                                <CheckCircle className="w-3 h-3" /> Resolver
+                                                <Trash2 className="w-4 h-4" />
                                             </button>
-                                        )}
-                                        <button
-                                            onClick={() => {
-                                                if (confirm('¿Eliminar incidencia permanentemente?')) {
-                                                    const prop = properties.find(p => p.id === item.pId);
-                                                    if (prop) {
-                                                        const room = (prop.rooms || []).find(r => r.id === item.rId);
-                                                        if (room) {
-                                                            const updatedTimeline = room.timeline?.filter(t => t.id !== item.evt.id);
-                                                            handleRoomFieldChange(item.pId, item.rId, 'timeline', updatedTimeline);
-                                                        }
-                                                    }
-                                                }
-                                            }}
-                                            className="p-3 rounded-xl bg-slate-50 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
+                                        </div>
                                     </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </section>
-            )}
+                                );
+                            })}
+                        </div>
+                    </section>
+                )
+            }
 
             <div className={`space-y-6 ${activeSection !== 'rooms' ? 'hidden' : ''}`}>
                 {properties.map(p => {
@@ -499,7 +632,7 @@ export const RoomManager: React.FC = () => {
                                     </div>
                                     <div>
                                         <h3 className="text-xl font-black text-slate-800 flex flex-wrap items-center gap-3">
-                                            {p.address || 'Sin Dirección'}
+                                            {p.address || 'Sin Dirección'} <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded text-slate-400 font-mono">[{p.id}]</span>
                                             <span className={`text-[10px] px-3 py-1 rounded-full font-black uppercase tracking-widest ${p.isPublished !== false ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-500'}`}>
                                                 {p.isPublished !== false ? 'PUBLICADO' : 'BORRADOR'}
                                             </span>
@@ -566,6 +699,17 @@ export const RoomManager: React.FC = () => {
                                                                         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xl shadow-inner ${room.status === 'occupied' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-400'}`}>{room.name}</div>
                                                                         <div>
                                                                             <p className={`text-[10px] font-black uppercase tracking-widest ${room.status === 'occupied' ? 'text-green-600' : 'text-slate-400'}`}>{room.status}</p>
+                                                                            {room.status === 'occupied' && (() => {
+                                                                                const contractEndDate = room.tenant?.endDate || room.availableFrom;
+                                                                                if (isDatePast(contractEndDate)) {
+                                                                                    return (
+                                                                                        <p className="text-[9px] font-black text-white bg-orange-500 px-2 py-0.5 rounded-full flex items-center gap-1 animate-pulse mt-1 shadow-lg">
+                                                                                            <Clock className="w-3 h-3" /> ATENCIÓN: CONTRATO VENCIDO
+                                                                                        </p>
+                                                                                    );
+                                                                                }
+                                                                                return null;
+                                                                            })()}
                                                                             {room.status === 'occupied' && !hasContract && (
                                                                                 <p className="text-[9px] font-black text-white bg-red-600 px-2 py-0.5 rounded-full flex items-center gap-1 animate-pulse mt-1 shadow-lg">
                                                                                     <ShieldAlert className="w-3 h-3" /> SIN CONTRATO ASIGNADO
@@ -591,7 +735,13 @@ export const RoomManager: React.FC = () => {
                                                                     <div className="space-y-1"><label className="text-[9px] font-black text-slate-400 uppercase">Estado</label><select className="w-full p-2 bg-slate-50 border rounded-xl text-xs font-bold" value={room.status || 'available'} onChange={e => handleRoomFieldChange(p.id, room.id, 'status', e.target.value)} title="Estado de la habitación"><option value="available">LIBRE</option><option value="occupied">ALQUILADA</option><option value="reserved">RESERVADA</option></select></div>
                                                                     <div className="space-y-1">
                                                                         <label className="text-[9px] font-black text-slate-400 uppercase">Disponible</label>
-                                                                        <input type="date" className="w-full p-2 bg-slate-50 border rounded-xl text-xs font-bold" value={dateToInput(room.availableFrom)} onChange={e => handleRoomFieldChange(p.id, room.id, 'availableFrom', inputToDate(e.target.value))} title="Fecha de disponibilidad" />
+                                                                        <input
+                                                                            type="date"
+                                                                            className={`w-full p-2 border rounded-xl text-xs font-bold transition-all ${isDatePast(room.availableFrom) && room.status === 'occupied' ? 'bg-red-50 border-red-300 text-red-600 animate-pulse' : 'bg-slate-50 border-slate-200'}`}
+                                                                            value={dateToInput(room.availableFrom)}
+                                                                            onChange={e => handleRoomFieldChange(p.id, room.id, 'availableFrom', inputToDate(e.target.value))}
+                                                                            title="Fecha de disponibilidad"
+                                                                        />
                                                                     </div>
                                                                 </div>
 
@@ -995,18 +1145,104 @@ export const RoomManager: React.FC = () => {
 
                                         {tab === 'maintenance' && (
                                             <div className="space-y-8 animate-in fade-in">
+                                                {/* Sección: Incidencias y Mantenimiento */}
                                                 <div className="bg-white p-8 rounded-3xl border-2 border-slate-100">
-                                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-8 flex items-center gap-2"><Hammer className="w-4 h-4" /> Mantenimiento</h4>
-                                                    <div className="relative border-l-4 border-slate-100 ml-4 space-y-10 pl-8 pb-4">
-                                                        {(p.maintenanceTimeline || []).map(evt => (
-                                                            <div key={evt.id} className="relative">
-                                                                <div className={`absolute -left-[42px] top-0 w-4 h-4 rounded-full border-4 border-white ${evt.type === 'incident' ? 'bg-red-500' : 'bg-blue-500'}`}></div>
-                                                                <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
-                                                                    <span className="text-[10px] font-black block mb-3 uppercase opacity-50">{evt.date}</span>
-                                                                    <p className="text-sm font-bold leading-relaxed">{evt.text}</p>
+                                                    <div className="flex justify-between items-center mb-8">
+                                                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                                            <Hammer className="w-4 h-4 text-orange-500" /> Incidencias y Mantenimiento
+                                                        </h4>
+                                                        <button
+                                                            onClick={() => {
+                                                                const text = prompt("Nueva incidencia/tarea de mantenimiento:");
+                                                                if (text) {
+                                                                    const newEvt = { id: `maint_${Date.now()}`, date: new Date().toLocaleDateString('es-ES'), text, type: 'incident' as const };
+                                                                    handlePropertyFieldChange(p.id, 'maintenanceTimeline', [...(p.maintenanceTimeline || []), newEvt]);
+                                                                }
+                                                            }}
+                                                            className="text-[9px] font-black text-orange-600 hover:text-orange-700 uppercase flex items-center gap-1 bg-orange-50 px-3 py-1.5 rounded-lg border border-orange-100 transition-colors"
+                                                            title="Registrar Incidencia"
+                                                        >
+                                                            <Plus className="w-3 h-3" /> Registrar Incidencia
+                                                        </button>
+                                                    </div>
+
+                                                    <div className="relative border-l-4 border-slate-100 ml-4 space-y-8 pl-8 pb-4">
+                                                        {([...(p.maintenanceTimeline || []), ...(p.timeline || []).filter(t => t.type === 'incident' || t.type === 'maintenance')].sort((a, b) => b.id.localeCompare(a.id))).map(evt => (
+                                                            <div key={evt.id} className="relative group">
+                                                                <div className={`absolute -left-[42px] top-0 w-4 h-4 rounded-full border-4 border-white shadow-sm ${evt.type === 'incident' ? 'bg-red-500' : 'bg-orange-500'}`}></div>
+                                                                <div className={`p-5 rounded-2xl border transition-all ${evt.type === 'incident' ? 'bg-red-50/30 border-red-100' : 'bg-slate-50 border-slate-100'}`}>
+                                                                    <div className="flex justify-between items-start mb-2">
+                                                                        <span className="text-[10px] font-black uppercase opacity-40 tracking-tighter">{evt.date}</span>
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                if (confirm('¿Borrar este evento?')) {
+                                                                                    const newList = (p.maintenanceTimeline || []).filter(t => t.id !== evt.id);
+                                                                                    handlePropertyFieldChange(p.id, 'maintenanceTimeline', newList);
+                                                                                    const newGenList = (p.timeline || []).filter(t => t.id !== evt.id);
+                                                                                    handlePropertyFieldChange(p.id, 'timeline', newGenList);
+                                                                                }
+                                                                            }}
+                                                                            className="opacity-0 group-hover:opacity-100 p-1 text-slate-300 hover:text-red-500 transition-all"
+                                                                            title="Borrar"
+                                                                        >
+                                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                                        </button>
+                                                                    </div>
+                                                                    <p className="text-sm font-bold text-slate-700 leading-relaxed">{evt.text}</p>
                                                                 </div>
                                                             </div>
                                                         ))}
+                                                        {(!(p.maintenanceTimeline?.length) && !(p.timeline?.filter(t => t.type === 'incident' || t.type === 'maintenance').length)) && (
+                                                            <p className="text-sm italic text-slate-300 py-4">Sin incidencias activas en esta propiedad.</p>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {/* Sección: Historial General de la Propiedad */}
+                                                <div className="bg-white p-8 rounded-3xl border-2 border-slate-100">
+                                                    <div className="flex justify-between items-center mb-8">
+                                                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                                            <Clock className="w-4 h-4 text-blue-500" /> Bitácora General (Propiedad)
+                                                        </h4>
+                                                        <button
+                                                            onClick={() => {
+                                                                const text = prompt("Nueva nota para el historial general:");
+                                                                if (text) {
+                                                                    const newEvt = { id: `hist_${Date.now()}`, date: new Date().toLocaleDateString('es-ES'), text, type: 'info' as const };
+                                                                    handlePropertyFieldChange(p.id, 'timeline', [...(p.timeline || []), newEvt]);
+                                                                }
+                                                            }}
+                                                            className="text-[9px] font-black text-blue-600 hover:text-blue-700 uppercase flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 transition-colors"
+                                                            title="Añadir Nota"
+                                                        >
+                                                            <Plus className="w-3 h-3" /> Añadir Nota
+                                                        </button>
+                                                    </div>
+
+                                                    <div className="bg-slate-50/50 rounded-2xl p-6 space-y-4">
+                                                        {(p.timeline || []).filter(t => t.type !== 'incident' && t.type !== 'maintenance').sort((a, b) => b.id.localeCompare(a.id)).map(evt => (
+                                                            <div key={evt.id} className="flex gap-4 items-start group">
+                                                                <span className="text-[10px] font-mono text-slate-400 shrink-0 mt-0.5">{evt.date}</span>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <p className="text-xs font-medium text-slate-600 leading-relaxed">{evt.text}</p>
+                                                                </div>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        if (confirm('¿Borrar nota del historial?')) {
+                                                                            const newList = (p.timeline || []).filter(t => t.id !== evt.id);
+                                                                            handlePropertyFieldChange(p.id, 'timeline', newList);
+                                                                        }
+                                                                    }}
+                                                                    className="opacity-0 group-hover:opacity-100 p-1 text-slate-300 hover:text-red-500 transition-all"
+                                                                    title="Borrar Nota"
+                                                                >
+                                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                                </button>
+                                                            </div>
+                                                        ))}
+                                                        {(!(p.timeline?.filter(t => t.type !== 'incident' && t.type !== 'maintenance').length)) && (
+                                                            <p className="text-xs italic text-slate-300 text-center py-4">No hay notas registradas en el historial general.</p>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
@@ -1029,120 +1265,33 @@ export const RoomManager: React.FC = () => {
             </div>
 
 
-            {showExcelConfig && (
-                <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in" onClick={() => setShowExcelConfig(false)}>
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
-                        <div className="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-                            <div>
-                                <h3 className="text-xl font-black text-slate-800 flex items-center gap-2">
-                                    <FileSpreadsheet className="w-6 h-6 text-green-600" />
-                                    Exportar Excel
-                                </h3>
-                                <p className="text-[10px] font-black uppercase text-slate-400">Personaliza el contenido del informe</p>
+            {
+                <ExcelExportModal
+                    isOpen={showExcelConfig}
+                    onClose={() => setShowExcelConfig(false)}
+                    properties={properties}
+                    ownersMap={ownersMap}
+                />
+            }
+
+            {
+                docPreview.isOpen && (
+                    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-in fade-in" onClick={() => setDocPreview({ ...docPreview, isOpen: false })}>
+                        <div className="bg-white rounded-3xl shadow-2xl w-full max-w-6xl h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
+                            <div className="p-4 border-b flex justify-between items-center bg-slate-50">
+                                <h3 className="font-black text-slate-800 uppercase tracking-tight flex items-center gap-2"><FileText className="w-5 h-5 text-blue-600" /> {docPreview.title}</h3>
+                                <button onClick={() => setDocPreview({ ...docPreview, isOpen: false })} className="p-2 hover:bg-slate-200 rounded-full transition-colors"><X className="w-6 h-6 text-slate-500" /></button>
                             </div>
-                            <button onClick={() => setShowExcelConfig(false)} className="p-2 hover:bg-slate-200 rounded-full transition-colors" title="Cerrar"><X className="w-5 h-5 text-slate-400" /></button>
-                        </div>
-
-                        <div className="p-8 space-y-8">
-                            {/* Seccion: Contenido */}
-                            <div>
-                                <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><Settings className="w-4 h-4" /> Datos a Incluir</h4>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <label className="flex items-center gap-3 p-3 rounded-xl border-2 border-slate-100 cursor-pointer hover:border-blue-200 transition-colors">
-                                        <input type="checkbox" className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500" checked={excelConfig.includeTenantInfo} onChange={e => setExcelConfig({ ...excelConfig, includeTenantInfo: e.target.checked })} />
-                                        <span className="text-sm font-bold text-slate-700">Datos Inquilino</span>
-                                    </label>
-                                    <label className="flex items-center gap-3 p-3 rounded-xl border-2 border-slate-100 cursor-pointer hover:border-blue-200 transition-colors">
-                                        <input type="checkbox" className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500" checked={excelConfig.includeFinancials} onChange={e => setExcelConfig({ ...excelConfig, includeFinancials: e.target.checked })} />
-                                        <span className="text-sm font-bold text-slate-700">Datos Económicos</span>
-                                    </label>
-                                    <label className="flex items-center gap-3 p-3 rounded-xl border-2 border-slate-100 cursor-pointer hover:border-blue-200 transition-colors">
-                                        <input type="checkbox" className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500" checked={excelConfig.includeOwnerInfo} onChange={e => setExcelConfig({ ...excelConfig, includeOwnerInfo: e.target.checked })} />
-                                        <span className="text-sm font-bold text-slate-700">Datos Propietario</span>
-                                    </label>
-                                    <label className="flex items-center gap-3 p-3 rounded-xl border-2 border-slate-100 cursor-pointer hover:border-blue-200 transition-colors">
-                                        <input type="checkbox" className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500" checked={excelConfig.includeCleaningInfo} onChange={e => setExcelConfig({ ...excelConfig, includeCleaningInfo: e.target.checked })} />
-                                        <span className="text-sm font-bold text-slate-700">Datos Limpieza</span>
-                                    </label>
-                                    <label className="flex items-center gap-3 p-3 rounded-xl border-2 border-slate-100 cursor-pointer hover:border-blue-200 transition-colors">
-                                        <input type="checkbox" className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500" checked={excelConfig.includeTimelines} onChange={e => setExcelConfig({ ...excelConfig, includeTimelines: e.target.checked })} />
-                                        <span className="text-sm font-bold text-slate-700">Historial Completo</span>
-                                    </label>
-                                </div>
+                            <div className="flex-1 bg-slate-800 relative">
+                                {docPreview.url ? <iframe src={docPreview.url} className="w-full h-full border-none" title="Vista previa" allow="autoplay" /> : <div className="absolute inset-0 flex items-center justify-center text-white italic">Error al cargar documento</div>}
                             </div>
-
-                            {/* Seccion: Agrupación */}
-                            <div>
-                                <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><MapPin className="w-4 h-4" /> Organización de Pestañas</h4>
-                                <div className="space-y-3">
-                                    <label className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all cursor-pointer ${excelConfig.groupBy === 'none' ? 'border-blue-500 bg-blue-50/50 shadow-lg shadow-blue-500/10' : 'border-slate-100 hover:border-slate-200'}`}>
-                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${excelConfig.groupBy === 'none' ? 'border-blue-600' : 'border-slate-300'}`}>
-                                            {excelConfig.groupBy === 'none' && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
-                                        </div>
-                                        <input type="radio" name="groupBy" value="none" className="hidden" checked={excelConfig.groupBy === 'none'} onChange={() => setExcelConfig({ ...excelConfig, groupBy: 'none' })} />
-                                        <div>
-                                            <p className="font-bold text-slate-800 text-sm">Hoja Única</p>
-                                            <p className="text-[10px] uppercase font-black text-slate-400">Todo el listado en una sola pestaña</p>
-                                        </div>
-                                    </label>
-
-                                    <label className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all cursor-pointer ${excelConfig.groupBy === 'city' ? 'border-blue-500 bg-blue-50/50 shadow-lg shadow-blue-500/10' : 'border-slate-100 hover:border-slate-200'}`}>
-                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${excelConfig.groupBy === 'city' ? 'border-blue-600' : 'border-slate-300'}`}>
-                                            {excelConfig.groupBy === 'city' && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
-                                        </div>
-                                        <input type="radio" name="groupBy" value="city" className="hidden" checked={excelConfig.groupBy === 'city'} onChange={() => setExcelConfig({ ...excelConfig, groupBy: 'city' })} />
-                                        <div>
-                                            <p className="font-bold text-slate-800 text-sm">Pestañas por Ciudad</p>
-                                            <p className="text-[10px] uppercase font-black text-slate-400">Una hoja separada para cada ciudad</p>
-                                        </div>
-                                    </label>
-
-                                    <label className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all cursor-pointer ${excelConfig.groupBy === 'topic' ? 'border-blue-500 bg-blue-50/50 shadow-lg shadow-blue-500/10' : 'border-slate-100 hover:border-slate-200'}`}>
-                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${excelConfig.groupBy === 'topic' ? 'border-blue-600' : 'border-slate-300'}`}>
-                                            {excelConfig.groupBy === 'topic' && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
-                                        </div>
-                                        <input type="radio" name="groupBy" value="topic" className="hidden" checked={excelConfig.groupBy === 'topic'} onChange={() => setExcelConfig({ ...excelConfig, groupBy: 'topic' })} />
-                                        <div>
-                                            <p className="font-bold text-slate-800 text-sm">Pestañas Temáticas</p>
-                                            <p className="text-[10px] uppercase font-black text-slate-400">Estado, Financiero, Contactos...</p>
-                                        </div>
-                                    </label>
-                                </div>
+                            <div className="p-4 bg-white border-t flex justify-end">
+                                <button onClick={() => window.open(docPreview.url, '_blank')} className="bg-slate-900 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 text-sm"><ExternalLink className="w-4 h-4" /> ABRIR EN DRIVE</button>
                             </div>
-                        </div>
-
-                        <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
-                            <button onClick={() => setShowExcelConfig(false)} className="px-6 py-3 rounded-xl font-bold text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors text-xs uppercase tracking-wider">Cancelar</button>
-                            <button
-                                onClick={async () => {
-                                    await generateExcelReport(properties, excelConfig, ownersMap);
-                                    setShowExcelConfig(false);
-                                }}
-                                className="px-8 py-3 rounded-xl font-black bg-green-600 text-white hover:bg-green-700 shadow-xl shadow-green-600/20 active:scale-95 transition-all text-xs uppercase tracking-wider flex items-center gap-2"
-                            >
-                                <FileSpreadsheet className="w-4 h-4" /> Generar Excel
-                            </button>
                         </div>
                     </div>
-                </div>
-            )}
-
-            {docPreview.isOpen && (
-                <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-in fade-in" onClick={() => setDocPreview({ ...docPreview, isOpen: false })}>
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-6xl h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
-                        <div className="p-4 border-b flex justify-between items-center bg-slate-50">
-                            <h3 className="font-black text-slate-800 uppercase tracking-tight flex items-center gap-2"><FileText className="w-5 h-5 text-blue-600" /> {docPreview.title}</h3>
-                            <button onClick={() => setDocPreview({ ...docPreview, isOpen: false })} className="p-2 hover:bg-slate-200 rounded-full transition-colors"><X className="w-6 h-6 text-slate-500" /></button>
-                        </div>
-                        <div className="flex-1 bg-slate-800 relative">
-                            {docPreview.url ? <iframe src={docPreview.url} className="w-full h-full border-none" title="Vista previa" allow="autoplay" /> : <div className="absolute inset-0 flex items-center justify-center text-white italic">Error al cargar documento</div>}
-                        </div>
-                        <div className="p-4 bg-white border-t flex justify-end">
-                            <button onClick={() => window.open(docPreview.url, '_blank')} className="bg-slate-900 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 text-sm"><ExternalLink className="w-4 h-4" /> ABRIR EN DRIVE</button>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 };

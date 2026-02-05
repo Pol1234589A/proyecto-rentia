@@ -5,6 +5,8 @@ import { Opportunity } from '../types';
 import { TrendingUp, MapPin, Bed, Maximize, ArrowRight, X, ChevronLeft, ChevronRight, Phone, Download, Printer, Lock, Globe, Scale, AlertTriangle, Loader2 } from 'lucide-react';
 import { ImageLightbox } from './ImageLightbox';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useConfig } from '../contexts/ConfigContext';
+
 
 // Helper Component for Loading State
 const ImageWithLoader = ({ src, alt, className, onClick }: { src: string, alt: string, className?: string, onClick?: (e: React.MouseEvent) => void }) => {
@@ -41,7 +43,9 @@ export const InvestorDossier: React.FC<InvestorDossierProps> = ({ opportunities 
 
     const router = useRouter();
     const searchParams = useSearchParams();
+    const config = useConfig();
     const oppId = searchParams.get('opp');
+
 
     const selectedOpportunity = useMemo(() => {
         return opportunities.find(o => o.id === oppId) || null;
@@ -230,7 +234,8 @@ export const InvestorDossier: React.FC<InvestorDossierProps> = ({ opportunities 
                             {/* CTA Sticky Footer style inside scroll */}
                             <div className="mt-12 pt-8 border-t border-slate-200">
                                 <a
-                                    href={`https://api.whatsapp.com/send?phone=34672886369&text=Hola,%20me%20interesa%20la%20oportunidad%20${opp.id}%20(${encodeURIComponent(opp.title)})`}
+                                    href={`https://api.whatsapp.com/send?phone=${config.directorContact.phone}&text=Hola,%20me%20interesa%20la%20oportunidad%20${opp.id}%20(${encodeURIComponent(opp.title)})`}
+
                                     target="_blank"
                                     rel="noreferrer"
                                     className="w-full bg-rentia-black text-white py-4 rounded-xl font-bold text-lg hover:bg-slate-800 transition-all flex items-center justify-center gap-2 shadow-lg"

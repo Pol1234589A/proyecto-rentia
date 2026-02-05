@@ -9,11 +9,15 @@ import { db } from '../firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { PropertySubmissionForm } from './collaborators/PropertySubmissionForm';
 import { useRouter } from 'next/navigation';
+import { useConfig } from '../contexts/ConfigContext';
+
 
 // interface BrokerViewProps removed as it is empty
 export const BrokerView: React.FC = () => {
     const { t } = useLanguage();
     const router = useRouter();
+    const config = useConfig();
+
     const [activeTab, setActiveTab] = useState<'requests' | 'submission'>('requests');
     const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
     const [searchTerm, setSearchTerm] = useState('');
@@ -579,7 +583,8 @@ export const BrokerView: React.FC = () => {
                         {/* Footer Modal */}
                         <div className="p-4 bg-gray-50 border-t border-gray-100 flex flex-col gap-2">
                             <a
-                                href={`https://api.whatsapp.com/send?phone=34672886369&text=Hola,%20tengo%20un%20inmueble%20que%20encaja%20con%20la%20referencia%20${selectedRequest.reference}.`}
+                                href={`https://api.whatsapp.com/send?phone=${config.directorContact.phone}&text=Hola,%20tengo%20un%20inmueble%20que%20encaja%20con%20la%20referencia%20${selectedRequest.reference}.`}
+
                                 target="_blank"
                                 rel="noreferrer"
                                 className="w-full bg-rentia-black text-white font-bold py-3 px-4 rounded-xl hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 shadow-lg"

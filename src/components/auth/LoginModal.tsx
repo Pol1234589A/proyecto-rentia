@@ -5,6 +5,8 @@ import { auth, db } from '../../firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, sendEmailVerification } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useConfig } from '../../contexts/ConfigContext';
+
 
 interface LoginModalProps {
     isOpen: boolean;
@@ -20,6 +22,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const { t } = useLanguage();
+    const config = useConfig();
+
 
     if (!isOpen) return null;
 
@@ -144,7 +148,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
         }
     };
 
-    const whatsappResetLink = `https://api.whatsapp.com/send?phone=34672886369&text=Hola,%20soy%20cliente%20y%20he%20olvidado%20mi%20contrase%C3%B1a%20de%20acceso%20al%20%C3%A1rea%20privada.`;
+    const whatsappResetLink = `https://api.whatsapp.com/send?phone=${config.directorContact.phone}&text=Hola,%20soy%20cliente%20y%20he%20olvidado%20mi%20contrase%C3%B1a%20de%20acceso%20al%20%C3%A1rea%20privada.`;
+
 
     return (
         <div className="fixed inset-0 z-[10002] flex items-center justify-center p-4">

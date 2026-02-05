@@ -5,6 +5,17 @@ export interface PDFOptions {
     showOnlyAvailable?: boolean;
 }
 
+const isDatePast = (dateStr?: string) => {
+    if (!dateStr || dateStr === 'Consultar' || dateStr === 'Inmediata') return false;
+    try {
+        const parts = dateStr.split('/');
+        if (parts.length !== 3) return false;
+        const [day, month, year] = parts.map(Number);
+        const target = new Date(year, month - 1, day, 23, 59, 59);
+        return target < new Date();
+    } catch (e) { return false; }
+};
+
 export const generatePropertySummaryPDF = async (properties: Property[], options: PDFOptions = { mode: 'internal' }) => {
     if (typeof window === 'undefined') return;
     const html2pdf = (await import('html2pdf.js')).default;
@@ -119,6 +130,9 @@ export const generatePropertySummaryPDF = async (properties: Property[], options
         .val-percent { background: #fdf2f7; color: #9d174d; }
         .val-profit { background: #ecfdf5; color: #065f46; border: 1px solid #6ee7b7; }
         .val-alert { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+        .val-success { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+        .val-slate { background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; }
+        .val-warning { background: #fffbeb; color: #d97706; border: 1px solid #fef3c7; }
         
         .feature-tag {
             display: inline-flex;
@@ -243,6 +257,13 @@ export const generatePropertySummaryPDF = async (properties: Property[], options
                 <div class="property-address">${displayAddress}</div>
                 <div class="property-meta">${rooms.length} HABITACIONES ${!isCommercial ? `• ${propOccupied} ALQUILADAS` : ''}</div>
             </div>
+            ${!isCommercial ? `
+                <div style="margin-bottom: 20px; padding: 10px 25px; background: #f1f5f9; border-radius: 12px; font-size: 10px; color: #475569; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div><b>PROPIETARIO:</b> ${prop.ownerName || 'No registrado'} (${prop.ownerPhone || '-'})</div>
+                    <div><b>LIMPIEZA:</b> ${prop.cleaningConfig?.enabled ? `${prop.cleaningConfig.cleanerName} (${prop.cleaningConfig.cleanerPhone || '-'})` : 'No contratada'}</div>
+                    <div style="grid-column: span 2;"><b>NOTAS GESTIÓN:</b> ${prop.internalNotes || '---'}</div>
+                </div>
+            ` : ''}
             <table>
                 <thead>
                     <tr>
@@ -274,11 +295,29 @@ export const generatePropertySummaryPDF = async (properties: Property[], options
             if (r.features?.includes('wifi')) features.push('WiFi');
             if (r.features?.includes('exterior')) features.push('Exterior');
 
+            // Status Pill Logic
+            let statusLabel = 'LIBRE';
+            let statusPillClass = 'val-success';
+
+            if (r.status === 'occupied') {
+                const contractEndDate = (r.tenant?.endDate && r.tenant.endDate !== '-') ? r.tenant.endDate : r.availableFrom;
+                const isExpired = isDatePast(contractEndDate);
+                statusLabel = isExpired ? 'VENCIDO' : 'ALQUILADA';
+                statusPillClass = isExpired ? 'val-alert' : 'val-slate';
+            } else if (r.status === 'reserved') {
+                statusLabel = 'RESERVADA';
+                statusPillClass = 'val-warning';
+            }
+
             return `
                             <tr>
                                 <td style="color: #0f172a; font-size: 14px;">
-                                    ${r.name?.replace(/Habitación\s*/i, 'H')}
-                                    ${!isCommercial && r.isNonPayment ? '<span class="val-pill val-alert" style="margin-left: 10px; font-size: 8px;">IMPAGO</span>' : ''}
+                                    <div style="font-weight: 900; margin-bottom: 4px;">${r.name?.replace(/Habitación\s*/i, 'H')}</div>
+                                    <div style="display: flex; gap: 5px; flex-wrap: wrap; align-items: center;">
+                                        ${!isCommercial ? `<span class="val-pill ${statusPillClass}" style="font-size: 8px;">${statusLabel}</span>` : ''}
+                                        ${!isCommercial && r.tenant?.endDate ? `<span style="font-size: 10px; color: #64748B; font-weight: 900; margin-left: 5px;">FIN: ${r.tenant.endDate}</span>` : ''}
+                                        ${!isCommercial && r.isNonPayment ? '<span class="val-pill val-alert" style="font-size: 8px;">IMPAGO</span>' : ''}
+                                    </div>
                                 </td>
                                 ${isCommercial ? `
                                     <td>
@@ -440,20 +479,22 @@ export const generateCompanyConditionsPDF = async (config: any) => {
         }
 
         .section {
-            margin-bottom: 25px;
+            margin-bottom: 30px;
+            page-break-inside: avoid;
+            break-inside: avoid;
         }
         .section-title {
             display: flex;
             align-items: center;
             gap: 10px;
             color: #0f172a;
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 900;
             text-transform: uppercase;
             letter-spacing: 1px;
             margin-bottom: 15px;
             padding-bottom: 8px;
-            border-bottom: 1px solid #f1f5f9;
+            border-bottom: 2px solid #f1f5f9;
         }
         .section-content {
             font-size: 11px;
@@ -463,17 +504,20 @@ export const generateCompanyConditionsPDF = async (config: any) => {
             line-height: 1.6;
         }
 
-        /* Grid for Marketing/Owners */
+        /* Grid for Marketing/Owners - Better compatibility with html2pdf */
         .data-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
             margin-top: 15px;
         }
         .data-card {
-            padding: 16px;
+            flex: 0 0 calc(50% - 10px);
+            padding: 20px;
             border-radius: 12px;
             page-break-inside: avoid;
+            break-inside: avoid;
+            box-sizing: border-box;
         }
         .card-mkt { background: #fff1f2; border: 1px solid #fecdd3; }
         .card-own { background: #f8fafc; border: 1px solid #e2e8f0; border-top: 4px solid #0072CE; }
@@ -569,7 +613,7 @@ export const generateCompanyConditionsPDF = async (config: any) => {
         let stepsHtml = '';
         config.roadmap.forEach((step: any, i: number) => {
             stepsHtml += `
-                <div style="display: flex; gap: 20px; margin-bottom: 25px; position: relative; align-items: flex-start;">
+                <div style="display: flex; gap: 20px; margin-bottom: 25px; position: relative; align-items: flex-start; page-break-inside: avoid; break-inside: avoid;">
                     <div style="flex-shrink: 0; width: 32px; height: 32px; background: #0072CE; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; z-index: 2; line-height: 1;">${i + 1}</div>
                     ${i < config.roadmap.length - 1 ? '<div style="position: absolute; left: 15px; top: 32px; bottom: -25px; width: 2px; background: #e2e8f0; z-index: 1;"></div>' : ''}
                     <div style="padding-top: 4px;">
